@@ -52,6 +52,20 @@ interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
 }
 
+interface IERC7540 {
+    function asset() external view returns (address);
+    function maxMint(address controller) external view returns (uint256 shares);
+    function maxWithdraw(address controller) external view returns (uint256 assets);
+    function mint(uint256 shares, address receiver, address controller) external returns (uint256);
+    function requestDeposit(uint256 assets, address controller, address owner)
+        external returns (uint256);
+    function requestRedeem(uint256 shares, address controller, address owner)
+        external returns (uint256);
+    function share() external view returns (address);
+    function withdraw(uint256 assets, address receiver, address controller)
+        external returns (uint256);
+}
+
 contract MainnetController is AccessControl {
 
     /**********************************************************************************************/
@@ -81,6 +95,8 @@ contract MainnetController is AccessControl {
 
     bytes32 public constant LIMIT_4626_DEPOSIT   = keccak256("LIMIT_4626_DEPOSIT");
     bytes32 public constant LIMIT_4626_WITHDRAW  = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public constant LIMIT_7540_DEPOSIT   = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public constant LIMIT_7540_REDEEM    = keccak256("LIMIT_7540_REDEEM");
     bytes32 public constant LIMIT_AAVE_DEPOSIT   = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW  = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -160,6 +176,14 @@ contract MainnetController is AccessControl {
 
     modifier rateLimited(bytes32 key, uint256 amount) {
         rateLimits.triggerRateLimitDecrease(key, amount);
+        _;
+    }
+
+    modifier rateLimitExists(bytes32 key, address asset) {
+        require(
+            rateLimits.getRateLimitData(RateLimitHelpers.makeAssetKey(key, asset)).maxAmount > 0,
+            "MainnetController/invalid-action"
+        );
         _;
     }
 
@@ -300,6 +324,81 @@ contract MainnetController is AccessControl {
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
             assets
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer ERC7540 functions                                                              ***/
+    /**********************************************************************************************/
+
+    function requestDepositERC7540(address token, uint256 amount)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimited(
+            RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token),
+            amount
+        )
+    {
+        // Note that whitelist is done by rate limits
+        IERC20 asset = IERC20(IERC7540(token).asset());
+
+        // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
+        proxy.doCall(
+            address(asset),
+            abi.encodeCall(asset.approve, (token, amount))
+        );
+
+        // Submit deposit request by transferring assets
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC7540(token).requestDeposit, (amount, address(proxy), address(proxy)))
+        );
+    }
+
+    function claimDepositERC7540(address token)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(LIMIT_7540_DEPOSIT, token)
+    {
+        uint256 shares = IERC7540(token).maxMint(address(proxy));
+
+        // Claim shares from the vault to the proxy
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC7540(token).mint, (shares, address(proxy), address(proxy)))
+        );
+    }
+
+    function requestRedeemERC7540(address token, uint256 amount)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimited(
+            RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token),
+            amount
+        )
+    {
+        // Submit redeem request by transferring shares
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC7540(token).requestRedeem, (amount, address(proxy), address(proxy)))
+        );
+    }
+
+    function claimRedeemERC7540(address token)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(LIMIT_7540_REDEEM, token)
+    {
+        uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
+
+        // Claim assets from the vault to the proxy
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC7540(token).withdraw, (assets, address(proxy), address(proxy)))
         );
     }
 
