@@ -271,10 +271,7 @@ contract MainnetController is AccessControl {
         IERC20 asset = IERC20(IERC4626(token).asset());
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        proxy.doCall(
-            address(asset),
-            abi.encodeCall(asset.approve, (token, amount))
-        );
+        _approve(address(asset), token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares
         shares = abi.decode(
@@ -344,10 +341,7 @@ contract MainnetController is AccessControl {
         IERC20 asset = IERC20(IERC7540(token).asset());
 
         // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
-        proxy.doCall(
-            address(asset),
-            abi.encodeCall(asset.approve, (token, amount))
-        );
+        _approve(address(asset), token, amount);
 
         // Submit deposit request by transferring assets
         proxy.doCall(
@@ -419,10 +413,7 @@ contract MainnetController is AccessControl {
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        proxy.doCall(
-            address(underlying),
-            abi.encodeCall(underlying.approve, (address(pool), amount))
-        );
+        _approve(address(underlying), address(pool), amount);
 
         // Deposit underlying into Aave pool, proxy receives aTokens
         proxy.doCall(
@@ -478,19 +469,13 @@ contract MainnetController is AccessControl {
     function prepareUSDeMint(uint256 usdcAmount)
         external onlyRole(RELAYER) isActive rateLimited(LIMIT_USDE_MINT, usdcAmount)
     {
-        proxy.doCall(
-            address(usdc),
-            abi.encodeCall(usdc.approve, (address(ethenaMinter), usdcAmount))
-        );
+        _approve(address(usdc), address(ethenaMinter), usdcAmount);
     }
 
     function prepareUSDeBurn(uint256 usdeAmount)
         external onlyRole(RELAYER) isActive rateLimited(LIMIT_USDE_BURN, usdeAmount)
     {
-        proxy.doCall(
-            address(usde),
-            abi.encodeCall(usde.approve, (address(ethenaMinter), usdeAmount))
-        );
+        _approve(address(usde), address(ethenaMinter), usdeAmount);
     }
 
     function cooldownAssetsSUSDe(uint256 usdeAmount)
@@ -503,10 +488,10 @@ contract MainnetController is AccessControl {
     }
 
     // NOTE: !!! Rate limited at end of function !!!
-    function cooldownSharesSUSDe(uint256 susdeAmount) 
+    function cooldownSharesSUSDe(uint256 susdeAmount)
         external
-        onlyRole(RELAYER) 
-        isActive 
+        onlyRole(RELAYER)
+        isActive
         returns (uint256 cooldownAmount)
     {
         cooldownAmount = abi.decode(
@@ -539,10 +524,7 @@ contract MainnetController is AccessControl {
         uint256 usdsAmount = usdcAmount * psmTo18ConversionFactor;
 
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        proxy.doCall(
-            address(usds),
-            abi.encodeCall(usds.approve, (address(daiUsds), usdsAmount))
-        );
+        _approve(address(usds), address(daiUsds), usdsAmount);
 
         // Swap USDS to DAI 1:1
         proxy.doCall(
@@ -551,10 +533,7 @@ contract MainnetController is AccessControl {
         );
 
         // Approve DAI to PSM from the proxy because conversion from USDS to DAI was 1:1
-        proxy.doCall(
-            address(dai),
-            abi.encodeCall(dai.approve, (address(psm), usdsAmount))
-        );
+        _approve(address(dai), address(psm), usdsAmount);
 
         // Swap DAI to USDC through the PSM
         proxy.doCall(
@@ -567,10 +546,7 @@ contract MainnetController is AccessControl {
         external onlyRole(RELAYER) isActive cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount)
     {
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
-        proxy.doCall(
-            address(usdc),
-            abi.encodeCall(usdc.approve, (address(psm), usdcAmount))
-        );
+        _approve(address(usdc), address(psm), usdcAmount);
 
         // Max USDC that can be swapped to DAI in one call
         uint256 limit = dai.balanceOf(address(psm)) / psmTo18ConversionFactor;
@@ -601,10 +577,7 @@ contract MainnetController is AccessControl {
         uint256 daiAmount = usdcAmount * psmTo18ConversionFactor;
 
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        proxy.doCall(
-            address(dai),
-            abi.encodeCall(dai.approve, (address(daiUsds), daiAmount))
-        );
+        _approve(address(dai), address(daiUsds), daiAmount);
 
         // Swap DAI to USDS 1:1
         proxy.doCall(
@@ -632,10 +605,7 @@ contract MainnetController is AccessControl {
         require(mintRecipient != 0, "MainnetController/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        proxy.doCall(
-            address(usdc),
-            abi.encodeCall(usdc.approve, (address(cctp), usdcAmount))
-        );
+        _approve(address(usdc), address(cctp), usdcAmount);
 
         // If amount is larger than limit it must be split into multiple calls
         uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
@@ -654,6 +624,10 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/
     /**********************************************************************************************/
+
+    function _approve(address token, address spender, uint256 amount) internal {
+        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+    }
 
     function _initiateCCTPTransfer(
         uint256 usdcAmount,

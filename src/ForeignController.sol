@@ -147,10 +147,7 @@ contract ForeignController is AccessControl {
         returns (uint256 shares)
     {
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
-        proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20.approve, (address(psm), amount))
-        );
+        _approve(asset, address(psm), amount);
 
         // Deposit `amount` of `asset` in the PSM, decode the result to get `shares`.
         shares = abi.decode(
@@ -206,13 +203,10 @@ contract ForeignController is AccessControl {
 
         require(mintRecipient != 0, "ForeignController/domain-not-configured");
 
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        proxy.doCall(
-            address(usdc),
-            abi.encodeCall(usdc.approve, (address(cctp), usdcAmount))
-        );
+        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
+        _approve(address(usdc), address(cctp), usdcAmount);
 
-        // If amount is larger than limit it must be split into multiple calls
+        // If amount is larger than limit it must be split into multiple calls.
         uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
 
         while (usdcAmount > burnLimit) {
@@ -240,16 +234,13 @@ contract ForeignController is AccessControl {
         )
         returns (uint256 shares)
     {
-        // Note that whitelist is done by rate limits
+        // Note that whitelist is done by rate limits.
         IERC20 asset = IERC20(IERC4626(token).asset());
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        proxy.doCall(
-            address(asset),
-            abi.encodeCall(asset.approve, (token, amount))
-        );
+        _approve(address(asset), token, amount);
 
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares
+        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
             proxy.doCall(
                 token,
@@ -317,12 +308,9 @@ contract ForeignController is AccessControl {
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        proxy.doCall(
-            address(underlying),
-            abi.encodeCall(underlying.approve, (address(pool), amount))
-        );
+        _approve(address(underlying), address(pool), amount);
 
-        // Deposit underlying into Aave pool, proxy receives aTokens
+        // Deposit underlying into Aave pool, proxy receives aTokens.
         proxy.doCall(
             address(pool),
             abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
@@ -357,6 +345,10 @@ contract ForeignController is AccessControl {
     /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/
     /**********************************************************************************************/
+
+    function _approve(address token, address spender, uint256 amount) internal {
+        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+    }
 
     function _initiateCCTPTransfer(
         uint256 usdcAmount,
