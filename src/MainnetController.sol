@@ -48,6 +48,16 @@ interface IPSMLike {
     function to18ConversionFactor() external view returns (uint256);
 }
 
+interface IUSTBLike is IERC20 {
+    function subscribe(uint256 inAmount, address stablecoin) external;
+}
+
+interface ISSRedemptionLike is IERC20 {
+    function calculateUsdcOut(uint256 ustbAmount)
+        external view returns (uint256 usdcOutAmount, uint256 usdPerUstbChainlinkRaw);
+    function redeem(uint256 ustbAmout) external;
+}
+
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
 }
@@ -93,19 +103,21 @@ contract MainnetController is AccessControl {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_4626_DEPOSIT   = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public constant LIMIT_4626_WITHDRAW  = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public constant LIMIT_7540_DEPOSIT   = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public constant LIMIT_7540_REDEEM    = keccak256("LIMIT_7540_REDEEM");
-    bytes32 public constant LIMIT_AAVE_DEPOSIT   = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public constant LIMIT_AAVE_WITHDRAW  = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public constant LIMIT_SUSDE_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
-    bytes32 public constant LIMIT_USDC_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
-    bytes32 public constant LIMIT_USDE_BURN      = keccak256("LIMIT_USDE_BURN");
-    bytes32 public constant LIMIT_USDE_MINT      = keccak256("LIMIT_USDE_MINT");
-    bytes32 public constant LIMIT_USDS_MINT      = keccak256("LIMIT_USDS_MINT");
-    bytes32 public constant LIMIT_USDS_TO_USDC   = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 public constant LIMIT_4626_DEPOSIT         = keccak256("LIMIT_4626_DEPOSIT");
+    bytes32 public constant LIMIT_4626_WITHDRAW        = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public constant LIMIT_7540_DEPOSIT         = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public constant LIMIT_7540_REDEEM          = keccak256("LIMIT_7540_REDEEM");
+    bytes32 public constant LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
+    bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
+    bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public constant LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public constant LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public constant LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
+    bytes32 public constant LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
+    bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
+    bytes32 public constant LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
 
     address public immutable buffer;
 
@@ -115,12 +127,14 @@ contract MainnetController is AccessControl {
     IEthenaMinterLike public immutable ethenaMinter;
     IPSMLike          public immutable psm;
     IRateLimits       public immutable rateLimits;
+    ISSRedemptionLike public immutable superstateRedemption;
     IVaultLike        public immutable vault;
 
     IERC20     public immutable dai;
     IERC20     public immutable usds;
     IERC20     public immutable usde;
     IERC20     public immutable usdc;
+    IUSTBLike  public immutable ustb;
     ISUSDELike public immutable susde;
 
     uint256 public immutable psmTo18ConversionFactor;
@@ -152,9 +166,11 @@ contract MainnetController is AccessControl {
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
 
-        ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
+        ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
+        superstateRedemption = ISSRedemptionLike(Ethereum.SUPERSTATE_REDEMPTION);
 
         susde = ISUSDELike(Ethereum.SUSDE);
+        ustb  = IUSTBLike(Ethereum.USTB);
         dai   = IERC20(daiUsds.dai());
         usdc  = IERC20(psm.gem());
         usds  = IERC20(Ethereum.USDS);
@@ -509,6 +525,38 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             address(susde),
             abi.encodeCall(susde.unstake, (address(proxy)))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Superstate functions                                                           ***/
+    /**********************************************************************************************/
+
+    function subscribeSuperstate(uint256 usdcAmount)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount)
+    {
+        _approve(address(usdc), address(ustb), usdcAmount);
+
+        proxy.doCall(
+            address(ustb),
+            abi.encodeCall(ustb.subscribe, (usdcAmount, address(usdc)))
+        );
+    }
+
+    // NOTE: Rate limited outside of modifier because of tuple return
+    function redeemSuperstate(uint256 ustbAmount) external onlyRole(RELAYER) isActive {
+        ( uint256 usdcAmount, ) = superstateRedemption.calculateUsdcOut(ustbAmount);
+
+        rateLimits.triggerRateLimitDecrease(LIMIT_SUPERSTATE_REDEEM, usdcAmount);
+
+        _approve(address(ustb), address(superstateRedemption), ustbAmount);
+
+        proxy.doCall(
+            address(superstateRedemption),
+            abi.encodeCall(superstateRedemption.redeem, (ustbAmount))
         );
     }
 

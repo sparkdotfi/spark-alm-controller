@@ -56,6 +56,16 @@ interface IPSMLike {
     function rush() external view returns (uint256);
 }
 
+interface IUSTBLike is IERC20 {
+    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
+    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin) 
+        external view returns (
+            uint256 superstateTokenOutAmount, 
+            uint256 stablcoinInAmountAfterFee, 
+            uint256 feeOnStablecoinInAmount
+        );
+}
+
 interface IVaultLike {
     function rely(address) external;
     function wards(address) external returns (uint256);
@@ -105,6 +115,7 @@ contract ForkTestBase is DssTest {
     ISUsds constant susds = ISUsds(Ethereum.SUSDS);
 
     ISUSDELike constant susde = ISUSDELike(Ethereum.SUSDE);
+    IUSTBLike  constant ustb  = IUSTBLike(0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e);  // TODO: Registry
 
     IPSMLike constant psm = IPSMLike(PSM);
 
