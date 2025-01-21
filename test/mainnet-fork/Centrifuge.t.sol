@@ -30,7 +30,7 @@ interface IERC20Mintable is IERC20 {
     function mint(address to, uint256 amount) external;
 }
 
-interface IERC7540 {
+interface IERC7540 is IERC4626 {
     function claimableDepositRequest(uint256 requestId, address controller)
         external view returns (uint256 assets);
     function claimableRedeemRequest(uint256 requestId, address controller)
@@ -131,7 +131,7 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
         restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_DEPOSIT(), 
+            mainnetController.LIMIT_7540_DEPOSIT(),
             address(ltfVault)
         );
 
@@ -144,10 +144,10 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
-        assertEq(usdc.allowance(address(almProxy), address(ltfVault)), 0); 
+        assertEq(usdc.allowance(address(almProxy), address(ltfVault)), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6); 
-        assertEq(usdc.balanceOf(ESCROW),            0); 
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(ESCROW),            0);
 
         assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
@@ -156,9 +156,9 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
-        assertEq(usdc.allowance(address(almProxy), address(ltfVault)), 0); 
+        assertEq(usdc.allowance(address(almProxy), address(ltfVault)), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0); 
+        assertEq(usdc.balanceOf(address(almProxy)), 0);
         assertEq(usdc.balanceOf(ESCROW),            1_000_000e6);
 
         assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
@@ -205,15 +205,15 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_DEPOSIT(), 
+            mainnetController.LIMIT_7540_DEPOSIT(),
             address(ltfVault)
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(key, 1_500_000e6, uint256(1_500_000e6) / 1 days);
     }
 
-    function test_claimDepositERC7540() external {
+    function test_claimDepositERC7540_singleRequest() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
@@ -248,6 +248,57 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
 
         assertEq(ltfToken.balanceOf(ESCROW),            0);
         assertEq(ltfToken.balanceOf(address(almProxy)), 500_000e6);
+
+        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+    }
+
+
+    function test_claimDepositERC7540_multipleRequests() external {
+        deal(address(usdc), address(almProxy), 1_500_000e6);
+
+        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Request deposit into LTF by supplying USDC
+        vm.prank(relayer);
+        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
+
+        uint256 totalSupply = ltfToken.totalSupply();
+
+        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+
+        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
+        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Request another deposit into LTF by supplying more USDC
+        vm.prank(relayer);
+        mainnetController.requestDepositERC7540(address(ltfVault), 500_000e6);
+
+        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+
+        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
+        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Fulfill both requests at price 2.0
+        vm.prank(ROOT);
+        investmentManager.fulfillDepositRequest(LTF_POOL_ID, LTF_TRANCHE_ID, address(almProxy), USDC_ASSET_ID, 1_500_000e6, 750_000e6);
+
+        assertEq(ltfToken.totalSupply(),                totalSupply + 750_000e6);
+        assertEq(ltfToken.balanceOf(ESCROW),            750_000e6);
+        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+
+        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
+
+        // Claim shares
+        vm.prank(relayer);
+        mainnetController.claimDepositERC7540(address(ltfVault));
+
+        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(ltfToken.balanceOf(address(almProxy)), 750_000e6);
 
         assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
         assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
@@ -298,11 +349,17 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
         ltfToken.mint(address(almProxy), 1_000_000e6);
         vm.stopPrank();
 
+        uint256 overBoundaryShares = ltfVault.convertToShares(1_000_000e6 + 2);
+        uint256 atBoundaryShares   = ltfVault.convertToShares(1_000_000e6 + 1);
+
+        assertEq(ltfVault.convertToAssets(overBoundaryShares), 1_000_000e6 + 1);
+        assertEq(ltfVault.convertToAssets(atBoundaryShares),   1_000_000e6);
+
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6 + 1);
+        mainnetController.requestRedeemERC7540(address(ltfVault), overBoundaryShares);
 
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestRedeemERC7540(address(ltfVault), atBoundaryShares);
     }
 }
 
@@ -318,7 +375,7 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_REDEEM(), 
+            mainnetController.LIMIT_7540_REDEEM(),
             address(ltfVault)
         );
 
@@ -327,25 +384,29 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
     }
 
     function test_requestRedeemERC7540() external {
+        uint256 shares = ltfVault.convertToShares(1_000_000e6);
+
+        assertEq(shares, 951_771.227025e6);
+
         vm.prank(ROOT);
-        ltfToken.mint(address(almProxy), 1_000_000e6);
+        ltfToken.mint(address(almProxy), shares);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 1_000_000e6); 
-        assertEq(ltfToken.balanceOf(ESCROW),            0); 
+        assertEq(ltfToken.balanceOf(address(almProxy)), shares);
+        assertEq(ltfToken.balanceOf(ESCROW),            0);
 
         assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         vm.prank(relayer);
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestRedeemERC7540(address(ltfVault), shares);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+        assertEq(rateLimits.getCurrentRateLimit(key), 1);  // Rounding
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0); 
-        assertEq(ltfToken.balanceOf(ESCROW),            1_000_000e6);
+        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(ltfToken.balanceOf(ESCROW),            shares);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
+        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), shares);
     }
 
 }
@@ -390,15 +451,15 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_REDEEM(), 
+            mainnetController.LIMIT_7540_REDEEM(),
             address(ltfVault)
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(key, 2_000_000e6, uint256(2_000_000e6) / 1 days);
     }
 
-    function test_claimRedeemERC7540() external {
+    function test_claimRedeemERC7540_singleRequest() external {
         vm.prank(ROOT);
         ltfToken.mint(address(almProxy), 1_000_000e6);
 
@@ -428,7 +489,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         assertEq(ltfToken.totalSupply(),                totalSupply - 1_000_000e6);
         assertEq(ltfToken.balanceOf(address(almProxy)), 0);
         assertEq(ltfToken.balanceOf(ESCROW),            0);
-        
+
         assertEq(usdc.balanceOf(ESCROW),            2_000_000e6);
         assertEq(usdc.balanceOf(address(almProxy)), 0);
 
@@ -441,6 +502,64 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
 
         assertEq(usdc.balanceOf(ESCROW),            0);
         assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
+
+        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+    }
+
+    function test_claimRedeemERC7540_multipleRequests() external {
+        vm.prank(ROOT);
+        ltfToken.mint(address(almProxy), 1_500_000e6);
+
+        assertEq(ltfToken.balanceOf(address(almProxy)), 1_500_000e6);
+        assertEq(ltfToken.balanceOf(ESCROW),            0);
+
+        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Request LTF redemption
+        vm.prank(relayer);
+        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
+
+        uint256 totalSupply = ltfToken.totalSupply();
+
+        assertEq(ltfToken.balanceOf(address(almProxy)), 500_000e6);
+        assertEq(ltfToken.balanceOf(ESCROW),            1_000_000e6);
+
+        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
+        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Request another LTF redemption
+        vm.prank(relayer);
+        mainnetController.requestRedeemERC7540(address(ltfVault), 500_000e6);
+
+        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(ltfToken.balanceOf(ESCROW),            1_500_000e6);
+
+        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
+        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Fulfill both requests at price 2.0
+        deal(address(usdc), ESCROW, 3_000_000e6);
+        vm.prank(ROOT);
+        investmentManager.fulfillRedeemRequest(LTF_POOL_ID, LTF_TRANCHE_ID, address(almProxy), USDC_ASSET_ID, 3_000_000e6, 1_500_000e6);
+
+        assertEq(ltfToken.totalSupply(),                totalSupply - 1_500_000e6);
+        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(ltfToken.balanceOf(ESCROW),            0);
+
+        assertEq(usdc.balanceOf(ESCROW),            3_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 0);
+
+        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
+
+        // Claim assets
+        vm.prank(relayer);
+        mainnetController.claimRedeemERC7540(address(ltfVault));
+
+        assertEq(usdc.balanceOf(ESCROW),            0);
+        assertEq(usdc.balanceOf(address(almProxy)), 3_000_000e6);
 
         assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
         assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);

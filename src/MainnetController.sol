@@ -32,17 +32,10 @@ interface IDaiUsdsLike {
     function usdsToDai(address usr, uint256 wad) external;
 }
 
-interface IERC7540 {
-    function asset() external view returns (address);
-    function maxMint(address controller) external view returns (uint256 shares);
-    function maxWithdraw(address controller) external view returns (uint256 assets);
-    function mint(uint256 shares, address receiver, address controller) external returns (uint256);
+interface IERC7540 is IERC4626 {
     function requestDeposit(uint256 assets, address controller, address owner)
         external returns (uint256);
     function requestRedeem(uint256 shares, address controller, address owner)
-        external returns (uint256);
-    function share() external view returns (address);
-    function withdraw(uint256 assets, address receiver, address controller)
         external returns (uint256);
 }
 
@@ -201,14 +194,6 @@ contract MainnetController is AccessControl {
 
     modifier rateLimited(bytes32 key, uint256 amount) {
         rateLimits.triggerRateLimitDecrease(key, amount);
-        _;
-    }
-
-    modifier rateLimitExists(bytes32 key, address asset) {
-        require(
-            rateLimits.getRateLimitData(RateLimitHelpers.makeAssetKey(key, asset)).maxAmount > 0,
-            "MainnetController/invalid-action"
-        );
         _;
     }
 
@@ -398,30 +383,36 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimitExists(LIMIT_7540_DEPOSIT, token)
     {
+        bytes32 key = RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token);
+        require(
+            rateLimits.getRateLimitData(key).maxAmount > 0,
+            "MainnetController/invalid-action"
+        );
+        
         uint256 shares = IERC7540(token).maxMint(address(proxy));
 
         // Claim shares from the vault to the proxy
         proxy.doCall(
             token,
-            abi.encodeCall(IERC7540(token).mint, (shares, address(proxy), address(proxy)))
+            abi.encodeCall(IERC7540(token).mint, (shares, address(proxy)))
         );
     }
 
-    function requestRedeemERC7540(address token, uint256 amount)
+    function requestRedeemERC7540(address token, uint256 shares)
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token),
-            amount
-        )
     {
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token),
+            IERC7540(token).convertToAssets(shares)
+        );
+
         // Submit redeem request by transferring shares
         proxy.doCall(
             token,
-            abi.encodeCall(IERC7540(token).requestRedeem, (amount, address(proxy), address(proxy)))
+            abi.encodeCall(IERC7540(token).requestRedeem, (shares, address(proxy), address(proxy)))
         );
     }
 
@@ -429,8 +420,13 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimitExists(LIMIT_7540_REDEEM, token)
     {
+        bytes32 key = RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token);
+        require(
+            rateLimits.getRateLimitData(key).maxAmount > 0,
+            "MainnetController/invalid-action"
+        );
+        
         uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
 
         // Claim assets from the vault to the proxy
