@@ -249,11 +249,6 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
             slope     : uint256(1_000_000e6) / 4 hours
         });
 
-        RateLimitData memory standardUsdsData = RateLimitData({
-            maxAmount : 5_000_000e18,
-            slope     : uint256(1_000_000e18) / 4 hours
-        });
-
         bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
             foreignController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM

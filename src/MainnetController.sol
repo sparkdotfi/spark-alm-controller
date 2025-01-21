@@ -17,49 +17,19 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
+interface IATokenWithPool is IAToken {
+    function POOL() external view returns(address);
+}
+
+interface IBuidlRedeemLike {
+    function asset() external view returns(address);
+    function redeem(uint256 usdcAmount) external;
+}
+
 interface IDaiUsdsLike {
     function dai() external view returns(address);
     function daiToUsds(address usr, uint256 wad) external;
     function usdsToDai(address usr, uint256 wad) external;
-}
-
-interface IEthenaMinterLike {
-    function setDelegatedSigner(address delegateSigner) external;
-    function removeDelegatedSigner(address delegateSigner) external;
-}
-
-interface ISUSDELike is IERC4626 {
-    function cooldownAssets(uint256 usdeAmount) external;
-    function cooldownShares(uint256 susdeAmount) external;
-    function unstake(address receiver) external;
-}
-
-interface IVaultLike {
-    function buffer() external view returns(address);
-    function draw(uint256 usdsAmount) external;
-    function wipe(uint256 usdsAmount) external;
-}
-
-interface IPSMLike {
-    function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
-    function fill() external returns (uint256 wad);
-    function gem() external view returns(address);
-    function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
-    function to18ConversionFactor() external view returns (uint256);
-}
-
-interface IUSTBLike is IERC20 {
-    function subscribe(uint256 inAmount, address stablecoin) external;
-}
-
-interface ISSRedemptionLike is IERC20 {
-    function calculateUsdcOut(uint256 ustbAmount)
-        external view returns (uint256 usdcOutAmount, uint256 usdPerUstbChainlinkRaw);
-    function redeem(uint256 ustbAmout) external;
-}
-
-interface IATokenWithPool is IAToken {
-    function POOL() external view returns(address);
 }
 
 interface IERC7540 {
@@ -74,6 +44,41 @@ interface IERC7540 {
     function share() external view returns (address);
     function withdraw(uint256 assets, address receiver, address controller)
         external returns (uint256);
+}
+
+interface IEthenaMinterLike {
+    function setDelegatedSigner(address delegateSigner) external;
+    function removeDelegatedSigner(address delegateSigner) external;
+}
+
+interface IPSMLike {
+    function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
+    function fill() external returns (uint256 wad);
+    function gem() external view returns(address);
+    function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
+    function to18ConversionFactor() external view returns (uint256);
+}
+
+interface ISSRedemptionLike is IERC20 {
+    function calculateUsdcOut(uint256 ustbAmount)
+        external view returns (uint256 usdcOutAmount, uint256 usdPerUstbChainlinkRaw);
+    function redeem(uint256 ustbAmout) external;
+}
+
+interface ISUSDELike is IERC4626 {
+    function cooldownAssets(uint256 usdeAmount) external;
+    function cooldownShares(uint256 susdeAmount) external;
+    function unstake(address receiver) external;
+}
+
+interface IUSTBLike is IERC20 {
+    function subscribe(uint256 inAmount, address stablecoin) external;
+}
+
+interface IVaultLike {
+    function buffer() external view returns(address);
+    function draw(uint256 usdsAmount) external;
+    function wipe(uint256 usdsAmount) external;
 }
 
 contract MainnetController is AccessControl {
@@ -109,8 +114,10 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_7540_REDEEM          = keccak256("LIMIT_7540_REDEEM");
     bytes32 public constant LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
+    bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
+    bytes32 public constant LIMIT_BUIDL_REDEEM_CIRCLE  = keccak256("LIMIT_BUIDL_REDEEM_CIRCLE");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
+    bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
     bytes32 public constant LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public constant LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
@@ -122,6 +129,7 @@ contract MainnetController is AccessControl {
     address public immutable buffer;
 
     IALMProxy         public immutable proxy;
+    IBuidlRedeemLike  public immutable buidlRedeem;
     ICCTPLike         public immutable cctp;
     IDaiUsdsLike      public immutable daiUsds;
     IEthenaMinterLike public immutable ethenaMinter;
@@ -166,6 +174,7 @@ contract MainnetController is AccessControl {
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
 
+        buidlRedeem          = IBuidlRedeemLike(Ethereum.BUIDL_REDEEM);
         ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
         superstateRedemption = ISSRedemptionLike(Ethereum.SUPERSTATE_REDEMPTION);
 
@@ -266,6 +275,25 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             address(vault),
             abi.encodeCall(vault.wipe, (usdsAmount))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer ERC20 functions                                                                ***/
+    /**********************************************************************************************/
+
+    function transferAsset(address asset, address destination, uint256 amount)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimited(
+            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            amount
+        )
+    {
+        proxy.doCall(
+            asset,
+            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
         );
     }
 
@@ -460,6 +488,24 @@ contract MainnetController is AccessControl {
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
             amountWithdrawn
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer BlackRock BUIDL functions                                                      ***/
+    /**********************************************************************************************/
+
+    function redeemBUIDLCircleFacility(uint256 usdcAmount)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimited(LIMIT_BUIDL_REDEEM_CIRCLE, usdcAmount)
+    {
+        _approve(address(buidlRedeem.asset()), address(buidlRedeem), usdcAmount);
+
+        proxy.doCall(
+            address(buidlRedeem),
+            abi.encodeCall(buidlRedeem.redeem, (usdcAmount))
         );
     }
 

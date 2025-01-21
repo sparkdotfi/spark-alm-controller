@@ -14,6 +14,10 @@ library RateLimitHelpers {
         return keccak256(abi.encode(key, asset));
     }
 
+    function makeAssetDestinationKey(bytes32 key, address asset, address destination) internal pure returns (bytes32) {
+        return keccak256(abi.encode(key, asset, destination));
+    }
+
     function makeDomainKey(bytes32 key, uint32 domain) internal pure returns (bytes32) {
         return keccak256(abi.encode(key, domain));
     }
@@ -23,7 +27,7 @@ library RateLimitHelpers {
             maxAmount : type(uint256).max,
             slope     : 0
         });
-    }   
+    }
 
     function setRateLimitData(
         bytes32       key,
