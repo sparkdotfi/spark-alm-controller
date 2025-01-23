@@ -46,6 +46,11 @@ interface IEthenaMinterLike {
     function removeDelegatedSigner(address delegateSigner) external;
 }
 
+interface IMapleTokenLike is IERC4626 {
+    function requestRedeem(uint256 shares, address receiver) external;
+    function removeShares(uint256 shares, address receiver) external;
+}
+
 interface IPSMLike {
     function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
     function fill() external returns (uint256 wad);
@@ -111,6 +116,7 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_BUIDL_REDEEM_CIRCLE  = keccak256("LIMIT_BUIDL_REDEEM_CIRCLE");
+    bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -566,6 +572,37 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             address(susde),
             abi.encodeCall(susde.unstake, (address(proxy)))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Maple functions                                                                ***/
+    /**********************************************************************************************/
+
+    function requestMapleRedemption(address mapleToken, uint256 shares)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimited(
+            RateLimitHelpers.makeAssetKey(LIMIT_MAPLE_REDEEM, mapleToken),
+            IMapleTokenLike(mapleToken).convertToAssets(shares)
+        )
+    {
+        proxy.doCall(
+            mapleToken,
+            abi.encodeCall(IMapleTokenLike(mapleToken).requestRedeem, (shares, address(proxy)))
+        );
+    }
+
+    function cancelMapleRedemption(address mapleToken, uint256 shares)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_MAPLE_REDEEM, mapleToken))
+    {
+        proxy.doCall(
+            mapleToken,
+            abi.encodeCall(IMapleTokenLike(mapleToken).removeShares, (shares, address(proxy)))
         );
     }
 
