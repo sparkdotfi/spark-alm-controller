@@ -7,6 +7,8 @@ import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces
 import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
 import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
+import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
+
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
@@ -107,6 +109,14 @@ contract ForeignController is AccessControl {
 
     modifier rateLimitedAsset(bytes32 key, address asset, uint256 amount) {
         rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAssetKey(key, asset), amount);
+        _;
+    }
+
+    modifier rateLimitExists(bytes32 key) {
+        require(
+            rateLimits.getRateLimitData(key).maxAmount > 0,
+            "ForeignController/invalid-action"
+        );
         _;
     }
 
@@ -341,6 +351,47 @@ contract ForeignController is AccessControl {
             amountWithdrawn
         );
     }
+
+    /**********************************************************************************************/
+    /*** Relayer Morpho functions                                                               ***/
+    /**********************************************************************************************/
+
+    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
+        );
+    }
+
+    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
+        );
+    }
+
+    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
+        );
+    }
+
 
     /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/

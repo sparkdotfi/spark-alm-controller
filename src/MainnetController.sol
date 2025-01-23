@@ -7,6 +7,8 @@ import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces
 import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
 import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
+import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
+
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
@@ -202,6 +204,14 @@ contract MainnetController is AccessControl {
         _;
     }
 
+    modifier rateLimitExists(bytes32 key) {
+        require(
+            rateLimits.getRateLimitData(key).maxAmount > 0,
+            "MainnetController/invalid-action"
+        );
+        _;
+    }
+
     /**********************************************************************************************/
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
@@ -383,13 +393,8 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
     {
-        bytes32 key = RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token);
-        require(
-            rateLimits.getRateLimitData(key).maxAmount > 0,
-            "MainnetController/invalid-action"
-        );
-        
         uint256 shares = IERC7540(token).maxMint(address(proxy));
 
         // Claim shares from the vault to the proxy
@@ -403,12 +408,11 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-    {
-        rateLimits.triggerRateLimitDecrease(
+        rateLimited(
             RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token),
             IERC7540(token).convertToAssets(shares)
-        );
-
+        )
+    {
         // Submit redeem request by transferring shares
         proxy.doCall(
             token,
@@ -420,13 +424,8 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
     {
-        bytes32 key = RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token);
-        require(
-            rateLimits.getRateLimitData(key).maxAmount > 0,
-            "MainnetController/invalid-action"
-        );
-        
         uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
 
         // Claim assets from the vault to the proxy
@@ -567,6 +566,46 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             address(susde),
             abi.encodeCall(susde.unstake, (address(proxy)))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Morpho functions                                                               ***/
+    /**********************************************************************************************/
+
+    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
+        );
+    }
+
+    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
+        );
+    }
+
+    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
+        external
+        onlyRole(RELAYER)
+        isActive
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
         );
     }
 
