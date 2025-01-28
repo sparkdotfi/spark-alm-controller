@@ -205,6 +205,11 @@ contract MainnetController is AccessControl {
         _;
     }
 
+    modifier rateLimitedAsset(bytes32 key, address asset, uint256 amount) {
+        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAssetKey(key, asset), amount);
+        _;
+    }
+
     modifier cancelRateLimit(bytes32 key, uint256 amount) {
         rateLimits.triggerRateLimitIncrease(key, amount);
         _;
@@ -306,10 +311,7 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
-            amount
-        )
+        rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
         // Note that whitelist is done by rate limits
@@ -332,10 +334,7 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
-            amount
-        )
+        rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
         // Withdraw asset from a token, decode resulting shares.
@@ -377,10 +376,7 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token),
-            amount
-        )
+        rateLimitedAsset(LIMIT_7540_DEPOSIT, token, amount)
     {
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC7540(token).asset());
@@ -414,10 +410,7 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token),
-            IERC7540(token).convertToAssets(shares)
-        )
+        rateLimitedAsset(LIMIT_7540_REDEEM, token, IERC7540(token).convertToAssets(shares))
     {
         // Submit redeem request by transferring shares
         proxy.doCall(
@@ -449,10 +442,7 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
-            amount
-        )
+        rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
@@ -583,8 +573,9 @@ contract MainnetController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_MAPLE_REDEEM, mapleToken),
+        rateLimitedAsset(
+            LIMIT_MAPLE_REDEEM,
+            mapleToken,
             IMapleTokenLike(mapleToken).convertToAssets(shares)
         )
     {

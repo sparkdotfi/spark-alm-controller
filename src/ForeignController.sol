@@ -238,10 +238,7 @@ contract ForeignController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
-            amount
-        )
+        rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
         // Note that whitelist is done by rate limits.
@@ -264,10 +261,7 @@ contract ForeignController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
-            amount
-        )
+        rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
         // Withdraw asset from a token, decode resulting shares.
@@ -309,10 +303,7 @@ contract ForeignController is AccessControl {
         external
         onlyRole(RELAYER)
         isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
-            amount
-        )
+        rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
