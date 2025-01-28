@@ -74,7 +74,7 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
 contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndUpgradeTestBase {
 
     // NOTE: `initAlmSystem` and `upgradeController` are tested in the same contract because
-    //       they both use _initController and have similar specific setups, so it 
+    //       they both use _initController and have similar specific setups, so it
     //       less complex/repetitive to test them together.
 
     LibraryWrapper wrapper;
@@ -82,7 +82,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     ControllerInstance public controllerInst;
 
     address public mismatchAddress = makeAddr("mismatchAddress");
-    
+
     address public oldController;
 
     Init.ConfigAddressParams configAddresses;
@@ -95,7 +95,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
         oldController = address(foreignController);  // Cache for later testing
 
         // Deploy new controller against existing system
-        // NOTE: initAlmSystem will redundantly call rely and approve on already inited 
+        // NOTE: initAlmSystem will redundantly call rely and approve on already inited
         //       almProxy and rateLimits, this setup was chosen to easily test upgrade and init failures
         foreignController = ForeignController(ForeignControllerDeploy.deployController({
             admin      : Base.SPARK_EXECUTOR,
@@ -197,18 +197,6 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     function test_initAlmSystem_upgradeController_incorrectCctp() external {
         checkAddresses.cctp = mismatchAddress;
         _checkInitAndUpgradeFail(abi.encodePacked("ForeignControllerInit/incorrect-cctp"));
-    }
-
-    function test_initAlmSystem_upgradeController_controllerInactive() external {
-        // Cheating to set this outside of init scripts so that the controller can be frozen
-        vm.startPrank(Base.SPARK_EXECUTOR);
-        foreignController.grantRole(FREEZER, freezer);
-
-        vm.startPrank(freezer);
-        foreignController.freeze();
-        vm.stopPrank();
-
-        _checkInitAndUpgradeFail(abi.encodePacked("ForeignControllerInit/controller-not-active"));
     }
 
     function test_initAlmSystem_upgradeController_oldControllerIsNewController() external {
@@ -353,7 +341,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
         // Revoke the old controller address in ALM proxy
         vm.startPrank(Base.SPARK_EXECUTOR);
         almProxy.revokeRole(almProxy.CONTROLLER(), configAddresses.oldController);
-        vm.stopPrank(); 
+        vm.stopPrank();
 
         // Try to upgrade with the old controller address that is doesn't have the CONTROLLER role
         vm.expectRevert("ForeignControllerInit/old-controller-not-almProxy-controller");

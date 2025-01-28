@@ -86,15 +86,6 @@ contract MorphoSetSupplyQueueMorphoFailureTests is MorphoTestBase {
         mainnetController.setSupplyQueueMorpho(address(morphoVault), new Id[](0));
     }
 
-    function test_setSupplyQueueMorpho_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.setSupplyQueueMorpho(address(morphoVault), new Id[](0));
-    }
-
     function test_setSupplyQueueMorpho_invalidVault() external {
         vm.prank(relayer);
         vm.expectRevert("MainnetController/invalid-action");
@@ -133,15 +124,6 @@ contract MorphoUpdateWithdrawQueueMorphoFailureTests is MorphoTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.updateWithdrawQueueMorpho(address(morphoVault), new uint256[](0));
-    }
-
-    function test_updateWithdrawQueueMorpho_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.updateWithdrawQueueMorpho(address(morphoVault), new uint256[](0));
     }
 
@@ -200,15 +182,6 @@ contract MorphoReallocateMorphoFailureTests is MorphoTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.reallocateMorpho(address(morphoVault), new MarketAllocation[](0));
-    }
-
-    function test_reallocateMorpho_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.reallocateMorpho(address(morphoVault), new MarketAllocation[](0));
     }
 

@@ -55,8 +55,6 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
         assertEq(address(controller.psm()),        Base.PSM3);
         assertEq(address(controller.usdc()),       Base.USDC);
         assertEq(address(controller.cctp()),       Base.CCTP_TOKEN_MESSENGER);
-
-        assertEq(controller.active(), true);
     }
 
 }

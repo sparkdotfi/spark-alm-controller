@@ -37,11 +37,9 @@ contract ForeignController is AccessControl {
         uint256 usdcAmount
     );
 
-    event Frozen();
-
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
-    event Reactivated();
+    event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -66,8 +64,6 @@ contract ForeignController is AccessControl {
 
     IERC20 public immutable usdc;
 
-    bool public active;
-
     mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
 
     /**********************************************************************************************/
@@ -89,18 +85,11 @@ contract ForeignController is AccessControl {
         psm        = IPSM3(psm_);
         usdc       = IERC20(usdc_);
         cctp       = ICCTPLike(cctp_);
-
-        active = true;
     }
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/
     /**********************************************************************************************/
-
-    modifier isActive {
-        require(active, "ForeignController/not-active");
-        _;
-    }
 
     modifier rateLimited(bytes32 key, uint256 amount) {
         rateLimits.triggerRateLimitDecrease(key, amount);
@@ -135,14 +124,9 @@ contract ForeignController is AccessControl {
     /*** Freezer functions                                                                      ***/
     /**********************************************************************************************/
 
-    function freeze() external onlyRole(FREEZER) {
-        active = false;
-        emit Frozen();
-    }
-
-    function reactivate() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        active = true;
-        emit Reactivated();
+    function removeRelayer(address relayer) external onlyRole(FREEZER) {
+        _revokeRole(RELAYER, relayer);
+        emit RelayerRemoved(relayer);
     }
 
     /**********************************************************************************************/
@@ -152,7 +136,6 @@ contract ForeignController is AccessControl {
     function depositPSM(address asset, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitedAsset(LIMIT_PSM_DEPOSIT, asset, amount)
         returns (uint256 shares)
     {
@@ -174,7 +157,7 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawPSM(address asset, uint256 maxAmount)
-        external onlyRole(RELAYER) isActive returns (uint256 assetsWithdrawn)
+        external onlyRole(RELAYER) returns (uint256 assetsWithdrawn)
     {
         // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result
         // to get `assetsWithdrawn` (assumes the proxy has enough PSM shares).
@@ -202,7 +185,6 @@ contract ForeignController is AccessControl {
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
         rateLimited(
             RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
@@ -237,7 +219,6 @@ contract ForeignController is AccessControl {
     function depositERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
@@ -260,7 +241,6 @@ contract ForeignController is AccessControl {
     function withdrawERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
@@ -277,7 +257,7 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares)
-        external onlyRole(RELAYER) isActive returns (uint256 assets)
+        external onlyRole(RELAYER) returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
@@ -302,7 +282,6 @@ contract ForeignController is AccessControl {
     function depositAave(address aToken, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
@@ -320,7 +299,7 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
-        external onlyRole(RELAYER) isActive returns (uint256 amountWithdrawn)
+        external onlyRole(RELAYER) returns (uint256 amountWithdrawn)
     {
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 
@@ -350,7 +329,6 @@ contract ForeignController is AccessControl {
     function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
@@ -362,7 +340,6 @@ contract ForeignController is AccessControl {
     function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
@@ -374,7 +351,6 @@ contract ForeignController is AccessControl {
     function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(

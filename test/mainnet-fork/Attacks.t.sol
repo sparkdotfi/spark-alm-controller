@@ -5,7 +5,9 @@ import "./ForkTestBase.t.sol";
 
 contract CompromisedRelayerTests is ForkTestBase {
 
-    address newRelayer = makeAddr("newRelayer");
+    // Backstop relayer for this situation, larger multisig from governance
+    address backstopRelayer = makeAddr("backstopRelayer");
+
     bytes32 key;
 
     function setUp() public override {
@@ -13,8 +15,10 @@ contract CompromisedRelayerTests is ForkTestBase {
 
         key = mainnetController.LIMIT_SUSDE_COOLDOWN();
 
-        vm.prank(SPARK_PROXY);
+        vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
+        mainnetController.grantRole(RELAYER, backstopRelayer);
+        vm.stopPrank();
     }
 
     function test_compromisedRelayer_lockingFundsInEthenaSilo() external {
@@ -30,33 +34,21 @@ contract CompromisedRelayerTests is ForkTestBase {
         skip(7 days);
 
         // Relayer is now compromised and wants to lock funds in the silo
-
         vm.prank(relayer);
         mainnetController.cooldownAssetsSUSDe(1);
 
-        // Relayer cannot withdraw when they want to
+        // Real relayer cannot withdraw when they want to
         vm.prank(relayer);
         vm.expectRevert(abi.encodeWithSignature("InvalidCooldown()"));
         mainnetController.unstakeSUSDe();
 
+        // Frezer can remove the compromised relayer and fallback to the governance relayer
         vm.prank(freezer);
-        mainnetController.freeze();
+        mainnetController.removeRelayer(relayer);
 
         skip(7 days);
 
-        // Compromised relayer cannot perform attack
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.cooldownAssetsSUSDe(1);
-
-        // Action taken through spell to grant access to safe new relayer, and reactivates the system
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.grantRole(mainnetController.RELAYER(), newRelayer);
-        mainnetController.revokeRole(mainnetController.RELAYER(), relayer);
-        mainnetController.reactivate();
-        vm.stopPrank();
-
-        // Compromised relayer cannot perform attack on unfrozen system
+        // Compromised relayer cannot perform attack anymore
         vm.prank(relayer);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -69,8 +61,8 @@ contract CompromisedRelayerTests is ForkTestBase {
         assertEq(usde.balanceOf(address(almProxy)), 0);
         assertEq(usde.balanceOf(silo),              startingSiloBalance + 1_000_000e18 + 1);  // 1 wei deposit as well
 
-        // New relayer can unstake the funds
-        vm.prank(newRelayer);
+        // Backstop relayer can unstake the funds
+        vm.prank(backstopRelayer);
         mainnetController.unstakeSUSDe();
 
         assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 + 1);

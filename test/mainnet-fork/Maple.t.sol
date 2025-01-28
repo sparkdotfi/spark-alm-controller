@@ -103,15 +103,6 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
     }
 
-    function test_depositERC4626_maple_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
-    }
-
     function test_depositERC4626_maple_zeroMaxAmount() external {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 0, 0);
@@ -174,15 +165,6 @@ contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.requestMapleRedemption(address(syrup), 1_000_000e6);
-    }
-
-    function test_requestMapleRedemption_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.requestMapleRedemption(address(syrup), 1_000_000e6);
     }
 
@@ -252,15 +234,6 @@ contract MainnetControllerCancelMapleRedemptionFailureTests is MapleTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.cancelMapleRedemption(address(syrup), 1_000_000e6);
-    }
-
-    function test_cancelMapleRedemption_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.cancelMapleRedemption(address(syrup), 1_000_000e6);
     }
 

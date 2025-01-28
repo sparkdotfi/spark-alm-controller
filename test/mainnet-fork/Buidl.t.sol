@@ -29,15 +29,6 @@ contract MainnetControllerDepositBUIDLFailureTests is MainnetControllerBUIDLTest
         mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6);
     }
 
-    function test_transferAsset_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6);
-    }
-
     function test_transferAsset_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -109,15 +100,6 @@ contract MainnetControllerRedeemBUIDLFailureTests is MainnetControllerBUIDLTestB
             address(this),
             RELAYER
         ));
-        mainnetController.redeemBUIDLCircleFacility(1_000_000e6);
-    }
-
-    function test_redeemBUIDLCircleFacility_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.redeemBUIDLCircleFacility(1_000_000e6);
     }
 

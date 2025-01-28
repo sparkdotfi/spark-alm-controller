@@ -35,15 +35,6 @@ contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase 
         mainnetController.subscribeSuperstate(1_000_000e6);
     }
 
-    function test_subscribeSuperstate_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.subscribeSuperstate(1_000_000e6);
-    }
-
     function test_subscribeSuperstate_rateLimitBoundary() external {
         deal(address(usdc), address(almProxy), 5_000_000e6);
 
@@ -137,15 +128,6 @@ contract MainnetControllerRedeemSuperstateFailureTests is SuperstateTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.redeemSuperstate(1_000_000e6);
-    }
-
-    function test_redeemSuperstate_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.redeemSuperstate(1_000_000e6);
     }
 

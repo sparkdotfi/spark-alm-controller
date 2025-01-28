@@ -80,15 +80,6 @@ contract MainnetControllerRequestDepositERC7540FailureTests is CentrifugeTestBas
         mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
     }
 
-    function test_requestDepositERC7540_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
-    }
-
     function test_requestDepositERC7540_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -174,15 +165,6 @@ contract MainnetControllerClaimDepositERC7540FailureTests is CentrifugeTestBase 
             address(this),
             RELAYER
         ));
-        mainnetController.claimDepositERC7540(address(ltfVault));
-    }
-
-    function test_claimDepositERC7540_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.claimDepositERC7540(address(ltfVault));
     }
 
@@ -317,15 +299,6 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
         mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
     }
 
-    function test_requestRedeemERC7540_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
-    }
-
     function test_requestRedeemERC7540_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -419,15 +392,6 @@ contract MainnetControllerClaimRedeemERC7540FailureTests is CentrifugeTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.claimRedeemERC7540(address(ltfVault));
-    }
-
-    function test_claimRedeemERC7540_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.claimRedeemERC7540(address(ltfVault));
     }
 

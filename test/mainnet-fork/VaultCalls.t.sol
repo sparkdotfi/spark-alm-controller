@@ -14,15 +14,6 @@ contract MainnetControllerMintUSDSTests is ForkTestBase {
         mainnetController.mintUSDS(1e18);
     }
 
-    function test_mintUSDS_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.mintUSDS(1e18);
-    }
-
     function test_mintUSDS() external {
         ( uint256 ink, uint256 art ) = dss.vat.urns(ilk, vault);
         ( uint256 Art,,,, )          = dss.vat.ilks(ilk);
@@ -90,15 +81,6 @@ contract MainnetControllerBurnUSDSTests is ForkTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.burnUSDS(1e18);
-    }
-
-    function test_burnUSDS_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.burnUSDS(1e18);
     }
 

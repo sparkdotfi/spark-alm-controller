@@ -18,16 +18,6 @@ contract MainnetControllerSwapUSDSToUSDCFailureTests is ForkTestBase {
         ));
         mainnetController.swapUSDSToUSDC(1e6);
     }
-
-    function test_swapUSDSToUSDC_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.swapUSDSToUSDC(1e6);
-    }
-
 }
 
 contract MainnetControllerSwapUSDSToUSDCTests is ForkTestBase {
@@ -120,15 +110,6 @@ contract MainnetControllerSwapUSDCToUSDSFailureTests is ForkTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.swapUSDCToUSDS(1e6);
-    }
-
-    function test_swapUSDCToUSDS_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.swapUSDCToUSDS(1e6);
     }
 

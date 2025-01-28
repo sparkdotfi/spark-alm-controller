@@ -38,8 +38,6 @@ contract ForeignControllerDeployTests is UnitTestBase {
         assertEq(address(controller.psm()),        psm);
         assertEq(address(controller.usdc()),       usdc);
         assertEq(address(controller.cctp()),       cctp);
-
-        assertEq(controller.active(), true);
     }
 
     function test_deployFull() public {
@@ -64,8 +62,6 @@ contract ForeignControllerDeployTests is UnitTestBase {
         assertEq(address(controller.psm()),        psm);
         assertEq(address(controller.usdc()),       usdc);
         assertEq(address(controller.cctp()),       cctp);
-
-        assertEq(controller.active(), true);
     }
 
 }
@@ -118,7 +114,6 @@ contract MainnetControllerDeployTests is UnitTestBase {
         assertEq(address(controller.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
 
         assertEq(controller.psmTo18ConversionFactor(), 1e12);
-        assertEq(controller.active(),                  true);
     }
 
     function test_deployFull() public {
@@ -158,7 +153,6 @@ contract MainnetControllerDeployTests is UnitTestBase {
         assertEq(address(controller.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
 
         assertEq(controller.psmTo18ConversionFactor(), 1e12);
-        assertEq(controller.active(),                  true);
     }
 
 }

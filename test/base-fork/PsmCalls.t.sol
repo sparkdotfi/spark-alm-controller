@@ -51,15 +51,6 @@ contract ForeignControllerDepositPSMFailureTests is ForkTestBase {
         foreignController.depositPSM(address(usdsBase), 100e18);
     }
 
-    function test_depositPSM_frozen() external {
-        vm.prank(freezer);
-        foreignController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/not-active");
-        foreignController.depositPSM(address(usdsBase), 100e18);
-    }
-
 }
 
 contract ForeignControllerDepositTests is ForeignControllerPSMSuccessTestBase {
@@ -185,15 +176,6 @@ contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
             address(this),
             RELAYER
         ));
-        foreignController.withdrawPSM(address(usdsBase), 100e18);
-    }
-
-    function test_withdrawPSM_frozen() external {
-        vm.prank(freezer);
-        foreignController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/not-active");
         foreignController.withdrawPSM(address(usdsBase), 100e18);
     }
 

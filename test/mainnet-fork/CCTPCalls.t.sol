@@ -37,15 +37,6 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
-    function test_transferUSDCToCCTP_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
-    }
-
     function test_transferUSDCToCCTP_cctpRateLimitedBoundary() external {
         vm.startPrank(SPARK_PROXY);
 
@@ -289,15 +280,6 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
             address(this),
             RELAYER
         ));
-        foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
-    }
-
-    function test_transferUSDCToCCTP_frozen() external {
-        vm.prank(freezer);
-        foreignController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/not-active");
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 
