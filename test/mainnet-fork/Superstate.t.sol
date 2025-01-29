@@ -235,3 +235,90 @@ contract MainnetControllerRedeemSuperstateSuccessTests is SuperstateTestBase {
 
 }
 
+contract MainnetControllerSuperstateE2ETests is SuperstateTestBase {
+
+    address usccDepositAddress = makeAddr("usccDepositAddress");
+
+    function setUp() public override {
+        super.setUp();
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+
+        // Rate limit to transfer USDC to USCC deposit addressx to mint USCC
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAssetDestinationKey(
+                mainnetController.LIMIT_ASSET_TRANSFER(),
+                address(usdc),
+                address(usccDepositAddress)
+            ),
+            1_000_000e6,
+            uint256(1_000_000e6) / 1 days
+        );
+
+        // Rate limit to transfer USCC to USCC to burn USCC for USDC
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAssetDestinationKey(
+                mainnetController.LIMIT_ASSET_TRANSFER(),
+                address(uscc),
+                address(uscc)
+            ),
+            1_000_000e6,
+            uint256(1_000_000e6) / 1 days
+        );
+
+        vm.stopPrank();
+
+        // Allowlist for USCC to be transferred to almProxy
+        vm.startPrank(allowlist.owner());
+        allowlist.setEntityIdForAddress(1, address(almProxy));
+        allowlist.setEntityAllowedForFund(1, "USCC", true);
+        vm.stopPrank();
+    }
+
+    function test_e2e_superstateUSCCFullFlow() external {
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        assertEq(usdc.balanceOf(address(almProxy)),  1_000_000e6);
+        assertEq(usdc.balanceOf(usccDepositAddress), 0);
+
+        // Step 1: Transfer USDC to USCC deposit address to trigger minting USCC
+
+        vm.prank(relayer);
+        mainnetController.transferAsset(address(usdc), address(usccDepositAddress), 1_000_000e6);
+
+        assertEq(usdc.balanceOf(address(almProxy)),  0);
+        assertEq(usdc.balanceOf(usccDepositAddress), 1_000_000e6);
+
+        assertEq(uscc.balanceOf(address(almProxy)), 0);
+
+        uint256 totalSupply = uscc.totalSupply();
+
+        // Step 2: Superstate owner mints USCC to the ALM Proxy
+
+        // Mint hardcoded amount because conversions don't work yet
+        vm.prank(uscc.owner());
+        uscc.mint(address(almProxy), 900_000e6);
+
+        assertEq(uscc.balanceOf(address(almProxy)), 900_000e6);
+        assertEq(uscc.balanceOf(address(uscc)),     0);
+        assertEq(uscc.totalSupply(),                totalSupply + 900_000e6);
+
+        // Step 3: Transfer USCC to USCC to trigger burning USCC for USDC
+
+        vm.prank(relayer);
+        mainnetController.transferAsset(address(uscc), address(uscc), 900_000e6);
+
+        assertEq(uscc.balanceOf(address(almProxy)), 0);
+        assertEq(uscc.balanceOf(address(uscc)),     0);
+        assertEq(uscc.totalSupply(),                totalSupply);  // USCC is burned on transfer
+
+        // Step 4: Superstate owner transfers USDC to the ALM Proxy, returning to starting state
+
+        vm.prank(usccDepositAddress);
+        usdc.transfer(address(almProxy), 1_000_000e6);
+
+        assertEq(usdc.balanceOf(address(almProxy)),  1_000_000e6);
+        assertEq(usdc.balanceOf(usccDepositAddress), 0);
+    }
+
+}

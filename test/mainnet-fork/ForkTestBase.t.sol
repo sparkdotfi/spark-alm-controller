@@ -56,14 +56,17 @@ interface IPSMLike {
     function rush() external view returns (uint256);
 }
 
-interface IUSTBLike is IERC20 {
-    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
-    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin) 
+interface ISSTokenLike is IERC20 {
+    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin)
         external view returns (
-            uint256 superstateTokenOutAmount, 
-            uint256 stablcoinInAmountAfterFee, 
+            uint256 superstateTokenOutAmount,
+            uint256 stablcoinInAmountAfterFee,
             uint256 feeOnStablecoinInAmount
         );
+    function mint(address to, uint256 amount) external;
+    function burn(address src, uint256 amount) external;
+    function owner() external view returns (address);
+    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
 }
 
 interface IVaultLike {
@@ -114,8 +117,9 @@ contract ForkTestBase is DssTest {
     IERC20 constant usds  = IERC20(Ethereum.USDS);
     ISUsds constant susds = ISUsds(Ethereum.SUSDS);
 
-    ISUSDELike constant susde = ISUSDELike(Ethereum.SUSDE);
-    IUSTBLike  constant ustb  = IUSTBLike(0x43415eB6ff9DB7E26A15b704e7A3eDCe97d31C4e);  // TODO: Registry
+    ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
+    ISSTokenLike constant ustb  = ISSTokenLike(Ethereum.USTB);
+    ISUSDELike   constant susde = ISUSDELike(Ethereum.SUSDE);
 
     IPSMLike constant psm = IPSMLike(PSM);
 
@@ -163,7 +167,7 @@ contract ForkTestBase is DssTest {
 
         /*** Step 1: Set up environment, cast addresses ***/
 
-        source = getChain("mainnet").createSelectFork(_getBlock());  
+        source = getChain("mainnet").createSelectFork(_getBlock());
 
         dss = MCD.loadFromChainlog(LOG);
 
@@ -227,7 +231,7 @@ contract ForkTestBase is DssTest {
         FREEZER    = mainnetController.FREEZER();
         RELAYER    = mainnetController.RELAYER();
 
-        Init.ConfigAddressParams memory configAddresses 
+        Init.ConfigAddressParams memory configAddresses
             = Init.ConfigAddressParams({
                 freezer       : freezer,
                 relayer       : relayer,
