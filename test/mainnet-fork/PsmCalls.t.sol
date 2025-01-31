@@ -18,6 +18,28 @@ contract MainnetControllerSwapUSDSToUSDCFailureTests is ForkTestBase {
         ));
         mainnetController.swapUSDSToUSDC(1e6);
     }
+
+    function test_swapUSDSToUSDC_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.swapUSDSToUSDC(1e6);
+    }
+
+    function test_swapUSDSToUSDC_rateLimitBoundary() external {
+        deal(address(usds), address(almProxy), 10_000_000e18);
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.swapUSDSToUSDC(5_000_000e6 + 1);
+
+        vm.prank(relayer);
+        mainnetController.swapUSDSToUSDC(5_000_000e6);
+    }
+
 }
 
 contract MainnetControllerSwapUSDSToUSDCTests is ForkTestBase {
@@ -110,6 +132,16 @@ contract MainnetControllerSwapUSDCToUSDSFailureTests is ForkTestBase {
             address(this),
             RELAYER
         ));
+        mainnetController.swapUSDCToUSDS(1e6);
+    }
+
+    function test_swapUSDCToUSDS_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.swapUSDCToUSDS(1e6);
     }
 

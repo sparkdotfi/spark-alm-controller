@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 import "./ForkTestBase.t.sol";
 
-contract MainnetControllerMintUSDSTests is ForkTestBase {
+contract MainnetControllerMintUSDSFailureTests is ForkTestBase {
 
     function test_mintUSDS_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -13,6 +13,29 @@ contract MainnetControllerMintUSDSTests is ForkTestBase {
         ));
         mainnetController.mintUSDS(1e18);
     }
+
+    function test_mintUSDS_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.mintUSDS(1e18);
+    }
+
+    function test_mintUSDS_rateLimitBoundary() external {
+        vm.startPrank(relayer);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.mintUSDS(5_000_000e18 + 1);
+
+        mainnetController.mintUSDS(5_000_000e18);
+    }
+
+}
+
+contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
 
     function test_mintUSDS() external {
         ( uint256 ink, uint256 art ) = dss.vat.urns(ilk, vault);
@@ -73,7 +96,7 @@ contract MainnetControllerMintUSDSTests is ForkTestBase {
 
 }
 
-contract MainnetControllerBurnUSDSTests is ForkTestBase {
+contract MainnetControllerBurnUSDSFailureTests is ForkTestBase {
 
     function test_burnUSDS_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -83,6 +106,20 @@ contract MainnetControllerBurnUSDSTests is ForkTestBase {
         ));
         mainnetController.burnUSDS(1e18);
     }
+
+    function test_burnUSDS_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.burnUSDS(1e18);
+    }
+
+}
+
+contract MainnetControllerBurnUSDSSuccessTests is ForkTestBase {
 
     function test_burnUSDS() external {
         // Setup

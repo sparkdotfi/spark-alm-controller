@@ -96,6 +96,16 @@ contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
         mainnetController.prepareUSDeMint(100);
     }
 
+    function test_prepareUSDeMint_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_MINT(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.prepareUSDeMint(1e18);
+    }
+
     function test_prepareUSDeMint_rateLimitBoundary() external {
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
@@ -168,6 +178,16 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
         mainnetController.prepareUSDeBurn(100);
     }
 
+    function test_prepareUSDeBurn_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_BURN(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.prepareUSDeBurn(1e18);
+    }
+
     function test_prepareUSDeBurn_rateLimitBoundary() external {
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
@@ -237,6 +257,16 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
             address(this),
             RELAYER
         ));
+        mainnetController.cooldownAssetsSUSDe(100e18);
+    }
+
+    function test_cooldownAssetsSUSDe_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.cooldownAssetsSUSDe(100e18);
     }
 
@@ -337,6 +367,18 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
             RELAYER
         ));
         mainnetController.cooldownSharesSUSDe(100);
+    }
+
+    function test_cooldownSharesSUSDe_zeroMaxAmount() external {
+        deal(address(susde), address(almProxy), 100e18);  // To get past call
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.cooldownSharesSUSDe(100e18);
     }
 
     function test_cooldownSharesSUSDe_rateLimitBoundary() external {

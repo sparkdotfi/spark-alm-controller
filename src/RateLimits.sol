@@ -84,7 +84,10 @@ contract RateLimits is IRateLimits, AccessControl {
     /**********************************************************************************************/
 
     function triggerRateLimitDecrease(bytes32 key, uint256 amountToDecrease)
-        external override onlyRole(CONTROLLER) returns (uint256 newLimit)
+        external
+        override
+        onlyRole(CONTROLLER)
+        returns (uint256 newLimit)
     {
         RateLimitData storage d = _data[key];
         uint256 maxAmount = d.maxAmount;
@@ -103,7 +106,10 @@ contract RateLimits is IRateLimits, AccessControl {
     }
 
     function triggerRateLimitIncrease(bytes32 key, uint256 amountToIncrease)
-        external override onlyRole(CONTROLLER) returns (uint256 newLimit)
+        external
+        override
+        onlyRole(CONTROLLER)
+        returns (uint256 newLimit)
     {
         RateLimitData storage d = _data[key];
         uint256 maxAmount = d.maxAmount;

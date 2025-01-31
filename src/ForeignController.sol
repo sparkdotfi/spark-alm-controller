@@ -114,7 +114,8 @@ contract ForeignController is AccessControl {
     /**********************************************************************************************/
 
     function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
-        external onlyRole(DEFAULT_ADMIN_ROLE)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
@@ -157,7 +158,9 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawPSM(address asset, uint256 maxAmount)
-        external onlyRole(RELAYER) returns (uint256 assetsWithdrawn)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 assetsWithdrawn)
     {
         // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result
         // to get `assetsWithdrawn` (assumes the proxy has enough PSM shares).
@@ -257,7 +260,9 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares)
-        external onlyRole(RELAYER) returns (uint256 assets)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
@@ -299,7 +304,9 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
-        external onlyRole(RELAYER) returns (uint256 amountWithdrawn)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 amountWithdrawn)
     {
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 

@@ -77,7 +77,7 @@ contract MapleTestBase is ForkTestBase {
         SYRUP_TOTAL_ASSETS = syrup.totalAssets();
         SYRUP_TOTAL_SUPPLY = syrup.totalSupply();
 
-        USDC_BAL_SYRUP = usdc.balanceOf(address(syrup));  // TODO: Figure out naming
+        USDC_BAL_SYRUP = usdc.balanceOf(address(syrup));
 
         assertEq(SYRUP_CONVERTED_ASSETS, 1_066_100.425881e6);
         assertEq(SYRUP_CONVERTED_SHARES, 937_997.936895e6);
@@ -112,7 +112,7 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
     }
 
-    function test_depositERC4626_SYRUP_rateLimitBoundary() external {
+    function test_depositERC4626_maple_rateLimitBoundary() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.startPrank(relayer);

@@ -35,6 +35,16 @@ contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase 
         mainnetController.subscribeSuperstate(1_000_000e6);
     }
 
+    function test_subscribeSuperstate_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.subscribeSuperstate(1_000_000e6);
+    }
+
     function test_subscribeSuperstate_rateLimitBoundary() external {
         deal(address(usdc), address(almProxy), 5_000_000e6);
 
@@ -128,6 +138,16 @@ contract MainnetControllerRedeemSuperstateFailureTests is SuperstateTestBase {
             address(this),
             RELAYER
         ));
+        mainnetController.redeemSuperstate(1_000_000e6);
+    }
+
+    function test_redeemSuperstate_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_SUPERSTATE_REDEEM(), 0, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.redeemSuperstate(1_000_000e6);
     }
 

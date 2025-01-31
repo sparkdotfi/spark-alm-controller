@@ -37,6 +37,33 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
+    function test_tranferUSDCToCCTP_zeroMaxAmountDomain() external {
+        vm.startPrank(SPARK_PROXY);
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeDomainKey(
+                mainnetController.LIMIT_USDC_TO_DOMAIN(),
+                CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
+            ),
+            0,
+            0
+        );
+        vm.stopPrank();
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
+        mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+    }
+
+    function test_tranferUSDCToCCTP_zeroMaxAmountCCTP() external {
+        vm.startPrank(SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        vm.stopPrank();
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
+        mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+    }
+
     function test_transferUSDCToCCTP_cctpRateLimitedBoundary() external {
         vm.startPrank(SPARK_PROXY);
 
@@ -280,6 +307,33 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
             address(this),
             RELAYER
         ));
+        foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
+    }
+
+    function test_tranferUSDCToCCTP_zeroMaxAmountDomain() external {
+        vm.startPrank(SPARK_EXECUTOR);
+        foreignRateLimits.setRateLimitData(
+            RateLimitHelpers.makeDomainKey(
+                foreignController.LIMIT_USDC_TO_DOMAIN(),
+                CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
+            ),
+            0,
+            0
+        );
+        vm.stopPrank();
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
+        foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
+    }
+
+    function test_tranferUSDCToCCTP_zeroMaxAmountCCTP() external {
+        vm.startPrank(SPARK_EXECUTOR);
+        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        vm.stopPrank();
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 

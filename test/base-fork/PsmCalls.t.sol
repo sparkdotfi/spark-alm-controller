@@ -48,21 +48,51 @@ contract ForeignControllerDepositPSMFailureTests is ForkTestBase {
             address(this),
             RELAYER
         ));
-        foreignController.depositPSM(address(usdsBase), 100e18);
+        foreignController.depositPSM(address(usdsBase), 1_000_000e18);
+    }
+
+    function test_depositPSM_zeroMaxAmount() external {
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        foreignController.depositPSM(makeAddr("fake-token"), 1_000_000e18);
+    }
+
+    function test_depositPSM_usdcRateLimitedBoundary() external {
+        deal(address(usdcBase), address(almProxy), 5_000_000e6 + 1);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.startPrank(relayer);
+        foreignController.depositPSM(address(usdcBase), 5_000_000e6 + 1);
+
+        foreignController.depositPSM(address(usdcBase), 5_000_000e6);
+    }
+
+    function test_depositPSM_usdsRateLimitedBoundary() external {
+        deal(address(usdsBase), address(almProxy), 5_000_000e18 + 1);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.startPrank(relayer);
+        foreignController.depositPSM(address(usdsBase), 5_000_000e18 + 1);
+
+        foreignController.depositPSM(address(usdsBase), 5_000_000e18);
+    }
+
+    function test_depositPSM_susdsRateLimitedBoundary() external {
+        deal(address(susdsBase), address(almProxy), 5_000_000e18 + 1);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.startPrank(relayer);
+        foreignController.depositPSM(address(susdsBase), 5_000_000e18 + 1);
+
+        foreignController.depositPSM(address(susdsBase), 5_000_000e18);
     }
 
 }
 
-contract ForeignControllerDepositTests is ForeignControllerPSMSuccessTestBase {
+contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase {
 
-    function test_deposit_usds() external {
+    function test_depositPSM_depositUsds() external {
         bytes32 key = foreignController.LIMIT_PSM_DEPOSIT();
-
-        // NOTE: USDS deposits are not going to be rate limited for launch
-        bytes32 assetKey = RateLimitHelpers.makeAssetKey(key, address(usdsBase));
-
-        vm.prank(SPARK_EXECUTOR);
-        rateLimits.setUnlimitedRateLimitData(assetKey);
 
         deal(address(usdsBase), address(almProxy), 100e18);
 
@@ -74,7 +104,7 @@ contract ForeignControllerDepositTests is ForeignControllerPSMSuccessTestBase {
             totalShares      : 1e18,  // From seeding USDS
             totalAssets      : 1e18,  // From seeding USDS
             rateLimitKey     : key,
-            currentRateLimit : type(uint256).max
+            currentRateLimit : 5_000_000e18
         });
 
         vm.prank(relayer);
@@ -90,11 +120,11 @@ contract ForeignControllerDepositTests is ForeignControllerPSMSuccessTestBase {
             totalShares      : 101e18,
             totalAssets      : 101e18,
             rateLimitKey     : key,
-            currentRateLimit : type(uint256).max
+            currentRateLimit : 4_999_900e18
         });
     }
 
-    function test_deposit_usdc() external {
+    function test_depositPSM_depositUsdc() external {
         bytes32 key = foreignController.LIMIT_PSM_DEPOSIT();
 
         deal(address(usdcBase), address(almProxy), 100e6);
@@ -127,14 +157,8 @@ contract ForeignControllerDepositTests is ForeignControllerPSMSuccessTestBase {
         });
     }
 
-    function test_deposit_susds() external {
+    function test_depositPSM_depositSUsds() external {
         bytes32 key = foreignController.LIMIT_PSM_DEPOSIT();
-
-        // NOTE: sUSDS deposits are not going to be rate limited for launch
-        bytes32 assetKey = RateLimitHelpers.makeAssetKey(key, address(susdsBase));
-
-        vm.prank(SPARK_EXECUTOR);
-        rateLimits.setUnlimitedRateLimitData(assetKey);
 
         deal(address(susdsBase), address(almProxy), 100e18);
 
@@ -146,7 +170,7 @@ contract ForeignControllerDepositTests is ForeignControllerPSMSuccessTestBase {
             totalShares      : 1e18,  // From seeding USDS
             totalAssets      : 1e18,  // From seeding USDS
             rateLimitKey     : key,
-            currentRateLimit : type(uint256).max
+            currentRateLimit : 5_000_000e18
         });
 
         vm.prank(relayer);
@@ -162,7 +186,7 @@ contract ForeignControllerDepositTests is ForeignControllerPSMSuccessTestBase {
             totalShares      : 1e18 + shares,
             totalAssets      : 1e18 + shares,
             rateLimitKey     : key,
-            currentRateLimit : type(uint256).max
+            currentRateLimit : 4_999_900e18
         });
     }
 
@@ -179,22 +203,105 @@ contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
         foreignController.withdrawPSM(address(usdsBase), 100e18);
     }
 
-}
+    function test_withdrawPSM_usdcZeroMaxAmount() external {
+        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 withdrawAssetKey = RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase));
 
-contract ForeignControllerWithdrawTests is ForeignControllerPSMSuccessTestBase {
+        vm.prank(SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(withdrawAssetKey, 0, 0);
 
-    function test_withdraw_usds() external {
-        bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
-        bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        foreignController.withdrawPSM(address(usdcBase), 100e18);
+    }
 
-        // NOTE: USDS deposits and withdrawals are not going to be rate limited for launch
-        bytes32 depositAssetKey  = RateLimitHelpers.makeAssetKey(depositKey,  address(usdsBase));
+    function test_withdrawPSM_usdsZeroMaxAmount() external {
+        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
         bytes32 withdrawAssetKey = RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase));
 
-        vm.startPrank(SPARK_EXECUTOR);
-        rateLimits.setUnlimitedRateLimitData(depositAssetKey);
-        rateLimits.setUnlimitedRateLimitData(withdrawAssetKey);
-        vm.stopPrank();
+        vm.prank(SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(withdrawAssetKey, 0, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        foreignController.withdrawPSM(address(usdsBase), 100e18);
+    }
+
+    function test_withdrawPSM_susdsZeroMaxAmount() external {
+        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 withdrawAssetKey = RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase));
+
+        vm.prank(SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(withdrawAssetKey, 0, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        foreignController.withdrawPSM(address(susdsBase), 100e18);
+    }
+
+    function test_withdrawPSM_usdcRateLimitedBoundary() external {
+        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 withdrawAssetKey = RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase));
+
+        vm.prank(SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(withdrawAssetKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+
+        deal(address(usdcBase), address(almProxy), 1_000_000e6 + 1);
+
+        vm.startPrank(relayer);
+        foreignController.depositPSM(address(usdcBase), 1_000_000e6 + 1);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        foreignController.withdrawPSM(address(usdcBase), 1_000_000e6 + 1);
+
+        foreignController.withdrawPSM(address(usdcBase), 1_000_000e6);
+    }
+
+    function test_withdrawPSM_usdsRateLimitedBoundary() external {
+        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 withdrawAssetKey = RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase));
+
+        vm.prank(SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(withdrawAssetKey, 1_000_000e18, uint256(1_000_000e18) / 1 days);
+
+        deal(address(usdsBase), address(almProxy), 1_000_000e18 + 1);
+
+        vm.startPrank(relayer);
+        foreignController.depositPSM(address(usdsBase), 1_000_000e18 + 1);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        foreignController.withdrawPSM(address(usdsBase), 1_000_000e18 + 1);
+
+        foreignController.withdrawPSM(address(usdsBase), 1_000_000e18);
+    }
+
+    function test_withdrawPSM_susdsRateLimitedBoundary() external {
+        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 withdrawAssetKey = RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase));
+
+        vm.prank(SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(withdrawAssetKey, 1_000_000e18, uint256(1_000_000e18) / 1 days);
+
+        // NOTE: Need an extra wei because of rounding on conversion
+        deal(address(susdsBase), address(almProxy), 1_000_000e18 + 2);
+
+        vm.startPrank(relayer);
+        foreignController.depositPSM(address(susdsBase), 1_000_000e18 + 2);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        foreignController.withdrawPSM(address(susdsBase), 1_000_000e18 + 1);
+
+        uint256 withdrawn = foreignController.withdrawPSM(address(susdsBase), 1_000_000e18);
+
+        assertEq(withdrawn, 1_000_000e18);
+    }
+
+}
+
+contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBase {
+
+    function test_withdrawPSM_withdrawUsds() external {
+        bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();
 
         deal(address(usdsBase), address(almProxy), 100e18);
         vm.prank(relayer);
@@ -207,7 +314,7 @@ contract ForeignControllerWithdrawTests is ForeignControllerPSMSuccessTestBase {
             proxyShares      : 100e18,
             totalShares      : 101e18,
             totalAssets      : 101e18,
-            rateLimitKey     : withdrawKey,
+            rateLimitKey     : key,
             currentRateLimit : type(uint256).max
         });
 
@@ -223,12 +330,12 @@ contract ForeignControllerWithdrawTests is ForeignControllerPSMSuccessTestBase {
             proxyShares      : 0,
             totalShares      : 1e18,  // From seeding USDS
             totalAssets      : 1e18,  // From seeding USDS
-            rateLimitKey     : withdrawKey,
+            rateLimitKey     : key,
             currentRateLimit : type(uint256).max
         });
     }
 
-    function test_withdraw_usdc() external {
+    function test_withdrawPSM_withdrawUsdc() external {
         bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();
 
         deal(address(usdcBase), address(almProxy), 100e6);
@@ -263,18 +370,8 @@ contract ForeignControllerWithdrawTests is ForeignControllerPSMSuccessTestBase {
         });
     }
 
-    function test_withdraw_susds() external {
-        bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
-        bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
-
-        // NOTE: sUSDS deposits and withdrawals are not going to be rate limited for launch
-        bytes32 depositAssetKey  = RateLimitHelpers.makeAssetKey(depositKey,  address(susdsBase));
-        bytes32 withdrawAssetKey = RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase));
-
-        vm.startPrank(SPARK_EXECUTOR);
-        rateLimits.setUnlimitedRateLimitData(depositAssetKey);
-        rateLimits.setUnlimitedRateLimitData(withdrawAssetKey);
-        vm.stopPrank();
+    function test_withdrawPSM_withdrawSUsds() external {
+        bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();
 
         deal(address(susdsBase), address(almProxy), 100e18);
         vm.prank(relayer);
@@ -289,7 +386,7 @@ contract ForeignControllerWithdrawTests is ForeignControllerPSMSuccessTestBase {
             proxyShares      : shares,
             totalShares      : 1e18 + shares,
             totalAssets      : 1e18 + shares,
-            rateLimitKey     : withdrawKey,
+            rateLimitKey     : key,
             currentRateLimit : type(uint256).max
         });
 
@@ -305,7 +402,7 @@ contract ForeignControllerWithdrawTests is ForeignControllerPSMSuccessTestBase {
             proxyShares      : 0,
             totalShares      : 1e18,      // From seeding USDS
             totalAssets      : 1e18 + 1,  // From seeding USDS, rounding
-            rateLimitKey     : withdrawKey,
+            rateLimitKey     : key,
             currentRateLimit : type(uint256).max
         });
     }

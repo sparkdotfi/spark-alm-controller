@@ -217,7 +217,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
-        external onlyRole(DEFAULT_ADMIN_ROLE)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
@@ -237,7 +238,9 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function mintUSDS(uint256 usdsAmount)
-        external onlyRole(RELAYER) rateLimited(LIMIT_USDS_MINT, usdsAmount)
+        external
+        onlyRole(RELAYER)
+        rateLimited(LIMIT_USDS_MINT, usdsAmount)
     {
         // Mint USDS into the buffer
         proxy.doCall(
@@ -253,7 +256,9 @@ contract MainnetController is AccessControl {
     }
 
     function burnUSDS(uint256 usdsAmount)
-        external onlyRole(RELAYER) cancelRateLimit(LIMIT_USDS_MINT, usdsAmount)
+        external
+        onlyRole(RELAYER)
+        cancelRateLimit(LIMIT_USDS_MINT, usdsAmount)
     {
         // Transfer USDS from the proxy to the buffer
         proxy.doCall(
@@ -331,7 +336,9 @@ contract MainnetController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares)
-        external onlyRole(RELAYER) returns (uint256 assets)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
@@ -388,7 +395,11 @@ contract MainnetController is AccessControl {
     function requestRedeemERC7540(address token, uint256 shares)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_7540_REDEEM, token, IERC7540(token).convertToAssets(shares))
+        rateLimitedAsset(
+            LIMIT_7540_REDEEM,
+            token,
+            IERC7540(token).convertToAssets(shares)
+        )
     {
         // Submit redeem request by transferring shares
         proxy.doCall(
@@ -435,7 +446,9 @@ contract MainnetController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
-        external onlyRole(RELAYER) returns (uint256 amountWithdrawn)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 amountWithdrawn)
     {
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 
@@ -495,19 +508,25 @@ contract MainnetController is AccessControl {
 
     // Note that Ethena's mint/redeem per-block limits include other users
     function prepareUSDeMint(uint256 usdcAmount)
-        external onlyRole(RELAYER) rateLimited(LIMIT_USDE_MINT, usdcAmount)
+        external
+        onlyRole(RELAYER)
+        rateLimited(LIMIT_USDE_MINT, usdcAmount)
     {
         _approve(address(usdc), address(ethenaMinter), usdcAmount);
     }
 
     function prepareUSDeBurn(uint256 usdeAmount)
-        external onlyRole(RELAYER) rateLimited(LIMIT_USDE_BURN, usdeAmount)
+        external
+        onlyRole(RELAYER)
+        rateLimited(LIMIT_USDE_BURN, usdeAmount)
     {
         _approve(address(usde), address(ethenaMinter), usdeAmount);
     }
 
     function cooldownAssetsSUSDe(uint256 usdeAmount)
-        external onlyRole(RELAYER) rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount)
+        external
+        onlyRole(RELAYER)
+        rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount)
     {
         proxy.doCall(
             address(susde),
@@ -644,7 +663,9 @@ contract MainnetController is AccessControl {
     // NOTE: The param `usdcAmount` is denominated in 1e6 precision to match how PSM uses
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
     function swapUSDSToUSDC(uint256 usdcAmount)
-        external onlyRole(RELAYER) rateLimited(LIMIT_USDS_TO_USDC, usdcAmount)
+        external
+        onlyRole(RELAYER)
+        rateLimited(LIMIT_USDS_TO_USDC, usdcAmount)
     {
         uint256 usdsAmount = usdcAmount * psmTo18ConversionFactor;
 
@@ -668,7 +689,9 @@ contract MainnetController is AccessControl {
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount)
-        external onlyRole(RELAYER) cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount)
+        external
+        onlyRole(RELAYER)
+        cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount)
     {
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
         _approve(address(usdc), address(psm), usdcAmount);
