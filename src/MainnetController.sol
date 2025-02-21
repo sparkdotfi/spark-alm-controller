@@ -6,6 +6,7 @@ import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces
 
 import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
 import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
@@ -34,16 +35,18 @@ interface IDaiUsdsLike {
     function usdsToDai(address usr, uint256 wad) external;
 }
 
-interface IERC7540 is IERC4626 {
-    function requestDeposit(uint256 assets, address controller, address owner)
-        external returns (uint256);
-    function requestRedeem(uint256 shares, address controller, address owner)
-        external returns (uint256);
-}
-
 interface IEthenaMinterLike {
     function setDelegatedSigner(address delegateSigner) external;
     function removeDelegatedSigner(address delegateSigner) external;
+}
+
+interface ICentrifugeToken is IERC7540 {
+    function cancelDepositRequest(uint256 requestId, address controller) external;
+    function cancelRedeemRequest(uint256 requestId, address controller) external;
+    function claimCancelDepositRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 assets);
+    function claimCancelRedeemRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 shares);
 }
 
 interface IMapleTokenLike is IERC4626 {
@@ -388,7 +391,7 @@ contract MainnetController is AccessControl {
         // Claim shares from the vault to the proxy
         proxy.doCall(
             token,
-            abi.encodeCall(IERC7540(token).mint, (shares, address(proxy)))
+            abi.encodeCall(IERC4626(token).mint, (shares, address(proxy)))
         );
     }
 
@@ -419,6 +422,72 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             token,
             abi.encodeCall(IERC7540(token).withdraw, (assets, address(proxy), address(proxy)))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Centrifuge functions                                                           ***/
+    /**********************************************************************************************/
+
+    // NOTE: These cancelation methods are compatible with ERC-7887
+
+    uint256 CENTRIFUGE_REQUEST_ID = 0;
+
+    function cancelCentrifugeDepositRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
+    {
+        // NOTE: While the cancelation is pending, no new deposit request can be submitted
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).cancelDepositRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy))
+            )
+        );
+    }
+
+    function claimCentrifugeCancelDepositRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
+    {
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).claimCancelDepositRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
+            )
+        );
+    }
+
+    function cancelCentrifugeRedeemRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
+    {
+        // NOTE: While the cancelation is pending, no new redeem request can be submitted
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).cancelRedeemRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy))
+            )
+        );
+    }
+
+    function claimCentrifugeCancelRedeemRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
+    {
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).claimCancelRedeemRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
+            )
         );
     }
 

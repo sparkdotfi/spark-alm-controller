@@ -3,11 +3,28 @@ pragma solidity >=0.8.0;
 
 import "./ForkTestBase.t.sol";
 
+import {IERC7540} from "forge-std/interfaces/IERC7540.sol";
+
 interface IRestrictionManager {
     function updateMember(address token, address user, uint64 validUntil) external;
 }
 
 interface IInvestmentManager {
+    function fulfillCancelDepositRequest(
+        uint64 poolId,
+        bytes16 trancheId,
+        address user,
+        uint128 assetId,
+        uint128 assets,
+        uint128 fulfillment
+    ) external;
+    function fulfillCancelRedeemRequest(
+        uint64 poolId,
+        bytes16 trancheId,
+        address user,
+        uint128 assetId,
+        uint128 shares
+    ) external;
     function fulfillDepositRequest(
         uint64 poolId,
         bytes16 trancheId,
@@ -24,44 +41,45 @@ interface IInvestmentManager {
         uint128 assets,
         uint128 shares
     ) external;
+        
 }
 
 interface IERC20Mintable is IERC20 {
     function mint(address to, uint256 amount) external;
 }
 
-interface IERC7540 is IERC4626 {
-    function claimableDepositRequest(uint256 requestId, address controller)
-        external view returns (uint256 assets);
-    function claimableRedeemRequest(uint256 requestId, address controller)
-        external view returns (uint256 shares);
-    function pendingDepositRequest(uint256 requestId, address controller)
-        external view returns (uint256 assets);
-    function pendingRedeemRequest(uint256 requestId, address controller)
-        external view returns (uint256 shares);
+interface ICentrifugeToken is IERC7540 {
+    function claimableCancelDepositRequest(uint256 requestId, address controller)
+        external view returns (uint256 claimableAssets);
+    function claimableCancelRedeemRequest(uint256 requestId, address controller)
+        external view returns (uint256 claimableShares);
+    function pendingCancelDepositRequest(uint256 requestId, address controller)
+        external view returns (bool isPending);
+    function pendingCancelRedeemRequest(uint256 requestId, address controller)
+        external view returns (bool isPending);
 }
 
 contract CentrifugeTestBase is ForkTestBase {
 
-    address constant ESCROW                  = 0x0000000005F458Fd6ba9EEb5f365D83b7dA913dD;
-    address constant INVESTMENT_MANAGER      = 0xE79f06573d6aF1B66166A926483ba00924285d20;
-    address constant LTF_RESTRICTION_MANAGER = 0x4737C3f62Cc265e786b280153fC666cEA2fBc0c0;
-    address constant LTF_TOKEN               = 0x8c213ee79581Ff4984583C6a801e5263418C4b86;
-    address constant LTF_VAULT_USDC          = 0x1d01Ef1997d44206d839b78bA6813f60F1B3A970;
-    address constant ROOT                    = 0x0C1fDfd6a1331a875EA013F3897fc8a76ada5DfC;
+    address constant ESCROW                        = 0x0000000005F458Fd6ba9EEb5f365D83b7dA913dD;
+    address constant INVESTMENT_MANAGER            = 0xE79f06573d6aF1B66166A926483ba00924285d20;
+    address constant JTREASURY_RESTRICTION_MANAGER = 0x4737C3f62Cc265e786b280153fC666cEA2fBc0c0;
+    address constant JTREASURY_TOKEN               = 0x8c213ee79581Ff4984583C6a801e5263418C4b86;
+    address constant JTREASURY_VAULT_USDC          = 0x1d01Ef1997d44206d839b78bA6813f60F1B3A970;
+    address constant ROOT                          = 0x0C1fDfd6a1331a875EA013F3897fc8a76ada5DfC;
 
-    bytes16 constant LTF_TRANCHE_ID = 0x97aa65f23e7be09fcd62d0554d2e9273;
-    uint128 constant USDC_ASSET_ID  = 242333941209166991950178742833476896417;
-    uint64  constant LTF_POOL_ID    = 4139607887;
+    bytes16 constant JTREASURY_TRANCHE_ID = 0x97aa65f23e7be09fcd62d0554d2e9273;
+    uint128 constant USDC_ASSET_ID        = 242333941209166991950178742833476896417;
+    uint64  constant JTREASURY_POOL_ID    = 4139607887;
 
     // Requests for Centrifuge pools are non-fungible and all have ID = 0
     uint256 constant REQUEST_ID = 0;
 
-    IRestrictionManager restrictionManager = IRestrictionManager(LTF_RESTRICTION_MANAGER);
     IInvestmentManager  investmentManager  = IInvestmentManager(INVESTMENT_MANAGER);
+    IRestrictionManager restrictionManager = IRestrictionManager(JTREASURY_RESTRICTION_MANAGER);
 
-    IERC20Mintable ltfToken = IERC20Mintable(LTF_TOKEN);
-    IERC7540       ltfVault = IERC7540(LTF_VAULT_USDC);
+    ICentrifugeToken jTreasuryVault = ICentrifugeToken(JTREASURY_VAULT_USDC);
+    IERC20Mintable   jTreasuryToken = IERC20Mintable(JTREASURY_TOKEN);
 
     function _getBlock() internal pure override returns (uint256) {
         return 21570000;  // Jan 7, 2024
@@ -77,13 +95,13 @@ contract MainnetControllerRequestDepositERC7540FailureTests is CentrifugeTestBas
             address(this),
             RELAYER
         ));
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestDepositERC7540_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestDepositERC7540_rateLimitBoundary() external {
@@ -91,7 +109,7 @@ contract MainnetControllerRequestDepositERC7540FailureTests is CentrifugeTestBas
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_7540_DEPOSIT(),
-                address(ltfVault)
+                address(jTreasuryVault)
             ),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
@@ -101,13 +119,13 @@ contract MainnetControllerRequestDepositERC7540FailureTests is CentrifugeTestBas
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.prank(ROOT);
-        restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6 + 1);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6 + 1);
 
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
     }
 }
 
@@ -119,11 +137,11 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
         super.setUp();
 
         vm.prank(ROOT);
-        restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_7540_DEPOSIT(),
-            address(ltfVault)
+            address(jTreasuryVault)
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -135,24 +153,24 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
-        assertEq(usdc.allowance(address(almProxy), address(ltfVault)), 0);
+        assertEq(usdc.allowance(address(almProxy), address(jTreasuryVault)), 0);
 
         assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(ESCROW),            0);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
         vm.prank(relayer);
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
-        assertEq(usdc.allowance(address(almProxy), address(ltfVault)), 0);
+        assertEq(usdc.allowance(address(almProxy), address(jTreasuryVault)), 0);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
         assertEq(usdc.balanceOf(ESCROW),            1_000_000e6);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
     }
 
 }
@@ -165,7 +183,7 @@ contract MainnetControllerClaimDepositERC7540FailureTests is CentrifugeTestBase 
             address(this),
             RELAYER
         ));
-        mainnetController.claimDepositERC7540(address(ltfVault));
+        mainnetController.claimDepositERC7540(address(jTreasuryVault));
     }
 
     function test_claimDepositERC7540_invalidVault() external {
@@ -184,11 +202,11 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         super.setUp();
 
         vm.prank(ROOT);
-        restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_7540_DEPOSIT(),
-            address(ltfVault)
+            address(jTreasuryVault)
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -198,92 +216,250 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
     function test_claimDepositERC7540_singleRequest() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
-        // Request deposit into LTF by supplying USDC
+        // Request deposit into JTRSY by supplying USDC
         vm.prank(relayer);
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
 
-        uint256 totalSupply = ltfToken.totalSupply();
+        uint256 totalSupply = jTreasuryToken.totalSupply();
 
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Fulfill request at price 2.0
         vm.prank(ROOT);
-        investmentManager.fulfillDepositRequest(LTF_POOL_ID, LTF_TRANCHE_ID, address(almProxy), USDC_ASSET_ID, 1_000_000e6, 500_000e6);
+        investmentManager.fulfillDepositRequest(
+            JTREASURY_POOL_ID,
+            JTREASURY_TRANCHE_ID,
+            address(almProxy),
+            USDC_ASSET_ID,
+            1_000_000e6,
+            500_000e6
+        );
 
-        assertEq(ltfToken.totalSupply(),                totalSupply + 500_000e6);
-        assertEq(ltfToken.balanceOf(ESCROW),            500_000e6);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.totalSupply(),                totalSupply + 500_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            500_000e6);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
 
         // Claim shares
         vm.prank(relayer);
-        mainnetController.claimDepositERC7540(address(ltfVault));
+        mainnetController.claimDepositERC7540(address(jTreasuryVault));
 
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 500_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 500_000e6);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
     }
 
 
     function test_claimDepositERC7540_multipleRequests() external {
         deal(address(usdc), address(almProxy), 1_500_000e6);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
-        // Request deposit into LTF by supplying USDC
+        // Request deposit into JTRSY by supplying USDC
         vm.prank(relayer);
-        mainnetController.requestDepositERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
 
-        uint256 totalSupply = ltfToken.totalSupply();
+        uint256 totalSupply = jTreasuryToken.totalSupply();
 
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
-        // Request another deposit into LTF by supplying more USDC
+        // Request another deposit into JTRSY by supplying more USDC
         vm.prank(relayer);
-        mainnetController.requestDepositERC7540(address(ltfVault), 500_000e6);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 500_000e6);
 
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Fulfill both requests at price 2.0
         vm.prank(ROOT);
-        investmentManager.fulfillDepositRequest(LTF_POOL_ID, LTF_TRANCHE_ID, address(almProxy), USDC_ASSET_ID, 1_500_000e6, 750_000e6);
+        investmentManager.fulfillDepositRequest(
+            JTREASURY_POOL_ID,
+            JTREASURY_TRANCHE_ID,
+            address(almProxy),
+            USDC_ASSET_ID,
+            1_500_000e6,
+            750_000e6
+        );
 
-        assertEq(ltfToken.totalSupply(),                totalSupply + 750_000e6);
-        assertEq(ltfToken.balanceOf(ESCROW),            750_000e6);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.totalSupply(),                totalSupply + 750_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            750_000e6);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
 
         // Claim shares
         vm.prank(relayer);
-        mainnetController.claimDepositERC7540(address(ltfVault));
+        mainnetController.claimDepositERC7540(address(jTreasuryVault));
 
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 750_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 750_000e6);
 
-        assertEq(ltfVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
+    }
+
+}
+
+contract MainnetControllerCancelCentrifugeDepositFailureTests is CentrifugeTestBase {
+
+    function test_cancelCentrifugeDepositRequest_notRelayer() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER
+        ));
+        mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
+    }
+
+    function test_cancelCentrifugeDepositRequest_invalidVault() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/invalid-action");
+        mainnetController.cancelCentrifugeDepositRequest(makeAddr("fake-vault"));
+    }
+
+}
+
+contract MainnetControllerCancelCentrifugeDepositSuccessTests is CentrifugeTestBase {
+
+    bytes32 key;
+
+    function setUp() public override {
+        super.setUp();
+
+        vm.prank(ROOT);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
+
+        key = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_7540_DEPOSIT(),
+            address(jTreasuryVault)
+        );
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+    }
+
+    function test_cancelCentrifugeDepositRequest() external {
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),       1_000_000e6);
+        assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)), false);
+
+        vm.prank(relayer);
+        mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
+
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),       1_000_000e6);
+        assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)), true);
+    }
+
+}
+
+contract MainnetControllerClaimCentrifugeCancelDepositFailureTests is CentrifugeTestBase {
+
+    function test_claimCentrifugeCancelDepositRequest_notRelayer() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER
+        ));
+        mainnetController.claimCentrifugeCancelDepositRequest(address(jTreasuryVault));
+    }
+
+    function test_claimCentrifugeCancelDepositRequest_invalidVault() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/invalid-action");
+        mainnetController.claimCentrifugeCancelDepositRequest(makeAddr("fake-vault"));
+    }
+
+}
+
+contract MainnetControllerClaimCentrifugeCancelDepositSuccessTests is CentrifugeTestBase {
+
+    bytes32 key;
+
+    function setUp() public override {
+        super.setUp();
+
+        vm.prank(ROOT);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
+
+        key = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_7540_DEPOSIT(),
+            address(jTreasuryVault)
+        );
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+    }
+
+    function test_claimCentrifugeCancelDepositRequest() external {
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(ESCROW),            0);
+
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         0);
+        assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   false);
+        assertEq(jTreasuryVault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 0);
+
+        vm.startPrank(relayer);
+        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
+        vm.stopPrank();
+
+        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(ESCROW),            1_000_000e6);
+
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         1_000_000e6);
+        assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   true);
+        assertEq(jTreasuryVault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Fulfill cancelation request
+        vm.prank(ROOT);
+        investmentManager.fulfillCancelDepositRequest(
+            JTREASURY_POOL_ID,
+            JTREASURY_TRANCHE_ID,
+            address(almProxy),
+            USDC_ASSET_ID,
+            1_000_000e6,
+            1_000_000e6
+        );
+
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         0);
+        assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   false);
+        assertEq(jTreasuryVault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
+
+        vm.prank(relayer);
+        mainnetController.claimCentrifugeCancelDepositRequest(address(jTreasuryVault));
+
+        assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         0);
+        assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   false);
+        assertEq(jTreasuryVault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 0);
+
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(ESCROW),            0);
     }
 
 }
@@ -296,13 +472,13 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
             address(this),
             RELAYER
         ));
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestRedeemERC7540_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestRedeemERC7540_rateLimitsBoundary() external {
@@ -310,7 +486,7 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_7540_REDEEM(),
-                address(ltfVault)
+                address(jTreasuryVault)
             ),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
@@ -318,21 +494,21 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
         vm.stopPrank();
 
         vm.startPrank(ROOT);
-        restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
-        ltfToken.mint(address(almProxy), 1_000_000e6);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
+        jTreasuryToken.mint(address(almProxy), 1_000_000e6);
         vm.stopPrank();
 
-        uint256 overBoundaryShares = ltfVault.convertToShares(1_000_000e6 + 2);
-        uint256 atBoundaryShares   = ltfVault.convertToShares(1_000_000e6 + 1);
+        uint256 overBoundaryShares = jTreasuryVault.convertToShares(1_000_000e6 + 2);
+        uint256 atBoundaryShares   = jTreasuryVault.convertToShares(1_000_000e6 + 1);
 
-        assertEq(ltfVault.convertToAssets(overBoundaryShares), 1_000_000e6 + 1);
-        assertEq(ltfVault.convertToAssets(atBoundaryShares),   1_000_000e6);
+        assertEq(jTreasuryVault.convertToAssets(overBoundaryShares), 1_000_000e6 + 1);
+        assertEq(jTreasuryVault.convertToAssets(atBoundaryShares),   1_000_000e6);
 
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.requestRedeemERC7540(address(ltfVault), overBoundaryShares);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), overBoundaryShares);
 
-        mainnetController.requestRedeemERC7540(address(ltfVault), atBoundaryShares);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), atBoundaryShares);
     }
 }
 
@@ -344,12 +520,12 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
         super.setUp();
 
         vm.startPrank(ROOT);
-        restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_7540_REDEEM(),
-            address(ltfVault)
+            address(jTreasuryVault)
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -357,29 +533,29 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
     }
 
     function test_requestRedeemERC7540() external {
-        uint256 shares = ltfVault.convertToShares(1_000_000e6);
+        uint256 shares = jTreasuryVault.convertToShares(1_000_000e6);
 
         assertEq(shares, 951_771.227025e6);
 
         vm.prank(ROOT);
-        ltfToken.mint(address(almProxy), shares);
+        jTreasuryToken.mint(address(almProxy), shares);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), shares);
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), shares);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         vm.prank(relayer);
-        mainnetController.requestRedeemERC7540(address(ltfVault), shares);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), shares);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1);  // Rounding
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
-        assertEq(ltfToken.balanceOf(ESCROW),            shares);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            shares);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), shares);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), shares);
     }
 
 }
@@ -392,7 +568,7 @@ contract MainnetControllerClaimRedeemERC7540FailureTests is CentrifugeTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.claimRedeemERC7540(address(ltfVault));
+        mainnetController.claimRedeemERC7540(address(jTreasuryVault));
     }
 
     function test_claimRedeemERC7540_invalidVault() external {
@@ -411,12 +587,12 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         super.setUp();
 
         vm.startPrank(ROOT);
-        restrictionManager.updateMember(address(ltfToken), address(almProxy), type(uint64).max);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_7540_REDEEM(),
-            address(ltfVault)
+            address(jTreasuryVault)
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -425,108 +601,273 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
 
     function test_claimRedeemERC7540_singleRequest() external {
         vm.prank(ROOT);
-        ltfToken.mint(address(almProxy), 1_000_000e6);
+        jTreasuryToken.mint(address(almProxy), 1_000_000e6);
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
-        // Request LTF redemption
+        // Request JTRSY redemption
         vm.prank(relayer);
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
 
-        uint256 totalSupply = ltfToken.totalSupply();
+        uint256 totalSupply = jTreasuryToken.totalSupply();
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
-        assertEq(ltfToken.balanceOf(ESCROW),            1_000_000e6);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            1_000_000e6);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Fulfill request at price 2.0
         deal(address(usdc), ESCROW, 2_000_000e6);
         vm.prank(ROOT);
-        investmentManager.fulfillRedeemRequest(LTF_POOL_ID, LTF_TRANCHE_ID, address(almProxy), USDC_ASSET_ID, 2_000_000e6, 1_000_000e6);
+        investmentManager.fulfillRedeemRequest(
+            JTREASURY_POOL_ID,
+            JTREASURY_TRANCHE_ID,
+            address(almProxy),
+            USDC_ASSET_ID,
+            2_000_000e6,
+            1_000_000e6
+        );
 
-        assertEq(ltfToken.totalSupply(),                totalSupply - 1_000_000e6);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.totalSupply(),                totalSupply - 1_000_000e6);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
 
         assertEq(usdc.balanceOf(ESCROW),            2_000_000e6);
         assertEq(usdc.balanceOf(address(almProxy)), 0);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
 
         // Claim assets
         vm.prank(relayer);
-        mainnetController.claimRedeemERC7540(address(ltfVault));
+        mainnetController.claimRedeemERC7540(address(jTreasuryVault));
 
         assertEq(usdc.balanceOf(ESCROW),            0);
         assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
     }
 
     function test_claimRedeemERC7540_multipleRequests() external {
         vm.prank(ROOT);
-        ltfToken.mint(address(almProxy), 1_500_000e6);
+        jTreasuryToken.mint(address(almProxy), 1_500_000e6);
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 1_500_000e6);
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 1_500_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
-        // Request LTF redemption
+        // Request JTRSY redemption
         vm.prank(relayer);
-        mainnetController.requestRedeemERC7540(address(ltfVault), 1_000_000e6);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
 
-        uint256 totalSupply = ltfToken.totalSupply();
+        uint256 totalSupply = jTreasuryToken.totalSupply();
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 500_000e6);
-        assertEq(ltfToken.balanceOf(ESCROW),            1_000_000e6);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 500_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            1_000_000e6);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
-        // Request another LTF redemption
+        // Request another JTRSY redemption
         vm.prank(relayer);
-        mainnetController.requestRedeemERC7540(address(ltfVault), 500_000e6);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 500_000e6);
 
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
-        assertEq(ltfToken.balanceOf(ESCROW),            1_500_000e6);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            1_500_000e6);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Fulfill both requests at price 2.0
         deal(address(usdc), ESCROW, 3_000_000e6);
         vm.prank(ROOT);
-        investmentManager.fulfillRedeemRequest(LTF_POOL_ID, LTF_TRANCHE_ID, address(almProxy), USDC_ASSET_ID, 3_000_000e6, 1_500_000e6);
+        investmentManager.fulfillRedeemRequest(
+            JTREASURY_POOL_ID,
+            JTREASURY_TRANCHE_ID,
+            address(almProxy),
+            USDC_ASSET_ID,
+            3_000_000e6,
+            1_500_000e6
+        );
 
-        assertEq(ltfToken.totalSupply(),                totalSupply - 1_500_000e6);
-        assertEq(ltfToken.balanceOf(address(almProxy)), 0);
-        assertEq(ltfToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.totalSupply(),                totalSupply - 1_500_000e6);
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
 
         assertEq(usdc.balanceOf(ESCROW),            3_000_000e6);
         assertEq(usdc.balanceOf(address(almProxy)), 0);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
 
         // Claim assets
         vm.prank(relayer);
-        mainnetController.claimRedeemERC7540(address(ltfVault));
+        mainnetController.claimRedeemERC7540(address(jTreasuryVault));
 
         assertEq(usdc.balanceOf(ESCROW),            0);
         assertEq(usdc.balanceOf(address(almProxy)), 3_000_000e6);
 
-        assertEq(ltfVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
-        assertEq(ltfVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
+        assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+    }
+
+}
+
+contract MainnetControllerCancelCentrifugeRedeemRequestFailureTests is CentrifugeTestBase {
+
+    function test_cancelCentrifugeRedeemRequest_notRelayer() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER
+        ));
+        mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
+    }
+
+    function test_cancelCentrifugeRedeemRequest_invalidVault() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/invalid-action");
+        mainnetController.cancelCentrifugeRedeemRequest(makeAddr("fake-vault"));
+    }
+
+}
+
+contract MainnetControllerCancelCentrifugeRedeemRequestSuccessTests is CentrifugeTestBase {
+
+    bytes32 key;
+
+    function setUp() public override {
+        super.setUp();
+
+        vm.startPrank(ROOT);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
+        vm.stopPrank();
+
+        key = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_7540_REDEEM(),
+            address(jTreasuryVault)
+        );
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+    }
+
+    function test_cancelCentrifugeRedeemRequest() external {
+        uint256 shares = jTreasuryVault.convertToShares(1_000_000e6);
+
+        vm.prank(ROOT);
+        jTreasuryToken.mint(address(almProxy), shares);
+
+        vm.prank(relayer);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), shares);
+
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),       shares);
+        assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)), false);
+
+        vm.prank(relayer);
+        mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
+
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),       shares);
+        assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)), true);
+    }
+
+}
+
+contract MainnetControllerClaimCentrifugeCancelRedeemRequestFailureTests is CentrifugeTestBase {
+
+    function test_claimCentrifugeCancelRedeemRequest_notRelayer() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER
+        ));
+        mainnetController.claimCentrifugeCancelRedeemRequest(address(jTreasuryVault));
+    }
+
+    function test_claimCentrifugeCancelRedeemRequest_invalidVault() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/invalid-action");
+        mainnetController.claimCentrifugeCancelRedeemRequest(makeAddr("fake-vault"));
+    }
+
+}
+
+contract MainnetControllerClaimCentrifugeCancelRedeemRequestSuccessTests is CentrifugeTestBase {
+
+    bytes32 key;
+
+    function setUp() public override {
+        super.setUp();
+
+        vm.startPrank(ROOT);
+        restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
+        vm.stopPrank();
+
+        key = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_7540_REDEEM(),
+            address(jTreasuryVault)
+        );
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+    }
+
+    function test_claimCentrifugeCancelRedeemRequest() external {
+        uint256 shares = jTreasuryVault.convertToShares(1_000_000e6);
+
+        vm.prank(ROOT);
+        jTreasuryToken.mint(address(almProxy), shares);
+
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), shares);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),         0);
+        assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)),   false);
+        assertEq(jTreasuryVault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+
+        vm.startPrank(relayer);
+        mainnetController.requestRedeemERC7540(address(jTreasuryVault), shares);
+        mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
+        vm.stopPrank();
+
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            shares);
+
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),         shares);
+        assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)),   true);
+        assertEq(jTreasuryVault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+
+        // Fulfill cancelation request
+        vm.prank(ROOT);
+        investmentManager.fulfillCancelRedeemRequest(
+            JTREASURY_POOL_ID,
+            JTREASURY_TRANCHE_ID,
+            address(almProxy),
+            USDC_ASSET_ID,
+            uint128(shares)
+        );
+
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),         0);
+        assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)),   false);
+        assertEq(jTreasuryVault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), shares);
+
+        vm.prank(relayer);
+        mainnetController.claimCentrifugeCancelRedeemRequest(address(jTreasuryVault));
+
+        assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),         0);
+        assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)),   false);
+        assertEq(jTreasuryVault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), 0);
+
+        assertEq(jTreasuryToken.balanceOf(address(almProxy)), shares);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
     }
 
 }

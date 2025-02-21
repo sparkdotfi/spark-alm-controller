@@ -197,7 +197,7 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         mainnetController.withdrawERC4626(Ethereum.SUSDS, 10e18);
         vm.stopPrank();
 
-        assertEq(usds.balanceOf(address(almProxy)), startingBalance + 10e18);  
+        assertEq(usds.balanceOf(address(almProxy)), startingBalance + 10e18);
 
         assertGe(IERC4626(Ethereum.SUSDS).balanceOf(address(almProxy)), 0);  // Interest earned
     }
@@ -214,7 +214,7 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
 
         assertGe(usds.balanceOf(address(almProxy)), startingBalance + 10e18);  // Interest earned
 
-        assertEq(IERC4626(Ethereum.SUSDS).balanceOf(address(almProxy)), 0);  
+        assertEq(IERC4626(Ethereum.SUSDS).balanceOf(address(almProxy)), 0);
     }
 
     function test_depositAndWithdrawUsdsFromAave() public {
@@ -266,19 +266,19 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
 
         _simulateUsdeBurn(10e18 - 1);
 
-        assertEq(usdc.balanceOf(address(almProxy)), startingBalance + 10e6 - 1);  // Rounding not captured 
-        
+        assertEq(usdc.balanceOf(address(almProxy)), startingBalance + 10e6 - 1);  // Rounding not captured
+
         assertGe(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);  // Interest earned
     }
 
     function test_mintDepositCooldownSharesBurnUsde() public {
-        uint256 startingBalance = usdc.balanceOf(address(almProxy));
-
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
         mainnetController.swapUSDSToUSDC(10e6);
         mainnetController.prepareUSDeMint(10e6);
         vm.stopPrank();
+
+        uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
         _simulateUsdeMint(10e6);
 
@@ -288,23 +288,28 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         uint256 usdeAmount = mainnetController.cooldownSharesSUSDe(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)));
         skip(7 days);
         mainnetController.unstakeSUSDe();
-        mainnetController.prepareUSDeBurn(usdeAmount);
+
+        // Handle situation where usde balance of ALM Proxy is higher than max rate limit
+        uint256 maxBurnAmount = rateLimits.getCurrentRateLimit(mainnetController.LIMIT_USDE_BURN());
+        uint256 burnAmount    = usdeAmount > maxBurnAmount ? maxBurnAmount : usdeAmount;
+        mainnetController.prepareUSDeBurn(burnAmount);
+
         vm.stopPrank();
 
-        _simulateUsdeBurn(usdeAmount);
+        _simulateUsdeBurn(burnAmount);
 
         assertGe(usdc.balanceOf(address(almProxy)), startingBalance + 10e6 - 1);  // Interest earned (rounding)
-        
-        assertEq(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);  
+
+        assertEq(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);
     }
 
     /**********************************************************************************************/
     /**** Helper functions                                                                      ***/
     /**********************************************************************************************/
 
-    // NOTE: In reality these actions are performed by the signer submitting an order with an 
-    //       EIP712 signature which is verified by the ethenaMinter contract, 
-    //       minting/burning USDe into the ALMProxy. Also, for the purposes of this test, 
+    // NOTE: In reality these actions are performed by the signer submitting an order with an
+    //       EIP712 signature which is verified by the ethenaMinter contract,
+    //       minting/burning USDe into the ALMProxy. Also, for the purposes of this test,
     //       minting/burning is done 1:1 with USDC.
 
     // TODO: Try doing ethena minting with EIP-712 signatures (vm.sign)
@@ -313,8 +318,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         vm.prank(Ethereum.ETHENA_MINTER);
         usdc.transferFrom(address(almProxy), Ethereum.ETHENA_MINTER, amount);
         deal(
-            Ethereum.USDE, 
-            address(almProxy), 
+            Ethereum.USDE,
+            address(almProxy),
             IERC20(Ethereum.USDE).balanceOf(address(almProxy)) + amount * 1e12
         );
     }
@@ -496,7 +501,7 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
 
         assertGe(usdcBase.balanceOf(address(baseAlmProxy)), 10e6);  // Interest earned
 
-        assertEq(IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)), 0);  
+        assertEq(IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)), 0);
 
         baseController.transferUSDCToCCTP(1e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
         vm.stopPrank();
