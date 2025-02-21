@@ -233,7 +233,7 @@ contract MainnetControllerDepositRedeemBUIDLE2ESuccessTests is MainnetController
 
     IBuidlLike buidl = IBuidlLike(0x7712c34205737192402172409a8F7ccef8aA2AEc);
 
-    function setUp() override public {
+    function setUp() public virtual override {
         super.setUp();
 
         vm.startPrank(admin);

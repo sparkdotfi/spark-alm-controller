@@ -94,6 +94,8 @@ contract ForkTestBase is DssTest {
     address freezer = Ethereum.ALM_FREEZER;
     address relayer = Ethereum.ALM_RELAYER;
 
+    address backstopRelayer = makeAddr("backstopRelayer");  // TODO: Replace with real backstop
+
     bytes32 CONTROLLER;
     bytes32 FREEZER;
     bytes32 RELAYER;
@@ -273,6 +275,8 @@ contract ForkTestBase is DssTest {
             checkAddresses,
             mintRecipients
         );
+
+        mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
 
         RateLimitData memory standardUsdsData = RateLimitData({
             maxAmount : 5_000_000e18,
