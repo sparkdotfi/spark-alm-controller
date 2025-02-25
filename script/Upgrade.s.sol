@@ -102,8 +102,6 @@ contract ForeignControllerScript is Script {
 
         vm.createSelectFork(getChain(chainName).rpcUrl);
 
-        console.log(string(abi.encodePacked("Upgrading ", chainName, " controller...")));
-
         string memory inputConfig = ScriptTools.readInput(fileSlug);
 
         controllerInst = ControllerInstance({
@@ -163,8 +161,6 @@ contract InitForeignController is ForeignControllerScript {
         console.log("ALMProxy initialized at  ", controllerInst.almProxy);
         console.log("RateLimits initialized at", controllerInst.rateLimits);
         console.log("Controller initialized at", controllerInst.controller);
-
-
 
         vm.createSelectFork(getChain("mainnet").rpcUrl);
 
