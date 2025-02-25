@@ -11,7 +11,9 @@ import { ControllerInstance }                   from "../deploy/ControllerInstan
 import { ForeignControllerInit as ForeignInit } from "../deploy/ForeignControllerInit.sol";
 import { MainnetControllerInit as MainnetInit } from "../deploy/MainnetControllerInit.sol";
 
-import { MainnetController } from "../src/MainnetController.sol";
+import { ForeignController }              from "../src/ForeignController.sol";
+import { MainnetController }              from "../src/MainnetController.sol";
+import { RateLimitData, RateLimitHelpers } from "../src/RateLimitHelpers.sol";
 
 contract UpgradeMainnetController is Script {
 
@@ -89,6 +91,7 @@ contract ForeignControllerScript is Script {
             ForeignInit.ConfigAddressParams memory configAddresses,
             ForeignInit.CheckAddressParams  memory checkAddresses,
             ForeignInit.MintRecipient[]     memory mintRecipients,
+            string memory                          inputConfig,
             address                                oldController
         )
     {
@@ -102,7 +105,7 @@ contract ForeignControllerScript is Script {
 
         vm.createSelectFork(getChain(chainName).rpcUrl);
 
-        string memory inputConfig = ScriptTools.readInput(fileSlug);
+        inputConfig = ScriptTools.readInput(fileSlug);
 
         controllerInst = ControllerInstance({
             almProxy   : inputConfig.readAddress(".almProxy"),
@@ -144,17 +147,25 @@ contract InitForeignController is ForeignControllerScript {
     using stdJson     for string;
     using ScriptTools for string;
 
+    bytes32 private constant LIMIT_USDS_TO_USDC   = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 private constant LIMIT_USDC_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 private constant LIMIT_PSM_DEPOSIT    = keccak256("LIMIT_PSM_DEPOSIT");
+    bytes32 private constant LIMIT_PSM_WITHDRAW   = keccak256("LIMIT_PSM_WITHDRAW");
+
     function run() external {
         (
             ControllerInstance              memory controllerInst,
             ForeignInit.ConfigAddressParams memory configAddresses,
             ForeignInit.CheckAddressParams  memory checkAddresses,
             ForeignInit.MintRecipient[]     memory mintRecipients,
+            string memory                          inputConfig,
         ) = _setUp();
 
         vm.startBroadcast();
 
         ForeignInit.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients);
+
+        _setBasicRateLimits(controllerInst, inputConfig);
 
         vm.stopBroadcast();
 
@@ -166,21 +177,64 @@ contract InitForeignController is ForeignControllerScript {
 
         uint32 cctpDomainId = uint32(vm.envUint("CCTP_DOMAIN_ID"));
 
-        string memory fileSlug    = string(abi.encodePacked("mainnet-", vm.envString("ENV")));
-        string memory inputConfig = ScriptTools.readInput(fileSlug);
+        string memory fileSlug     = string(abi.encodePacked("mainnet-", vm.envString("ENV")));
+        string memory mainnetConfig = ScriptTools.readInput(fileSlug);
 
-        MainnetController controller = MainnetController(inputConfig.readAddress(".controller"));
+        MainnetController mainnetController = MainnetController(mainnetConfig.readAddress(".controller"));
 
         vm.startBroadcast();
 
-        controller.setMintRecipient(
+        mainnetController.setMintRecipient(
             cctpDomainId,
-            bytes32(uint256(uint160(address( controllerInst.almProxy))))
+            bytes32(uint256(uint160(address(controllerInst.almProxy))))
         );
 
         vm.stopBroadcast();
 
         console.log("Mint recipient %s set at domain %s", controllerInst.almProxy, cctpDomainId);
+    }
+
+    function _setBasicRateLimits(ControllerInstance memory controllerInst, string memory config) internal {
+        ForeignController foreignController = ForeignController(controllerInst.controller);
+
+        address rateLimits = controllerInst.rateLimits;
+
+        bytes32 psmDepositKey  = foreignController.LIMIT_PSM_DEPOSIT();
+        bytes32 psmWithdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
+
+        bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
+            foreignController.LIMIT_USDC_TO_DOMAIN(),
+            CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
+        );
+
+        address usdc  = config.readAddress(".usdc");
+        address usds  = config.readAddress(".usds");
+        address susds = config.readAddress(".susds");
+
+        uint256 USDC_UNIT_SIZE = ScriptTools.readInput("mainnet-staging").readUint(".usdcUnitSize") * 1e6;
+        uint256 USDS_UNIT_SIZE = ScriptTools.readInput("mainnet-staging").readUint(".usdsUnitSize") * 1e18;
+
+        RateLimitData memory rateLimitData18 = RateLimitData({
+            maxAmount : USDS_UNIT_SIZE * 5,
+            slope     : USDS_UNIT_SIZE / 4 hours
+        });
+        RateLimitData memory rateLimitData6 = RateLimitData({
+            maxAmount : USDC_UNIT_SIZE * 5,
+            slope     : USDC_UNIT_SIZE / 4 hours
+        });
+        RateLimitData memory unlimitedRateLimit = RateLimitHelpers.unlimitedRateLimit();
+
+        // PSM rate limits for all three assets
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usdc),  rateLimits, rateLimitData6,     "usdcDepositDataPsm",   6);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usdc),  rateLimits, rateLimitData6,     "usdcWithdrawDataPsm",  6);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usds),  rateLimits, rateLimitData18,    "usdsDepositDataPsm",   18);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usds),  rateLimits, unlimitedRateLimit, "usdsWithdrawDataPsm",  18);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  susds), rateLimits, rateLimitData18,    "susdsDepositDataPsm",  18);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, susds), rateLimits, unlimitedRateLimit, "susdsWithdrawDataPsm", 18);
+
+        // CCTP rate limits
+        RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      rateLimits, rateLimitData6,     "cctpToEthereumDomainData", 6);
+        RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",           6);
     }
 
 }
@@ -193,6 +247,7 @@ contract UpgradeForeignController is ForeignControllerScript {
             ForeignInit.ConfigAddressParams memory configAddresses,
             ForeignInit.CheckAddressParams  memory checkAddresses,
             ForeignInit.MintRecipient[]     memory mintRecipients,
+            ,
             address                                oldController
         ) = _setUp();
 
