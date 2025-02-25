@@ -44,6 +44,10 @@ contract AaveV3BaseMarketTestBase is ForkTestBase {
         startingAUSDCBalance = usdcBase.balanceOf(address(ausdc));
     }
 
+    function _getBlock() internal pure override returns (uint256) {
+        return 22841965;  // November 24, 2024
+    }
+
 }
 
 contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
@@ -196,7 +200,7 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         vm.prank(relayer);
         assertEq(foreignController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);
 
-        assertEq(ausdc.balanceOf(address(almProxy)),    fullBalance - 400_000e6);
+        assertEq(ausdc.balanceOf(address(almProxy)),    fullBalance - 400_000e6 - 1);
         assertEq(usdcBase.balanceOf(address(almProxy)), 400_000e6);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 100_000e6);  // 500k - 400k
 
@@ -204,13 +208,13 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
 
         // Withdraw all
         vm.prank(relayer);
-        assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance - 400_000e6);
+        assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance - 400_000e6 - 1);
 
         assertEq(ausdc.balanceOf(address(almProxy)),    0);
-        assertEq(usdcBase.balanceOf(address(almProxy)), fullBalance);
-        assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6 - fullBalance);
+        assertEq(usdcBase.balanceOf(address(almProxy)), fullBalance - 1);
+        assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6 - fullBalance + 1);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6 - fullBalance);
+        assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6 - fullBalance + 1);
 
         // Interest accrued was withdrawn, reducing cash balance
         assertLe(usdcBase.balanceOf(address(ausdc)), startingAUSDCBalance);

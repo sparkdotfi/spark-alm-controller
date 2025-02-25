@@ -16,15 +16,12 @@ contract SUSDSTestBase is ForkTestBase {
     function setUp() override public {
         super.setUp();
 
+        bytes32 depositKey  = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
+
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_4626_WITHDRAW(),
-                Ethereum.SUSDS
-            ),
-            5_000_000e18,
-            uint256(5_000_000e18) / 1 days
-        );
+        rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
+        rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
         vm.stopPrank();
 
         SUSDS_CONVERTED_ASSETS = susds.convertToAssets(1e18);

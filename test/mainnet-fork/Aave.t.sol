@@ -61,6 +61,10 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
         startingAUSDSBalance = usds.balanceOf(address(ausds));
     }
 
+    function _getBlock() internal pure override returns (uint256) {
+        return 21417200;  // Dec 16, 2024
+    }
+
 }
 
 // NOTE: Only testing USDS for non-rate limit failures as it doesn't matter which asset is used
@@ -334,7 +338,7 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
         vm.prank(relayer);
         assertEq(mainnetController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);
 
-        assertEq(ausdc.balanceOf(address(almProxy)), fullBalance - 400_000e6);
+        assertEq(ausdc.balanceOf(address(almProxy)), fullBalance - 400_000e6 + 1);  // Rounding
         assertEq(usdc.balanceOf(address(almProxy)),  400_000e6);
         assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 600_000e6);  // 1m - 400k
 
@@ -342,13 +346,13 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
         // Withdraw all
         vm.prank(relayer);
-        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance - 400_000e6);
+        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance - 400_000e6 + 1);  // Rounding
 
         assertEq(ausdc.balanceOf(address(almProxy)), 0);
-        assertEq(usdc.balanceOf(address(almProxy)),  fullBalance);
-        assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6 - fullBalance);
+        assertEq(usdc.balanceOf(address(almProxy)),  fullBalance + 1);
+        assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6 - fullBalance - 1);  // Rounding
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6 - fullBalance);
+        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6 - fullBalance - 1);  // Rounding
 
         // Interest accrued was withdrawn, reducing cash balance
         assertLe(usdc.balanceOf(address(ausdc)), startingAUSDCBalance);

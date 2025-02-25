@@ -9,7 +9,7 @@ import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-import { Ethereum } from "spark-address-registry/src/Ethereum.sol";
+import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";

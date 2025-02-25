@@ -7,25 +7,23 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
-import { Base } from "spark-address-registry/src/Base.sol";
+import { Base } from "spark-address-registry/Base.sol";
 
 import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "spark-psm/src/PSM3.sol";
 
-import { CCTPForwarder } from "xchain-helpers/src/forwarders/CCTPForwarder.sol";
+import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 
-import {
-    ForeignControllerInit,
-    MintRecipient,
-    RateLimitData
-} from "../../deploy/ControllerInit.sol";
+import { ForeignControllerInit as Init } from "../../deploy/ForeignControllerInit.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
+
+import { RateLimitHelpers, RateLimitData }  from "../../src/RateLimitHelpers.sol";
 
 contract ForkTestBase is Test {
 
@@ -41,9 +39,10 @@ contract ForkTestBase is Test {
     bytes32 FREEZER;
     bytes32 RELAYER;
 
-    address freezer = makeAddr("freezer");
-    address pocket  = makeAddr("pocket");
-    address relayer = makeAddr("relayer");
+    address freezer = Base.ALM_FREEZER;
+    address relayer = Base.ALM_RELAYER;
+
+    address pocket = makeAddr("pocket");
 
     /**********************************************************************************************/
     /*** Base addresses                                                                         ***/
@@ -99,7 +98,7 @@ contract ForkTestBase is Test {
         vm.prank(pocket);
         usdcBase.approve(address(psmBase), type(uint256).max);
 
-        /*** Step 3: Deploy and configure ALM system ***/
+        /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
             admin : SPARK_EXECUTOR,
@@ -116,57 +115,78 @@ contract ForkTestBase is Test {
         FREEZER    = foreignController.FREEZER();
         RELAYER    = foreignController.RELAYER();
 
-        ForeignControllerInit.AddressParams memory addresses = ForeignControllerInit.AddressParams({
-            admin         : SPARK_EXECUTOR,
+        /*** Step 3: Configure ALM system through Spark governance (Spark spell payload) ***/
+
+
+        Init.ConfigAddressParams memory configAddresses = Init.ConfigAddressParams({
             freezer       : freezer,
             relayer       : relayer,
-            oldController : address(0),  // Empty
-            psm           : address(psmBase),
-            cctpMessenger : CCTP_MESSENGER_BASE,
-            usdc          : USDC_BASE,
-            usds          : address(usdsBase),
-            susds         : address(susdsBase)
+            oldController : address(0)
         });
 
-        RateLimitData memory standardUsdcRateLimitData = RateLimitData({
-            maxAmount : 5_000_000e6,
-            slope     : uint256(1_000_000e6) / 4 hours
+        Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
+            admin : Base.SPARK_EXECUTOR,
+            psm   : address(psmBase),
+            cctp  : Base.CCTP_TOKEN_MESSENGER,
+            usdc  : address(usdcBase),
+            susds : address(susdsBase),
+            usds  : address(usdsBase)
         });
 
-        RateLimitData memory standardUsdsRateLimitData = RateLimitData({
-            maxAmount : 5_000_000e18,
-            slope     : uint256(1_000_000e18) / 4 hours
-        });
+        Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
 
-        RateLimitData memory unlimitedRateLimitData = RateLimitData({
-            maxAmount : type(uint256).max,
-            slope     : 0
-        });
-
-        ForeignControllerInit.InitRateLimitData memory rateLimitData
-            = ForeignControllerInit.InitRateLimitData({
-                usdcDepositData          : standardUsdcRateLimitData,
-                usdcWithdrawData         : standardUsdcRateLimitData,
-                usdsDepositData          : standardUsdsRateLimitData,
-                usdsWithdrawData         : unlimitedRateLimitData,
-                susdsDepositData         : standardUsdsRateLimitData,
-                susdsWithdrawData        : unlimitedRateLimitData,
-                usdcToCctpData           : standardUsdcRateLimitData,
-                cctpToEthereumDomainData : standardUsdcRateLimitData
-            });
-
-        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
-
-        mintRecipients[0] = MintRecipient({
+        mintRecipients[0] = Init.MintRecipient({
             domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
             mintRecipient : bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
         });
 
         vm.startPrank(SPARK_EXECUTOR);
-        ForeignControllerInit.init(addresses, controllerInst, rateLimitData, mintRecipients);
+
+        Init.initAlmSystem(
+            controllerInst,
+            configAddresses,
+            checkAddresses,
+            mintRecipients
+        );
+
+        RateLimitData memory standardUsdcData = RateLimitData({
+            maxAmount : 5_000_000e6,
+            slope     : uint256(1_000_000e6) / 4 hours
+        });
+
+        RateLimitData memory standardUsdsData = RateLimitData({
+            maxAmount : 5_000_000e18,
+            slope     : uint256(1_000_000e18) / 4 hours
+        });
+
+        RateLimitData memory unlimitedData = RateLimitData({
+            maxAmount : type(uint256).max,
+            slope     : 0
+        });
+
+        bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
+        bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
+
+        bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
+            foreignController.LIMIT_USDC_TO_DOMAIN(),
+            CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
+        );
+
+        // NOTE: Using minimal config for test base setup
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdcBase)),  address(rateLimits), standardUsdcData, "usdcDepositData",  6);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase)),  address(rateLimits), standardUsdcData, "usdcWithdrawData", 6);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdsBase)),  address(rateLimits), standardUsdsData, "usdsDepositData",  18);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase)),  address(rateLimits), unlimitedData,    "usdsWithdrawData", 18);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(susdsBase)), address(rateLimits), standardUsdsData, "susdsDepositData", 18);
+        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase)), address(rateLimits), unlimitedData,    "susdsWithdrawData", 18);
+
+        RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), address(rateLimits), standardUsdcData, "usdcToCctpData",           6);
+        RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      address(rateLimits), standardUsdcData, "cctpToEthereumDomainData", 6);
+
         vm.stopPrank();
     }
 
+    // Default configuration for the fork, can be overridden in inheriting tests
     function _getBlock() internal virtual pure returns (uint256) {
         return 20782500;  // October 8, 2024
     }

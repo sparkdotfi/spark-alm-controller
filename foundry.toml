@@ -2,19 +2,9 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-solc_version = '0.8.21'
+solc_version = '0.8.25'
 optimizer = true
 optimizer_runs = 200
-assertions_revert = false
-remappings = [
-    "dss-allocator/=lib/dss-allocator/",
-    "dss-test/=lib/dss-test/src/",
-    "usds/=lib/usds/",
-    "sdai/=lib/sdai/",
-    "spark-psm/=lib/spark-psm/",
-    "spark-address-registry/=lib/spark-address-registry/",
-    "xchain-helpers/=lib/xchain-helpers/",
-]
 fs_permissions = [
     { access = "read", path = "./script/input/"},
     { access = "read-write", path = "./script/output/"}

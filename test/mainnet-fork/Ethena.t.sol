@@ -7,7 +7,14 @@ interface IEthenaMinterLike {
     function delegatedSigner(address signer, address owner) external view returns (uint8);
 }
 
-contract MainnetControllerSetDelegatedSignerFailureTests is ForkTestBase {
+contract EthenaTestBase is ForkTestBase {
+
+    function _getBlock() internal pure override returns (uint256) {
+        return 21417200;  // Dec 16, 2024
+    }
+}
+
+contract MainnetControllerSetDelegatedSignerFailureTests is EthenaTestBase {
 
     function test_setDelegatedSigner_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -29,7 +36,7 @@ contract MainnetControllerSetDelegatedSignerFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerSetDelegatedSignerSuccessTests is ForkTestBase {
+contract MainnetControllerSetDelegatedSignerSuccessTests is EthenaTestBase {
 
     event DelegatedSignerInitiated(address indexed delegateTo, address indexed initiatedBy);
 
@@ -50,7 +57,7 @@ contract MainnetControllerSetDelegatedSignerSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerRemoveDelegatedSignerFailureTests is ForkTestBase {
+contract MainnetControllerRemoveDelegatedSignerFailureTests is EthenaTestBase {
 
     function test_removeDelegatedSigner_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -72,7 +79,7 @@ contract MainnetControllerRemoveDelegatedSignerFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerRemoveDelegatedSignerSuccessTests is ForkTestBase {
+contract MainnetControllerRemoveDelegatedSignerSuccessTests is EthenaTestBase {
 
     event DelegatedSignerRemoved(address indexed removedSigner, address indexed initiatedBy);
 
@@ -96,7 +103,7 @@ contract MainnetControllerRemoveDelegatedSignerSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeMintFailureTests is ForkTestBase {
+contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
 
     function test_prepareUSDeMint_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -135,7 +142,7 @@ contract MainnetControllerPrepareUSDeMintFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeMintSuccessTests is ForkTestBase {
+contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
 
     bytes32 key;
 
@@ -177,7 +184,7 @@ contract MainnetControllerPrepareUSDeMintSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeBurnFailureTests is ForkTestBase {
+contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
 
     function test_prepareUSDeBurn_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -216,7 +223,7 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeBurnSuccessTests is ForkTestBase {
+contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
 
     bytes32 key;
 
@@ -258,7 +265,7 @@ contract MainnetControllerPrepareUSDeBurnSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerCooldownAssetsSUSDeFailureTests is ForkTestBase {
+contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
 
     function test_cooldownAssetsSUSDe_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -300,7 +307,7 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerCooldownAssetsSUSDeSuccessTests is ForkTestBase {
+contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
 
     event Withdraw(
         address indexed sender,
@@ -366,7 +373,7 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerCooldownSharesSUSDeFailureTests is ForkTestBase {
+contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
 
     function test_cooldownSharesSUSDe_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -414,7 +421,7 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerCooldownSharesSUSDeSuccessTests is ForkTestBase {
+contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
 
     event Withdraw(
         address indexed sender,
@@ -493,7 +500,7 @@ contract MainnetControllerCooldownSharesSUSDeSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerUnstakeSUSDeFailureTests is ForkTestBase {
+contract MainnetControllerUnstakeSUSDeFailureTests is EthenaTestBase {
 
     function test_unstakeSUSDe_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -542,7 +549,7 @@ contract MainnetControllerUnstakeSUSDeFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerUnstakeSUSDeSuccessTests is ForkTestBase {
+contract MainnetControllerUnstakeSUSDeSuccessTests is EthenaTestBase {
 
     function test_unstakeSUSDe() external {
         // Setting higher rate limit so shares can be used for cooldown
@@ -579,7 +586,7 @@ contract MainnetControllerUnstakeSUSDeSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerEthenaE2ETests is ForkTestBase {
+contract MainnetControllerEthenaE2ETests is EthenaTestBase {
 
     address signer = makeAddr("signer");
 
@@ -674,7 +681,7 @@ contract MainnetControllerEthenaE2ETests is ForkTestBase {
 
         assertEq(usde.allowance(address(almProxy), address(susde)), 0);
 
-        assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 500_000e18 - 2);  // Rounding
+        assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 500_000e18 - 1);  // Rounding
 
         assertEq(usde.balanceOf(address(susde)),    startingAssets + 500_000e18);
         assertEq(usde.balanceOf(address(almProxy)), 500_000e18);
@@ -685,33 +692,33 @@ contract MainnetControllerEthenaE2ETests is ForkTestBase {
 
         uint256 startingSiloBalance = usde.balanceOf(silo);
 
-        assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 500_000e18 - 2);  // Rounding
+        assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 500_000e18 - 1);  // Rounding
 
         assertEq(usde.balanceOf(silo), startingSiloBalance);
 
         assertEq(rateLimits.getCurrentRateLimit(cooldownKey), 5_000_000e18);
 
         vm.prank(relayer);
-        mainnetController.cooldownAssetsSUSDe(500_000e18 - 2);
+        mainnetController.cooldownAssetsSUSDe(500_000e18 - 1);
 
-        assertEq(rateLimits.getCurrentRateLimit(cooldownKey), 4_500_000e18 + 2);
+        assertEq(rateLimits.getCurrentRateLimit(cooldownKey), 4_500_000e18 + 1);
 
         assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 0);
 
-        assertEq(usde.balanceOf(silo), startingSiloBalance + 500_000e18 - 2);
+        assertEq(usde.balanceOf(silo), startingSiloBalance + 500_000e18 - 1);
 
         // Step 4: Wait for cooldown window to pass then unstake sUSDe
 
         skip(7 days);
 
-        assertEq(usde.balanceOf(silo),              startingSiloBalance + 500_000e18 - 2);
+        assertEq(usde.balanceOf(silo),              startingSiloBalance + 500_000e18 - 1);
         assertEq(usde.balanceOf(address(almProxy)), 500_000e18);
 
         vm.prank(relayer);
         mainnetController.unstakeSUSDe();
 
         assertEq(usde.balanceOf(silo),              startingSiloBalance);
-        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 2);
+        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 1);
 
         // Step 5: Redeem USDe for USDC
 
@@ -720,23 +727,23 @@ contract MainnetControllerEthenaE2ETests is ForkTestBase {
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 5_000_000e18);
 
         vm.prank(relayer);
-        mainnetController.prepareUSDeBurn(1_000_000e18 - 2);
+        mainnetController.prepareUSDeBurn(1_000_000e18 - 1);
 
-        assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_000_000e18 + 2);
+        assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_000_000e18 + 1);
 
-        assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 1_000_000e18 - 2);
+        assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 1_000_000e18 - 1);
 
-        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 2);
+        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 1);
         assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
 
-        _simulateUsdeBurn(1_000_000e18 - 2);
+        _simulateUsdeBurn(1_000_000e18 - 1);
 
         assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 0);
 
         assertEq(usde.balanceOf(address(almProxy)), 0);
-        assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance + 1_000_000e18 - 2);
+        assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance + 1_000_000e18 - 1);
 
         assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6 - 1);  // Rounding
     }
@@ -793,7 +800,7 @@ contract MainnetControllerEthenaE2ETests is ForkTestBase {
 
         assertEq(usde.allowance(address(almProxy), address(susde)), 0);
 
-        assertEq(susde.convertToAssets(susdeShares), 500_000e18 - 2);  // Rounding
+        assertEq(susde.convertToAssets(susdeShares), 500_000e18 - 1);  // Rounding
 
         assertEq(usde.balanceOf(address(susde)),    startingAssets + 500_000e18);
         assertEq(usde.balanceOf(address(almProxy)), 500_000e18);
@@ -804,7 +811,7 @@ contract MainnetControllerEthenaE2ETests is ForkTestBase {
 
         uint256 startingSiloBalance = usde.balanceOf(silo);
 
-        assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 500_000e18 - 2);  // Rounding
+        assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 500_000e18 - 1);  // Rounding
 
         assertEq(usde.balanceOf(silo), startingSiloBalance);
 
@@ -813,24 +820,24 @@ contract MainnetControllerEthenaE2ETests is ForkTestBase {
         vm.prank(relayer);
         mainnetController.cooldownSharesSUSDe(susdeShares);
 
-        assertEq(rateLimits.getCurrentRateLimit(cooldownKey), 4_500_000e18 + 2);
+        assertEq(rateLimits.getCurrentRateLimit(cooldownKey), 4_500_000e18 + 1);
 
         assertEq(susde.convertToAssets(susde.balanceOf(address(almProxy))), 0);
 
-        assertEq(usde.balanceOf(silo), startingSiloBalance + 500_000e18 - 2);
+        assertEq(usde.balanceOf(silo), startingSiloBalance + 500_000e18 - 1);
 
         // Step 4: Wait for cooldown window to pass then unstake sUSDe
 
         skip(7 days);
 
-        assertEq(usde.balanceOf(silo),              startingSiloBalance + 500_000e18 - 2);
+        assertEq(usde.balanceOf(silo),              startingSiloBalance + 500_000e18 - 1);
         assertEq(usde.balanceOf(address(almProxy)), 500_000e18);
 
         vm.prank(relayer);
         mainnetController.unstakeSUSDe();
 
         assertEq(usde.balanceOf(silo),              startingSiloBalance);
-        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 2);
+        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 1);
 
         // Step 5: Redeem USDe for USDC
 
@@ -839,23 +846,23 @@ contract MainnetControllerEthenaE2ETests is ForkTestBase {
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 5_000_000e18);
 
         vm.prank(relayer);
-        mainnetController.prepareUSDeBurn(1_000_000e18 - 2);
+        mainnetController.prepareUSDeBurn(1_000_000e18 - 1);
 
-        assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_000_000e18 + 2);
+        assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_000_000e18 + 1);
 
-        assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 1_000_000e18 - 2);
+        assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 1_000_000e18 - 1);
 
-        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 2);
+        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 1);
         assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
 
-        _simulateUsdeBurn(1_000_000e18 - 2);
+        _simulateUsdeBurn(1_000_000e18 - 1);
 
         assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 0);
 
         assertEq(usde.balanceOf(address(almProxy)), 0);
-        assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance + 1_000_000e18 - 2);
+        assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance + 1_000_000e18 - 1);
 
         assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6 - 1);  // Rounding
     }
