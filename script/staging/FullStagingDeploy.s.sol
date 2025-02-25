@@ -281,7 +281,7 @@ contract FullStagingDeploy is Script {
         // Extra rate limit configuration
         bytes32 mintKey = MainnetController(instance.controller).LIMIT_USDE_MINT();
         bytes32 burnKey = MainnetController(instance.controller).LIMIT_USDE_BURN();
-    
+
         bytes32 susdsDepositKey = RateLimitHelpers.makeAssetKey(
             MainnetController(instance.controller).LIMIT_4626_DEPOSIT(),
             address(MainnetController(instance.controller).susde())
@@ -419,7 +419,7 @@ contract FullStagingDeploy is Script {
             name     : "base-staging",
             nameDeps : "base-staging-deps",
             config   : ScriptTools.loadConfig("base-staging"),
-            forkId :   vm.createFork(getChain("base").rpcUrl),
+            forkId   : vm.createFork(getChain("base").rpcUrl),
             admin    : deployer
         });
 
