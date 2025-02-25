@@ -11,6 +11,8 @@ import { ControllerInstance }                   from "../deploy/ControllerInstan
 import { ForeignControllerInit as ForeignInit } from "../deploy/ForeignControllerInit.sol";
 import { MainnetControllerInit as MainnetInit } from "../deploy/MainnetControllerInit.sol";
 
+import { MainnetController } from "../src/MainnetController.sol";
+
 contract UpgradeMainnetController is Script {
 
     using stdJson     for string;
@@ -26,16 +28,13 @@ contract UpgradeMainnetController is Script {
 
         string memory fileSlug = string(abi.encodePacked("mainnet-", vm.envString("ENV")));
 
-        address newController = vm.envAddress("NEW_CONTROLLER");
         address oldController = vm.envAddress("OLD_CONTROLLER");
-
-        vm.startBroadcast();
 
         string memory inputConfig = ScriptTools.readInput(fileSlug);
 
         ControllerInstance memory controllerInst = ControllerInstance({
             almProxy   : inputConfig.readAddress(".almProxy"),
-            controller : newController,
+            controller : inputConfig.readAddress(".controller"),
             rateLimits : inputConfig.readAddress(".rateLimits")
         });
 
@@ -66,54 +65,60 @@ contract UpgradeMainnetController is Script {
             mintRecipient : bytes32(uint256(uint160(baseAlmProxy)))
         });
 
+        vm.startBroadcast();
+
         MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients);
 
         vm.stopBroadcast();
 
         console.log("ALMProxy updated at         ", controllerInst.almProxy);
-        console.log("RateLimits upgraded at      ", controllerInst.rateLimits);
-        console.log("Controller upgraded at      ", newController);
+        console.log("RateLimits updated at       ", controllerInst.rateLimits);
+        console.log("Controller upgraded at      ", controllerInst.controller);
         console.log("Old Controller deprecated at", oldController);
     }
 
 }
-
-contract UpgradeForeignController is Script {
+contract ForeignControllerScript is Script {
 
     using stdJson     for string;
     using ScriptTools for string;
 
-    function run() external {
+    function _setUp()
+        internal returns (
+            ControllerInstance              memory controllerInst,
+            ForeignInit.ConfigAddressParams memory configAddresses,
+            ForeignInit.CheckAddressParams  memory checkAddresses,
+            ForeignInit.MintRecipient[]     memory mintRecipients,
+            address                                oldController
+        )
+    {
         vm.setEnv("FOUNDRY_ROOT_CHAINID",             "1");
         vm.setEnv("FOUNDRY_EXPORTS_OVERWRITE_LATEST", "true");
 
         string memory chainName = vm.envString("CHAIN");
         string memory fileSlug  = string(abi.encodePacked(chainName, "-", vm.envString("ENV")));
 
-        address newController = vm.envAddress("NEW_CONTROLLER");
-        address oldController = vm.envAddress("OLD_CONTROLLER");
+        oldController = vm.envOr("OLD_CONTROLLER", address(0));
 
         vm.createSelectFork(getChain(chainName).rpcUrl);
 
         console.log(string(abi.encodePacked("Upgrading ", chainName, " controller...")));
 
-        vm.startBroadcast();
-
         string memory inputConfig = ScriptTools.readInput(fileSlug);
 
-        ControllerInstance memory controllerInst = ControllerInstance({
+        controllerInst = ControllerInstance({
             almProxy   : inputConfig.readAddress(".almProxy"),
-            controller : newController,
+            controller : inputConfig.readAddress(".controller"),
             rateLimits : inputConfig.readAddress(".rateLimits")
         });
 
-        ForeignInit.ConfigAddressParams memory configAddresses = ForeignInit.ConfigAddressParams({
+        configAddresses = ForeignInit.ConfigAddressParams({
             freezer       : inputConfig.readAddress(".freezer"),
             relayer       : inputConfig.readAddress(".relayer"),
             oldController : oldController
         });
 
-        ForeignInit.CheckAddressParams memory checkAddresses = ForeignInit.CheckAddressParams({
+        checkAddresses = ForeignInit.CheckAddressParams({
             admin : inputConfig.readAddress(".admin"),
             psm   : inputConfig.readAddress(".psm"),
             cctp  : inputConfig.readAddress(".cctpTokenMessenger"),
@@ -122,7 +127,7 @@ contract UpgradeForeignController is Script {
             usds  : inputConfig.readAddress(".usds")
         });
 
-        ForeignInit.MintRecipient[] memory mintRecipients = new ForeignInit.MintRecipient[](1);
+        mintRecipients = new ForeignInit.MintRecipient[](1);
 
         string memory mainnetInputConfig = ScriptTools.readInput(string(abi.encodePacked("mainnet-", vm.envString("ENV"))));
 
@@ -132,15 +137,79 @@ contract UpgradeForeignController is Script {
             domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
             mintRecipient : bytes32(uint256(uint160(mainnetAlmProxy)))
         });
+    }
+
+}
+
+contract InitForeignController is ForeignControllerScript {
+
+    using stdJson     for string;
+    using ScriptTools for string;
+
+    function run() external {
+        (
+            ControllerInstance              memory controllerInst,
+            ForeignInit.ConfigAddressParams memory configAddresses,
+            ForeignInit.CheckAddressParams  memory checkAddresses,
+            ForeignInit.MintRecipient[]     memory mintRecipients,
+        ) = _setUp();
+
+        vm.startBroadcast();
+
+        ForeignInit.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients);
+
+        vm.stopBroadcast();
+
+        console.log("ALMProxy initialized at  ", controllerInst.almProxy);
+        console.log("RateLimits initialized at", controllerInst.rateLimits);
+        console.log("Controller initialized at", controllerInst.controller);
+
+
+
+        vm.createSelectFork(getChain("mainnet").rpcUrl);
+
+        uint32 cctpDomainId = uint32(vm.envUint("CCTP_DOMAIN_ID"));
+
+        string memory fileSlug    = string(abi.encodePacked("mainnet-", vm.envString("ENV")));
+        string memory inputConfig = ScriptTools.readInput(fileSlug);
+
+        MainnetController controller = MainnetController(inputConfig.readAddress(".controller"));
+
+        vm.startBroadcast();
+
+        controller.setMintRecipient(
+            cctpDomainId,
+            bytes32(uint256(uint160(address( controllerInst.almProxy))))
+        );
+
+        vm.stopBroadcast();
+
+        console.log("Mint recipient %s set at domain %s", controllerInst.almProxy, cctpDomainId);
+    }
+
+}
+
+contract UpgradeForeignController is ForeignControllerScript {
+
+    function run() external {
+        (
+            ControllerInstance              memory controllerInst,
+            ForeignInit.ConfigAddressParams memory configAddresses,
+            ForeignInit.CheckAddressParams  memory checkAddresses,
+            ForeignInit.MintRecipient[]     memory mintRecipients,
+            address                                oldController
+        ) = _setUp();
+
+        vm.startBroadcast();
 
         ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients);
 
         vm.stopBroadcast();
 
         console.log("ALMProxy updated at         ", controllerInst.almProxy);
-        console.log("RateLimits upgraded at      ", controllerInst.rateLimits);
-        console.log("Controller upgraded at      ", newController);
-        console.log("Old controller deprecated at", oldController);
+        console.log("RateLimits updated at       ", controllerInst.rateLimits);
+        console.log("Controller upgraded at      ", controllerInst.controller);
+        console.log("Old Controller deprecated at", oldController);
     }
 
 }
