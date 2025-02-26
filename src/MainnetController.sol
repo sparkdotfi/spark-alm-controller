@@ -679,6 +679,38 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
+    /*** Relayer DaiUsds functions                                                              ***/
+    /**********************************************************************************************/
+
+    function swapUSDSToDAI(uint256 usdsAmount)
+        external
+        onlyRole(RELAYER)
+    {
+        // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
+        _approve(address(usds), address(daiUsds), usdsAmount);
+
+        // Swap USDS to DAI 1:1
+        proxy.doCall(
+            address(daiUsds),
+            abi.encodeCall(daiUsds.usdsToDai, (address(proxy), usdsAmount))
+        );
+    }
+
+    function swapDAIToUSDS(uint256 daiAmount)
+        external
+        onlyRole(RELAYER)
+    {
+        // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
+        _approve(address(dai), address(daiUsds), daiAmount);
+
+        // Swap DAI to USDS 1:1
+        proxy.doCall(
+            address(daiUsds),
+            abi.encodeCall(daiUsds.daiToUsds, (address(proxy), daiAmount))
+        );
+    }
+
+    /**********************************************************************************************/
     /*** Relayer PSM functions                                                                  ***/
     /**********************************************************************************************/
 
