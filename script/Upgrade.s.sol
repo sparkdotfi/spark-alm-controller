@@ -161,17 +161,17 @@ contract InitForeignController is ForeignControllerScript {
             string memory                          inputConfig,
         ) = _setUp();
 
-        vm.startBroadcast();
+        // vm.startBroadcast();
 
-        ForeignInit.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        // ForeignInit.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients);
 
-        _setBasicRateLimits(controllerInst, inputConfig);
+        // _setBasicRateLimits(controllerInst, inputConfig);
 
-        vm.stopBroadcast();
+        // vm.stopBroadcast();
 
-        console.log("ALMProxy initialized at  ", controllerInst.almProxy);
-        console.log("RateLimits initialized at", controllerInst.rateLimits);
-        console.log("Controller initialized at", controllerInst.controller);
+        // console.log("ALMProxy initialized at  ", controllerInst.almProxy);
+        // console.log("RateLimits initialized at", controllerInst.rateLimits);
+        // console.log("Controller initialized at", controllerInst.controller);
 
         vm.createSelectFork(getChain("mainnet").rpcUrl);
 
@@ -184,14 +184,29 @@ contract InitForeignController is ForeignControllerScript {
 
         vm.startBroadcast();
 
-        mainnetController.setMintRecipient(
-            cctpDomainId,
-            bytes32(uint256(uint160(address(controllerInst.almProxy))))
+        // mainnetController.setMintRecipient(
+        //     cctpDomainId,
+        //     bytes32(uint256(uint160(address(controllerInst.almProxy))))
+        // );
+
+        address mainnetRateLimits = mainnetConfig.readAddress(".rateLimits");
+        uint256 USDC_UNIT_SIZE    = ScriptTools.readInput("mainnet-staging").readUint(".usdcUnitSize") * 1e6;
+
+        RateLimitHelpers.setRateLimitData(
+            RateLimitHelpers.makeDomainKey(LIMIT_USDS_TO_USDC, cctpDomainId),
+            mainnetRateLimits,
+            RateLimitData({
+                maxAmount : USDC_UNIT_SIZE * 5,
+                slope     : USDC_UNIT_SIZE / 4 hours
+            }),
+            "usdsToUsdcData",
+            6
         );
 
         vm.stopBroadcast();
 
-        console.log("Mint recipient %s set at domain %s", controllerInst.almProxy, cctpDomainId);
+        console.log("Mint recipient %s set at domain       %s", controllerInst.almProxy, cctpDomainId);
+        console.log("USDS to USDC rate limit set at domain %s", cctpDomainId);
     }
 
     function _setBasicRateLimits(ControllerInstance memory controllerInst, string memory config) internal {
