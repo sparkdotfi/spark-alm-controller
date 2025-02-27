@@ -149,6 +149,7 @@ contract InitForeignController is ForeignControllerScript {
 
     bytes32 private constant LIMIT_USDS_TO_USDC   = keccak256("LIMIT_USDS_TO_USDC");
     bytes32 private constant LIMIT_USDC_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 private constant LIMIT_USDC_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 private constant LIMIT_PSM_DEPOSIT    = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 private constant LIMIT_PSM_WITHDRAW   = keccak256("LIMIT_PSM_WITHDRAW");
 
@@ -193,7 +194,7 @@ contract InitForeignController is ForeignControllerScript {
         uint256 USDC_UNIT_SIZE    = ScriptTools.readInput("mainnet-staging").readUint(".usdcUnitSize") * 1e6;
 
         RateLimitHelpers.setRateLimitData(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDS_TO_USDC, cctpDomainId),
+            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, cctpDomainId),
             mainnetRateLimits,
             RateLimitData({
                 maxAmount : USDC_UNIT_SIZE * 5,
