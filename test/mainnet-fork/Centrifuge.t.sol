@@ -61,12 +61,12 @@ interface ICentrifugeToken is IERC7540 {
 
 contract CentrifugeTestBase is ForkTestBase {
 
-    address constant ESCROW                        = 0x0000000005F458Fd6ba9EEb5f365D83b7dA913dD;
-    address constant INVESTMENT_MANAGER            = 0xE79f06573d6aF1B66166A926483ba00924285d20;
-    address constant JTREASURY_RESTRICTION_MANAGER = 0x4737C3f62Cc265e786b280153fC666cEA2fBc0c0;
-    address constant JTREASURY_TOKEN               = 0x8c213ee79581Ff4984583C6a801e5263418C4b86;
-    address constant JTREASURY_VAULT_USDC          = 0x1d01Ef1997d44206d839b78bA6813f60F1B3A970;
-    address constant ROOT                          = 0x0C1fDfd6a1331a875EA013F3897fc8a76ada5DfC;
+    address constant ESCROW                         = 0x0000000005F458Fd6ba9EEb5f365D83b7dA913dD;
+    address constant INVESTMENT_MANAGER             = 0x427A1ce127b1775e4Cbd4F58ad468B9F832eA7e9;
+    address constant JTREASURY_RESTRICTION_MANAGER  = 0x4737C3f62Cc265e786b280153fC666cEA2fBc0c0;
+    address constant JTREASURY_TOKEN                = 0x8c213ee79581Ff4984583C6a801e5263418C4b86;
+    address constant JTREASURY_VAULT_USDC           = 0x36036fFd9B1C6966ab23209E073c68Eb9A992f50;
+    address constant ROOT                           = 0x0C1fDfd6a1331a875EA013F3897fc8a76ada5DfC;
 
     bytes16 constant JTREASURY_TRANCHE_ID = 0x97aa65f23e7be09fcd62d0554d2e9273;
     uint128 constant USDC_ASSET_ID        = 242333941209166991950178742833476896417;
@@ -82,7 +82,7 @@ contract CentrifugeTestBase is ForkTestBase {
     IERC20Mintable   jTreasuryToken = IERC20Mintable(JTREASURY_TOKEN);
 
     function _getBlock() internal pure override returns (uint256) {
-        return 21570000;  // Jan 7, 2024
+        return 21988625;  // Mar 6, 2025
     }
 
 }
@@ -155,8 +155,10 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
 
         assertEq(usdc.allowance(address(almProxy), address(jTreasuryVault)), 0);
 
+        uint256 initialEscrowBal = usdc.balanceOf(ESCROW);
+
         assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(usdc.balanceOf(ESCROW),            0);
+        assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
@@ -168,7 +170,7 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
         assertEq(usdc.allowance(address(almProxy), address(jTreasuryVault)), 0);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
-        assertEq(usdc.balanceOf(ESCROW),            1_000_000e6);
+        assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal + 1_000_000e6);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
     }
@@ -225,7 +227,9 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
 
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        uint256 initialEscrowBal = jTreasuryToken.balanceOf(ESCROW);
+
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
@@ -243,7 +247,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         );
 
         assertEq(jTreasuryToken.totalSupply(),                totalSupply + 500_000e6);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            500_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + 500_000e6);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
@@ -253,7 +257,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         vm.prank(relayer);
         mainnetController.claimDepositERC7540(address(jTreasuryVault));
 
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 500_000e6);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
@@ -273,7 +277,9 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
 
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        uint256 initialEscrowBal = jTreasuryToken.balanceOf(ESCROW);
+
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
@@ -283,7 +289,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         vm.prank(relayer);
         mainnetController.requestDepositERC7540(address(jTreasuryVault), 500_000e6);
 
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
@@ -301,7 +307,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         );
 
         assertEq(jTreasuryToken.totalSupply(),                totalSupply + 750_000e6);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            750_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + 750_000e6);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
@@ -311,7 +317,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         vm.prank(relayer);
         mainnetController.claimDepositERC7540(address(jTreasuryVault));
 
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 750_000e6);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),   0);
@@ -417,8 +423,10 @@ contract MainnetControllerClaimCentrifugeCancelDepositSuccessTests is Centrifuge
     function test_claimCentrifugeCancelDepositRequest() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
+        uint256 initialEscrowBal = usdc.balanceOf(ESCROW);
+
         assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(usdc.balanceOf(ESCROW),            0);
+        assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         0);
         assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   false);
@@ -430,7 +438,7 @@ contract MainnetControllerClaimCentrifugeCancelDepositSuccessTests is Centrifuge
         vm.stopPrank();
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
-        assertEq(usdc.balanceOf(ESCROW),            1_000_000e6);
+        assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal + 1_000_000e6);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         1_000_000e6);
         assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   true);
@@ -459,7 +467,7 @@ contract MainnetControllerClaimCentrifugeCancelDepositSuccessTests is Centrifuge
         assertEq(jTreasuryVault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
         assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(usdc.balanceOf(ESCROW),            0);
+        assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal);
     }
 
 }
@@ -498,10 +506,10 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
         jTreasuryToken.mint(address(almProxy), 1_000_000e6);
         vm.stopPrank();
 
-        uint256 overBoundaryShares = jTreasuryVault.convertToShares(1_000_000e6 + 2);
+        uint256 overBoundaryShares = jTreasuryVault.convertToShares(1_000_000e6 + 3);
         uint256 atBoundaryShares   = jTreasuryVault.convertToShares(1_000_000e6 + 1);
 
-        assertEq(jTreasuryVault.convertToAssets(overBoundaryShares), 1_000_000e6 + 1);
+        assertEq(jTreasuryVault.convertToAssets(overBoundaryShares), 1_000_000e6 + 2);
         assertEq(jTreasuryVault.convertToAssets(atBoundaryShares),   1_000_000e6);
 
         vm.startPrank(relayer);
@@ -535,15 +543,17 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
     function test_requestRedeemERC7540() external {
         uint256 shares = jTreasuryVault.convertToShares(1_000_000e6);
 
-        assertEq(shares, 951_771.227025e6);
+        assertEq(shares, 948_558.832635e6);
 
         vm.prank(ROOT);
         jTreasuryToken.mint(address(almProxy), shares);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
+        uint256 initialEscrowBal = jTreasuryToken.balanceOf(ESCROW);
+
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), shares);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
@@ -553,7 +563,7 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
         assertEq(rateLimits.getCurrentRateLimit(key), 1);  // Rounding
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            shares);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + shares);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), shares);
     }
@@ -603,8 +613,10 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         vm.prank(ROOT);
         jTreasuryToken.mint(address(almProxy), 1_000_000e6);
 
+        uint256 initialEscrowBal = jTreasuryToken.balanceOf(ESCROW);
+
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
         assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
@@ -616,7 +628,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            1_000_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + 1_000_000e6);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
         assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
@@ -635,7 +647,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
 
         assertEq(jTreasuryToken.totalSupply(),                totalSupply - 1_000_000e6);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(usdc.balanceOf(ESCROW),            2_000_000e6);
         assertEq(usdc.balanceOf(address(almProxy)), 0);
@@ -658,8 +670,10 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         vm.prank(ROOT);
         jTreasuryToken.mint(address(almProxy), 1_500_000e6);
 
+        uint256 initialEscrowBal = jTreasuryToken.balanceOf(ESCROW);
+
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 1_500_000e6);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   0);
         assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
@@ -671,7 +685,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 500_000e6);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            1_000_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + 1_000_000e6);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_000_000e6);
         assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
@@ -681,7 +695,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         mainnetController.requestRedeemERC7540(address(jTreasuryVault), 500_000e6);
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            1_500_000e6);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + 1_500_000e6);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),   1_500_000e6);
         assertEq(jTreasuryVault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
@@ -700,7 +714,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
 
         assertEq(jTreasuryToken.totalSupply(),                totalSupply - 1_500_000e6);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(usdc.balanceOf(ESCROW),            3_000_000e6);
         assertEq(usdc.balanceOf(address(almProxy)), 0);
@@ -826,8 +840,10 @@ contract MainnetControllerClaimCentrifugeCancelRedeemRequestSuccessTests is Cent
         vm.prank(ROOT);
         jTreasuryToken.mint(address(almProxy), shares);
 
+        uint256 initialEscrowBal = jTreasuryToken.balanceOf(ESCROW);
+
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), shares);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),         0);
         assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)),   false);
@@ -839,7 +855,7 @@ contract MainnetControllerClaimCentrifugeCancelRedeemRequestSuccessTests is Cent
         vm.stopPrank();
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            shares);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + shares);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),         shares);
         assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)),   true);
@@ -867,7 +883,7 @@ contract MainnetControllerClaimCentrifugeCancelRedeemRequestSuccessTests is Cent
         assertEq(jTreasuryVault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), shares);
-        assertEq(jTreasuryToken.balanceOf(ESCROW),            0);
+        assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
     }
 
 }
