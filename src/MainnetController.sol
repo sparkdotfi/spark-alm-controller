@@ -29,8 +29,31 @@ interface IBuidlRedeemLike {
     function redeem(uint256 usdcAmount) external;
 }
 
+interface ICurvePoolLike {
+    function add_liquidity(
+        uint256[] memory amounts,
+        uint256 minMintAmount,
+        address receiver
+    ) external;
+    function coins(uint256 index) external returns (address);
+    function exchange(
+        int128  inputIndex,
+        int128  outputIndex,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address receiver
+    ) external returns (uint256 tokensOut);
+    function N_COINS() external view returns (uint256);
+    function remove_liquidity(
+        uint256 burnAmount,
+        uint256[] memory minAmounts,
+        address receiver
+    ) external;
+    function stored_rates() external view returns (uint256[] memory);
+}
+
 interface IDaiUsdsLike {
-    function dai() external view returns(address);
+    function dai() external view returns (address);
     function daiToUsds(address usr, uint256 wad) external;
     function usdsToDai(address usr, uint256 wad) external;
 }
@@ -57,7 +80,7 @@ interface IMapleTokenLike is IERC4626 {
 interface IPSMLike {
     function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
     function fill() external returns (uint256 wad);
-    function gem() external view returns(address);
+    function gem() external view returns (address);
     function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
     function to18ConversionFactor() external view returns (uint256);
 }
@@ -79,7 +102,7 @@ interface IUSTBLike is IERC20 {
 }
 
 interface IVaultLike {
-    function buffer() external view returns(address);
+    function buffer() external view returns (address);
     function draw(uint256 usdsAmount) external;
     function wipe(uint256 usdsAmount) external;
 }
@@ -98,8 +121,8 @@ contract MainnetController is AccessControl {
         uint256 usdcAmount
     );
 
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
-
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
@@ -117,6 +140,9 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_BUIDL_REDEEM_CIRCLE  = keccak256("LIMIT_BUIDL_REDEEM_CIRCLE");
+    bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -148,6 +174,8 @@ contract MainnetController is AccessControl {
     ISUSDELike public immutable susde;
 
     uint256 public immutable psmTo18ConversionFactor;
+
+    mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
     mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
 
@@ -196,6 +224,12 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
+    }
+
+    function setMaxSlippage(address pool, uint256 maxSlippage) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        maxSlippages[pool] = maxSlippage;
+        emit MaxSlippageSet(pool, maxSlippage);
     }
 
     /**********************************************************************************************/
@@ -512,6 +546,182 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
+    /*** Relayer Curve StableSwap functions                                                     ***/
+    /**********************************************************************************************/
+
+    function swapCurve(
+        address pool,
+        uint256 inputIndex,
+        uint256 outputIndex,
+        uint256 amountIn,
+        uint256 minAmountOut
+    )
+        external returns (uint256 amountOut)
+    {
+        _checkRole(RELAYER);
+
+        uint256 maxSlippage = maxSlippages[pool];
+
+        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
+
+        ICurvePoolLike curvePool = ICurvePoolLike(pool);
+
+        // Normalized to provide 36 decimal precision when multiplied by asset amount
+        uint256[] memory rates = curvePool.stored_rates();
+
+        // Below code is simplified from the following:
+        //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
+        //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
+        //   result    = tokensOut * maxSlippage / 1e18
+        uint256 minimumMinAmountOut = (amountIn * rates[inputIndex] / rates[outputIndex])
+            * maxSlippage
+            / 1e18;
+
+        require(
+            minAmountOut >= minimumMinAmountOut,
+            "MainnetController/min-amount-not-met"
+        );
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_SWAP, pool),
+            amountIn * rates[inputIndex] / 1e18
+        );
+
+        _approve(curvePool.coins(inputIndex), pool, amountIn);
+
+        amountOut = abi.decode(
+            proxy.doCall(
+                pool,
+                abi.encodeCall(
+                    curvePool.exchange,
+                    (
+                        int128(int256(inputIndex)),   // Assuming safe cast because of 8 token max
+                        int128(int256(outputIndex)),  // Assuming safe cast because of 8 token max
+                        amountIn,
+                        minAmountOut,
+                        address(proxy)
+                    )
+                )
+            ),
+            (uint256)
+        );
+    }
+
+    function addLiquidityCurve(
+        address pool,
+        uint256[] memory depositAmounts,
+        uint256 minLpAmount
+    )
+        external returns (uint256 shares)
+    {
+        _checkRole(RELAYER);
+
+        uint256 maxSlippage = maxSlippages[pool];
+
+        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
+
+        ICurvePoolLike curvePool = ICurvePoolLike(pool);
+
+        uint256 numCoins = curvePool.N_COINS();
+
+        require(depositAmounts.length == numCoins, "MainnetController/invalid-deposit-amounts");
+
+        // Normalized to provide 36 decimal precision when multiplied by asset amount
+        uint256[] memory rates = curvePool.stored_rates();
+
+        // Aggregate the value of the deposited assets (e.g. USD)
+        uint256 valueDeposited;
+        for (uint256 i = 0; i < depositAmounts.length; i++) {
+            _approve(curvePool.coins(i), pool, depositAmounts[i]);
+            valueDeposited += depositAmounts[i] * rates[i] / 1e18;
+        }
+
+        // Ensure minimum LP amount expected is greater than max slippage amount
+        // (assumes that the pool assets are pegged to the same value (e.g. USD))
+        require(
+            minLpAmount >= valueDeposited * maxSlippage / 1e18,
+            "MainnetController/min-amount-not-met"
+        );
+
+        // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD)
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_DEPOSIT, pool),
+            valueDeposited
+        );
+
+        shares = abi.decode(
+            proxy.doCall(
+                pool,
+                abi.encodeCall(
+                    curvePool.add_liquidity,
+                    (depositAmounts, minLpAmount, address(proxy))
+                )
+            ),
+            (uint256)
+        );
+    }
+
+    function removeLiquidityCurve(
+        address pool,
+        uint256 lpBurnAmount,
+        uint256[] memory minWithdrawAmounts
+    )
+        external returns (uint256[] memory withdrawnTokens)
+    {
+        _checkRole(RELAYER);
+
+        uint256 maxSlippage = maxSlippages[pool];
+
+        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
+
+        ICurvePoolLike curvePool = ICurvePoolLike(pool);
+
+        uint256 numCoins = curvePool.N_COINS();
+
+        require(
+            minWithdrawAmounts.length == numCoins,
+            "MainnetController/invalid-min-withdraw-amounts"
+        );
+
+        // Normalized to provide 36 decimal precision when multiplied by asset amount
+        uint256[] memory rates = curvePool.stored_rates();
+
+        // Aggregate the minimum values of the withdrawn assets (e.g. USD)
+        uint256 valueMinWithdrawn;
+        for (uint256 i = 0; i < numCoins; i++) {
+            valueMinWithdrawn += minWithdrawAmounts[i] * rates[i] / 1e18;
+        }
+
+        // Check that the aggregated minimums are greater than the max slippage amount
+        require(
+            valueMinWithdrawn >= lpBurnAmount * maxSlippage / 1e18,
+            "MainnetController/min-amount-not-met"
+        );
+
+        withdrawnTokens = abi.decode(
+            proxy.doCall(
+                pool,
+                abi.encodeCall(
+                    curvePool.remove_liquidity,
+                    (lpBurnAmount, minWithdrawAmounts, address(proxy))
+                )
+            ),
+            (uint256[])
+        );
+
+        // Aggregate value withdrawn to reduce the rate limit
+        uint256 valueWithdrawn;
+        for (uint256 i = 0; i < withdrawnTokens.length; i++) {
+            valueWithdrawn += withdrawnTokens[i] * rates[i] / 1e18;
+        }
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_WITHDRAW, pool),
+            valueWithdrawn
+        );
+    }
+
+    /**********************************************************************************************/
     /*** Relayer Ethena functions                                                               ***/
     /**********************************************************************************************/
 
@@ -608,41 +818,6 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             mapleToken,
             abi.encodeCall(IMapleTokenLike(mapleToken).removeShares, (shares, address(proxy)))
-        );
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Morpho functions                                                               ***/
-    /**********************************************************************************************/
-
-    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault));
-
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
-        );
-    }
-
-    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault));
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
-        );
-    }
-
-    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
-        external
-    {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault));
-
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
         );
     }
 
