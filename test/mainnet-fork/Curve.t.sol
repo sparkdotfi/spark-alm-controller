@@ -5,6 +5,8 @@ import { IERC4626 } from "lib/forge-std/src/interfaces/IERC4626.sol";
 
 import "./ForkTestBase.t.sol";
 
+import { ICurvePoolLike } from "../../src/MainnetController.sol";
+
 contract CurveTestBase is ForkTestBase {
 
     address constant RLUSD      = 0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD;
@@ -12,6 +14,8 @@ contract CurveTestBase is ForkTestBase {
 
     IERC20 rlUsd   = IERC20(RLUSD);
     IERC20 curveLp = IERC20(CURVE_POOL);
+
+    ICurvePoolLike curvePool = ICurvePoolLike(CURVE_POOL);
 
     bytes32 curveDepositKey;
     bytes32 curveSwapKey;
@@ -121,13 +125,17 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
         amounts[0] = 1_000_000e6;
         amounts[1] = 1_000_000e18;
 
-        uint256 minLpAmount = 1_960_000e18 - 1;  // 2% on 2m
+        uint256 boundaryAmount = 2_000_000e18 * 0.98e18 / curvePool.get_virtual_price();
+
+        assertApproxEqAbs(boundaryAmount, 1_950_000e18, 50_000e18);  // Sanity check on precision
+
+        uint256 minLpAmount = boundaryAmount - 1;
 
         vm.startPrank(relayer);
         vm.expectRevert("MainnetController/min-amount-not-met");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
-        minLpAmount = 1_960_000e18;
+        minLpAmount = boundaryAmount;
 
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -299,25 +307,22 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
 
         _addLiquidity(2_000_000e6, 2_000_000e18);  // Get more than 2m LP tokens in return
 
-        uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = 980_000e6 - 1;
-        minWithdrawAmounts[1] = 980_000e18;
-
         uint256 lpReturn = 2_000_000e18;  // 2% on 2m
 
+        uint256 minTotalReturned = lpReturn * curvePool.get_virtual_price() * 98/100 / 1e18;
+
+        assertApproxEqAbs(minTotalReturned, 1_960_000e18, 50_000e18);  // Sanity check on precision
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = minTotalReturned / 2 / 1e12;  // Rounding down causes boundary
+        minWithdrawAmounts[1] = minTotalReturned / 2;
+
         vm.startPrank(relayer);
         vm.expectRevert("MainnetController/min-amount-not-met");
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
 
-        minWithdrawAmounts[0] = 980_000e6;
-        minWithdrawAmounts[1] = 980_000e18 - 1;
-
-        vm.startPrank(relayer);
-        vm.expectRevert("MainnetController/min-amount-not-met");
-        mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
-
-        minWithdrawAmounts[0] = 980_000e6;
-        minWithdrawAmounts[1] = 980_000e18;
+        minWithdrawAmounts[0] = minTotalReturned / 2 / 1e12 + 1;
+        minWithdrawAmounts[1] = minTotalReturned / 2;
 
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
     }

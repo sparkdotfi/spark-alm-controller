@@ -43,6 +43,7 @@ interface ICurvePoolLike {
         uint256 minAmountOut,
         address receiver
     ) external returns (uint256 tokensOut);
+    function get_virtual_price() external view returns (uint256);
     function N_COINS() external view returns (uint256);
     function remove_liquidity(
         uint256 burnAmount,
@@ -636,11 +637,10 @@ contract MainnetController is AccessControl {
             valueDeposited += depositAmounts[i] * rates[i] / 1e18;
         }
 
-        // Ensure minimum LP amount expected is greater than max slippage amount
-        // (assumes that the pool assets are pegged to the same value (e.g. USD))
+        // Ensure minimum LP amount expected is greater than max slippage amount.
         // TODO: Use get_virtual_price, D invariant increases so assumption is not valid
         require(
-            minLpAmount >= valueDeposited * maxSlippage / 1e18,
+            minLpAmount >= valueDeposited * maxSlippage / curvePool.get_virtual_price(),
             "MainnetController/min-amount-not-met"
         );
 
@@ -697,7 +697,7 @@ contract MainnetController is AccessControl {
         // TODO: Use get_virtual_price, D invariant increases so assumption is not valid
         //       Test get_virtual_price with deals and swaps
         require(
-            valueMinWithdrawn >= lpBurnAmount * maxSlippage / 1e18,
+            valueMinWithdrawn >= lpBurnAmount * curvePool.get_virtual_price() * maxSlippage / 1e36,
             "MainnetController/min-amount-not-met"
         );
 
