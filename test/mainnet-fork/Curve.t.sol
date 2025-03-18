@@ -547,6 +547,63 @@ contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
 
 }
 
+contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
+
+    function test_getVirtualPrice_stressTest() public {
+        vm.startPrank(SPARK_PROXY);
+        rateLimits.setUnlimitedRateLimitData(curveDepositKey);
+        rateLimits.setUnlimitedRateLimitData(curveSwapKey);
+        rateLimits.setUnlimitedRateLimitData(curveWithdrawKey);
+        vm.stopPrank();
+
+        _addLiquidity(100_000_000e6, 100_000_000e18);
+
+        uint256 virtualPrice1 = curvePool.get_virtual_price();
+
+        assertEq(virtualPrice1, 1.001195343715175271e18);
+
+        deal(address(usdc), address(almProxy), 100_000_000e6);
+
+        vm.prank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(CURVE_POOL, 1);  // 1e-16%
+
+        vm.prank(relayer);
+        uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 0, 1, 100_000_000e6, 1000e18);
+
+        assertEq(amountOut, 99_123_484.133360978396763017e18);
+
+        uint256 virtualPrice2 = curvePool.get_virtual_price();
+
+        assertEq(virtualPrice2, 1.001228501012622650e18);
+        assertGt(virtualPrice2, virtualPrice1);
+
+        _addLiquidity(0, 100_000_000e18);
+
+        uint256 virtualPrice3 = curvePool.get_virtual_price();
+
+        assertEq(virtualPrice3, 1.001245739473410937e18);
+        assertGt(virtualPrice3, virtualPrice2);
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 1000e6;
+        minWithdrawAmounts[1] = 1000e18;
+
+        vm.startPrank(relayer);
+        mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            curveLp.balanceOf(address(almProxy)),
+            minWithdrawAmounts
+        );
+        vm.stopPrank();
+
+        uint256 virtualPrice4 = curvePool.get_virtual_price();
+
+        assertEq(virtualPrice4, 1.001245739473435168e18);
+        assertGt(virtualPrice4, virtualPrice3);
+    }
+
+}
+
 contract MainnetControllerE2ECurveRLUsdUsdcPoolTest is CurveTestBase {
 
     function test_e2e_addAndRemoveLiquidityCurve() public {
