@@ -638,6 +638,7 @@ contract MainnetController is AccessControl {
 
         // Ensure minimum LP amount expected is greater than max slippage amount
         // (assumes that the pool assets are pegged to the same value (e.g. USD))
+        // TODO: Use get_virtual_price, D invariant increases so assumption is not valid
         require(
             minLpAmount >= valueDeposited * maxSlippage / 1e18,
             "MainnetController/min-amount-not-met"
@@ -693,6 +694,8 @@ contract MainnetController is AccessControl {
         }
 
         // Check that the aggregated minimums are greater than the max slippage amount
+        // TODO: Use get_virtual_price, D invariant increases so assumption is not valid
+        //       Test get_virtual_price with deals and swaps
         require(
             valueMinWithdrawn >= lpBurnAmount * maxSlippage / 1e18,
             "MainnetController/min-amount-not-met"
