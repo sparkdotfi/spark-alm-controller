@@ -14,6 +14,10 @@ evm_version = 'cancun'
 [fuzz]
 runs = 1000
 
+[invariant]
+runs = 1
+depth = 100
+
 [etherscan]
 mainnet = { key = "${ETHERSCAN_API_KEY}" }
 optimism = { key = "${OPTIMISMSCAN_API_KEY}" }
