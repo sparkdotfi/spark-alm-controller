@@ -122,6 +122,63 @@ contract ControllerHandler is Test {
         // console.log("totalWithdraw  ", totalWithdraw);
     }
 
+    function swap(uint256 swapAmount, bool direction) public {
+        // direction: true = asset1 -> asset2, false = asset2 -> asset1
+        uint256 assetInPrecision  = direction ? asset1Precision : asset2Precision;
+        uint256 assetOutPrecision = direction ? asset2Precision : asset1Precision;
+        uint256 swapInIndex       = direction ? 0 : 1;
+        uint256 swapOutIndex      = direction ? 1 : 0;
+
+        address asset = direction ? address(asset1) : address(asset2);
+
+        // Remove up to 10% of other assets balance to avoid slippage causing reverts
+        uint256 maxSwapAmount = pool.balances(swapOutIndex) * assetInPrecision / assetOutPrecision / 10;
+
+        swapAmount = _bound(swapAmount, 1 * assetInPrecision, maxSwapAmount);
+
+        deal(asset, almProxy, swapAmount);
+
+        uint256 minAmountOut = swapAmount
+            * (controller.maxSlippages(address(pool)) + 0.0001e18)
+            * assetOutPrecision
+            / assetInPrecision
+            / 1e18;
+
+        console.log("\n--- Swap");
+        console.log("balances(swapInIndex) ", pool.balances(swapInIndex) * 1e18 / assetInPrecision);
+        console.log("balances(swapOutIndex)", pool.balances(swapOutIndex) * 1e18 / assetOutPrecision);
+        console.log("swapAmount            ", swapAmount * 1e18 / assetInPrecision);
+        console.log("minAmountOut          ", minAmountOut * 1e18 / assetOutPrecision);
+        // console.log("lpBurned       ", lpValue);
+        // console.log("totalWithdraw  ", totalWithdraw);
+
+        vm.startPrank(relayer);
+        try controller.swapCurve(
+            address(pool),
+            swapInIndex,
+            swapOutIndex,
+            swapAmount,
+            minAmountOut
+        ) {}
+        catch {
+            // If the swap slippage is too high, swap the other way
+            swapAmount   = swapAmount * assetOutPrecision / assetInPrecision;
+            minAmountOut = minAmountOut * assetOutPrecision / assetInPrecision;
+            controller.swapCurve(
+                address(pool),
+                swapOutIndex,
+                swapInIndex,
+                swapAmount,
+                minAmountOut
+            );
+        }
+        vm.stopPrank();
+
+
+
+
+    }
+
 }
 
 contract CurveFuzzTestsBase is ForkTestBase {
