@@ -16,7 +16,7 @@ runs = 1000
 
 [invariant]
 runs = 1
-depth = 10
+depth = 20
 fail_on_revert = true
 
 [etherscan]

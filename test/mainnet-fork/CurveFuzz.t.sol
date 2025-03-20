@@ -7,21 +7,23 @@ import "./ForkTestBase.t.sol";
 
 import { ICurvePoolLike } from "../../src/MainnetController.sol";
 
-interface ICurvePool is IERC20, ICurvePoolLike {}
+interface ICurvePool is IERC20, ICurvePoolLike {
+    function balances(uint256 index) external view returns (uint256);
+}
 
 contract ControllerHandler is Test {
 
     address immutable almProxy;
     address immutable relayer;
 
-    IERC20 immutable token1;
-    IERC20 immutable token2;
+    IERC20 immutable asset1;
+    IERC20 immutable asset2;
 
     ICurvePool        immutable pool;
     MainnetController immutable controller;
 
-    uint256 immutable token1Precision;
-    uint256 immutable token2Precision;
+    uint256 immutable asset1Precision;
+    uint256 immutable asset2Precision;
 
     uint256 public totalValueDeposited;
     uint256 public totalValueWithdrawn;
@@ -31,45 +33,86 @@ contract ControllerHandler is Test {
         address controller_,
         address pool_,
         address relayer_,
-        address token1_,
-        address token2_
+        address asset1_,
+        address asset2_
     ) {
         almProxy = almProxy_;
         relayer  = relayer_;
 
-        token1 = IERC20(token1_);
-        token2 = IERC20(token2_);
+        asset1 = IERC20(asset1_);
+        asset2 = IERC20(asset2_);
 
-        token1Precision = 10 ** token1.decimals();
-        token2Precision = 10 ** token2.decimals();
+        asset1Precision = 10 ** asset1.decimals();
+        asset2Precision = 10 ** asset2.decimals();
 
         pool       = ICurvePool(pool_);
         controller = MainnetController(controller_);
     }
 
-    function addLiquidity(uint256 token1Amount, uint256 token2Amount) public {
-        token1Amount = _bound(token1Amount, 0, 100_000_000 * token1Precision);
-        token2Amount = _bound(token2Amount, 0, 100_000_000 * token2Precision);
+    function addLiquidity(uint256 asset1Amount, uint256 asset2Amount) public {
+        // Using a higher lower bound to have reasonable and practical precision calculations
+        asset1Amount = _bound(asset1Amount, 1 * asset1Precision, 100_000_000 * asset1Precision);
+        asset2Amount = _bound(asset2Amount, 1 * asset2Precision, 100_000_000 * asset2Precision);
 
-        deal(address(token1), almProxy, token1Amount);
-        deal(address(token2), almProxy, token2Amount);
+        deal(address(asset1), almProxy, asset1Amount);
+        deal(address(asset2), almProxy, asset2Amount);
 
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = token1Amount;
-        amounts[1] = token2Amount;
+        amounts[0] = asset1Amount;
+        amounts[1] = asset2Amount;
 
         uint256[] memory rates = pool.stored_rates();
 
-        uint256 totalDeposit = (token1Amount * rates[0] + token2Amount * rates[1]) / 1e18;
+        uint256 totalDeposit = (asset1Amount * rates[0] + asset2Amount * rates[1]) / 1e18;
 
         totalValueDeposited += totalDeposit;
 
         uint256 minLpAmount = totalDeposit
-            * controller.maxSlippages(address(pool))
+            * (controller.maxSlippages(address(pool)) + 0.0001e18)
             / pool.get_virtual_price();
 
         vm.prank(relayer);
         controller.addLiquidityCurve(address(pool), amounts, minLpAmount);
+
+        uint256 lpValue = pool.balanceOf(address(almProxy)) * pool.get_virtual_price() / 1e18;
+
+        console.log("\n--- Deposit");
+        console.log("asset1Amount", asset1Amount * 1e12);
+        console.log("asset2Amount", asset2Amount);
+        console.log("lpValue     ", lpValue);
+        console.log("totalDeposit", totalDeposit);
+    }
+
+    function removeLiquidity(uint256 lpAmount) public {
+        // Using a higher lower bound to have reasonable and practical precision calculations
+        if (pool.balanceOf(almProxy) < 0.5e18) return;
+
+        lpAmount = _bound(lpAmount, 0.5e18, pool.balanceOf(almProxy));
+
+        uint256 lpValue = lpAmount * pool.get_virtual_price() / 1e18;
+
+
+        uint256 claimableAsset1 = pool.balances(0) * lpAmount / pool.totalSupply();
+        uint256 claimableAsset2 = pool.balances(1) * lpAmount / pool.totalSupply();
+
+        uint256[] memory minAmounts = new uint256[](2);
+        minAmounts[0] = claimableAsset1;
+        minAmounts[1] = claimableAsset2;
+
+        vm.prank(relayer);
+        uint256[] memory amounts = controller.removeLiquidityCurve(address(pool), lpAmount, minAmounts);
+
+        uint256[] memory rates = pool.stored_rates();
+
+        uint256 totalWithdraw = (amounts[0] * rates[0] + amounts[1] * rates[1]) / 1e18;
+
+        totalValueWithdrawn += totalWithdraw;
+
+        console.log("\n--- Withdraw");
+        console.log("claimableAsset1", claimableAsset1 * 1e12);
+        console.log("claimableAsset2", claimableAsset2);
+        console.log("lpBurned       ", lpValue);
+        console.log("totalWithdraw  ", totalWithdraw);
     }
 
 }
@@ -121,7 +164,13 @@ contract CurveFuzzTestsBase is ForkTestBase {
     function statefulFuzz_curve_test() public {
         uint256 lpValue = curvePool.balanceOf(address(almProxy)) * curvePool.get_virtual_price() / 1e18;
 
-        assertGe(lpValue, handler.totalValueDeposited() * 99/100);
+        console.log("\n--- Test");
+
+        console.log("lpValue ", lpValue);
+        console.log("deposit ", handler.totalValueDeposited());
+        console.log("withdraw", handler.totalValueWithdrawn());
+
+        assertGe(lpValue, (handler.totalValueDeposited() - handler.totalValueWithdrawn()) * 99/100);
     }
 
 }
