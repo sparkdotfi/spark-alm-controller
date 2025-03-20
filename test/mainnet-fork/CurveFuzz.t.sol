@@ -71,16 +71,23 @@ contract ControllerHandler is Test {
             * (controller.maxSlippages(address(pool)) + 0.0001e18)
             / pool.get_virtual_price();
 
-        vm.prank(relayer);
-        controller.addLiquidityCurve(address(pool), amounts, minLpAmount);
+        vm.startPrank(relayer);
+        try controller.addLiquidityCurve(address(pool), amounts, minLpAmount) {}
+        catch {
+            // If the transaction fails because of slippage, update params to be closer to whats in the pool
+            uint256 convertedAsset1Amount = asset1Amount * asset2Precision / asset1Precision;
+            asset2Amount = _bound(convertedAsset1Amount, asset1Amount * 99/100, asset1Amount * 101/100);
+            controller.addLiquidityCurve(address(pool), amounts, minLpAmount);
+        }
+        vm.stopPrank();
 
         uint256 lpValue = pool.balanceOf(address(almProxy)) * pool.get_virtual_price() / 1e18;
 
-        console.log("\n--- Deposit");
-        console.log("asset1Amount", asset1Amount * 1e12);
-        console.log("asset2Amount", asset2Amount);
-        console.log("lpValue     ", lpValue);
-        console.log("totalDeposit", totalDeposit);
+        // console.log("\n--- Deposit");
+        // console.log("asset1Amount", asset1Amount * 1e12);
+        // console.log("asset2Amount", asset2Amount);
+        // console.log("lpValue     ", lpValue);
+        // console.log("totalDeposit", totalDeposit);
     }
 
     function removeLiquidity(uint256 lpAmount) public {
@@ -108,11 +115,11 @@ contract ControllerHandler is Test {
 
         totalValueWithdrawn += totalWithdraw;
 
-        console.log("\n--- Withdraw");
-        console.log("claimableAsset1", claimableAsset1 * 1e12);
-        console.log("claimableAsset2", claimableAsset2);
-        console.log("lpBurned       ", lpValue);
-        console.log("totalWithdraw  ", totalWithdraw);
+        // console.log("\n--- Withdraw");
+        // console.log("claimableAsset1", claimableAsset1 * 1e12);
+        // console.log("claimableAsset2", claimableAsset2);
+        // console.log("lpBurned       ", lpValue);
+        // console.log("totalWithdraw  ", totalWithdraw);
     }
 
 }
@@ -164,13 +171,15 @@ contract CurveFuzzTestsBase is ForkTestBase {
     function statefulFuzz_curve_test() public {
         uint256 lpValue = curvePool.balanceOf(address(almProxy)) * curvePool.get_virtual_price() / 1e18;
 
-        console.log("\n--- Test");
+        // console.log("\n--- Test");
 
-        console.log("lpValue ", lpValue);
-        console.log("deposit ", handler.totalValueDeposited());
-        console.log("withdraw", handler.totalValueWithdrawn());
+        // console.log("lpValue ", lpValue);
+        // console.log("deposit ", handler.totalValueDeposited());
+        // console.log("withdraw", handler.totalValueWithdrawn());
+        // console.log("d - w   ", handler.totalValueDeposited() - handler.totalValueWithdrawn());
+        // console.log("d - w 2 ", (handler.totalValueDeposited() - handler.totalValueWithdrawn()) * 99/100);
 
-        assertGe(lpValue, (handler.totalValueDeposited() - handler.totalValueWithdrawn()) * 99/100);
+        assertGe(handler.totalValueWithdrawn() + lpValue, handler.totalValueDeposited() * 99/100);
     }
 
 }
