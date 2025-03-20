@@ -698,8 +698,6 @@ contract MainnetController is AccessControl {
         valueMinWithdrawn /= 1e18;
 
         // Check that the aggregated minimums are greater than the max slippage amount
-        // TODO: Use get_virtual_price, D invariant increases so assumption is not valid
-        //       Test get_virtual_price with deals and swaps
         require(
             valueMinWithdrawn >= lpBurnAmount * curvePool.get_virtual_price() * maxSlippage / 1e36,
             "MainnetController/min-amount-not-met"
