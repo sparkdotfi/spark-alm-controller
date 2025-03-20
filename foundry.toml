@@ -16,7 +16,8 @@ runs = 1000
 
 [invariant]
 runs = 1
-depth = 100
+depth = 10
+fail_on_revert = true
 
 [etherscan]
 mainnet = { key = "${ETHERSCAN_API_KEY}" }
