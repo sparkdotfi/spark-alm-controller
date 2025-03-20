@@ -567,23 +567,28 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
         vm.prank(SPARK_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 1);  // 1e-16%
 
+        // Perform a massive swap to stress the virtual price
         vm.prank(relayer);
         uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 0, 1, 100_000_000e6, 1000e18);
 
         assertEq(amountOut, 99_123_484.133360978396763017e18);
 
+        // Assert price rises
         uint256 virtualPrice2 = curvePool.get_virtual_price();
 
         assertEq(virtualPrice2, 1.001228501012622650e18);
         assertGt(virtualPrice2, virtualPrice1);
 
+        // Add one sided liquidity to stress the virtual price
         _addLiquidity(0, 100_000_000e18);
 
+        // Assert price rises
         uint256 virtualPrice3 = curvePool.get_virtual_price();
 
         assertEq(virtualPrice3, 1.001245739473410937e18);
         assertGt(virtualPrice3, virtualPrice2);
 
+        // Remove liquidity
         uint256[] memory minWithdrawAmounts = new uint256[](2);
         minWithdrawAmounts[0] = 1000e6;
         minWithdrawAmounts[1] = 1000e18;
@@ -596,6 +601,7 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
         );
         vm.stopPrank();
 
+        // Assert price rises
         uint256 virtualPrice4 = curvePool.get_virtual_price();
 
         assertEq(virtualPrice4, 1.001245739473435168e18);
