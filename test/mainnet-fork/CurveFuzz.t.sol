@@ -144,13 +144,11 @@ contract ControllerHandler is Test {
             / assetInPrecision
             / 1e18;
 
-        console.log("\n--- Swap");
-        console.log("balances(swapInIndex) ", pool.balances(swapInIndex) * 1e18 / assetInPrecision);
-        console.log("balances(swapOutIndex)", pool.balances(swapOutIndex) * 1e18 / assetOutPrecision);
-        console.log("swapAmount            ", swapAmount * 1e18 / assetInPrecision);
-        console.log("minAmountOut          ", minAmountOut * 1e18 / assetOutPrecision);
-        // console.log("lpBurned       ", lpValue);
-        // console.log("totalWithdraw  ", totalWithdraw);
+        // console.log("\n--- Swap");
+        // console.log("balances(swapInIndex) ", pool.balances(swapInIndex) * 1e18 / assetInPrecision);
+        // console.log("balances(swapOutIndex)", pool.balances(swapOutIndex) * 1e18 / assetOutPrecision);
+        // console.log("swapAmount            ", swapAmount * 1e18 / assetInPrecision);
+        // console.log("minAmountOut          ", minAmountOut * 1e18 / assetOutPrecision);
 
         vm.startPrank(relayer);
         try controller.swapCurve(
@@ -173,10 +171,6 @@ contract ControllerHandler is Test {
             );
         }
         vm.stopPrank();
-
-
-
-
     }
 
 }
