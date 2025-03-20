@@ -569,12 +569,15 @@ contract MainnetController is AccessControl {
         // Normalized to provide 36 decimal precision when multiplied by asset amount
         uint256[] memory rates = curvePool.stored_rates();
 
-        // Below code is simplified from the following:
+        // Below code is simplified from the following logic.
+        // `maxSlippage` was multipled first to avoid precision loss.
         //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
         //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
         //   result    = tokensOut * maxSlippage / 1e18
-        uint256 minimumMinAmountOut = (amountIn * rates[inputIndex] / rates[outputIndex])
+        uint256 minimumMinAmountOut = amountIn
+            * rates[inputIndex]
             * maxSlippage
+            / rates[outputIndex]
             / 1e18;
 
         require(
@@ -633,8 +636,9 @@ contract MainnetController is AccessControl {
         uint256 valueDeposited;
         for (uint256 i = 0; i < depositAmounts.length; i++) {
             _approve(curvePool.coins(i), pool, depositAmounts[i]);
-            valueDeposited += depositAmounts[i] * rates[i] / 1e18;
+            valueDeposited += depositAmounts[i] * rates[i];
         }
+        valueDeposited /= 1e18;
 
         // Ensure minimum LP amount expected is greater than max slippage amount
         // (assumes that the pool assets are pegged to the same value (e.g. USD))
@@ -689,8 +693,9 @@ contract MainnetController is AccessControl {
         // Aggregate the minimum values of the withdrawn assets (e.g. USD)
         uint256 valueMinWithdrawn;
         for (uint256 i = 0; i < numCoins; i++) {
-            valueMinWithdrawn += minWithdrawAmounts[i] * rates[i] / 1e18;
+            valueMinWithdrawn += minWithdrawAmounts[i] * rates[i];
         }
+        valueMinWithdrawn /= 1e18;
 
         // Check that the aggregated minimums are greater than the max slippage amount
         require(
@@ -712,8 +717,9 @@ contract MainnetController is AccessControl {
         // Aggregate value withdrawn to reduce the rate limit
         uint256 valueWithdrawn;
         for (uint256 i = 0; i < withdrawnTokens.length; i++) {
-            valueWithdrawn += withdrawnTokens[i] * rates[i] / 1e18;
+            valueWithdrawn += withdrawnTokens[i] * rates[i];
         }
+        valueWithdrawn /= 1e18;
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_CURVE_WITHDRAW, pool),
