@@ -19,14 +19,6 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
-      - name: Checkout submodules
-        env:
-          SSH_KEY_SPARK_ADDRESS_REGISTRY_PRIVATE: ${{secrets.SSH_KEY_SPARK_ADDRESS_REGISTRY_PRIVATE}}
-        shell: bash
-        run: |
-          chmod +x ./install-submodules.sh
-          ./install-submodules.sh
-
       - name: Build contracts
         run: |
           forge --version
@@ -40,14 +32,6 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Checkout submodules
-        env:
-          SSH_KEY_SPARK_ADDRESS_REGISTRY_PRIVATE: ${{secrets.SSH_KEY_SPARK_ADDRESS_REGISTRY_PRIVATE}}
-        shell: bash
-        run: |
-          chmod +x ./install-submodules.sh
-          ./install-submodules.sh
 
       - name: Run tests
         env:
@@ -66,14 +50,6 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Checkout submodules
-        env:
-          SSH_KEY_SPARK_ADDRESS_REGISTRY_PRIVATE: ${{secrets.SSH_KEY_SPARK_ADDRESS_REGISTRY_PRIVATE}}
-        shell: bash
-        run: |
-          chmod +x ./install-submodules.sh
-          ./install-submodules.sh
 
       - name: Run coverage
         env:

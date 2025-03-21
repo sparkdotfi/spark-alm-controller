@@ -19,6 +19,9 @@
 [submodule "lib/sdai"]
 	path = lib/sdai
 	url = https://github.com/makerdao/sdai
+[submodule "lib/spark-address-registry"]
+	path = lib/spark-address-registry
+	url = git@github.com:marsfoundation/spark-address-registry.git
 [submodule "lib/erc20-helpers"]
 	path = lib/erc20-helpers
 	url = https://github.com/marsfoundation/erc20-helpers
@@ -31,6 +34,3 @@
 [submodule "lib/aave-v3-origin"]
 	path = lib/aave-v3-origin
 	url = https://github.com/aave-dao/aave-v3-origin
-[submodule "lib/spark-address-registry"]
-	path = lib/spark-address-registry
-	url = git@github.com:marsfoundation/spark-address-registry-private.git
