@@ -24,7 +24,6 @@ jobs:
           forge --version
           forge build --sizes
 
-
   test:
     runs-on: ubuntu-latest
     steps:
