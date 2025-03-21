@@ -54,15 +54,6 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(address(susds), 1e18);
     }
 
-    function test_depositERC4626_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.depositERC4626(address(susds), 1e18);
-    }
-
     function test_depositERC4626_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -129,15 +120,6 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.withdrawERC4626(address(susds), 1e18);
-    }
-
-    function test_withdrawERC4626_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.withdrawERC4626(address(susds), 1e18);
     }
 
@@ -212,15 +194,6 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.redeemERC4626(address(susds), 1e18);
-    }
-
-    function test_redeemERC4626_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.redeemERC4626(address(susds), 1e18);
     }
 

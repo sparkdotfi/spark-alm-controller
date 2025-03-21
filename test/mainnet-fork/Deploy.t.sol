@@ -67,7 +67,6 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         assertEq(address(controller.usde()),         Ethereum.USDE);
 
         assertEq(controller.psmTo18ConversionFactor(), 1e12);
-        assertEq(controller.active(),                  true);
     }
 
 }

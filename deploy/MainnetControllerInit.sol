@@ -55,7 +55,7 @@ library MainnetControllerInit {
     /**********************************************************************************************/
 
     function initAlmSystem(
-        address vault, 
+        address vault,
         address usds,
         ControllerInstance  memory controllerInst,
         ConfigAddressParams memory configAddresses,
@@ -89,12 +89,12 @@ library MainnetControllerInit {
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);   
-        
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        require(configAddresses.oldController != address(0), "MainnetControllerInit/old-controller-zero-address"); 
+        require(configAddresses.oldController != address(0), "MainnetControllerInit/old-controller-zero-address");
 
         require(almProxy.hasRole(almProxy.CONTROLLER(), configAddresses.oldController),     "MainnetControllerInit/old-controller-not-almProxy-controller");
         require(rateLimits.hasRole(rateLimits.CONTROLLER(), configAddresses.oldController), "MainnetControllerInit/old-controller-not-rateLimits-controller");
@@ -117,7 +117,7 @@ library MainnetControllerInit {
         CheckAddressParams  memory checkAddresses,
         MintRecipient[]     memory mintRecipients
     )
-        private  
+        private
     {
         // Step 1: Perform controller sanity checks
 
@@ -134,7 +134,6 @@ library MainnetControllerInit {
         require(address(newController.cctp())    == checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
 
         require(newController.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
-        require(newController.active(),                          "MainnetControllerInit/controller-not-active");
 
         require(configAddresses.oldController != address(newController), "MainnetControllerInit/old-controller-is-new-controller");
 
