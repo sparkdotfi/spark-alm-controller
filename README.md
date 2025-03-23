@@ -9,7 +9,7 @@
 
 ## Overview
 
-This repo contains the onchain components of the Spark Liquidity Layer. The following contracts are contained in this repository:
+This repo contains the onchain components of the Bloom Liquidity Layer. The following contracts are contained in this repository:
 
 - `ALMProxy`: The proxy contract that holds custody of all funds. This contract routes calls to external contracts according to logic within a specified `controller` contract. This pattern was used to allow for future iterations in logic, as a new controller can be onboarded and can route calls through the proxy with new logic. This contract is stateless except for the ACL logic contained within the inherited OpenZeppelin `AccessControl` contract.
 - `MainnetController`: This controller contract is intended to be used on the Ethereum mainnet.
