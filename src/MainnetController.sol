@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
-
 import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
 import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { Ethereum } from "bloom-address-registry/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
@@ -46,10 +42,6 @@ interface IPSMLike {
     function gem() external view returns(address);
     function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
     function to18ConversionFactor() external view returns (uint256);
-}
-
-interface IATokenWithPool is IAToken {
-    function POOL() external view returns(address);
 }
 
 contract MainnetController is AccessControl {
@@ -94,7 +86,6 @@ contract MainnetController is AccessControl {
     address public immutable buffer;
 
     IALMProxy         public immutable proxy;
-    ICCTPLike         public immutable cctp;
     IDaiUsdsLike      public immutable daiUsds;
     IEthenaMinterLike public immutable ethenaMinter;
     IPSMLike          public immutable psm;
@@ -123,8 +114,7 @@ contract MainnetController is AccessControl {
         address rateLimits_,
         address vault_,
         address psm_,
-        address daiUsds_,
-        address cctp_
+        address daiUsds_
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
@@ -134,7 +124,6 @@ contract MainnetController is AccessControl {
         buffer     = IVaultLike(vault_).buffer();
         psm        = IPSMLike(psm_);
         daiUsds    = IDaiUsdsLike(daiUsds_);
-        cctp       = ICCTPLike(cctp_);
 
         ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
@@ -304,60 +293,6 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Relayer Aave functions                                                                 ***/
-    /**********************************************************************************************/
-
-    function depositAave(address aToken, uint256 amount)
-        external
-        onlyRole(RELAYER)
-        isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
-            amount
-        )
-    {
-        IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
-        IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
-
-        // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        proxy.doCall(
-            address(underlying),
-            abi.encodeCall(underlying.approve, (address(pool), amount))
-        );
-
-        // Deposit underlying into Aave pool, proxy receives aTokens
-        proxy.doCall(
-            address(pool),
-            abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
-        );
-    }
-
-    // NOTE: !!! Rate limited at end of function !!!
-    function withdrawAave(address aToken, uint256 amount)
-        external onlyRole(RELAYER) isActive returns (uint256 amountWithdrawn)
-    {
-        IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
-
-        // Withdraw underlying from Aave pool, decode resulting amount withdrawn.
-        // Assumes proxy has adequate aTokens.
-        amountWithdrawn = abi.decode(
-            proxy.doCall(
-                address(pool),
-                abi.encodeCall(
-                    pool.withdraw,
-                    (IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS(), amount, address(proxy))
-                )
-            ),
-            (uint256)
-        );
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
-            amountWithdrawn
-        );
-    }
-
-    /**********************************************************************************************/
     /*** Relayer Ethena functions                                                               ***/
     /**********************************************************************************************/
 
@@ -515,72 +450,8 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Relayer bridging functions                                                             ***/
-    /**********************************************************************************************/
-
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
-        external
-        onlyRole(RELAYER)
-        isActive
-        rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
-        rateLimited(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
-            usdcAmount
-        )
-    {
-        bytes32 mintRecipient = mintRecipients[destinationDomain];
-
-        require(mintRecipient != 0, "MainnetController/domain-not-configured");
-
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        proxy.doCall(
-            address(usdc),
-            abi.encodeCall(usdc.approve, (address(cctp), usdcAmount))
-        );
-
-        // If amount is larger than limit it must be split into multiple calls
-        uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
-
-        while (usdcAmount > burnLimit) {
-            _initiateCCTPTransfer(burnLimit, destinationDomain, mintRecipient);
-            usdcAmount -= burnLimit;
-        }
-
-        // Send remaining amount (if any)
-        if (usdcAmount > 0) {
-            _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
-        }
-    }
-
-    /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/
     /**********************************************************************************************/
-
-    function _initiateCCTPTransfer(
-        uint256 usdcAmount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient
-    )
-        internal
-    {
-        uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
-                abi.encodeCall(
-                    cctp.depositForBurn,
-                    (
-                        usdcAmount,
-                        destinationDomain,
-                        mintRecipient,
-                        address(usdc)
-                    )
-                )
-            ),
-            (uint64)
-        );
-
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
-    }
 
     function _swapUSDCToDAI(uint256 usdcAmount) internal {
         // Swap USDC to DAI through the PSM (1:1 since sellGemNoFee is used)
@@ -591,4 +462,3 @@ contract MainnetController is AccessControl {
     }
 
 }
-
