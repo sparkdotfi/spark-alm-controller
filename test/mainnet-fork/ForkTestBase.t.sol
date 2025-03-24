@@ -315,4 +315,8 @@ contract ForkTestBase is DssTest {
         return 20917850; //  October 7, 2024
     }
 
+    function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a > b ? a - b : b - a;
+    }
+
 }
