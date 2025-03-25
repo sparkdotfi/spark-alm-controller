@@ -37,12 +37,30 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
-    function test_transferUSDCToCCTP_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
+    function test_tranferUSDCToCCTP_zeroMaxAmountDomain() external {
+        vm.startPrank(SPARK_PROXY);
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeDomainKey(
+                mainnetController.LIMIT_USDC_TO_DOMAIN(),
+                CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
+            ),
+            0,
+            0
+        );
+        vm.stopPrank();
 
+        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
+        mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+    }
+
+    function test_tranferUSDCToCCTP_zeroMaxAmountCCTP() external {
+        vm.startPrank(SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        vm.stopPrank();
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
@@ -249,19 +267,6 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
             slope     : uint256(1_000_000e6) / 4 hours
         });
 
-        RateLimitData memory standardUsdsData = RateLimitData({
-            maxAmount : 5_000_000e18,
-            slope     : uint256(1_000_000e18) / 4 hours
-        });
-
-        RateLimitData memory unlimitedData = RateLimitData({
-            maxAmount : type(uint256).max,
-            slope     : 0
-        });
-
-        bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
-        bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
-
         bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
             foreignController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
@@ -305,12 +310,30 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 
-    function test_transferUSDCToCCTP_frozen() external {
-        vm.prank(freezer);
-        foreignController.freeze();
+    function test_tranferUSDCToCCTP_zeroMaxAmountDomain() external {
+        vm.startPrank(SPARK_EXECUTOR);
+        foreignRateLimits.setRateLimitData(
+            RateLimitHelpers.makeDomainKey(
+                foreignController.LIMIT_USDC_TO_DOMAIN(),
+                CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
+            ),
+            0,
+            0
+        );
+        vm.stopPrank();
 
+        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/not-active");
+        foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
+    }
+
+    function test_tranferUSDCToCCTP_zeroMaxAmountCCTP() external {
+        vm.startPrank(SPARK_EXECUTOR);
+        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        vm.stopPrank();
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 

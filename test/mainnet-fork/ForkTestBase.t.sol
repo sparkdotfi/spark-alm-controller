@@ -56,6 +56,19 @@ interface IPSMLike {
     function rush() external view returns (uint256);
 }
 
+interface ISSTokenLike is IERC20 {
+    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin)
+        external view returns (
+            uint256 superstateTokenOutAmount,
+            uint256 stablcoinInAmountAfterFee,
+            uint256 feeOnStablecoinInAmount
+        );
+    function mint(address to, uint256 amount) external;
+    function burn(address src, uint256 amount) external;
+    function owner() external view returns (address);
+    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
+}
+
 interface IVaultLike {
     function rely(address) external;
     function wards(address) external returns (uint256);
@@ -81,6 +94,8 @@ contract ForkTestBase is DssTest {
     address freezer = Ethereum.ALM_FREEZER;
     address relayer = Ethereum.ALM_RELAYER;
 
+    address backstopRelayer = makeAddr("backstopRelayer");  // TODO: Replace with real backstop
+
     bytes32 CONTROLLER;
     bytes32 FREEZER;
     bytes32 RELAYER;
@@ -104,7 +119,9 @@ contract ForkTestBase is DssTest {
     IERC20 constant usds  = IERC20(Ethereum.USDS);
     ISUsds constant susds = ISUsds(Ethereum.SUSDS);
 
-    ISUSDELike constant susde = ISUSDELike(Ethereum.SUSDE);
+    ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
+    ISSTokenLike constant ustb  = ISSTokenLike(Ethereum.USTB);
+    ISUSDELike   constant susde = ISUSDELike(Ethereum.SUSDE);
 
     IPSMLike constant psm = IPSMLike(PSM);
 
@@ -152,7 +169,7 @@ contract ForkTestBase is DssTest {
 
         /*** Step 1: Set up environment, cast addresses ***/
 
-        source = getChain("mainnet").createSelectFork(_getBlock());  
+        source = getChain("mainnet").createSelectFork(_getBlock());
 
         dss = MCD.loadFromChainlog(LOG);
 
@@ -216,7 +233,7 @@ contract ForkTestBase is DssTest {
         FREEZER    = mainnetController.FREEZER();
         RELAYER    = mainnetController.RELAYER();
 
-        Init.ConfigAddressParams memory configAddresses 
+        Init.ConfigAddressParams memory configAddresses
             = Init.ConfigAddressParams({
                 freezer       : freezer,
                 relayer       : relayer,
@@ -258,6 +275,8 @@ contract ForkTestBase is DssTest {
             checkAddresses,
             mintRecipients
         );
+
+        mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
 
         RateLimitData memory standardUsdsData = RateLimitData({
             maxAmount : 5_000_000e18,

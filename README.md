@@ -35,25 +35,12 @@ The diagram below provides and example of calling to mint USDS using the Sky all
 All contracts in this repo inherit and implement the AccessControl contract from OpenZeppelin to manage permissions. The following roles are defined:
 - `DEFAULT_ADMIN_ROLE`: The admin role is the role that can grant and revoke roles. Also used for general admin functions in all contracts.
 - `RELAYER`: Used for the ALM Planner offchain system. This address can call functions on `controller` contracts to perform actions on behalf of the `ALMProxy` contract.
-- `FREEZER`: Allows an address with this role to freeze all actions on the `controller` contracts. This role is intended to be used in emergency situations.
+- `FREEZER`: Allows an address with this role to remove a `RELAYER` that has been compromised. The intention of this is to have a backup `RELAYER` that the system can fall back to when the main one is removed.
 - `CONTROLLER`: Used for the `ALMProxy` contract. Only contracts with this role can call the `call` functions on the `ALMProxy` contract. Also used in the RateLimits contract, only this role can update rate limits.
 
 ## Controller Functionality
-All functions below change the balance of funds in the ALMProxy contract and are only callable by the `RELAYER` role.
-
-- `ForeignController`: This contract currently implements logic to:
-  - Deposit and withdraw on EVM compliant L2 PSM3 contracts (see [spark-psm](https://github.com/marsfoundation/spark-psm) for implementation).
-  - Initiate a transfer of USDC to other domains using CCTP.
-  - Deposit, withdraw, and redeem from ERC4626 contracts.
-  - Deposit and withdraw from AAVE.
-- `MainnetController`: This contract currently implements logic to:
-  - Mint and burn USDS.
-  - Deposit, withdraw, redeem from ERC4626 contracts.
-  - Deposit and withdraw from AAVE.
-  - Mint and burn USDe.
-  - Cooldown and unstake from sUSDe.
-  - Swap USDS to USDC and vice versa using the mainnet PSM.
-  - Transfer USDC to other domains using CCTP.
+The `MainnetController` contains all logic necessary to interact with the Sky allocation system to mint and burn USDS, swap USDS to USDC in the PSM, as well as interact with mainnet external protocols and CCTP for bridging USDC.
+The `ForeignController` contains all logic necessary to deposit, withdraw, and swap assets in L2 PSMs as well as interact with external protocols on L2s and CCTP for bridging USDC.
 
 ## Rate Limits
 
@@ -79,8 +66,8 @@ Below are all stated trust assumptions for using this contract in production:
 - The `RELAYER` role is assumed to be able to be fully compromised by a malicious actor. **This should be a major consideration during auditing engagements.**
   - The logic in the smart contracts must prevent the movement of value anywhere outside of the ALM system of contracts.
   - Any action must be limited to "reasonable" slippage/losses/opportunity cost by rate limits.
-  - The `FREEZER` must be able to stop the compromised `RELAYER` from performing more harmful actions within the max rate limits by using the `freeze()` function.
-- A compromised `RELAYER` can DOS Ethena unstaking, but this can be mitigated by freezing the Controller and reassigning the `RELAYER`. This is outlined in a test `test_compromisedRelayer_lockingFundsInEthenaSilo`.
+  - The `FREEZER` must be able to stop the compromised `RELAYER` from performing more harmful actions within the max rate limits by using the `removeRelayer` function.
+- A compromised `RELAYER` can perform DOS attacks. These attacks along with their respective recovery procedures are outlined in the `Attacks.t.sol` test files.
 - Ethena USDe Mint/Burn is trusted to not honor requests with over 50bps slippage from a delegated signer.
 
 ## Operational Requirements
@@ -100,9 +87,9 @@ forge test
 ```
 
 ## Deployments
-All commands to deploy: 
+All commands to deploy:
   - Either the full system or just the controller
-  - To mainnet or base 
+  - To mainnet or base
   - For staging or production
 
 Can be found in the Makefile, with the nomenclature `make deploy-<domain>-<env>-<type>`.

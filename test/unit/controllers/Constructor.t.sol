@@ -42,8 +42,6 @@ contract MainnetControllerConstructorTests is UnitTestBase {
 
         assertEq(mainnetController.psmTo18ConversionFactor(), psm.to18ConversionFactor());
         assertEq(mainnetController.psmTo18ConversionFactor(), 1e12);
-
-        assertEq(mainnetController.active(), true);
     }
 
 }
@@ -73,8 +71,6 @@ contract ForeignControllerConstructorTests is UnitTestBase {
         assertEq(address(foreignController.psm()),        psm);
         assertEq(address(foreignController.usdc()),       usdc);   // asset1 param in MockPSM3
         assertEq(address(foreignController.cctp()),       cctp);
-
-        assertEq(foreignController.active(), true);
     }
 
 }
