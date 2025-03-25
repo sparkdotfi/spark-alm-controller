@@ -550,6 +550,40 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
         mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6);
     }
 
+    function test_swapCurve_sameIndex() public {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/invalid-indices");
+        mainnetController.swapCurve(CURVE_POOL, 1, 1, 1_000_000e18, 980_000e6);
+    }
+
+    function test_swapCurve_firstIndexTooHighBoundary() public {
+        _addLiquidity();
+        skip(1 days);  // Recharge swap rate limit from deposit
+
+        deal(RLUSD, address(almProxy), 1_000_000e18);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/index-too-high");
+        mainnetController.swapCurve(CURVE_POOL, 2, 0, 1_000_000e18, 980_000e6);
+
+        vm.prank(relayer);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6);
+    }
+
+    function test_swapCurve_secondIndexTooHighBoundary() public {
+        _addLiquidity();
+        skip(1 days);  // Recharge swap rate limit from deposit
+
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/index-too-high");
+        mainnetController.swapCurve(CURVE_POOL, 0, 2, 1_000_000e6, 980_000e18);
+
+        vm.prank(relayer);
+        mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e18);
+    }
+
     function test_swapCurve_slippageNotSet() public {
         vm.prank(SPARK_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
