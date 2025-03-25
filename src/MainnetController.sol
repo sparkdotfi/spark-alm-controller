@@ -562,10 +562,18 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
+        require(inputIndex != outputIndex, "MainnetController/invalid-indices");
+
         uint256 maxSlippage = maxSlippages[pool];
         require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
         ICurvePoolLike curvePool = ICurvePoolLike(pool);
+
+        uint256 numCoins = curvePool.N_COINS();
+        require(
+            inputIndex < numCoins && outputIndex < numCoins,
+            "MainnetController/index-too-high"
+        );
 
         // Normalized to provide 36 decimal precision when multiplied by asset amount
         uint256[] memory rates = curvePool.stored_rates();
@@ -599,8 +607,8 @@ contract MainnetController is AccessControl {
                 abi.encodeCall(
                     curvePool.exchange,
                     (
-                        int128(int256(inputIndex)),   // Assuming safe cast because of 8 token max
-                        int128(int256(outputIndex)),  // Assuming safe cast because of 8 token max
+                        int128(int256(inputIndex)),   // safe cast because of 8 token max
+                        int128(int256(outputIndex)),  // safe cast because of 8 token max
                         amountIn,
                         minAmountOut,
                         address(proxy)
