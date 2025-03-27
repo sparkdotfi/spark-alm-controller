@@ -15,8 +15,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
             admin   : SPARK_PROXY,
             vault   : vault,
             psm     : PSM,
-            daiUsds : DAI_USDS,
-            cctp    : CCTP_MESSENGER
+            daiUsds : DAI_USDS
         });
 
         ALMProxy          newAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -41,8 +40,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
             rateLimits : address(rateLimits),
             vault      : vault,
             psm        : PSM,
-            daiUsds    : DAI_USDS,
-            cctp       : CCTP_MESSENGER
+            daiUsds    : DAI_USDS
         }));
 
         _assertControllerInitState(newController, address(almProxy), address(rateLimits), vault, buffer);
@@ -58,7 +56,6 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         assertEq(address(controller.buffer()),       buffer);
         assertEq(address(controller.psm()),          Ethereum.PSM);
         assertEq(address(controller.daiUsds()),      Ethereum.DAI_USDS);
-        assertEq(address(controller.cctp()),         Ethereum.CCTP_TOKEN_MESSENGER);
         assertEq(address(controller.ethenaMinter()), Ethereum.ETHENA_MINTER);
         assertEq(address(controller.susde()),        Ethereum.SUSDE);
         assertEq(address(controller.dai()),          Ethereum.DAI);
@@ -67,7 +64,6 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         assertEq(address(controller.usde()),         Ethereum.USDE);
 
         assertEq(controller.psmTo18ConversionFactor(), 1e12);
-        assertEq(controller.active(),                  true);
     }
 
 }

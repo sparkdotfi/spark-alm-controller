@@ -1,13 +1,14 @@
-# Bloom ALM Controller
+# 🌸 Bloom ALM Controller
 
 ![Foundry CI](https://github.com/bloom-foundation/bloom-alm-controller/actions/workflows/ci.yml/badge.svg)
 [![Foundry][foundry-badge]][foundry]
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://github.com/bloom-foundation/bloom-alm-controller/blob/master/LICENSE)
+![Ethereum](https://img.shields.io/badge/Ethereum-3C3C3D?style=flat&logo=ethereum&logoColor=white)
 
 [foundry]: https://getfoundry.sh/
 [foundry-badge]: https://img.shields.io/badge/Built%20with-Foundry-FFDB1C.svg
 
-## Overview
+## 📝 Overview
 
 This repo contains the onchain components of the Bloom Liquidity Layer. The following contracts are contained in this repository:
 
@@ -15,6 +16,6 @@ This repo contains the onchain components of the Bloom Liquidity Layer. The foll
 - `MainnetController`: This controller contract is intended to be used on the Ethereum mainnet.
 - `RateLimits`: This contract is used to enforce and update rate limits on logic in the `MainnetController` contract. This contract is stateful and is used to store the rate limit data.
 
-## Licensing
+## ⚖️ Licensing
 
 This repository is a fork of the sparkdotfi/spark-alm-controller. All code in this repository is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0), which requires that modifications to the code must be made available under the same license. See the [LICENSE](LICENSE) file for more details.

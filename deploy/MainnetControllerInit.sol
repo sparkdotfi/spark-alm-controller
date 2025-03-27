@@ -34,18 +34,12 @@ library MainnetControllerInit {
         address vault;
         address psm;
         address daiUsds;
-        address cctp;
     }
 
     struct ConfigAddressParams {
         address freezer;
         address relayer;
         address oldController;
-    }
-
-    struct MintRecipient {
-        uint32  domain;
-        bytes32 mintRecipient;
     }
 
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
@@ -55,12 +49,11 @@ library MainnetControllerInit {
     /**********************************************************************************************/
 
     function initAlmSystem(
-        address vault, 
+        address vault,
         address usds,
         ControllerInstance  memory controllerInst,
         ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        CheckAddressParams  memory checkAddresses
     )
         internal
     {
@@ -71,7 +64,7 @@ library MainnetControllerInit {
 
         // Step 2: Initialize the controller
 
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses);
 
         // Step 3: Configure almProxy within the allocation system
 
@@ -84,17 +77,16 @@ library MainnetControllerInit {
     function upgradeController(
         ControllerInstance  memory controllerInst,
         ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        CheckAddressParams  memory checkAddresses
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);   
-        
+        _initController(controllerInst, configAddresses, checkAddresses);
+
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        require(configAddresses.oldController != address(0), "MainnetControllerInit/old-controller-zero-address"); 
+        require(configAddresses.oldController != address(0), "MainnetControllerInit/old-controller-zero-address");
 
         require(almProxy.hasRole(almProxy.CONTROLLER(), configAddresses.oldController),     "MainnetControllerInit/old-controller-not-almProxy-controller");
         require(rateLimits.hasRole(rateLimits.CONTROLLER(), configAddresses.oldController), "MainnetControllerInit/old-controller-not-rateLimits-controller");
@@ -114,10 +106,9 @@ library MainnetControllerInit {
     function _initController(
         ControllerInstance  memory controllerInst,
         ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        CheckAddressParams  memory checkAddresses
     )
-        private  
+        private
     {
         // Step 1: Perform controller sanity checks
 
@@ -131,10 +122,8 @@ library MainnetControllerInit {
         require(address(newController.vault())   == checkAddresses.vault,   "MainnetControllerInit/incorrect-vault");
         require(address(newController.psm())     == checkAddresses.psm,     "MainnetControllerInit/incorrect-psm");
         require(address(newController.daiUsds()) == checkAddresses.daiUsds, "MainnetControllerInit/incorrect-daiUsds");
-        require(address(newController.cctp())    == checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
 
         require(newController.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
-        require(newController.active(),                          "MainnetControllerInit/controller-not-active");
 
         require(configAddresses.oldController != address(newController), "MainnetControllerInit/old-controller-is-new-controller");
 
@@ -148,12 +137,6 @@ library MainnetControllerInit {
 
         almProxy.grantRole(almProxy.CONTROLLER(), address(newController));
         rateLimits.grantRole(rateLimits.CONTROLLER(), address(newController));
-
-        // Step 3: Configure the mint recipients on other domains
-
-        for (uint256 i = 0; i < mintRecipients.length; i++) {
-            newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
-        }
     }
 
 }
