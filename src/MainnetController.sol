@@ -672,9 +672,10 @@ contract MainnetController is AccessControl {
             (uint256)
         );
 
-        // Compute the average swap value by taking the difference of the current underlying
-        // asset values from minted shares vs the deposited funds, and decrease the swap
-        // rate limit by this amount.
+        // Compute the swap value by taking the difference of the current underlying
+        // asset values from minted shares vs the deposited funds, converting this into an
+        // aggregated swap "amount in" by dividing the total value moved by two and decrease the
+        // swap rate limit by this amount.
         uint256 totalSwapped;
         for (uint256 i; i < depositAmounts.length; i++) {
             totalSwapped += _absSubtraction(
@@ -682,7 +683,7 @@ contract MainnetController is AccessControl {
                 depositAmounts[i] * rates[i]
             );
         }
-        uint256 averageSwap = totalSwapped / depositAmounts.length / 1e18;
+        uint256 averageSwap = totalSwapped / 2 / 1e18;
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_CURVE_SWAP, pool),

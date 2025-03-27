@@ -282,7 +282,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
         uint256 totalSwapped;
         for (uint256 i; i < withdrawnAmounts.length; i++) {
-            totalSwapped   += _absSubtraction(withdrawnAmounts[i] * rates[i], amounts[i] * rates[i]) / 1e18;
+            totalSwapped += _absSubtraction(withdrawnAmounts[i] * rates[i], amounts[i] * rates[i]) / 1e18;
         }
         totalSwapped /= withdrawnAmounts.length;
 
@@ -335,7 +335,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
         uint256 totalSwapped;
         for (uint256 i; i < withdrawnAmounts.length; i++) {
-            totalSwapped   += _absSubtraction(withdrawnAmounts[i] * rates[i], amounts[i] * rates[i]) / 1e18;
+            totalSwapped += _absSubtraction(withdrawnAmounts[i] * rates[i], amounts[i] * rates[i]) / 1e18;
         }
         totalSwapped /= withdrawnAmounts.length;
 
