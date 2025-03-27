@@ -270,7 +270,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
         uint256 derivedSwapAmount = startingRateLimit - rateLimits.getCurrentRateLimit(curveSwapKey);
 
-        // Step 2: Withdraw full balance of LP tokens, withdrawing equal amounts from the pool
+        // Step 2: Withdraw full balance of LP tokens, withdrawing proportional amounts from the pool
 
         uint256[] memory minWithdrawnAmounts = new uint256[](2);
         minWithdrawnAmounts[0] = 500_000e6;
@@ -331,7 +331,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
         uint256 derivedSwapAmount = startingRateLimit - rateLimits.getCurrentRateLimit(curveSwapKey);
 
-        // Step 2: Withdraw full balance of LP tokens, withdrawing equal amounts from the pool
+        // Step 2: Withdraw full balance of LP tokens, withdrawing proportional amounts from the pool
 
         uint256[] memory minWithdrawnAmounts = new uint256[](2);
         minWithdrawnAmounts[0] = 1e6;
@@ -759,7 +759,7 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
 
 contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
 
-    // Working in BTC terms because only hight TVL active NG three asset pool is BTC
+    // Working in BTC terms because only high TVL active NG three asset pool is BTC
     address CURVE_POOL = 0xabaf76590478F2fE0b396996f55F0b61101e9502;
 
     IERC20 ebtc = IERC20(0x657e8C867D8B37dCC18fA4Caead9C45EB088C642);
@@ -812,7 +812,7 @@ contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
 
         uint256 derivedSwapAmount = startingRateLimit - rateLimits.getCurrentRateLimit(curveSwapKey);
 
-        // Step 2: Withdraw full balance of LP tokens, withdrawing equal amounts from the pool
+        // Step 2: Withdraw full balance of LP tokens, withdrawing proportional amounts from the pool
 
         uint256[] memory minWithdrawnAmounts = new uint256[](3);
         minWithdrawnAmounts[0] = 0.01e8;
@@ -828,7 +828,7 @@ contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
         assertEq(withdrawnAmounts[1], 0.22809783e8);
         assertEq(withdrawnAmounts[2], 0.41478858e8);
 
-        // Accurate to within 0.001 units
+        // Some accuracy differences because of fees
         assertEq(derivedSwapAmount,         0.642994597417510402e18);
         assertEq(1e8 - withdrawnAmounts[0], 0.64310277e8);
     }
@@ -888,7 +888,7 @@ contract MainnetControllerSUsdeSUsdsSwapRateLimitTest is ForkTestBase {
 
         uint256 derivedSwapAmount = startingRateLimit - rateLimits.getCurrentRateLimit(curveSwapKey);
 
-        // Step 2: Withdraw full balance of LP tokens, withdrawing equal amounts from the pool
+        // Step 2: Withdraw full balance of LP tokens, withdrawing proportional amounts from the pool
 
         uint256[] memory minWithdrawnAmounts = new uint256[](2);
         minWithdrawnAmounts[0] = 100_000e18;
