@@ -18,21 +18,23 @@ contract LibraryWrapper {
         address usds,
         ControllerInstance       memory controllerInst,
         Init.ConfigAddressParams memory configAddresses,
-        Init.CheckAddressParams  memory checkAddresses
+        Init.CheckAddressParams  memory checkAddresses,
+        Init.MintRecipient[]     memory mintRecipients
     )
         external
     {
-        Init.initAlmSystem(vault, usds, controllerInst, configAddresses, checkAddresses);
+        Init.initAlmSystem(vault, usds, controllerInst, configAddresses, checkAddresses, mintRecipients);
     }
 
     function upgradeController(
         ControllerInstance       memory controllerInst,
         Init.ConfigAddressParams memory configAddresses,
-        Init.CheckAddressParams  memory checkAddresses
+        Init.CheckAddressParams  memory checkAddresses,
+        Init.MintRecipient[]     memory mintRecipients
     )
         external
     {
-        Init.upgradeController(controllerInst, configAddresses, checkAddresses);
+        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients);
     }
 
     function pauseProxyInitAlmSystem(address psm, address almProxy) external {
@@ -44,9 +46,10 @@ contract LibraryWrapper {
 contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
 
     function _getDefaultParams()
-        internal view returns (
+        internal returns (
             Init.ConfigAddressParams memory configAddresses,
-            Init.CheckAddressParams  memory checkAddresses
+            Init.CheckAddressParams  memory checkAddresses,
+            Init.MintRecipient[]     memory mintRecipients
         )
     {
         configAddresses = Init.ConfigAddressParams({
@@ -61,7 +64,15 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
             rateLimits : address(rateLimits),
             vault      : address(vault),
             psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS
+            daiUsds    : Ethereum.DAI_USDS,
+            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
+        });
+
+        mintRecipients = new Init.MintRecipient[](1);
+
+        mintRecipients[0] = Init.MintRecipient({
+            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
+            mintRecipient : bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         });
     }
 
@@ -83,6 +94,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
     Init.ConfigAddressParams configAddresses;
     Init.CheckAddressParams  checkAddresses;
+    Init.MintRecipient[]     mintRecipients;
 
     function setUp() public override {
         super.setUp();
@@ -100,10 +112,16 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             rateLimits : address(rateLimits),
             vault      : address(vault),
             psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS
+            daiUsds    : Ethereum.DAI_USDS,
+            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
         }));
 
-        ( configAddresses, checkAddresses ) = _getDefaultParams();
+        Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_ ) = _getDefaultParams();
+
+        // NOTE: This would need to be refactored to a for loop if more than one recipient
+        mintRecipients.push(mintRecipients_[0]);
 
         controllerInst = ControllerInstance({
             almProxy   : address(almProxy),
@@ -135,7 +153,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             address(usds),
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
     }
 
@@ -149,7 +168,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             address(usds),
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
     }
 
@@ -193,6 +213,11 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-daiUsds"));
     }
 
+    function test_initAlmSystem_upgradeController_incorrectCctp() external {
+        checkAddresses.cctp = mismatchAddress;
+        _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-cctp"));
+    }
+
     function test_initAlmSystem_upgradeController_oldControllerIsNewController() external {
         configAddresses.oldController = controllerInst.controller;
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/old-controller-is-new-controller"));
@@ -209,7 +234,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
     }
 
@@ -226,7 +252,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
     }
 
@@ -243,7 +270,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
     }
 
@@ -258,14 +286,16 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             address(usds),
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
 
         vm.expectRevert(expectedError);
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
     }
 
@@ -281,6 +311,7 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
 
     Init.ConfigAddressParams configAddresses;
     Init.CheckAddressParams  checkAddresses;
+    Init.MintRecipient[]     mintRecipients;
 
     function setUp() public override {
         super.setUp();
@@ -289,7 +320,8 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             Ethereum.SPARK_PROXY,
             address(vault),
             Ethereum.PSM,
-            Ethereum.DAI_USDS
+            Ethereum.DAI_USDS,
+            Ethereum.CCTP_TOKEN_MESSENGER
         );
 
         // Overwrite storage for all previous deployments in setUp and assert brand new deployment
@@ -297,7 +329,11 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
         rateLimits        = RateLimits(controllerInst.rateLimits);
 
-        ( configAddresses, checkAddresses ) = _getDefaultParams();
+        Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_ ) = _getDefaultParams();
+
+        mintRecipients.push(mintRecipients_[0]);
 
         // Admin will be calling the library from its own address
         vm.etch(SPARK_PROXY, address(new LibraryWrapper()).code);
@@ -316,6 +352,9 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(mainnetController)),     false);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), false);
 
+        assertEq(mainnetController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
+        assertEq(mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
+
         assertEq(IVaultLike(vault).wards(controllerInst.almProxy), 0);
         assertEq(usds.allowance(buffer, controllerInst.almProxy),  0);
 
@@ -325,7 +364,8 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             address(usds),
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
 
         assertEq(mainnetController.hasRole(mainnetController.FREEZER(), freezer), true);
@@ -333,6 +373,16 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
 
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(mainnetController)),     true);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), true);
+
+        assertEq(
+            mainnetController.mintRecipients(mintRecipients[0].domain),
+            mintRecipients[0].mintRecipient
+        );
+
+        assertEq(
+            mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
+            bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
+        );
 
         assertEq(IVaultLike(vault).wards(controllerInst.almProxy), 1);
         assertEq(usds.allowance(buffer, controllerInst.almProxy),  type(uint256).max);
@@ -364,13 +414,18 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
     Init.ConfigAddressParams configAddresses;
     Init.CheckAddressParams  checkAddresses;
+    Init.MintRecipient[]     mintRecipients;
 
     MainnetController newController;
 
     function setUp() public override {
         super.setUp();
 
-        ( configAddresses, checkAddresses ) = _getDefaultParams();
+        Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_ ) = _getDefaultParams();
+
+        mintRecipients.push(mintRecipients_[0]);
 
         newController = MainnetController(MainnetControllerDeploy.deployController({
             admin      : Ethereum.SPARK_PROXY,
@@ -378,7 +433,8 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
             rateLimits : address(rateLimits),
             vault      : address(vault),
             psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS
+            daiUsds    : Ethereum.DAI_USDS,
+            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
         }));
 
         controllerInst = ControllerInstance({
@@ -409,11 +465,15 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(newController)),     false);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(newController)), false);
 
+        assertEq(newController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
+        assertEq(newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
+
         vm.startPrank(SPARK_PROXY);
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
 
         assertEq(newController.hasRole(newController.FREEZER(), freezer), true);
@@ -424,6 +484,16 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(newController)),     true);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(newController)), true);
+
+        assertEq(
+            newController.mintRecipients(mintRecipients[0].domain),
+            mintRecipients[0].mintRecipient
+        );
+
+        assertEq(
+            newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
+            bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
+        );
     }
 
 }

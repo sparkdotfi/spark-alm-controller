@@ -9,6 +9,63 @@ import { MockVault }   from "../mocks/MockVault.sol";
 
 import "../UnitTestBase.t.sol";
 
+contract ForeignControllerDeployTests is UnitTestBase {
+
+    function test_deployController() public {
+        address admin = makeAddr("admin");
+        address psm   = makeAddr("psm");
+        address usdc  = makeAddr("usdc");
+        address cctp  = makeAddr("cctp");
+
+        address almProxy   = address(new ALMProxy(admin));
+        address rateLimits = address(new RateLimits(admin));
+
+        ForeignController controller = ForeignController(
+            ForeignControllerDeploy.deployController(
+                admin,
+                almProxy,
+                rateLimits,
+                psm,
+                usdc,
+                cctp
+            )
+        );
+
+        assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+
+        assertEq(address(controller.proxy()),      almProxy);
+        assertEq(address(controller.rateLimits()), rateLimits);
+        assertEq(address(controller.psm()),        psm);
+        assertEq(address(controller.usdc()),       usdc);
+        assertEq(address(controller.cctp()),       cctp);
+    }
+
+    function test_deployFull() public {
+        address admin = makeAddr("admin");
+        address psm   = makeAddr("psm");
+        address usdc  = makeAddr("usdc");
+        address cctp  = makeAddr("cctp");
+
+        ControllerInstance memory instance
+            = ForeignControllerDeploy.deployFull(admin, psm, usdc, cctp);
+
+        ALMProxy          almProxy   = ALMProxy(payable(instance.almProxy));
+        ForeignController controller = ForeignController(instance.controller);
+        RateLimits        rateLimits = RateLimits(instance.rateLimits);
+
+        assertEq(almProxy.hasRole(DEFAULT_ADMIN_ROLE, admin),   true);
+        assertEq(rateLimits.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+        assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+
+        assertEq(address(controller.proxy()),      instance.almProxy);
+        assertEq(address(controller.rateLimits()), instance.rateLimits);
+        assertEq(address(controller.psm()),        psm);
+        assertEq(address(controller.usdc()),       usdc);
+        assertEq(address(controller.cctp()),       cctp);
+    }
+
+}
+
 contract MainnetControllerDeployTests is UnitTestBase {
 
     struct TestVars {
@@ -16,6 +73,7 @@ contract MainnetControllerDeployTests is UnitTestBase {
         address psm;
         address admin;
         address vault;
+        address cctp;
     }
 
     function test_deployController() public {
@@ -26,6 +84,7 @@ contract MainnetControllerDeployTests is UnitTestBase {
         vars.vault   = address(new MockVault(makeAddr("buffer")));
 
         vars.admin = makeAddr("admin");
+        vars.cctp  = makeAddr("cctp");
 
         address almProxy   = address(new ALMProxy(admin));
         address rateLimits = address(new RateLimits(admin));
@@ -37,7 +96,8 @@ contract MainnetControllerDeployTests is UnitTestBase {
                 rateLimits,
                 vars.vault,
                 vars.psm,
-                vars.daiUsds
+                vars.daiUsds,
+                vars.cctp
             )
         );
 
@@ -49,6 +109,7 @@ contract MainnetControllerDeployTests is UnitTestBase {
         assertEq(address(controller.buffer()),     makeAddr("buffer"));  // Buffer param in MockVault
         assertEq(address(controller.psm()),        vars.psm);
         assertEq(address(controller.daiUsds()),    vars.daiUsds);
+        assertEq(address(controller.cctp()),       vars.cctp);
         assertEq(address(controller.dai()),        makeAddr("dai"));   // Dai param in MockDaiUsds
         assertEq(address(controller.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
 
@@ -63,12 +124,14 @@ contract MainnetControllerDeployTests is UnitTestBase {
         vars.vault   = address(new MockVault(makeAddr("buffer")));
 
         vars.admin  = makeAddr("admin");
+        vars.cctp   = makeAddr("cctp");
 
         ControllerInstance memory instance = MainnetControllerDeploy.deployFull(
             admin,
             vars.vault,
             vars.psm,
-            vars.daiUsds
+            vars.daiUsds,
+            vars.cctp
         );
 
         ALMProxy          almProxy   = ALMProxy(payable(instance.almProxy));
@@ -85,6 +148,7 @@ contract MainnetControllerDeployTests is UnitTestBase {
         assertEq(address(controller.buffer()),     makeAddr("buffer"));  // Buffer param in MockVault
         assertEq(address(controller.psm()),        vars.psm);
         assertEq(address(controller.daiUsds()),    vars.daiUsds);
+        assertEq(address(controller.cctp()),       vars.cctp);
         assertEq(address(controller.dai()),        makeAddr("dai"));   // Dai param in MockDaiUsds
         assertEq(address(controller.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
 

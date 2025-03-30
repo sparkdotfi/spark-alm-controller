@@ -17,7 +17,11 @@ import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
 import { ISUsds } from "sdai/src/ISUsds.sol";
 
-import { Ethereum } from "bloom-address-registry/Ethereum.sol";
+import { Ethereum } from "spark-address-registry/Ethereum.sol";
+
+import { Bridge }                from "xchain-helpers/testing/Bridge.sol";
+import { CCTPForwarder }         from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { Domain, DomainHelpers } from "xchain-helpers/testing/Domain.sol";
 
 import { MainnetControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
@@ -52,12 +56,27 @@ interface IPSMLike {
     function rush() external view returns (uint256);
 }
 
+interface ISSTokenLike is IERC20 {
+    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin)
+        external view returns (
+            uint256 superstateTokenOutAmount,
+            uint256 stablcoinInAmountAfterFee,
+            uint256 feeOnStablecoinInAmount
+        );
+    function mint(address to, uint256 amount) external;
+    function burn(address src, uint256 amount) external;
+    function owner() external view returns (address);
+    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
+}
+
 interface IVaultLike {
     function rely(address) external;
     function wards(address) external returns (uint256);
 }
 
 contract ForkTestBase is DssTest {
+
+    using DomainHelpers for *;
 
     /**********************************************************************************************/
     /*** Constants/state variables                                                              ***/
@@ -87,11 +106,12 @@ contract ForkTestBase is DssTest {
 
     address constant LOG = 0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F;
 
-    address constant DAI_USDS      = Ethereum.DAI_USDS;
-    address constant ETHENA_MINTER = Ethereum.ETHENA_MINTER;
-    address constant PAUSE_PROXY   = Ethereum.PAUSE_PROXY;
-    address constant PSM           = Ethereum.PSM;
-    address constant SPARK_PROXY   = Ethereum.SPARK_PROXY;
+    address constant CCTP_MESSENGER = Ethereum.CCTP_TOKEN_MESSENGER;
+    address constant DAI_USDS       = Ethereum.DAI_USDS;
+    address constant ETHENA_MINTER  = Ethereum.ETHENA_MINTER;
+    address constant PAUSE_PROXY    = Ethereum.PAUSE_PROXY;
+    address constant PSM            = Ethereum.PSM;
+    address constant SPARK_PROXY    = Ethereum.SPARK_PROXY;
 
     IERC20 constant dai   = IERC20(Ethereum.DAI);
     IERC20 constant usdc  = IERC20(Ethereum.USDC);
@@ -99,6 +119,8 @@ contract ForkTestBase is DssTest {
     IERC20 constant usds  = IERC20(Ethereum.USDS);
     ISUsds constant susds = ISUsds(Ethereum.SUSDS);
 
+    ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
+    ISSTokenLike constant ustb  = ISSTokenLike(Ethereum.USTB);
     ISUSDELike   constant susde = ISUSDELike(Ethereum.SUSDE);
 
     IPSMLike constant psm = IPSMLike(PSM);
@@ -120,6 +142,14 @@ contract ForkTestBase is DssTest {
     address vault;
 
     /**********************************************************************************************/
+    /*** Bridging setup                                                                         ***/
+    /**********************************************************************************************/
+
+    Bridge bridge;
+    Domain source;
+    Domain destination;
+
+    /**********************************************************************************************/
     /*** Cached mainnet state variables                                                         ***/
     /**********************************************************************************************/
 
@@ -139,7 +169,7 @@ contract ForkTestBase is DssTest {
 
         /*** Step 1: Set up environment, cast addresses ***/
 
-        vm.createSelectFork(getChain("mainnet").rpcUrl, _getBlock());
+        source = getChain("mainnet").createSelectFork(_getBlock());
 
         dss = MCD.loadFromChainlog(LOG);
 
@@ -191,7 +221,8 @@ contract ForkTestBase is DssTest {
             admin   : Ethereum.SPARK_PROXY,
             vault   : ilkInst.vault,
             psm     : Ethereum.PSM,
-            daiUsds : Ethereum.DAI_USDS
+            daiUsds : Ethereum.DAI_USDS,
+            cctp    : Ethereum.CCTP_TOKEN_MESSENGER
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -216,8 +247,16 @@ contract ForkTestBase is DssTest {
                 rateLimits : address(rateLimits),
                 vault      : address(vault),
                 psm        : Ethereum.PSM,
-                daiUsds    : Ethereum.DAI_USDS
+                daiUsds    : Ethereum.DAI_USDS,
+                cctp       : Ethereum.CCTP_TOKEN_MESSENGER
             });
+
+        Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
+
+        mintRecipients[0] = Init.MintRecipient({
+            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
+            mintRecipient : bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
+        });
 
         // Step 4: Initialize through Sky governance (Sky spell payload)
 
@@ -233,7 +272,8 @@ contract ForkTestBase is DssTest {
             address(usds),
             controllerInst,
             configAddresses,
-            checkAddresses
+            checkAddresses,
+            mintRecipients
         );
 
         mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
@@ -248,9 +288,16 @@ contract ForkTestBase is DssTest {
             slope     : uint256(1_000_000e6) / 4 hours
         });
 
+        bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(
+            mainnetController.LIMIT_USDC_TO_DOMAIN(),
+            CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
+        );
+
         // NOTE: Using minimal config for test base setup
         RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    address(rateLimits), standardUsdsData, "usdsMintData",         18);
         RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), address(rateLimits), standardUsdcData, "usdsToUsdcData",       6);
+        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), address(rateLimits), standardUsdcData, "usdcToCctpData",       6);
+        RateLimitHelpers.setRateLimitData(domainKeyBase,                          address(rateLimits), standardUsdcData, "cctpToBaseDomainData", 6);
 
         vm.stopPrank();
 

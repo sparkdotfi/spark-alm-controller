@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IRateLimits } from "./interfaces/IRateLimits.sol";
+import { IRateLimits } from "../src/interfaces/IRateLimits.sol";
 
 struct RateLimitData {
     uint256 maxAmount;

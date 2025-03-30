@@ -3,10 +3,21 @@ pragma solidity >=0.8.0;
 
 import "./ForkTestBase.t.sol";
 
+import { MainnetControllerBUIDLTestBase }  from "./Buidl.t.sol";
 import { MainnetControllerEthenaE2ETests } from "./Ethena.t.sol";
+import { MapleTestBase }                   from "./Maple.t.sol";
 
 import { Id, MarketParamsLib, MorphoTestBase, MarketAllocation } from "./MorphoAllocations.t.sol";
 
+import { IMapleTokenLike } from "../../src/MainnetController.sol";
+
+interface IBuidlLike is IERC20 {
+    function issueTokens(address to, uint256 amount) external;
+}
+
+interface IMapleTokenExtended is IMapleTokenLike {
+    function manager() external view returns (address);
+}
 
 interface IPermissionManagerLike {
     function admin() external view returns (address);
@@ -77,6 +88,118 @@ contract EthenaAttackTests is MainnetControllerEthenaE2ETests {
         assertEq(usde.balanceOf(silo),              startingSiloBalance);
     }
 
+}
+
+contract MapleAttackTests is MapleTestBase {
+
+    function test_attack_compromisedRelayer_delayRequestMapleRedemption() external {
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
+
+        // Malicious relayer delays the request for redemption for 1m
+        // because new requests can't be fulfilled until the previous is fulfilled or cancelled
+        vm.prank(relayer);
+        mainnetController.requestMapleRedemption(address(syrup), 1);
+
+        // Cannot process request
+        vm.prank(relayer);
+        vm.expectRevert("WM:AS:IN_QUEUE");
+        mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
+
+        // Frezer can remove the compromised relayer and fallback to the governance relayer
+        vm.prank(freezer);
+        mainnetController.removeRelayer(relayer);
+
+        // Compromised relayer cannot perform attack anymore
+        vm.prank(relayer);
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            relayer,
+            RELAYER
+        ));
+        mainnetController.requestMapleRedemption(address(syrup), 1);
+
+        // Governance relayer can cancel and submit the real request
+        vm.startPrank(backstopRelayer);
+        mainnetController.cancelMapleRedemption(address(syrup), 1);
+        mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
+        vm.stopPrank();
+    }
+
+}
+
+contract BUIDLAttackTests is MainnetControllerBUIDLTestBase {
+
+    address admin = 0xe01605f6b6dC593b7d2917F4a0940db2A625b09e;
+
+    IBuidlLike     buidl     = IBuidlLike(0x7712c34205737192402172409a8F7ccef8aA2AEc);
+    IWhitelistLike whitelist = IWhitelistLike(0x0Dac900f26DE70336f2320F7CcEDeE70fF6A1a5B);
+
+
+    uint256 internal speedup = 10;
+
+    function setUp() public virtual override {
+        super.setUp();
+
+        vm.label(address(0x0A65a40a4B2F64D3445A628aBcFC8128625483A4), "LOCK_MANAGER");
+        vm.label(address(0x1dc378568cefD4596C5F9f9A14256D8250b56369), "COMPLIANCE_CONFIGURATION_SERVICE");
+        vm.label(address(0x07A1EBFb9a9A421249DDC71Bddb8860cc077E3a9), "COMPLIANCE_SERVICE");
+
+        bytes32 depositKey = RateLimitHelpers.makeAssetDestinationKey(
+            mainnetController.LIMIT_ASSET_TRANSFER(), address(usdc), address(buidlDeposit)
+        );
+
+        bytes32 redeemKey = mainnetController.LIMIT_BUIDL_REDEEM_CIRCLE();
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(depositKey, 2_000_000e6, uint256(2_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(redeemKey,  2_000_000e6, uint256(2_000_000e6) / 1 days);
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        whitelist.registerInvestor("spark-almProxy", "collisionHash");
+        whitelist.addWallet(address(almProxy), "spark-almProxy");
+        vm.stopPrank();
+
+        deal(address(usdc), address(almProxy), 2_000_000e6);
+
+        // Step 1: Deposit into BUIDL
+        vm.prank(relayer);
+        mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6);
+
+        // Step 2: BUIDL gets minted into proxy
+        assertEq(buidl.balanceOf(address(almProxy)), 0);
+
+        vm.prank(admin);
+        buidl.issueTokens(address(almProxy), 1_000_000e6);
+
+        assertEq(buidl.balanceOf(address(almProxy)), 1_000_000e6);
+
+        // Step 3: Malicious relayer spams transfers & redemptions
+        //         Every iteration uses a cold `sload` so need at most 30e6 / 2100 = 14_286
+        //         The iterations gas cost is roughly linear per iteration, to speed up the test we scale
+        //         down both iterations and gas used.
+        for (uint256 i; i < 10_000 / speedup; i++) {
+            vm.prank(relayer);
+            mainnetController.transferAsset(address(usdc), buidlDeposit, 1e6);
+            vm.prank(admin);
+            buidl.issueTokens(address(almProxy), 1e6);
+        }
+
+        // Skip time lock
+        skip(24 hours);
+    }
+
+    // Run test in its own transaction so the sloads are cold
+    function test_attack_issuanceDos() public {
+        // Step 4: Redeem non-malicious BUIDL after timelock is passed
+        vm.startPrank(relayer);
+        vm.expectRevert("SafeERC20: low-level call failed");
+        mainnetController.redeemBUIDLCircleFacility{gas: 30e6 / speedup}(1_000_000e6);
+        vm.stopPrank();
+    }
 }
 
 contract MorphoAttackTests is MorphoTestBase {

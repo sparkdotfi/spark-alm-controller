@@ -10,18 +10,27 @@
 [submodule "lib/spark-psm"]
 	path = lib/spark-psm
 	url = https://github.com/marsfoundation/spark-psm
+[submodule "lib/xchain-helpers"]
+	path = lib/xchain-helpers
+	url = https://github.com/marsfoundation/xchain-helpers
 [submodule "lib/usds"]
 	path = lib/usds
 	url = https://github.com/makerdao/usds
 [submodule "lib/sdai"]
 	path = lib/sdai
 	url = https://github.com/makerdao/sdai
+[submodule "lib/erc20-helpers"]
+	path = lib/erc20-helpers
+	url = https://github.com/marsfoundation/erc20-helpers
 [submodule "lib/dss-test"]
 	path = lib/dss-test
 	url = https://github.com/makerdao/dss-test
 [submodule "lib/metamorpho"]
 	path = lib/metamorpho
 	url = https://github.com/morpho-org/metamorpho
-[submodule "lib/bloom-address-registry"]
-	path = lib/bloom-address-registry
-	url = https://github.com/bloom-foundation/bloom-address-registry
+[submodule "lib/aave-v3-origin"]
+	path = lib/aave-v3-origin
+	url = https://github.com/aave-dao/aave-v3-origin
+[submodule "lib/spark-address-registry"]
+	path = lib/spark-address-registry
+	url = https://github.com/sparkdotfi/spark-address-registry
