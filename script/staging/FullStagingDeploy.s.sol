@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { console } from "forge-std/console.sol";
+
 import {
     AllocatorDeploy,
     AllocatorIlkInstance,
@@ -124,7 +126,6 @@ contract FullStagingDeploy is Script {
 
     function _setUpMainnetDependencies() internal {
         vm.selectFork(mainnet.forkId);
-        vm.startBroadcast();
 
         // Step 1: Use existing contracts for tokens, DaiUsds and PSM
 
@@ -134,6 +135,8 @@ contract FullStagingDeploy is Script {
         usdc    = mainnet.input.readAddress(".usdc");
         daiUsds = mainnet.input.readAddress(".daiUsds");
         livePsm = mainnet.input.readAddress(".psm");
+
+        vm.startBroadcast();
 
         // This contract is necessary to get past the `kiss` requirement from the pause proxy.
         // It wraps the `noFee` calls with regular PSM swap calls.
@@ -286,6 +289,7 @@ contract FullStagingDeploy is Script {
     }
 
     // TODO: Add updated set up rate limits
+    // TODO: Deploy new PSM3s
     function _setMainnetControllerRateLimits() internal {
         // Still constrained by the USDC_UNIT_SIZE
         RateLimitData memory rateLimitData18 = RateLimitData({
@@ -433,6 +437,8 @@ contract FullStagingDeploy is Script {
         bytes32 vaultDepositKey  = foreignController.LIMIT_4626_DEPOSIT();
         bytes32 vaultWithdrawKey = foreignController.LIMIT_4626_WITHDRAW();
 
+        vm.startBroadcast();
+
         // AAVE rate limits
         RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(aaveDepositKey,  AUSDC_BASE), rateLimits, rateLimitData6,     "usdcDepositDataAave",  6);
         RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(aaveWithdrawKey, AUSDC_BASE), rateLimits, unlimitedRateLimit, "usdcWithdrawDataAave", 6);
@@ -440,9 +446,14 @@ contract FullStagingDeploy is Script {
         // Morpho rate limits
         RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(vaultDepositKey,  MORPHO_VAULT_USDC_BASE), rateLimits, rateLimitData6,     "usdsDepositDataMorpho",  6);
         RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(vaultWithdrawKey, MORPHO_VAULT_USDC_BASE), rateLimits, unlimitedRateLimit, "usdsWithdrawDataMorpho", 6);
+
+        vm.stopBroadcast();
     }
 
     function _setForeignControllerRateLimits(Domain memory domain, ControllerInstance memory controllerInst) internal {
+        vm.selectFork(domain.forkId);
+        vm.startBroadcast();
+
         RateLimitData memory rateLimitData18 = RateLimitData({
             maxAmount : USDC_UNIT_SIZE * 1e12 * 5,
             slope     : USDC_UNIT_SIZE * 1e12 / 4 hours
@@ -452,6 +463,10 @@ contract FullStagingDeploy is Script {
             slope     : USDC_UNIT_SIZE / 4 hours
         });
         RateLimitData memory unlimitedRateLimit = RateLimitHelpers.unlimitedRateLimit();
+
+        console.log("controllerInst.controller", controllerInst.controller);
+        console.log("controllerInst.rateLimits", controllerInst.rateLimits);
+        console.log("domain.input", domain.input);
 
         ForeignController foreignController = ForeignController(controllerInst.controller);
 
@@ -480,6 +495,8 @@ contract FullStagingDeploy is Script {
         // CCTP rate limits
         RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      rateLimits, rateLimitData6,     "cctpToEthereumDomainData", 6);
         RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",           6);
+
+        vm.stopBroadcast();
     }
 
     function run() public {
@@ -503,9 +520,9 @@ contract FullStagingDeploy is Script {
             admin  : deployer
         });
         base = Domain({
-            input  : ScriptTools.loadConfig("base_one-staging"),
-            output : "base_one-staging",
-            forkId : vm.createFork(getChain("base_one").rpcUrl),
+            input  : ScriptTools.loadConfig("base-staging"),
+            output : "base-staging",
+            forkId : vm.createFork(getChain("base").rpcUrl),
             admin  : deployer
         });
 
