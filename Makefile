@@ -1,9 +1,11 @@
 # Staging Full Deployment with Dependencies
 deploy-staging-full :; forge script script/staging/FullStagingDeploy.s.sol:FullStagingDeploy --sender ${ETH_FROM} --broadcast --verify
 
+# Staging Mainnet Deployment with Dependencies
+deploy-staging-mainnet :; forge script script/staging/MainnetStagingDeploy.s.sol:MainnetStagingDeploy --sender ${ETH_FROM} --broadcast --verify
+
 # Staging Deployments
 deploy-mainnet-staging-controller :; ENV=staging forge script script/Deploy.s.sol:DeployMainnetController --sender ${ETH_FROM} --broadcast --verify
-
 deploy-base-staging-controller :; CHAIN=base ENV=staging forge script script/Deploy.s.sol:DeployForeignController --sender ${ETH_FROM} --broadcast --verify
 
 # Production Deployments
