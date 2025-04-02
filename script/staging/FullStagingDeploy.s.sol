@@ -175,15 +175,10 @@ contract FullStagingDeploy is Script {
 
         // Step 4: Export all dependency addresses
 
-        ScriptTools.exportContract(mainnet.output, "dai",      dai);
-        ScriptTools.exportContract(mainnet.output, "daiUsds",  daiUsds);
-        ScriptTools.exportContract(mainnet.output, "jug",      jug);
-        ScriptTools.exportContract(mainnet.output, "psm",      psm);
-        ScriptTools.exportContract(mainnet.output, "susds",    susds);
-        ScriptTools.exportContract(mainnet.output, "usdc",     usdc);
-        ScriptTools.exportContract(mainnet.output, "usds",     usds);
-        ScriptTools.exportContract(mainnet.output, "usdsJoin", usdsJoin);
-        ScriptTools.exportContract(mainnet.output, "vat",      vat);
+        ScriptTools.exportContract(mainnet.output, "jug",        jug);
+        ScriptTools.exportContract(mainnet.output, "psmWrapper", psm);
+        ScriptTools.exportContract(mainnet.output, "usdsJoin",   usdsJoin);
+        ScriptTools.exportContract(mainnet.output, "vat",        vat);
     }
 
     function _setUpMainnetAllocationSystem() internal {
