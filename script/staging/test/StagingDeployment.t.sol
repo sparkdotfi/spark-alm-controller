@@ -141,13 +141,9 @@ contract StagingDeploymentTestBase is Test {
         vm.setEnv("FOUNDRY_ROOT_CHAINID", "1");
 
         // Domains and bridge
-        // mainnet    = getChain("mainnet").createSelectFork(22181546);  // April 2, 2025
-        // base       = getChain("base").createFork(28405707);           // April 2, 2025
-        // arbitrum   = getChain("arbitrum_one").createFork(322164020);  // April 2, 2025
-
-        mainnet    = getChain("mainnet").createSelectFork();  // April 2, 2025
-        base       = getChain("base").createFork();           // April 2, 2025
-        arbitrum   = getChain("arbitrum_one").createFork();  // April 2, 2025
+        mainnet    = getChain("mainnet").createSelectFork(22184288);  // April 2, 2025
+        base       = getChain("base").createFork(28422242);           // April 2, 2025
+        arbitrum   = getChain("arbitrum_one").createFork(322296195);  // April 2, 2025
 
         cctpBridgeArbitrum = CCTPBridgeTesting.createCircleBridge(mainnet, arbitrum);
         cctpBridgeBase     = CCTPBridgeTesting.createCircleBridge(mainnet, base);
