@@ -181,7 +181,7 @@ contract StagingDeploymentTestBase is Test {
         // --- Arbitrum ---
 
         // Roles
-        relayerSafeBase = inputArbitrum.readAddress(".relayer");
+        relayerSafeArbitrum = inputArbitrum.readAddress(".relayer");
 
         // Tokens
         usdsArbitrum  = IERC20(inputArbitrum.readAddress(".usds"));
@@ -358,29 +358,31 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         assertEq(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);
     }
 
-    function test_mintDepositWithdrawSyrupUsdc() public {
-        vm.startPrank(relayerSafe);
-        mainnetController.mintUSDS(10e18);
-        mainnetController.swapUSDSToUSDC(10e6);
-        vm.stopPrank();
+    // TODO: Get Maple team to whitelist staging almProxy for testing when needed
+    // function test_mintDepositWithdrawSyrupUsdc() public {
+    //     vm.startPrank(relayerSafe);
+    //     mainnetController.mintUSDS(10e18);
+    //     mainnetController.swapUSDSToUSDC(10e6);
+    //     vm.stopPrank();
 
-        uint256 startingBalance = usdc.balanceOf(address(almProxy));
+    //     uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
-        vm.startPrank(relayerSafe);
-        uint256 shares = mainnetController.depositERC4626(SYRUP_USDC, 10e6);
+    //     vm.startPrank(relayerSafe);
+    //     uint256 shares = mainnetController.depositERC4626(SYRUP_USDC, 10e6);
 
-        skip(1 days);
+    //     skip(1 days);
 
-        mainnetController.requestMapleRedemption(SYRUP_USDC, shares);
+    //     mainnetController.requestMapleRedemption(SYRUP_USDC, shares);
 
-        IMapleTokenExtended syrup = IMapleTokenExtended(SYRUP_USDC);
+    //     IMapleTokenExtended syrup = IMapleTokenExtended(SYRUP_USDC);
 
-        IWithdrawalManagerLike withdrawManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
-        vm.prank(IPoolManagerLike(syrup.manager()).poolDelegate());
-        withdrawManager.processRedemptions(shares);
+    //     IWithdrawalManagerLike withdrawManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
+    //     vm.startPrank(IPoolManagerLike(syrup.manager()).poolDelegate());
+    //     withdrawManager.processRedemptions(shares);
+    //     vm.stopPrank();
 
-        assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
-    }
+    //     assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
+    // }
 
 
     /**********************************************************************************************/
@@ -671,7 +673,7 @@ contract ArbitrumStagingDeploymentTests is StagingDeploymentTestBase {
 
         uint256 startingShares = psmArbitrum.shares(address(arbitrumAlmProxy));
 
-        vm.startPrank(relayerSafeBase);
+        vm.startPrank(relayerSafeArbitrum);
         arbitrumController.depositPSM(address(usdcArbitrum), 10e6);
         vm.stopPrank();
 
@@ -691,7 +693,7 @@ contract ArbitrumStagingDeploymentTests is StagingDeploymentTestBase {
 
         cctpBridgeArbitrum.relayMessagesToDestination(true);
 
-        vm.startPrank(relayerSafeBase);
+        vm.startPrank(relayerSafeArbitrum);
         arbitrumController.depositPSM(address(usdcArbitrum), 10e6);
         skip(1 days);
         arbitrumController.withdrawPSM(address(usdcArbitrum), 10e6);
