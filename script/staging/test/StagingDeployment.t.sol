@@ -67,9 +67,6 @@ contract StagingDeploymentTestBase is Test {
     address constant AUSDS = 0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259;
     address constant AUSDC = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
 
-    // TODO: Use registry
-    address internal constant SYRUP_USDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
-
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
     uint256 constant RELEASE_DATE = 20241227;
@@ -364,13 +361,13 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     //     uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
     //     vm.startPrank(relayerSafe);
-    //     uint256 shares = mainnetController.depositERC4626(SYRUP_USDC, 10e6);
+    //     uint256 shares = mainnetController.depositERC4626(Ethereum.SYRUP_USDC, 10e6);
 
     //     skip(1 days);
 
-    //     mainnetController.requestMapleRedemption(SYRUP_USDC, shares);
+    //     mainnetController.requestMapleRedemption(Ethereum.SYRUP_USDC, shares);
 
-    //     IMapleTokenExtended syrup = IMapleTokenExtended(SYRUP_USDC);
+    //     IMapleTokenExtended syrup = IMapleTokenExtended(Ethereum.SYRUP_USDC);
 
     //     IWithdrawalManagerLike withdrawManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
     //     vm.startPrank(IPoolManagerLike(syrup.manager()).poolDelegate());
