@@ -110,12 +110,16 @@ anvil --fork-url $MAINNET_RPC_URL
 ```
 anvil --fork-url $BASE_RPC_URL -p 8546
 ```
+```
+anvil --fork-url $ARBITRUM_ONE_RPC_URL -p 8547
+```
 
 2. Point to local RPCs.
 
 ```
 export MAINNET_RPC_URL=http://127.0.0.1:8545
 export BASE_RPC_URL=http://127.0.0.1:8546
+export ARBITRUM_ONE_RPC_URL=http://127.0.0.1:8547
 ```
 
 3. Upgrade mainnet contracts impersonating as the `SPARK_PROXY`.
