@@ -10,8 +10,9 @@ import { MockVault }   from "../mocks/MockVault.sol";
 
 import "../UnitTestBase.t.sol";
 
-contract MainnetControllerAdminTests is UnitTestBase {
+contract MainnetControllerAdminTestBase is UnitTestBase {
 
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     bytes32 mintRecipient1 = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
@@ -34,6 +35,10 @@ contract MainnetControllerAdminTests is UnitTestBase {
             makeAddr("cctp")
         );
     }
+
+}
+
+contract MainnetControllerSetMintRecipientTests is MainnetControllerAdminTestBase {
 
     function test_setMintRecipient_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -76,6 +81,47 @@ contract MainnetControllerAdminTests is UnitTestBase {
         mainnetController.setMintRecipient(1, mintRecipient2);
 
         assertEq(mainnetController.mintRecipients(1), mintRecipient2);
+    }
+
+}
+
+contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase {
+
+    function test_setMaxSlippage_unauthorizedAccount() public {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+
+        vm.prank(freezer);
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            freezer,
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+    }
+
+    function test_setMaxSlippage() public {
+        address pool = makeAddr("pool");
+
+        assertEq(mainnetController.maxSlippages(pool), 0);
+
+        vm.prank(admin);
+        vm.expectEmit(address(mainnetController));
+        emit MaxSlippageSet(pool, 0.01e18);
+        mainnetController.setMaxSlippage(pool, 0.01e18);
+
+        assertEq(mainnetController.maxSlippages(pool), 0.01e18);
+
+        vm.prank(admin);
+        vm.expectEmit(address(mainnetController));
+        emit MaxSlippageSet(pool, 0.02e18);
+        mainnetController.setMaxSlippage(pool, 0.02e18);
+
+        assertEq(mainnetController.maxSlippages(pool), 0.02e18);
     }
 
 }

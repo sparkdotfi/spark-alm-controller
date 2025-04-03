@@ -29,8 +29,33 @@ interface IBuidlRedeemLike {
     function redeem(uint256 usdcAmount) external;
 }
 
+interface ICurvePoolLike is IERC20 {
+    function add_liquidity(
+        uint256[] memory amounts,
+        uint256 minMintAmount,
+        address receiver
+    ) external;
+    function balances(uint256 index) external view returns (uint256);
+    function coins(uint256 index) external returns (address);
+    function exchange(
+        int128  inputIndex,
+        int128  outputIndex,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address receiver
+    ) external returns (uint256 tokensOut);
+    function get_virtual_price() external view returns (uint256);
+    function N_COINS() external view returns (uint256);
+    function remove_liquidity(
+        uint256 burnAmount,
+        uint256[] memory minAmounts,
+        address receiver
+    ) external;
+    function stored_rates() external view returns (uint256[] memory);
+}
+
 interface IDaiUsdsLike {
-    function dai() external view returns(address);
+    function dai() external view returns (address);
     function daiToUsds(address usr, uint256 wad) external;
     function usdsToDai(address usr, uint256 wad) external;
 }
@@ -57,7 +82,7 @@ interface IMapleTokenLike is IERC4626 {
 interface IPSMLike {
     function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
     function fill() external returns (uint256 wad);
-    function gem() external view returns(address);
+    function gem() external view returns (address);
     function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
     function to18ConversionFactor() external view returns (uint256);
 }
@@ -79,7 +104,7 @@ interface IUSTBLike is IERC20 {
 }
 
 interface IVaultLike {
-    function buffer() external view returns(address);
+    function buffer() external view returns (address);
     function draw(uint256 usdsAmount) external;
     function wipe(uint256 usdsAmount) external;
 }
@@ -98,8 +123,8 @@ contract MainnetController is AccessControl {
         uint256 usdcAmount
     );
 
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
-
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
@@ -117,6 +142,9 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_BUIDL_REDEEM_CIRCLE  = keccak256("LIMIT_BUIDL_REDEEM_CIRCLE");
+    bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -148,6 +176,8 @@ contract MainnetController is AccessControl {
     ISUSDELike public immutable susde;
 
     uint256 public immutable psmTo18ConversionFactor;
+
+    mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
     mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
 
@@ -189,49 +219,27 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Modifiers                                                                              ***/
-    /**********************************************************************************************/
-
-    modifier rateLimited(bytes32 key, uint256 amount) {
-        rateLimits.triggerRateLimitDecrease(key, amount);
-        _;
-    }
-
-    modifier rateLimitedAsset(bytes32 key, address asset, uint256 amount) {
-        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAssetKey(key, asset), amount);
-        _;
-    }
-
-    modifier cancelRateLimit(bytes32 key, uint256 amount) {
-        rateLimits.triggerRateLimitIncrease(key, amount);
-        _;
-    }
-
-    modifier rateLimitExists(bytes32 key) {
-        require(
-            rateLimits.getRateLimitData(key).maxAmount > 0,
-            "MainnetController/invalid-action"
-        );
-        _;
-    }
-
-    /**********************************************************************************************/
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
 
-    function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
+    }
+
+    function setMaxSlippage(address pool, uint256 maxSlippage) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        maxSlippages[pool] = maxSlippage;
+        emit MaxSlippageSet(pool, maxSlippage);
     }
 
     /**********************************************************************************************/
     /*** Freezer functions                                                                      ***/
     /**********************************************************************************************/
 
-    function removeRelayer(address relayer) external onlyRole(FREEZER) {
+    function removeRelayer(address relayer) external {
+        _checkRole(FREEZER);
         _revokeRole(RELAYER, relayer);
         emit RelayerRemoved(relayer);
     }
@@ -240,11 +248,10 @@ contract MainnetController is AccessControl {
     /*** Relayer vault functions                                                                ***/
     /**********************************************************************************************/
 
-    function mintUSDS(uint256 usdsAmount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_USDS_MINT, usdsAmount)
-    {
+    function mintUSDS(uint256 usdsAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_USDS_MINT, usdsAmount);
+
         // Mint USDS into the buffer
         proxy.doCall(
             address(vault),
@@ -258,11 +265,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function burnUSDS(uint256 usdsAmount)
-        external
-        onlyRole(RELAYER)
-        cancelRateLimit(LIMIT_USDS_MINT, usdsAmount)
-    {
+    function burnUSDS(uint256 usdsAmount) external {
+        _checkRole(RELAYER);
+        _cancelRateLimit(LIMIT_USDS_MINT, usdsAmount);
+
         // Transfer USDS from the proxy to the buffer
         proxy.doCall(
             address(usds),
@@ -280,14 +286,13 @@ contract MainnetController is AccessControl {
     /*** Relayer ERC20 functions                                                                ***/
     /**********************************************************************************************/
 
-    function transferAsset(address asset, address destination, uint256 amount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(
+    function transferAsset(address asset, address destination, uint256 amount) external {
+        _checkRole(RELAYER);
+        _rateLimited(
             RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
-        )
-    {
+        );
+
         proxy.doCall(
             asset,
             abi.encodeCall(IERC20(asset).transfer, (destination, amount))
@@ -298,12 +303,10 @@ contract MainnetController is AccessControl {
     /*** Relayer ERC4626 functions                                                              ***/
     /**********************************************************************************************/
 
-    function depositERC4626(address token, uint256 amount)
-        external
-        onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
-        returns (uint256 shares)
-    {
+    function depositERC4626(address token, uint256 amount) external returns (uint256 shares) {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount);
+
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC4626(token).asset());
 
@@ -320,12 +323,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function withdrawERC4626(address token, uint256 amount)
-        external
-        onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount)
-        returns (uint256 shares)
-    {
+    function withdrawERC4626(address token, uint256 amount) external returns (uint256 shares) {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount);
+
         // Withdraw asset from a token, decode resulting shares.
         // Assumes proxy has adequate token shares.
         shares = abi.decode(
@@ -338,11 +339,9 @@ contract MainnetController is AccessControl {
     }
 
     // NOTE: !!! Rate limited at end of function !!!
-    function redeemERC4626(address token, uint256 shares)
-        external
-        onlyRole(RELAYER)
-        returns (uint256 assets)
-    {
+    function redeemERC4626(address token, uint256 shares) external returns (uint256 assets) {
+        _checkRole(RELAYER);
+
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
         assets = abi.decode(
@@ -363,11 +362,10 @@ contract MainnetController is AccessControl {
     /*** Relayer ERC7540 functions                                                              ***/
     /**********************************************************************************************/
 
-    function requestDepositERC7540(address token, uint256 amount)
-        external
-        onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_7540_DEPOSIT, token, amount)
-    {
+    function requestDepositERC7540(address token, uint256 amount) external {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(LIMIT_7540_DEPOSIT, token, amount);
+
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC7540(token).asset());
 
@@ -381,11 +379,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function claimDepositERC7540(address token)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
-    {
+    function claimDepositERC7540(address token) external {
+        _checkRole(RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+
         uint256 shares = IERC7540(token).maxMint(address(proxy));
 
         // Claim shares from the vault to the proxy
@@ -395,15 +392,14 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function requestRedeemERC7540(address token, uint256 shares)
-        external
-        onlyRole(RELAYER)
-        rateLimitedAsset(
+    function requestRedeemERC7540(address token, uint256 shares) external {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(
             LIMIT_7540_REDEEM,
             token,
             IERC7540(token).convertToAssets(shares)
-        )
-    {
+        );
+
         // Submit redeem request by transferring shares
         proxy.doCall(
             token,
@@ -411,11 +407,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function claimRedeemERC7540(address token)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
-    {
+    function claimRedeemERC7540(address token) external {
+        _checkRole(RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+
         uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
 
         // Claim assets from the vault to the proxy
@@ -433,11 +428,10 @@ contract MainnetController is AccessControl {
 
     uint256 CENTRIFUGE_REQUEST_ID = 0;
 
-    function cancelCentrifugeDepositRequest(address token)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
-    {
+    function cancelCentrifugeDepositRequest(address token) external {
+        _checkRole(RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+
         // NOTE: While the cancelation is pending, no new deposit request can be submitted
         proxy.doCall(
             token,
@@ -448,11 +442,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function claimCentrifugeCancelDepositRequest(address token)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
-    {
+    function claimCentrifugeCancelDepositRequest(address token) external {
+        _checkRole(RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+
         proxy.doCall(
             token,
             abi.encodeCall(
@@ -462,11 +455,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function cancelCentrifugeRedeemRequest(address token)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
-    {
+    function cancelCentrifugeRedeemRequest(address token) external {
+        _checkRole(RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+
         // NOTE: While the cancelation is pending, no new redeem request can be submitted
         proxy.doCall(
             token,
@@ -477,11 +469,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function claimCentrifugeCancelRedeemRequest(address token)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
-    {
+    function claimCentrifugeCancelRedeemRequest(address token) external {
+        _checkRole(RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+
         proxy.doCall(
             token,
             abi.encodeCall(
@@ -495,11 +486,10 @@ contract MainnetController is AccessControl {
     /*** Relayer Aave functions                                                                 ***/
     /**********************************************************************************************/
 
-    function depositAave(address aToken, uint256 amount)
-        external
-        onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
-    {
+    function depositAave(address aToken, uint256 amount) external {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount);
+
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
 
@@ -516,9 +506,10 @@ contract MainnetController is AccessControl {
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
         external
-        onlyRole(RELAYER)
         returns (uint256 amountWithdrawn)
     {
+        _checkRole(RELAYER);
+
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 
         // Withdraw underlying from Aave pool, decode resulting amount withdrawn.
@@ -544,11 +535,10 @@ contract MainnetController is AccessControl {
     /*** Relayer BlackRock BUIDL functions                                                      ***/
     /**********************************************************************************************/
 
-    function redeemBUIDLCircleFacility(uint256 usdcAmount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_BUIDL_REDEEM_CIRCLE, usdcAmount)
-    {
+    function redeemBUIDLCircleFacility(uint256 usdcAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_BUIDL_REDEEM_CIRCLE, usdcAmount);
+
         _approve(address(buidlRedeem.asset()), address(buidlRedeem), usdcAmount);
 
         proxy.doCall(
@@ -558,17 +548,224 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
+    /*** Relayer Curve StableSwap functions                                                     ***/
+    /**********************************************************************************************/
+
+    function swapCurve(
+        address pool,
+        uint256 inputIndex,
+        uint256 outputIndex,
+        uint256 amountIn,
+        uint256 minAmountOut
+    )
+        external returns (uint256 amountOut)
+    {
+        _checkRole(RELAYER);
+
+        require(inputIndex != outputIndex, "MainnetController/invalid-indices");
+
+        uint256 maxSlippage = maxSlippages[pool];
+        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
+
+        ICurvePoolLike curvePool = ICurvePoolLike(pool);
+
+        uint256 numCoins = curvePool.N_COINS();
+        require(
+            inputIndex < numCoins && outputIndex < numCoins,
+            "MainnetController/index-too-high"
+        );
+
+        // Normalized to provide 36 decimal precision when multiplied by asset amount
+        uint256[] memory rates = curvePool.stored_rates();
+
+        // Below code is simplified from the following logic.
+        // `maxSlippage` was multipled first to avoid precision loss.
+        //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
+        //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
+        //   result    = tokensOut * maxSlippage / 1e18
+        uint256 minimumMinAmountOut = amountIn
+            * rates[inputIndex]
+            * maxSlippage
+            / rates[outputIndex]
+            / 1e18;
+
+        require(
+            minAmountOut >= minimumMinAmountOut,
+            "MainnetController/min-amount-not-met"
+        );
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_SWAP, pool),
+            amountIn * rates[inputIndex] / 1e18
+        );
+
+        _approve(curvePool.coins(inputIndex), pool, amountIn);
+
+        amountOut = abi.decode(
+            proxy.doCall(
+                pool,
+                abi.encodeCall(
+                    curvePool.exchange,
+                    (
+                        int128(int256(inputIndex)),   // safe cast because of 8 token max
+                        int128(int256(outputIndex)),  // safe cast because of 8 token max
+                        amountIn,
+                        minAmountOut,
+                        address(proxy)
+                    )
+                )
+            ),
+            (uint256)
+        );
+    }
+
+    function addLiquidityCurve(
+        address pool,
+        uint256[] memory depositAmounts,
+        uint256 minLpAmount
+    )
+        external returns (uint256 shares)
+    {
+        _checkRole(RELAYER);
+
+        uint256 maxSlippage = maxSlippages[pool];
+        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
+
+        ICurvePoolLike curvePool = ICurvePoolLike(pool);
+
+        require(
+            depositAmounts.length == curvePool.N_COINS(),
+            "MainnetController/invalid-deposit-amounts"
+        );
+
+        // Normalized to provide 36 decimal precision when multiplied by asset amount
+        uint256[] memory rates = curvePool.stored_rates();
+
+        // Aggregate the value of the deposited assets (e.g. USD)
+        uint256 valueDeposited;
+        for (uint256 i = 0; i < depositAmounts.length; i++) {
+            _approve(curvePool.coins(i), pool, depositAmounts[i]);
+            valueDeposited += depositAmounts[i] * rates[i];
+        }
+        valueDeposited /= 1e18;
+
+        // Ensure minimum LP amount expected is greater than max slippage amount.
+        require(
+            minLpAmount >= valueDeposited * maxSlippage / curvePool.get_virtual_price(),
+            "MainnetController/min-amount-not-met"
+        );
+
+        // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD)
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_DEPOSIT, pool),
+            valueDeposited
+        );
+
+        shares = abi.decode(
+            proxy.doCall(
+                pool,
+                abi.encodeCall(
+                    curvePool.add_liquidity,
+                    (depositAmounts, minLpAmount, address(proxy))
+                )
+            ),
+            (uint256)
+        );
+
+        // Compute the swap value by taking the difference of the current underlying
+        // asset values from minted shares vs the deposited funds, converting this into an
+        // aggregated swap "amount in" by dividing the total value moved by two and decrease the
+        // swap rate limit by this amount.
+        uint256 totalSwapped;
+        for (uint256 i; i < depositAmounts.length; i++) {
+            totalSwapped += _absSubtraction(
+                curvePool.balances(i) * rates[i] * shares / curvePool.totalSupply(),
+                depositAmounts[i] * rates[i]
+            );
+        }
+        uint256 averageSwap = totalSwapped / 2 / 1e18;
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_SWAP, pool),
+            averageSwap
+        );
+    }
+
+    function removeLiquidityCurve(
+        address pool,
+        uint256 lpBurnAmount,
+        uint256[] memory minWithdrawAmounts
+    )
+        external returns (uint256[] memory withdrawnTokens)
+    {
+        _checkRole(RELAYER);
+
+        uint256 maxSlippage = maxSlippages[pool];
+        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
+
+        ICurvePoolLike curvePool = ICurvePoolLike(pool);
+
+        require(
+            minWithdrawAmounts.length == curvePool.N_COINS(),
+            "MainnetController/invalid-min-withdraw-amounts"
+        );
+
+        // Normalized to provide 36 decimal precision when multiplied by asset amount
+        uint256[] memory rates = curvePool.stored_rates();
+
+        // Aggregate the minimum values of the withdrawn assets (e.g. USD)
+        uint256 valueMinWithdrawn;
+        for (uint256 i = 0; i < minWithdrawAmounts.length; i++) {
+            valueMinWithdrawn += minWithdrawAmounts[i] * rates[i];
+        }
+        valueMinWithdrawn /= 1e18;
+
+        // Check that the aggregated minimums are greater than the max slippage amount
+        require(
+            valueMinWithdrawn >= lpBurnAmount * curvePool.get_virtual_price() * maxSlippage / 1e36,
+            "MainnetController/min-amount-not-met"
+        );
+
+        withdrawnTokens = abi.decode(
+            proxy.doCall(
+                pool,
+                abi.encodeCall(
+                    curvePool.remove_liquidity,
+                    (lpBurnAmount, minWithdrawAmounts, address(proxy))
+                )
+            ),
+            (uint256[])
+        );
+
+        // Aggregate value withdrawn to reduce the rate limit
+        uint256 valueWithdrawn;
+        for (uint256 i = 0; i < withdrawnTokens.length; i++) {
+            valueWithdrawn += withdrawnTokens[i] * rates[i];
+        }
+        valueWithdrawn /= 1e18;
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_WITHDRAW, pool),
+            valueWithdrawn
+        );
+    }
+
+    /**********************************************************************************************/
     /*** Relayer Ethena functions                                                               ***/
     /**********************************************************************************************/
 
-    function setDelegatedSigner(address delegatedSigner) external onlyRole(RELAYER) {
+    function setDelegatedSigner(address delegatedSigner) external {
+        _checkRole(RELAYER);
+
         proxy.doCall(
             address(ethenaMinter),
             abi.encodeCall(ethenaMinter.setDelegatedSigner, (address(delegatedSigner)))
         );
     }
 
-    function removeDelegatedSigner(address delegatedSigner) external onlyRole(RELAYER) {
+    function removeDelegatedSigner(address delegatedSigner) external {
+        _checkRole(RELAYER);
+
         proxy.doCall(
             address(ethenaMinter),
             abi.encodeCall(ethenaMinter.removeDelegatedSigner, (address(delegatedSigner)))
@@ -576,27 +773,22 @@ contract MainnetController is AccessControl {
     }
 
     // Note that Ethena's mint/redeem per-block limits include other users
-    function prepareUSDeMint(uint256 usdcAmount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_USDE_MINT, usdcAmount)
-    {
+    function prepareUSDeMint(uint256 usdcAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_USDE_MINT, usdcAmount);
         _approve(address(usdc), address(ethenaMinter), usdcAmount);
     }
 
-    function prepareUSDeBurn(uint256 usdeAmount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_USDE_BURN, usdeAmount)
-    {
+    function prepareUSDeBurn(uint256 usdeAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_USDE_BURN, usdeAmount);
         _approve(address(usde), address(ethenaMinter), usdeAmount);
     }
 
-    function cooldownAssetsSUSDe(uint256 usdeAmount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount)
-    {
+    function cooldownAssetsSUSDe(uint256 usdeAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount);
+
         proxy.doCall(
             address(susde),
             abi.encodeCall(susde.cooldownAssets, (usdeAmount))
@@ -606,9 +798,10 @@ contract MainnetController is AccessControl {
     // NOTE: !!! Rate limited at end of function !!!
     function cooldownSharesSUSDe(uint256 susdeAmount)
         external
-        onlyRole(RELAYER)
         returns (uint256 cooldownAmount)
     {
+        _checkRole(RELAYER);
+
         cooldownAmount = abi.decode(
             proxy.doCall(
                 address(susde),
@@ -620,7 +813,9 @@ contract MainnetController is AccessControl {
         rateLimits.triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
     }
 
-    function unstakeSUSDe() external onlyRole(RELAYER) {
+    function unstakeSUSDe() external {
+        _checkRole(RELAYER);
+
         proxy.doCall(
             address(susde),
             abi.encodeCall(susde.unstake, (address(proxy)))
@@ -631,26 +826,24 @@ contract MainnetController is AccessControl {
     /*** Relayer Maple functions                                                                ***/
     /**********************************************************************************************/
 
-    function requestMapleRedemption(address mapleToken, uint256 shares)
-        external
-        onlyRole(RELAYER)
-        rateLimitedAsset(
+    function requestMapleRedemption(address mapleToken, uint256 shares) external {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(
             LIMIT_MAPLE_REDEEM,
             mapleToken,
             IMapleTokenLike(mapleToken).convertToAssets(shares)
-        )
-    {
+        );
+
         proxy.doCall(
             mapleToken,
             abi.encodeCall(IMapleTokenLike(mapleToken).requestRedeem, (shares, address(proxy)))
         );
     }
 
-    function cancelMapleRedemption(address mapleToken, uint256 shares)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_MAPLE_REDEEM, mapleToken))
-    {
+    function cancelMapleRedemption(address mapleToken, uint256 shares) external {
+        _checkRole(RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_MAPLE_REDEEM, mapleToken));
+
         proxy.doCall(
             mapleToken,
             abi.encodeCall(IMapleTokenLike(mapleToken).removeShares, (shares, address(proxy)))
@@ -658,51 +851,13 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Relayer Morpho functions                                                               ***/
-    /**********************************************************************************************/
-
-    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
-        );
-    }
-
-    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
-        );
-    }
-
-    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
-        );
-    }
-
-    /**********************************************************************************************/
     /*** Relayer Superstate functions                                                           ***/
     /**********************************************************************************************/
 
-    function subscribeSuperstate(uint256 usdcAmount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount)
-    {
+    function subscribeSuperstate(uint256 usdcAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount);
+
         _approve(address(usdc), address(ustb), usdcAmount);
 
         proxy.doCall(
@@ -712,7 +867,9 @@ contract MainnetController is AccessControl {
     }
 
     // NOTE: Rate limited outside of modifier because of tuple return
-    function redeemSuperstate(uint256 ustbAmount) external onlyRole(RELAYER) {
+    function redeemSuperstate(uint256 ustbAmount) external {
+        _checkRole(RELAYER);
+
         ( uint256 usdcAmount, ) = superstateRedemption.calculateUsdcOut(ustbAmount);
 
         rateLimits.triggerRateLimitDecrease(LIMIT_SUPERSTATE_REDEEM, usdcAmount);
@@ -726,16 +883,47 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
+    /*** Relayer DaiUsds functions                                                              ***/
+    /**********************************************************************************************/
+
+    function swapUSDSToDAI(uint256 usdsAmount)
+        external
+        onlyRole(RELAYER)
+    {
+        // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
+        _approve(address(usds), address(daiUsds), usdsAmount);
+
+        // Swap USDS to DAI 1:1
+        proxy.doCall(
+            address(daiUsds),
+            abi.encodeCall(daiUsds.usdsToDai, (address(proxy), usdsAmount))
+        );
+    }
+
+    function swapDAIToUSDS(uint256 daiAmount)
+        external
+        onlyRole(RELAYER)
+    {
+        // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
+        _approve(address(dai), address(daiUsds), daiAmount);
+
+        // Swap DAI to USDS 1:1
+        proxy.doCall(
+            address(daiUsds),
+            abi.encodeCall(daiUsds.daiToUsds, (address(proxy), daiAmount))
+        );
+    }
+
+    /**********************************************************************************************/
     /*** Relayer PSM functions                                                                  ***/
     /**********************************************************************************************/
 
     // NOTE: The param `usdcAmount` is denominated in 1e6 precision to match how PSM uses
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
-    function swapUSDSToUSDC(uint256 usdcAmount)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_USDS_TO_USDC, usdcAmount)
-    {
+    function swapUSDSToUSDC(uint256 usdcAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_USDS_TO_USDC, usdcAmount);
+
         uint256 usdsAmount = usdcAmount * psmTo18ConversionFactor;
 
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
@@ -757,11 +945,10 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function swapUSDCToUSDS(uint256 usdcAmount)
-        external
-        onlyRole(RELAYER)
-        cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount)
-    {
+    function swapUSDCToUSDS(uint256 usdcAmount) external {
+        _checkRole(RELAYER);
+        _cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount);
+
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
         _approve(address(usdc), address(psm), usdcAmount);
 
@@ -807,15 +994,14 @@ contract MainnetController is AccessControl {
     /*** Relayer bridging functions                                                             ***/
     /**********************************************************************************************/
 
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
-        rateLimited(
+    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount);
+        _rateLimited(
             RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
             usdcAmount
-        )
-    {
+        );
+
         bytes32 mintRecipient = mintRecipients[destinationDomain];
 
         require(mintRecipient != 0, "MainnetController/domain-not-configured");
@@ -838,8 +1024,12 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Internal helper functions                                                              ***/
+    /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
+
+    function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a > b ? a - b : b - a;
+    }
 
     function _approve(address token, address spender, uint256 amount) internal {
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
@@ -876,6 +1066,29 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             address(psm),
             abi.encodeCall(psm.sellGemNoFee, (address(proxy), usdcAmount))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Rate Limit helper functions                                                            ***/
+    /**********************************************************************************************/
+
+    function _rateLimited(bytes32 key, uint256 amount) internal {
+        rateLimits.triggerRateLimitDecrease(key, amount);
+    }
+
+    function _rateLimitedAsset(bytes32 key, address asset, uint256 amount) internal {
+        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAssetKey(key, asset), amount);
+    }
+
+    function _cancelRateLimit(bytes32 key, uint256 amount) internal {
+        rateLimits.triggerRateLimitIncrease(key, amount);
+    }
+
+    function _rateLimitExists(bytes32 key) internal view {
+        require(
+            rateLimits.getRateLimitData(key).maxAmount > 0,
+            "MainnetController/invalid-action"
         );
     }
 

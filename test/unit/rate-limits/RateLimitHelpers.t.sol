@@ -74,28 +74,28 @@ contract RateLimitHelpersTestBase is UnitTestBase {
 
 contract RateLimitHelpersPureFunctionTests is RateLimitHelpersTestBase {
 
-    function test_makeAssetKey() public {
+    function test_makeAssetKey() public view {
         assertEq(
             wrapper.makeAssetKey(KEY, address(this)),
             keccak256(abi.encode(KEY, address(this)))
         );
     }
 
-    function test_makeAssetDestinationKey() public {
+    function test_makeAssetDestinationKey() public view {
         assertEq(
             wrapper.makeAssetDestinationKey(KEY, address(this), address(0)),
             keccak256(abi.encode(KEY, address(this), address(0)))
         );
     }
 
-    function test_makeDomainKey() public {
+    function test_makeDomainKey() public view {
         assertEq(
             wrapper.makeDomainKey(KEY, 123),
             keccak256(abi.encode(KEY, 123))
         );
     }
 
-    function test_unlimitedRateLimit() public {
+    function test_unlimitedRateLimit() public view {
         RateLimitData memory data = wrapper.unlimitedRateLimit();
 
         assertEq(data.maxAmount, type(uint256).max);
