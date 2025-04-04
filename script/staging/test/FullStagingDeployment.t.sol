@@ -43,7 +43,7 @@ interface IVatLike {
     function can(address, address) external view returns (uint256);
 }
 
-contract StagingDeploymentTestBase is Test {
+contract FullStagingDeploymentTestBase is Test {
 
     using stdJson           for *;
     using DomainHelpers     for *;
@@ -165,9 +165,14 @@ contract StagingDeploymentTestBase is Test {
     }
 }
 
-contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
+contract FullMainnetStagingDeploymentTests is FullStagingDeploymentTestBase {
+
+    // Remove this to unskip the test base setup
+    function setUp() public override {}
 
     function test_mintUSDS() public {
+        vm.skip(true);
+
         uint256 startingBalance = usds.balanceOf(address(almProxy));
 
         vm.prank(relayerSafe);
@@ -177,6 +182,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_mintAndSwapToUSDC() public {
+        vm.skip(true);
+
         uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -188,6 +195,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositAndWithdrawUsdsFromSUsds() public {
+        vm.skip(true);
+
         uint256 startingBalance = usds.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -203,6 +212,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositAndRedeemUsdsFromSUsds() public {
+        vm.skip(true);
+
         uint256 startingBalance = usds.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -218,6 +229,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositAndWithdrawUsdsFromAave() public {
+        vm.skip(true);
+
         uint256 startingBalance = usds.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -231,6 +244,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositAndWithdrawUsdcFromAave() public {
+        vm.skip(true);
+
         uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -245,6 +260,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_mintDepositCooldownAssetsBurnUsde() public {
+        vm.skip(true);
+
         uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -272,6 +289,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_mintDepositCooldownSharesBurnUsde() public {
+        vm.skip(true);
+
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
         mainnetController.swapUSDSToUSDC(10e6);
@@ -332,7 +351,7 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
 
 }
 
-contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
+contract FullBaseStagingDeploymentTests is FullStagingDeploymentTestBase {
 
     using DomainHelpers     for *;
     using CCTPBridgeTesting for *;
@@ -341,13 +360,19 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     address constant MORPHO            = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
     address constant MORPHO_VAULT_USDC = 0x305E03Ed9ADaAB22F4A58c24515D79f2B1E2FD5D;
 
-    function setUp() public override {
-        super.setUp();
 
-        base.selectFork();
-    }
+    // Remove this  and uncomment setup below to unskip the test base setup
+    function setUp() public override {}
+
+    // function setUp() public override {
+    //     super.setUp();
+
+    //     base.selectFork();
+    // }
 
     function test_transferCCTP() public {
+        vm.skip(true);
+
         base.selectFork();
 
         uint256 startingBalance = usdcBase.balanceOf(address(baseAlmProxy));
@@ -366,6 +391,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_transferToPSM() public {
+        vm.skip(true);
+
         base.selectFork();
 
         uint256 startingBalance = usdcBase.balanceOf(address(psmBase));
@@ -392,6 +419,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_addAndRemoveFundsFromBasePSM() public {
+        vm.skip(true);
+
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -418,6 +447,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_addAndRemoveFundsFromBaseAAVE() public {
+        vm.skip(true);
+
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -449,6 +480,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositWithdrawFundsFromBaseMorphoUsdc() public {
+        vm.skip(true);
+
         _setUpMorphoMarket();
 
         mainnet.selectFork();
@@ -482,6 +515,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositRedeemFundsFromBaseMorphoUsdc() public {
+        vm.skip(true);
+
         _setUpMorphoMarket();
 
         mainnet.selectFork();

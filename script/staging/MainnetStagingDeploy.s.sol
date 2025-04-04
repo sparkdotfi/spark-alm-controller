@@ -40,10 +40,10 @@ import { IRateLimits } from "../../src/interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers, RateLimitData } from "../../src/RateLimitHelpers.sol";
 
-import { MockJug }          from "./mocks/MockJug.sol";
-import { MockUsdsJoin }     from "./mocks/MockUsdsJoin.sol";
-import { MockVat }          from "./mocks/MockVat.sol";
-import { PSMWrapper }       from "./mocks/PSMWrapper.sol";
+import { MockJug }      from "./mocks/MockJug.sol";
+import { MockUsdsJoin } from "./mocks/MockUsdsJoin.sol";
+import { MockVat }      from "./mocks/MockVat.sol";
+import { PSMWrapper }   from "./mocks/PSMWrapper.sol";
 
 struct Domain {
     string  name;
@@ -66,6 +66,7 @@ contract MainnetStagingDeploy is Script {
     address daiUsds;
     address livePsm;
     address psm;
+    address smokehouse;
     address susds;
     address usds;
     address usdc;
@@ -115,12 +116,13 @@ contract MainnetStagingDeploy is Script {
 
         // Step 1: Use existing contracts for tokens, DaiUsds and PSM
 
-        dai     = mainnet.config.readAddress(".dai");
-        usds    = mainnet.config.readAddress(".usds");
-        susds   = mainnet.config.readAddress(".susds");
-        usdc    = mainnet.config.readAddress(".usdc");
-        daiUsds = mainnet.config.readAddress(".daiUsds");
-        livePsm = mainnet.config.readAddress(".psm");
+        dai        = mainnet.config.readAddress(".dai");
+        usds       = mainnet.config.readAddress(".usds");
+        susds      = mainnet.config.readAddress(".susds");
+        usdc       = mainnet.config.readAddress(".usdc");
+        daiUsds    = mainnet.config.readAddress(".daiUsds");
+        livePsm    = mainnet.config.readAddress(".psm");
+        smokehouse = mainnet.config.readAddress(".smokehouse");
 
         // This contract is necessary to get past the `kiss` requirement from the pause proxy.
         // It wraps the `noFee` calls with regular PSM swap calls.
@@ -265,8 +267,9 @@ contract MainnetStagingDeploy is Script {
 
         // Step 5: Export all deployed addresses
 
-        ScriptTools.exportContract(mainnet.nameDeps, "freezer", mainnet.config.readAddress(".freezer"));
-        ScriptTools.exportContract(mainnet.nameDeps, "relayer", mainnet.config.readAddress(".relayer"));
+        ScriptTools.exportContract(mainnet.nameDeps, "freezer",    mainnet.config.readAddress(".freezer"));
+        ScriptTools.exportContract(mainnet.nameDeps, "relayer",    mainnet.config.readAddress(".relayer"));
+        ScriptTools.exportContract(mainnet.nameDeps, "smokehouse", mainnet.config.readAddress(".smokehouse"));
 
         ScriptTools.exportContract(mainnet.name, "almProxy",   controllerInst.almProxy);
         ScriptTools.exportContract(mainnet.name, "controller", controllerInst.controller);
@@ -288,9 +291,11 @@ contract MainnetStagingDeploy is Script {
 
         MainnetController mainnetController_ = MainnetController(mainnetController);
 
-        bytes32 susdeDepositKey  = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_DEPOSIT(),   address(mainnetController_.susde()));
-        bytes32 susdsDepositKey  = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_DEPOSIT(),   susds);
-        bytes32 susdsWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_WITHDRAW(),  susds);
+        bytes32 susdeDepositKey       = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_DEPOSIT(),  address(mainnetController_.susde()));
+        bytes32 susdsDepositKey       = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_DEPOSIT(),  susds);
+        bytes32 susdsWithdrawKey      = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_WITHDRAW(), susds);
+        bytes32 smokehouseDepositKey  = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_DEPOSIT(),  smokehouse);
+        bytes32 smokehouseWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_WITHDRAW(), smokehouse);
 
         // USDS mint/burn rate limits
         RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_USDS_MINT(),    rateLimits, rateLimitData18, "usdsMintData",   18);
@@ -302,9 +307,11 @@ contract MainnetStagingDeploy is Script {
         RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_USDE_MINT(),      rateLimits, rateLimitData6,  "usdeMintData",      6);
 
         // 4626 deposit/withdraw rate limits
-        RateLimitHelpers.setRateLimitData(susdeDepositKey,  rateLimits, rateLimitData18,    "susdeDepositData",  18);
-        RateLimitHelpers.setRateLimitData(susdsDepositKey,  rateLimits, unlimitedRateLimit, "susdsDepositData",  18);
-        RateLimitHelpers.setRateLimitData(susdsWithdrawKey, rateLimits, unlimitedRateLimit, "susdsWithdrawData", 18);
+        RateLimitHelpers.setRateLimitData(susdeDepositKey,       rateLimits, rateLimitData18,    "susdeDepositData",       18);
+        RateLimitHelpers.setRateLimitData(susdsDepositKey,       rateLimits, unlimitedRateLimit, "susdsDepositData",       18);
+        RateLimitHelpers.setRateLimitData(susdsWithdrawKey,      rateLimits, unlimitedRateLimit, "susdsWithdrawData",      18);
+        RateLimitHelpers.setRateLimitData(smokehouseDepositKey,  rateLimits, rateLimitData6,     "smokehouseDepositData",  6);
+        RateLimitHelpers.setRateLimitData(smokehouseWithdrawKey, rateLimits, unlimitedRateLimit, "smokehouseWithdrawData", 6);
     }
 
     function run() public {
@@ -317,7 +324,7 @@ contract MainnetStagingDeploy is Script {
             name     : "mainnet-staging",
             nameDeps : "mainnet-staging-deps",
             config   : ScriptTools.loadConfig("mainnet-staging"),
-            forkId   : vm.createFork("http://localhost:8545"),
+            forkId   : vm.createFork(getChain("mainnet").rpcUrl),
             admin    : deployer
         });
 
@@ -330,6 +337,7 @@ contract MainnetStagingDeploy is Script {
 
         _setUpDependencies();
         _setUpAllocationSystem();
+        _setUpMainnetController();
 
         ScriptTools.exportContract(mainnet.nameDeps, "admin", deployer);
     }
