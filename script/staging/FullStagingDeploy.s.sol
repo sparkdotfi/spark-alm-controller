@@ -23,6 +23,7 @@ import { IERC20 }  from "forge-std/interfaces/IERC20.sol";
 import { Script }  from "forge-std/Script.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
+import { Base }     from "lib/spark-address-registry/src/Base.sol";
 import { Ethereum } from "lib/spark-address-registry/src/Ethereum.sol";
 
 import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
@@ -457,8 +458,8 @@ contract FullStagingDeploy is Script {
 
         _onboardAAVEToken(base, baseInst, AUSDC_BASE, rateLimitData6);
 
-        _onboardERC4626Token(base, baseInst, FLUID_SUSDS_VAULT_BASE, rateLimitData6);
-        _onboardERC4626Token(base, baseInst, MORPHO_VAULT_USDC_BASE, rateLimitData6);
+        _onboardERC4626Token(base, baseInst, FLUID_SUSDS_VAULT_BASE,  rateLimitData6);
+        _onboardERC4626Token(base, baseInst, Base.MORPHO_VAULT_SUSDC, rateLimitData6);
     }
 
     /**********************************************************************************************/
