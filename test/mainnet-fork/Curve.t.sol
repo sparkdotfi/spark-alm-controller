@@ -845,9 +845,9 @@ contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
 
 }
 
-contract MainnetControllerSUsdeSUsdsSwapRateLimitTest is ForkTestBase {
+contract MainnetControllerSUsdsUsdtSwapRateLimitTest is ForkTestBase {
 
-    address constant CURVE_POOL = 0x3CEf1AFC0E8324b57293a6E7cE663781bbEFBB79;
+    address constant CURVE_POOL = 0x00836Fe54625BE242BcFA286207795405ca4fD10;
 
     IERC20 curveLp = IERC20(CURVE_POOL);
 
@@ -871,21 +871,37 @@ contract MainnetControllerSUsdeSUsdsSwapRateLimitTest is ForkTestBase {
         // Set a higher slippage to allow for successes
         vm.prank(SPARK_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.01e18);
+
+        // Seed the pool with some liquidity to be able to perform the swap
+
+        uint256 susdsAmount = susds.convertToShares(1_000_000e18);
+
+        deal(address(susds), address(almProxy), susdsAmount);
+        deal(address(usdt),  address(almProxy), 1_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = susdsAmount;
+        amounts[1] = 1_000_000e6;
+
+        uint256 minLpAmount = 100_000e18;
+
+        vm.prank(relayer);
+        mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
 
     function _getBlock() internal pure override returns (uint256) {
-        return 22000000;  // March 8, 2025
+        return 22225000;  // April 8, 2025
     }
 
     function test_addLiquidityCurve_swapRateLimit() public {
-        uint256 susdeAmount = susde.convertToShares(1_000_000e18);
+        uint256 susdsAmount = susds.convertToShares(1_000_000e18);
 
-        deal(address(susde), address(almProxy), susdeAmount);
+        deal(address(susds), address(almProxy), susdsAmount);
 
         // Step 1: Add liquidity, check how much the rate limit was reduced
 
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = susdeAmount;
+        amounts[0] = susdsAmount;
         amounts[1] = 0;
 
         uint256 minLpAmount = 100_000e18;
@@ -902,20 +918,20 @@ contract MainnetControllerSUsdeSUsdsSwapRateLimitTest is ForkTestBase {
 
         uint256[] memory minWithdrawnAmounts = new uint256[](2);
         minWithdrawnAmounts[0] = 100_000e18;
-        minWithdrawnAmounts[1] = 100_000e18;
+        minWithdrawnAmounts[1] = 100_000e6;
 
         uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokens, minWithdrawnAmounts);
 
         // Step 3: Show "swapped" asset results, demonstrate that the swap rate limit was reduced by the dollar amount
-        //         of sUSDe that was reduced, 1m deposited + ~850k withdrawn = ~150k swapped
+        //         of sUSDS that was reduced, 1m deposited + ~666k withdrawn = ~333k swapped
 
-        assertEq(susde.convertToAssets(withdrawnAmounts[0]), 850_583.458247970197966075e18);
-        assertEq(susds.convertToAssets(withdrawnAmounts[1]), 148_671.435052597244493444e18);
+        assertEq(susds.convertToAssets(withdrawnAmounts[0]), 666_655.261741191232680640e18);
+        assertEq(withdrawnAmounts[1],                        333_327.974363e6);
 
         // Some accuracy differences because of fees
-        assertEq(derivedSwapAmount, 149_043.988402313523216974e18);
+        assertEq(derivedSwapAmount, 333_336.356311008220852225e18);
 
-        assertEq(1_000_000e18 - susde.convertToAssets(withdrawnAmounts[0]), 149_416.541752029802033925e18);
+        assertEq(1_000_000e18 - susds.convertToAssets(withdrawnAmounts[0]), 333_344.738258808767319360e18);
     }
 
 }
@@ -1041,9 +1057,9 @@ contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
 
 }
 
-contract MainnetControllerE2ECurveSUsdeSUsdsPoolTest is ForkTestBase {
+contract MainnetControllerE2ECurveSUsdsUsdtPoolTest is ForkTestBase {
 
-    address constant CURVE_POOL = 0x00836Fe54625BE242BcFA286207795405ca4fD10;  // TODO: Use this address sUSDS/USDT, do two swaps for each
+    address constant CURVE_POOL = 0x00836Fe54625BE242BcFA286207795405ca4fD10;
 
     IERC20 curveLp = IERC20(CURVE_POOL);
 
@@ -1070,66 +1086,113 @@ contract MainnetControllerE2ECurveSUsdeSUsdsPoolTest is ForkTestBase {
     }
 
     function _getBlock() internal pure override returns (uint256) {
-        return 22000000;  // March 8, 2025
+        return 22225000;  // April 8, 2025
     }
 
     function test_e2e_addSwapAndRemoveLiquidityCurve() public {
-        uint256 susdeAmount = susde.convertToShares(1_000_000e18);
         uint256 susdsAmount = susds.convertToShares(1_000_000e18);
 
-        deal(address(susde), address(almProxy), susdeAmount);
         deal(address(susds), address(almProxy), susdsAmount);
+        deal(address(usdt),  address(almProxy), 1_000_000e6);
 
-        uint256 susdeBalance = susde.balanceOf(CURVE_POOL);
         uint256 susdsBalance = susds.balanceOf(CURVE_POOL);
+        uint256 usdtBalance  = usdt.balanceOf(CURVE_POOL);
 
         // Step 1: Add liquidity
 
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = susdeAmount;
-        amounts[1] = susdsAmount;
+        amounts[0] = susdsAmount;
+        amounts[1] = 1_000_000e6;
 
         uint256 minLpAmount = 1_950_000e18;  // 0.5% on 2m
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
 
-        assertEq(susde.balanceOf(address(almProxy)), susdeAmount);
+        assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
+        assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
+
         assertEq(susds.balanceOf(address(almProxy)), susdsAmount);
+        assertEq(usdt.balanceOf(address(almProxy)),  1_000_000e6);
 
         vm.prank(relayer);
         uint256 lpTokensReceived = mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         assertEq(curveLp.balanceOf(address(almProxy)), lpTokensReceived);
 
-        assertEq(susde.balanceOf(address(almProxy)), 0);
-        assertEq(susds.balanceOf(address(almProxy)), 0);
+        assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
+        assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
 
-        assertEq(susde.balanceOf(CURVE_POOL), susdeBalance + susdeAmount);
+        assertEq(susds.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)),  0);
+
         assertEq(susds.balanceOf(CURVE_POOL), susdsBalance + susdsAmount);
+        assertEq(usdt.balanceOf(CURVE_POOL),  usdtBalance + 1_000_000e6);
 
-        // Step 2: Swap susde for susds
+        // Step 2: Swap USDT for sUSDS
 
-        uint256 susdeSwapAmount = susde.convertToShares(100e18);
-        uint256 minSUsdsAmount  = susds.convertToShares(99.5e18);
+        deal(address(usdt), address(almProxy), 100_000e6);
 
-        deal(address(susde), address(almProxy), susdeSwapAmount);
+        uint256 minSUsdsAmount = susds.convertToShares(99_500e18);
 
-        assertEq(susde.balanceOf(address(almProxy)), susdeSwapAmount);
         assertEq(susds.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)),  100_000e6);
 
         vm.prank(relayer);
-        uint256 susdsReturned = mainnetController.swapCurve(CURVE_POOL, 0, 1, susdeSwapAmount, minSUsdsAmount);
+        uint256 susdsReturned = mainnetController.swapCurve(CURVE_POOL, 1, 0, 100_000e6, minSUsdsAmount);
 
-        assertEq(susds.convertToAssets(susdsReturned), 99.881093521220159847e18);
+        assertEq(susds.convertToAssets(susdsReturned), 99_996.989363188047296502e18);
 
-        assertEq(susde.balanceOf(address(almProxy)), 0);
+        assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
+        assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
+
         assertEq(susds.balanceOf(address(almProxy)), susdsReturned);
+        assertEq(usdt.balanceOf(address(almProxy)),  0);
 
-        // Step 3: Remove liquidity
+        // Step 3: Swap USDT for sUSDS again (ensure no issue with approval)
+
+        deal(address(usdt), address(almProxy), 100_000e6);
+
+        minSUsdsAmount = susds.convertToShares(99_500e18);
+
+        assertEq(susds.balanceOf(address(almProxy)), susdsReturned);
+        assertEq(usdt.balanceOf(address(almProxy)),  100_000e6);
+
+        vm.prank(relayer);
+        susdsReturned += mainnetController.swapCurve(CURVE_POOL, 1, 0, 100_000e6, minSUsdsAmount);
+
+        assertEq(susds.convertToAssets(susdsReturned), 199_992.859585323329126373e18);
+
+        assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
+        assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
+
+        assertEq(susds.balanceOf(address(almProxy)), susdsReturned);  // Incremented
+        assertEq(usdt.balanceOf(address(almProxy)),  0);
+
+        // Step 4: Swap sUSDS for USDT
+
+        uint256 susdsSwapAmount = susds.convertToShares(100_000e18);
+
+        deal(address(susds), address(almProxy), susdsSwapAmount);  // NOTE: Overwrites balance
+
+        assertEq(susds.balanceOf(address(almProxy)), susdsSwapAmount);
+        assertEq(usdt.balanceOf(address(almProxy)),  0);
+
+        vm.prank(relayer);
+        uint256 usdtReturned = mainnetController.swapCurve(CURVE_POOL, 0, 1, susdsSwapAmount, 99_500e6);
+
+        assertEq(usdtReturned, 99_999.026465e6);
+
+        assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
+        assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
+
+        assertEq(susds.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)),  usdtReturned);
+
+        // Step 5: Remove liquidity
 
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = susdeAmount * 130/100;
-        minWithdrawAmounts[1] = susdsAmount * 65/100;
+        minWithdrawAmounts[0] = susds.convertToShares(900_000e18);
+        minWithdrawAmounts[1] = 1_090_000e6;
 
         vm.prank(relayer);
         uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
@@ -1138,16 +1201,16 @@ contract MainnetControllerE2ECurveSUsdeSUsdsPoolTest is ForkTestBase {
             minWithdrawAmounts
         );
 
-        assertEq(susde.convertToAssets(assetsReceived[0]), 1_317_667.897665048206964107e18);
-        assertEq(susds.convertToAssets(assetsReceived[1]), 682_834.255232605539287062e18);
+        assertEq(susds.convertToAssets(assetsReceived[0]), 900_005.135097519857743801e18);
+        assertEq(assetsReceived[1],                        1_099_999.173746e6);
 
         assertEq(
-            susde.convertToAssets(assetsReceived[0]) + susds.convertToAssets(assetsReceived[1]),
-            2_000_502.152897653746251169e18
+            susds.convertToAssets(assetsReceived[0]) + assetsReceived[1] * 1e12,
+            2_000_004.308843519857743801e18
         );
 
-        assertEq(susde.balanceOf(address(almProxy)), assetsReceived[0]);
-        assertEq(susds.balanceOf(address(almProxy)), assetsReceived[1] + susdsReturned);
+        assertEq(susds.balanceOf(address(almProxy)), assetsReceived[0]);
+        assertEq(usdt.balanceOf(address(almProxy)),  assetsReceived[1] + usdtReturned);
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
     }
