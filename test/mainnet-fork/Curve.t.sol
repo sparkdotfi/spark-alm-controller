@@ -462,7 +462,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
 
         uint256 id = vm.snapshotState();
 
-        // Use a success call to see how many tokens are returned from burning 1m LP tokens
+        // Use a success call to see how many tokens are returned from burning all LP tokens
         vm.prank(relayer);
         uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
@@ -657,8 +657,6 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
     }
 
 }
-
-// TODO: Add allowance assertions
 
 contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
 
@@ -975,45 +973,45 @@ contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
 
         // Step 2: Swap USDT for USDC
 
-        deal(address(usdt), address(almProxy), 100e6);
+        deal(address(usdt), address(almProxy), 100_000e6);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 100e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 100_000e6);
         assertEq(usdc.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
-        uint256 usdcReturned = mainnetController.swapCurve(CURVE_POOL, 1, 0, 100e6, 99.9e6);
+        uint256 usdcReturned = mainnetController.swapCurve(CURVE_POOL, 1, 0, 100_000e6, 99_900e6);
 
-        assertEq(usdcReturned, 99.985462e6);
+        assertEq(usdcReturned, 99_984.727700e6);
 
         assertEq(usdc.balanceOf(address(almProxy)), usdcReturned);
         assertEq(usdt.balanceOf(address(almProxy)), 0);
 
         // Step 3: Swap USDT for USDC again (ensure no issues with USDT approval)
 
-        deal(address(usdt), address(almProxy), 100e6);
+        deal(address(usdt), address(almProxy), 100_000e6);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 100e6);
         assertEq(usdc.balanceOf(address(almProxy)), usdcReturned);
+        assertEq(usdt.balanceOf(address(almProxy)), 100_000e6);
 
         vm.prank(relayer);
-        usdcReturned += mainnetController.swapCurve(CURVE_POOL, 1, 0, 100e6, 99.9e6);
+        usdcReturned += mainnetController.swapCurve(CURVE_POOL, 1, 0, 100_000e6, 99_900e6);
 
-        assertEq(usdcReturned, 199.970922e6);
+        assertEq(usdcReturned, 199_967.818973e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)), usdcReturned);
+        assertEq(usdc.balanceOf(address(almProxy)), usdcReturned);  // Incremented
         assertEq(usdt.balanceOf(address(almProxy)), 0);
 
         // Step 4: Swap USDC for USDT
 
-        deal(address(usdc), address(almProxy), 100e6);  // NOTE: Overwrites balance
+        deal(address(usdc), address(almProxy), 100_000e6);  // NOTE: Overwrites balance
 
-        assertEq(usdc.balanceOf(address(almProxy)), 100e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 100_000e6);
         assertEq(usdt.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
-        uint256 usdtReturned = mainnetController.swapCurve(CURVE_POOL, 0, 1, 100e6, 99.9e6);
+        uint256 usdtReturned = mainnetController.swapCurve(CURVE_POOL, 0, 1, 100_000e6, 99_900e6);
 
-        assertEq(usdtReturned, 100.006458e6);
+        assertEq(usdtReturned, 100_008.403841e6);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
         assertEq(usdt.balanceOf(address(almProxy)), usdtReturned);
@@ -1024,12 +1022,12 @@ contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
         usdtBalance = usdt.balanceOf(CURVE_POOL);
 
         // NOTE: Asserting to demonstrate that balances are very skewed, so min withdraw amounts have to be as well
-        assertEq(usdcBalance, 1_874_002.060424e6);
-        assertEq(usdtBalance, 6_185_735.220254e6);
+        assertEq(usdcBalance, 1_774_134.212373e6);
+        assertEq(usdtBalance, 6_285_626.822871e6);
 
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = 450_000e6;
-        minWithdrawAmounts[1] = 1_500_000e6;
+        minWithdrawAmounts[0] = 440_000e6;
+        minWithdrawAmounts[1] = 1_550_000e6;
 
         vm.prank(relayer);
         uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
@@ -1038,12 +1036,12 @@ contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
             minWithdrawAmounts
         );
 
-        assertEq(assetsReceived[0], 465_034.776871e6);
-        assertEq(assetsReceived[1], 1_535_038.661290e6);
+        assertEq(assetsReceived[0], 440_250.439766e6);
+        assertEq(assetsReceived[1], 1_559_827.329765e6);
 
         uint256 sumAssetsReceived = assetsReceived[0] + assetsReceived[1];
 
-        assertEq(sumAssetsReceived, 2_000_073.438161e6);
+        assertEq(sumAssetsReceived, 2_000_077.769531e6);
 
         assertEq(usdc.balanceOf(address(almProxy)), assetsReceived[0]);
         assertEq(usdt.balanceOf(address(almProxy)), assetsReceived[1] + usdtReturned);
@@ -1104,7 +1102,7 @@ contract MainnetControllerE2ECurveSUsdsUsdtPoolTest is ForkTestBase {
         amounts[0] = susdsAmount;
         amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_950_000e18;  // 0.5% on 2m
+        uint256 minLpAmount = 1_950_000e18;
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
 
