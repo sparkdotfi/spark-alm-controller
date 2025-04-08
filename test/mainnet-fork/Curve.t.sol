@@ -9,10 +9,8 @@ import { ICurvePoolLike } from "../../src/MainnetController.sol";
 
 contract CurveTestBase is ForkTestBase {
 
-    address constant RLUSD      = 0x8292Bb45bf1Ee4d140127049757C2E0fF06317eD;
-    address constant CURVE_POOL = 0xD001aE433f254283FeCE51d4ACcE8c53263aa186;
+    address constant CURVE_POOL = 0x4f493B7dE8aAC7d55F71853688b1F7C8F0243C85;
 
-    IERC20 rlUsd   = IERC20(RLUSD);
     IERC20 curveLp = IERC20(CURVE_POOL);
 
     ICurvePoolLike curvePool = ICurvePoolLike(CURVE_POOL);
@@ -39,28 +37,28 @@ contract CurveTestBase is ForkTestBase {
         mainnetController.setMaxSlippage(CURVE_POOL, 0.98e18);
     }
 
-    function _addLiquidity(uint256 usdcAmount, uint256 rlUsdAmount)
+    function _addLiquidity(uint256 usdcAmount, uint256 usdtAmount)
         internal returns (uint256 lpTokensReceived)
     {
         deal(address(usdc), address(almProxy), usdcAmount);
-        deal(RLUSD,         address(almProxy), rlUsdAmount);
+        deal(address(usdt), address(almProxy), usdtAmount);
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = usdcAmount;
-        amounts[1] = rlUsdAmount;
+        amounts[1] = usdtAmount;
 
-        uint256 minLpAmount = (usdcAmount * 1e12 + rlUsdAmount) * 98/100;
+        uint256 minLpAmount = (usdcAmount + usdtAmount) * 1e12 * 98/100;
 
         vm.prank(relayer);
         return mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
 
     function _addLiquidity() internal returns (uint256 lpTokensReceived) {
-        return _addLiquidity(1_000_000e6, 1_000_000e18);
+        return _addLiquidity(1_000_000e6, 1_000_000e6);
     }
 
     function _getBlock() internal pure override returns (uint256) {
-        return 22000000;  // March 8, 2025
+        return 22225000;  // April 8, 2025
     }
 
 }
@@ -70,9 +68,9 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
     function test_addLiquidityCurve_notRelayer() public {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_990_000e18;
+        uint256 minLpAmount = 1_950_000e18;
 
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -85,9 +83,9 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
     function test_addLiquidityCurve_slippageNotSet() public {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_990_000e18;
+        uint256 minLpAmount = 1_950_000e18;
 
         vm.prank(SPARK_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
@@ -100,8 +98,8 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
     function test_addLiquidityCurve_invalidDepositAmountsLength() public {
         uint256[] memory amounts = new uint256[](3);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18;
-        amounts[2] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
+        amounts[2] = 1_000_000e6;
 
         uint256 minLpAmount = 0;
 
@@ -119,11 +117,11 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
 
     function test_addLiquidityCurve_underAllowableSlippageBoundary() public {
         deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(RLUSD,         address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
         uint256 boundaryAmount = 2_000_000e18 * 0.98e18 / curvePool.get_virtual_price();
 
@@ -148,9 +146,9 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_990_000e18;
+        uint256 minLpAmount = 1_950_000e18;
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -159,13 +157,13 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
 
     function test_addLiquidityCurve_rateLimitBoundaryAsset0() public {
         deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(RLUSD,         address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6 + 1;
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_990_000e18;
+        uint256 minLpAmount = 1_950_000e18;
 
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -178,19 +176,19 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
 
     function test_addLiquidityCurve_rateLimitBoundaryAsset1() public {
         deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(RLUSD,         address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18 + 1;
+        amounts[1] = 1_000_000e6 + 1;
 
-        uint256 minLpAmount = 1_990_000e18;
+        uint256 minLpAmount = 1_950_000e18;
 
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -201,23 +199,23 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
     function test_addLiquidityCurve() public {
         deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(RLUSD,         address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_990_000e18;
+        uint256 minLpAmount = 1_950_000e18;
 
-        uint256 startingPyUsdBalance = rlUsd.balanceOf(CURVE_POOL);
-        uint256 startingUsdcBalance  = usdc.balanceOf(CURVE_POOL);
-        uint256 startingTotalSupply  = curveLp.totalSupply();
+        uint256 startingUsdtBalance = usdt.balanceOf(CURVE_POOL);
+        uint256 startingUsdcBalance = usdc.balanceOf(CURVE_POOL);
+        uint256 startingTotalSupply = curveLp.totalSupply();
 
         assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUsdcBalance);
 
-        assertEq(rlUsd.balanceOf(address(almProxy)), 1_000_000e18);
-        assertEq(rlUsd.balanceOf(CURVE_POOL),        startingPyUsdBalance);
+        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdt.balanceOf(CURVE_POOL),        startingUsdtBalance);
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
         assertEq(curveLp.totalSupply(),                startingTotalSupply);
@@ -232,35 +230,35 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
             minLpAmount
         );
 
-        assertEq(lpTokensReceived, 1_997_612.166757892422937582e18);
+        assertEq(lpTokensReceived, 1_987_199.361495730708108741e18);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUsdcBalance + 1_000_000e6);
 
-        assertEq(rlUsd.balanceOf(address(almProxy)), 0);
-        assertEq(rlUsd.balanceOf(CURVE_POOL),        startingPyUsdBalance + 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(CURVE_POOL),        startingUsdtBalance + 1_000_000e6);
 
         assertEq(curveLp.balanceOf(address(almProxy)), lpTokensReceived);
         assertEq(curveLp.totalSupply(),                startingTotalSupply + lpTokensReceived);
 
         assertEq(rateLimits.getCurrentRateLimit(curveDepositKey), 0);
-        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),    999_998.512329762328287296e18);  // Small swap occurs on deposit
+        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),    465_022.869727319215817005e18);  // TODO: Why is this so large
     }
 
     function test_addLiquidityCurve_swapRateLimit() public {
         // Set a higher slippage to allow for successes
         vm.prank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(CURVE_POOL, 0.001e18);
+        mainnetController.setMaxSlippage(CURVE_POOL, 0.7e18);
 
-        deal(address(usdc), address(almProxy), 2_000_000e6);
+        deal(address(usdc), address(almProxy), 1_000_000e6);
 
         // Step 1: Add liquidity, check how much the rate limit was reduced
 
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = 2_000_000e6;
+        amounts[0] = 1_000_000e6;
         amounts[1] = 0;
 
-        uint256 minLpAmount = 1_000_000e18;
+        uint256 minLpAmount = 800_000e18;
 
         uint256 startingRateLimit = rateLimits.getCurrentRateLimit(curveSwapKey);
 
@@ -272,9 +270,10 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
         // Step 2: Withdraw full balance of LP tokens, withdrawing proportional amounts from the pool
 
+        // NOTE: These values are skewed because pool balance is skewed.
         uint256[] memory minWithdrawnAmounts = new uint256[](2);
-        minWithdrawnAmounts[0] = 500_000e6;
-        minWithdrawnAmounts[1] = 500_000e18;
+        minWithdrawnAmounts[0] = 260_000e6;
+        minWithdrawnAmounts[1] = 730_000e6;
 
         uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokens, minWithdrawnAmounts);
 
@@ -293,15 +292,15 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
         assertApproxEqAbs(derivedSwapAmount, totalSwapped, 0.000001e18);
 
         // Check real values, comparing amount of USDC deposited with amount withdrawn as a result of the "swap"
-        assertEq(withdrawnAmounts[0], 1_167_803.429987e6);
-        assertEq(withdrawnAmounts[1], 831_961.163091701652224522e18);
+        assertEq(withdrawnAmounts[0], 265_480.996766e6);
+        assertEq(withdrawnAmounts[1], 734_605.036920e6);
 
         // Some accuracy differences because of fees
-        assertEq(derivedSwapAmount,                 832_078.866551978168996427e18);
-        assertEq(2_000_000e6 - withdrawnAmounts[0], 832_196.570013e6);
+        assertEq(derivedSwapAmount,                 734_562.020077130663332756e18);
+        assertEq(1_000_000e6 - withdrawnAmounts[0], 734_519.003234e6);
     }
 
-    function testFuzz_addLiquidityCurve_swapRateLimit(uint256 usdcAmount, uint256 rlUsdAmount) public {
+    function testFuzz_addLiquidityCurve_swapRateLimit(uint256 usdcAmount, uint256 usdtAmount) public {
         // Set slippage to be zero and unlimited rate limits for purposes of this test
         // Not using actual unlimited rate limit because need to get swap amount to be reduced.
         vm.startPrank(SPARK_PROXY);
@@ -311,17 +310,17 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
         rateLimits.setRateLimitData(curveSwapKey, type(uint256).max - 1, type(uint256).max - 1);
         vm.stopPrank();
 
-        usdcAmount  = _bound(usdcAmount,  1_000_000e6,  10_000_000_000e6);
-        rlUsdAmount = _bound(rlUsdAmount, 1_000_000e18, 10_000_000_000e18);
+        usdcAmount = _bound(usdcAmount, 1_000_000e6, 10_000_000_000e6);
+        usdtAmount = _bound(usdtAmount, 1_000_000e6, 10_000_000_000e6);
 
         deal(address(usdc), address(almProxy), usdcAmount);
-        deal(RLUSD,         address(almProxy), rlUsdAmount);
+        deal(address(usdt), address(almProxy), usdtAmount);
 
         // Step 1: Add liquidity with fuzzed inputs, check how much the rate limit was reduced
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = usdcAmount;
-        amounts[1] = rlUsdAmount;
+        amounts[1] = usdtAmount;
 
         uint256 startingRateLimit = rateLimits.getCurrentRateLimit(curveSwapKey);
 
@@ -335,7 +334,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
         uint256[] memory minWithdrawnAmounts = new uint256[](2);
         minWithdrawnAmounts[0] = 1e6;
-        minWithdrawnAmounts[1] = 1e18;
+        minWithdrawnAmounts[1] = 1e6;
 
         uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokens, minWithdrawnAmounts);
 
@@ -361,7 +360,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
     function test_removeLiquidityCurve_notRelayer() public {
         uint256[] memory minWithdrawAmounts = new uint256[](2);
         minWithdrawAmounts[0] = 1_000_000e6;
-        minWithdrawAmounts[1] = 1_000_000e18;
+        minWithdrawAmounts[1] = 1_000_000e6;
 
         uint256 lpReturn = 1_980_000e18;
 
@@ -376,7 +375,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
     function test_removeLiquidityCurve_slippageNotSet() public {
         uint256[] memory minWithdrawAmounts = new uint256[](2);
         minWithdrawAmounts[0] = 1_000_000e6;
-        minWithdrawAmounts[1] = 1_000_000e18;
+        minWithdrawAmounts[1] = 1_000_000e6;
 
         uint256 lpReturn = 1_980_000e18;
 
@@ -391,8 +390,8 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
     function test_removeLiquidityCurve_invalidDepositAmountsLength() public {
         uint256[] memory minWithdrawAmounts = new uint256[](3);
         minWithdrawAmounts[0] = 1_000_000e6;
-        minWithdrawAmounts[1] = 1_000_000e18;
-        minWithdrawAmounts[2] = 1_000_000e18;
+        minWithdrawAmounts[1] = 1_000_000e6;
+        minWithdrawAmounts[2] = 1_000_000e6;
 
         uint256 lpReturn = 1_980_000e18;
 
@@ -409,31 +408,25 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
     }
 
     function test_removeLiquidityCurve_underAllowableSlippageBoundary() public {
-        bytes32 curveDeposit = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_DEPOSIT(), CURVE_POOL);
+        uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e6);
 
-        vm.prank(SPARK_PROXY);
-        rateLimits.setRateLimitData(curveDeposit, 4_000_000e18, uint256(4_000_000e18) / 1 days);
-
-        _addLiquidity(2_000_000e6, 2_000_000e18);  // Get more than 2m LP tokens in return
-
-        uint256 lpReturn = 2_000_000e18;  // 2% on 2m
-
-        uint256 minTotalReturned = lpReturn * curvePool.get_virtual_price() * 98/100 / 1e18;
+        uint256 minTotalReturned = lpTokensReceived * curvePool.get_virtual_price() * 98/100 / 1e18;
 
         assertApproxEqAbs(minTotalReturned, 1_960_000e18, 50_000e18);  // Sanity check on precision
 
+        // Skewed pool, using 465k as anchor point because USDC balance of pool is low
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = minTotalReturned / 2 / 1e12;  // Rounding down causes boundary
-        minWithdrawAmounts[1] = minTotalReturned / 2;
+        minWithdrawAmounts[0] = 465_000e6;
+        minWithdrawAmounts[1] = minTotalReturned / 1e12 - 465_000e6;
 
         vm.startPrank(relayer);
         vm.expectRevert("MainnetController/min-amount-not-met");
-        mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
+        mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
-        minWithdrawAmounts[0] = minTotalReturned / 2 / 1e12 + 1;
-        minWithdrawAmounts[1] = minTotalReturned / 2;
+        // Add one to get over the boundary
+        minWithdrawAmounts[1] += 1;
 
-        mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
+        mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
     }
 
     function test_removeLiquidityCurve_zeroMaxAmount() public {
@@ -442,35 +435,31 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(curveWithdraw, 0, 0);
 
-        _addLiquidity();
+        uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e6);
 
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = 499_000e6;
-        minWithdrawAmounts[1] = 499_000e18;
-
-        uint256 lpReturn = 1_000_000e18;
+        minWithdrawAmounts[0] = 465_000e6;
+        minWithdrawAmounts[1] = 1_535_000e6;
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
+        mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
     }
 
     function test_removeLiquidityCurve_rateLimitBoundary() public {
-        _addLiquidity();
+        uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e6);
 
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = 499_000e6;
-        minWithdrawAmounts[1] = 499_000e18;
-
-        uint256 lpReturn = 1_000_000e18;
+        minWithdrawAmounts[0] = 465_000e6;
+        minWithdrawAmounts[1] = 1_535_000e6;
 
         uint256 id = vm.snapshotState();
 
-        // Use a success call to see how many tokens are returned from burning 1e18 LP tokens
+        // Use a success call to see how many tokens are returned from burning 1m LP tokens
         vm.prank(relayer);
-        uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
+        uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
-        uint256 totalWithdrawn = withdrawnAmounts[0] * 1e12 + withdrawnAmounts[1];
+        uint256 totalWithdrawn = (withdrawnAmounts[0] + withdrawnAmounts[1]) * 1e12;
 
         vm.revertToState(id);
 
@@ -482,14 +471,14 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
+        mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
         // Set to boundary
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(curveWithdraw, totalWithdrawn, totalWithdrawn / 1 days);
 
         vm.prank(relayer);
-        mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
+        mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
     }
 
 }
@@ -497,16 +486,16 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
 contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
 
     function test_removeLiquidityCurve() public {
-        uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e18);
+        uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e6);
 
-        uint256 startingPyUsdBalance = rlUsd.balanceOf(CURVE_POOL);
-        uint256 startingUsdcBalance  = usdc.balanceOf(CURVE_POOL);
-        uint256 startingTotalSupply  = curveLp.totalSupply();
+        uint256 startingUsdtBalance = usdt.balanceOf(CURVE_POOL);
+        uint256 startingUsdcBalance = usdc.balanceOf(CURVE_POOL);
+        uint256 startingTotalSupply = curveLp.totalSupply();
 
-        assertEq(lpTokensReceived, 1_997_612.166757892422937582e18);
+        assertEq(lpTokensReceived, 1_987_199.361495730708108741e18);
 
-        assertEq(rlUsd.balanceOf(address(almProxy)), 0);
-        assertEq(rlUsd.balanceOf(CURVE_POOL),        startingPyUsdBalance);
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(CURVE_POOL),        startingUsdtBalance);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUsdcBalance);
@@ -517,8 +506,8 @@ contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
         assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 3_000_000e18);
 
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = 980_000e6;
-        minWithdrawAmounts[1] = 980_000e18;
+        minWithdrawAmounts[0] = 465_000e6;
+        minWithdrawAmounts[1] = 1_535_000e6;
 
         vm.prank(relayer);
         uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
@@ -527,20 +516,22 @@ contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
             minWithdrawAmounts
         );
 
-        assertEq(assetsReceived[0], 1_000_001.487588e6);
-        assertEq(assetsReceived[1], 999_998.512248098338560810e18);
+        assertEq(assetsReceived[0], 465_059.586753e6);
+        assertEq(assetsReceived[1], 1_535_013.847298e6);
 
-        uint256 sumAssetsReceived = assetsReceived[0] * 1e12 + assetsReceived[1];
+        uint256 sumAssetsReceived = (assetsReceived[0] + assetsReceived[1]) * 1e12;
 
-        assertApproxEqAbs(sumAssetsReceived, 2_000_000e18, 1e18);
+        assertApproxEqAbs(sumAssetsReceived, 2_000_000e18, 100e18);
+
+        assertGe(sumAssetsReceived, 2_000_000e18);  // Pool is skewed so more value can be removed after balancing
 
         assertEq(usdc.balanceOf(address(almProxy)), assetsReceived[0]);
 
-        assertApproxEqAbs(usdc.balanceOf(CURVE_POOL), startingUsdcBalance - assetsReceived[0], 10e6);  // Fees from other deposits
+        assertApproxEqAbs(usdc.balanceOf(CURVE_POOL), startingUsdcBalance - assetsReceived[0], 100e6);  // Fees from other deposits
 
-        assertEq(rlUsd.balanceOf(address(almProxy)), assetsReceived[1]);
+        assertEq(usdt.balanceOf(address(almProxy)), assetsReceived[1]);
 
-        assertApproxEqAbs(rlUsd.balanceOf(CURVE_POOL), startingPyUsdBalance - assetsReceived[1], 10e18);  // Fees from other deposits
+        assertApproxEqAbs(usdt.balanceOf(CURVE_POOL), startingUsdtBalance - assetsReceived[1], 100e6);  // Fees from other deposits
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
         assertEq(curveLp.totalSupply(),                startingTotalSupply - lpTokensReceived);
@@ -558,27 +549,27 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_sameIndex() public {
         vm.prank(relayer);
         vm.expectRevert("MainnetController/invalid-indices");
-        mainnetController.swapCurve(CURVE_POOL, 1, 1, 1_000_000e18, 980_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 1, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_firstIndexTooHighBoundary() public {
         _addLiquidity();
         skip(1 days);  // Recharge swap rate limit from deposit
 
-        deal(RLUSD, address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/index-too-high");
-        mainnetController.swapCurve(CURVE_POOL, 2, 0, 1_000_000e18, 980_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 2, 0, 1_000_000e6, 980_000e6);
 
         vm.prank(relayer);
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_secondIndexTooHighBoundary() public {
@@ -589,10 +580,10 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/index-too-high");
-        mainnetController.swapCurve(CURVE_POOL, 0, 2, 1_000_000e6, 980_000e18);
+        mainnetController.swapCurve(CURVE_POOL, 0, 2, 1_000_000e6, 980_000e6);
 
         vm.prank(relayer);
-        mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e18);
+        mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_slippageNotSet() public {
@@ -601,7 +592,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/max-slippage-not-set");
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_underAllowableSlippageBoundaryAsset0To1() public {
@@ -612,22 +603,22 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
         vm.startPrank(relayer);
         vm.expectRevert("MainnetController/min-amount-not-met");
-        mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e18 - 1);
+        mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6 - 1);
 
-        mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e18);
+        mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_underAllowableSlippageBoundaryAsset1To0() public {
         _addLiquidity();
         skip(1 days);  // Recharge swap rate limit from deposit
 
-        deal(RLUSD, address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
         vm.startPrank(relayer);
         vm.expectRevert("MainnetController/min-amount-not-met");
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6 - 1);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6 - 1);
 
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_zeroMaxAmount() public {
@@ -638,20 +629,20 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 980_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_rateLimitBoundary() public {
         _addLiquidity();
         skip(1 days);  // Recharge swap rate limit from deposit
 
-        deal(RLUSD, address(almProxy), 1_000_000e18 + 1);
+        deal(address(usdt), address(almProxy), 1_000_000e6 + 1);
 
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18 + 1, 998_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6 + 1, 998_000e6);
 
-        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 998_000e6);
+        mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 998_000e6);
     }
 
 }
@@ -659,19 +650,19 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
 
     function test_swapCurve() public {
-        _addLiquidity(1_000_000e6, 1_000_000e18);
+        _addLiquidity(1_000_000e6, 1_000_000e6);
         skip(1 days);  // Recharge swap rate limit from deposit
 
         vm.prank(SPARK_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.999e18);  // 0.1%
 
-        uint256 startingPyUsdBalance = rlUsd.balanceOf(CURVE_POOL);
-        uint256 startingUsdcBalance  = usdc.balanceOf(CURVE_POOL);
+        uint256 startingUsdtBalance = usdt.balanceOf(CURVE_POOL);
+        uint256 startingUsdcBalance = usdc.balanceOf(CURVE_POOL);
 
-        deal(RLUSD, address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
-        assertEq(rlUsd.balanceOf(address(almProxy)), 1_000_000e18);
-        assertEq(rlUsd.balanceOf(CURVE_POOL),        startingPyUsdBalance);
+        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdt.balanceOf(CURVE_POOL),        startingUsdtBalance);
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUsdcBalance);
@@ -679,12 +670,12 @@ contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
         assertEq(rateLimits.getCurrentRateLimit(curveSwapKey), 1_000_000e18);
 
         vm.prank(relayer);
-        uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e18, 999_500e6);
+        uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 999_500e6);
 
-        assertEq(amountOut, 999_726.854240e6);
+        assertEq(amountOut, 999_712.1851680e6);
 
-        assertEq(rlUsd.balanceOf(address(almProxy)), 0);
-        assertEq(rlUsd.balanceOf(CURVE_POOL),        startingPyUsdBalance + 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(CURVE_POOL),        startingUsdtBalance + 1_000_000e6);
 
         assertEq(usdc.balanceOf(address(almProxy)), amountOut);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUsdcBalance - amountOut);
@@ -703,11 +694,11 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
         rateLimits.setUnlimitedRateLimitData(curveWithdrawKey);
         vm.stopPrank();
 
-        _addLiquidity(100_000_000e6, 100_000_000e18);
+        _addLiquidity(100_000_000e6, 100_000_000e6);
 
         uint256 virtualPrice1 = curvePool.get_virtual_price();
 
-        assertEq(virtualPrice1, 1.001195343715175271e18);
+        assertEq(virtualPrice1, 1.006472121147810626e18);
 
         deal(address(usdc), address(almProxy), 100_000_000e6);
 
@@ -716,29 +707,29 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
 
         // Perform a massive swap to stress the virtual price
         vm.prank(relayer);
-        uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 0, 1, 100_000_000e6, 1000e18);
+        uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 0, 1, 100_000_000e6, 1000e6);
 
-        assertEq(amountOut, 99_123_484.133360978396763017e18);
+        assertEq(amountOut, 99_949_401.825058e6);
 
         // Assert price rises
         uint256 virtualPrice2 = curvePool.get_virtual_price();
 
-        assertEq(virtualPrice2, 1.001228501012622650e18);
+        assertEq(virtualPrice2, 1.006481289896618067e18);
         assertGt(virtualPrice2, virtualPrice1);
 
         // Add one sided liquidity to stress the virtual price
-        _addLiquidity(0, 100_000_000e18);
+        _addLiquidity(0, 100_000_000e6);
 
         // Assert price rises
         uint256 virtualPrice3 = curvePool.get_virtual_price();
 
-        assertEq(virtualPrice3, 1.001245739473410937e18);
+        assertEq(virtualPrice3, 1.006486607243912047e18);
         assertGt(virtualPrice3, virtualPrice2);
 
         // Remove liquidity
         uint256[] memory minWithdrawAmounts = new uint256[](2);
         minWithdrawAmounts[0] = 1000e6;
-        minWithdrawAmounts[1] = 1000e18;
+        minWithdrawAmounts[1] = 1000e6;
 
         vm.startPrank(relayer);
         mainnetController.removeLiquidityCurve(
@@ -751,7 +742,7 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
         // Assert price rises
         uint256 virtualPrice4 = curvePool.get_virtual_price();
 
-        assertEq(virtualPrice4, 1.001245739473435168e18);
+        assertEq(virtualPrice4, 1.006486607244205989e18);
         assertGt(virtualPrice4, virtualPrice3);
     }
 
@@ -910,59 +901,67 @@ contract MainnetControllerSUsdeSUsdsSwapRateLimitTest is ForkTestBase {
 
 }
 
-contract MainnetControllerE2ECurveRLUsdUsdcPoolTest is CurveTestBase {
+contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
 
-    function test_e2e_addAndRemoveLiquidityCurve() public {
+    function test_e2e_addSwapAndRemoveLiquidityCurve() public {
+        // Set a higher slippage to allow for successes
+        vm.prank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(CURVE_POOL, 0.95e18);
+
         deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(RLUSD,         address(almProxy), 1_000_000e18);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
 
-        uint256 usdcBalance  = usdc.balanceOf(CURVE_POOL);
-        uint256 rlUsdBalance = rlUsd.balanceOf(CURVE_POOL);
+        uint256 usdcBalance = usdc.balanceOf(CURVE_POOL);
+        uint256 usdtBalance = usdt.balanceOf(CURVE_POOL);
 
         // Step 1: Add liquidity
 
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e18;
+        amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_990_000e18;
+        uint256 minLpAmount = 1_950_000e18;
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)),  1_000_000e6);
-        assertEq(rlUsd.balanceOf(address(almProxy)), 1_000_000e18);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
 
         vm.prank(relayer);
         uint256 lpTokensReceived = mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         assertEq(curveLp.balanceOf(address(almProxy)), lpTokensReceived);
 
-        assertEq(usdc.balanceOf(address(almProxy)),  0);
-        assertEq(rlUsd.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
 
-        assertEq(usdc.balanceOf(CURVE_POOL),  usdcBalance  + 1_000_000e6);
-        assertEq(rlUsd.balanceOf(CURVE_POOL), rlUsdBalance + 1_000_000e18);
+        assertEq(usdc.balanceOf(CURVE_POOL), usdcBalance + 1_000_000e6);
+        assertEq(usdt.balanceOf(CURVE_POOL), usdtBalance + 1_000_000e6);
 
-        // Step 2: Swap USDC for RLUSD
+        // Step 2: Swap USDT for USDC
 
-        deal(address(usdc), address(almProxy), 100e6);
+        deal(address(usdt), address(almProxy), 100e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)),  100e6);
-        assertEq(rlUsd.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)), 100e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
-        uint256 rlUsdReturned = mainnetController.swapCurve(CURVE_POOL, 0, 1, 100e6, 99.9e18);
+        uint256 usdcReturned = mainnetController.swapCurve(CURVE_POOL, 1, 0, 100e6, 99.9e6);
 
-        assertEq(rlUsdReturned, 99.989998025251364331e18);
+        assertEq(usdcReturned, 99.985462e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)),  0);
-        assertEq(rlUsd.balanceOf(address(almProxy)), rlUsdReturned);
+        assertEq(usdc.balanceOf(address(almProxy)), usdcReturned);
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
 
         // Step 3: Remove liquidity
 
+        // NOTE: Asserting to demonstrate that balances are very skewed, so min withdraw amounts have to be as well
+        assertEq(usdcBalance, 874_102.031346e6);
+        assertEq(usdtBalance, 5_185_635.226712e6);
+
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = 999_900e6;
-        minWithdrawAmounts[1] = 999_900e18;
+        minWithdrawAmounts[0] = 450_000e6;
+        minWithdrawAmounts[1] = 1_500_000e6;
 
         vm.prank(relayer);
         uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
@@ -971,15 +970,15 @@ contract MainnetControllerE2ECurveRLUsdUsdcPoolTest is CurveTestBase {
             minWithdrawAmounts
         );
 
-        assertEq(assetsReceived[0], 1_000_018.281459e6);
-        assertEq(assetsReceived[1], 999_981.719217481940282590e18);
+        assertEq(assetsReceived[0], 465_034.773764e6);
+        assertEq(assetsReceived[1], 1_535_038.663394e6);
 
-        uint256 sumAssetsReceived = assetsReceived[0] * 1e12 + assetsReceived[1];
+        uint256 sumAssetsReceived = assetsReceived[0] + assetsReceived[1];
 
-        assertEq(sumAssetsReceived, 2_000_000.000676481940282590e18);
+        assertEq(sumAssetsReceived, 2_000_073.437158e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)),  assetsReceived[0]);
-        assertEq(rlUsd.balanceOf(address(almProxy)), assetsReceived[1] + rlUsdReturned);
+        assertEq(usdc.balanceOf(address(almProxy)), assetsReceived[0] + usdcReturned);
+        assertEq(usdt.balanceOf(address(almProxy)), assetsReceived[1]);
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
     }
@@ -988,7 +987,7 @@ contract MainnetControllerE2ECurveRLUsdUsdcPoolTest is CurveTestBase {
 
 contract MainnetControllerE2ECurveSUsdeSUsdsPoolTest is ForkTestBase {
 
-    address constant CURVE_POOL = 0x3CEf1AFC0E8324b57293a6E7cE663781bbEFBB79;
+    address constant CURVE_POOL = 0x00836Fe54625BE242BcFA286207795405ca4fD10;  // TODO: Use this address sUSDS/USDT, do two swaps for each
 
     IERC20 curveLp = IERC20(CURVE_POOL);
 
@@ -1018,7 +1017,7 @@ contract MainnetControllerE2ECurveSUsdeSUsdsPoolTest is ForkTestBase {
         return 22000000;  // March 8, 2025
     }
 
-    function test_e2e_addAndRemoveLiquidityCurve() public {
+    function test_e2e_addSwapAndRemoveLiquidityCurve() public {
         uint256 susdeAmount = susde.convertToShares(1_000_000e18);
         uint256 susdsAmount = susds.convertToShares(1_000_000e18);
 
@@ -1034,7 +1033,7 @@ contract MainnetControllerE2ECurveSUsdeSUsdsPoolTest is ForkTestBase {
         amounts[0] = susdeAmount;
         amounts[1] = susdsAmount;
 
-        uint256 minLpAmount = 1_990_000e18;  // 0.5% on 2m
+        uint256 minLpAmount = 1_950_000e18;  // 0.5% on 2m
 
         assertEq(curveLp.balanceOf(address(almProxy)), 0);
 
