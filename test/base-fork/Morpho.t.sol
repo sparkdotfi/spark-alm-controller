@@ -123,15 +123,6 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
     }
 
-    function test_morpho_deposit_frozen() external {
-        vm.prank(freezer);
-        foreignController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/not-active");
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
-    }
-
     function test_morpho_deposit_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -202,15 +193,6 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
             address(this),
             RELAYER
         ));
-        foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
-    }
-
-    function test_morpho_withdraw_frozen() external {
-        vm.prank(freezer);
-        foreignController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/not-active");
         foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
     }
 
@@ -286,15 +268,6 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
             address(this),
             RELAYER
         ));
-        foreignController.redeemERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
-    }
-
-    function test_morpho_redeem_frozen() external {
-        vm.prank(freezer);
-        foreignController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/not-active");
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
     }
 

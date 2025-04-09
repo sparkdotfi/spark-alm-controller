@@ -80,15 +80,6 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
     }
 
-    function test_depositAave_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
-    }
-
     function test_depositAave_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -167,15 +158,6 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
             address(this),
             RELAYER
         ));
-        mainnetController.withdrawAave(ATOKEN_USDS, 1_000_000e18);
-    }
-
-    function test_withdrawAave_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.withdrawAave(ATOKEN_USDS, 1_000_000e18);
     }
 

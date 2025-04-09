@@ -7,6 +7,8 @@ import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces
 import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
 import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
+import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
+
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
@@ -35,11 +37,9 @@ contract ForeignController is AccessControl {
         uint256 usdcAmount
     );
 
-    event Frozen();
-
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
-    event Reactivated();
+    event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -64,8 +64,6 @@ contract ForeignController is AccessControl {
 
     IERC20 public immutable usdc;
 
-    bool public active;
-
     mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
 
     /**********************************************************************************************/
@@ -87,18 +85,11 @@ contract ForeignController is AccessControl {
         psm        = IPSM3(psm_);
         usdc       = IERC20(usdc_);
         cctp       = ICCTPLike(cctp_);
-
-        active = true;
     }
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/
     /**********************************************************************************************/
-
-    modifier isActive {
-        require(active, "ForeignController/not-active");
-        _;
-    }
 
     modifier rateLimited(bytes32 key, uint256 amount) {
         rateLimits.triggerRateLimitDecrease(key, amount);
@@ -110,12 +101,21 @@ contract ForeignController is AccessControl {
         _;
     }
 
+    modifier rateLimitExists(bytes32 key) {
+        require(
+            rateLimits.getRateLimitData(key).maxAmount > 0,
+            "ForeignController/invalid-action"
+        );
+        _;
+    }
+
     /**********************************************************************************************/
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
 
     function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
-        external onlyRole(DEFAULT_ADMIN_ROLE)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
@@ -125,14 +125,9 @@ contract ForeignController is AccessControl {
     /*** Freezer functions                                                                      ***/
     /**********************************************************************************************/
 
-    function freeze() external onlyRole(FREEZER) {
-        active = false;
-        emit Frozen();
-    }
-
-    function reactivate() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        active = true;
-        emit Reactivated();
+    function removeRelayer(address relayer) external onlyRole(FREEZER) {
+        _revokeRole(RELAYER, relayer);
+        emit RelayerRemoved(relayer);
     }
 
     /**********************************************************************************************/
@@ -142,15 +137,11 @@ contract ForeignController is AccessControl {
     function depositPSM(address asset, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimitedAsset(LIMIT_PSM_DEPOSIT, asset, amount)
         returns (uint256 shares)
     {
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
-        proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20.approve, (address(psm), amount))
-        );
+        _approve(asset, address(psm), amount);
 
         // Deposit `amount` of `asset` in the PSM, decode the result to get `shares`.
         shares = abi.decode(
@@ -167,7 +158,9 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawPSM(address asset, uint256 maxAmount)
-        external onlyRole(RELAYER) isActive returns (uint256 assetsWithdrawn)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 assetsWithdrawn)
     {
         // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result
         // to get `assetsWithdrawn` (assumes the proxy has enough PSM shares).
@@ -195,7 +188,6 @@ contract ForeignController is AccessControl {
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
         external
         onlyRole(RELAYER)
-        isActive
         rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
         rateLimited(
             RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
@@ -206,13 +198,10 @@ contract ForeignController is AccessControl {
 
         require(mintRecipient != 0, "ForeignController/domain-not-configured");
 
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        proxy.doCall(
-            address(usdc),
-            abi.encodeCall(usdc.approve, (address(cctp), usdcAmount))
-        );
+        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
+        _approve(address(usdc), address(cctp), usdcAmount);
 
-        // If amount is larger than limit it must be split into multiple calls
+        // If amount is larger than limit it must be split into multiple calls.
         uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
 
         while (usdcAmount > burnLimit) {
@@ -233,23 +222,16 @@ contract ForeignController is AccessControl {
     function depositERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
-            amount
-        )
+        rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
-        // Note that whitelist is done by rate limits
+        // Note that whitelist is done by rate limits.
         IERC20 asset = IERC20(IERC4626(token).asset());
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        proxy.doCall(
-            address(asset),
-            abi.encodeCall(asset.approve, (token, amount))
-        );
+        _approve(address(asset), token, amount);
 
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares
+        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
             proxy.doCall(
                 token,
@@ -262,11 +244,7 @@ contract ForeignController is AccessControl {
     function withdrawERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
-            amount
-        )
+        rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
         // Withdraw asset from a token, decode resulting shares.
@@ -282,7 +260,9 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares)
-        external onlyRole(RELAYER) isActive returns (uint256 assets)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
@@ -307,22 +287,15 @@ contract ForeignController is AccessControl {
     function depositAave(address aToken, uint256 amount)
         external
         onlyRole(RELAYER)
-        isActive
-        rateLimited(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
-            amount
-        )
+        rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        proxy.doCall(
-            address(underlying),
-            abi.encodeCall(underlying.approve, (address(pool), amount))
-        );
+        _approve(address(underlying), address(pool), amount);
 
-        // Deposit underlying into Aave pool, proxy receives aTokens
+        // Deposit underlying into Aave pool, proxy receives aTokens.
         proxy.doCall(
             address(pool),
             abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
@@ -331,7 +304,9 @@ contract ForeignController is AccessControl {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
-        external onlyRole(RELAYER) isActive returns (uint256 amountWithdrawn)
+        external
+        onlyRole(RELAYER)
+        returns (uint256 amountWithdrawn)
     {
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 
@@ -355,8 +330,50 @@ contract ForeignController is AccessControl {
     }
 
     /**********************************************************************************************/
+    /*** Relayer Morpho functions                                                               ***/
+    /**********************************************************************************************/
+
+    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
+        );
+    }
+
+    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
+        );
+    }
+
+    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+    {
+        proxy.doCall(
+            morphoVault,
+            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
+        );
+    }
+
+
+    /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/
     /**********************************************************************************************/
+
+    function _approve(address token, address spender, uint256 amount) internal {
+        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+    }
 
     function _initiateCCTPTransfer(
         uint256 usdcAmount,

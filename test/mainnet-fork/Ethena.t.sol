@@ -25,15 +25,6 @@ contract MainnetControllerSetDelegatedSignerFailureTests is EthenaTestBase {
         mainnetController.setDelegatedSigner(makeAddr("signer"));
     }
 
-    function test_setDelegatedSigner_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.setDelegatedSigner(makeAddr("signer"));
-    }
-
 }
 
 contract MainnetControllerSetDelegatedSignerSuccessTests is EthenaTestBase {
@@ -65,15 +56,6 @@ contract MainnetControllerRemoveDelegatedSignerFailureTests is EthenaTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.removeDelegatedSigner(makeAddr("signer"));
-    }
-
-    function test_removeDelegatedSigner_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.removeDelegatedSigner(makeAddr("signer"));
     }
 
@@ -114,13 +96,14 @@ contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
         mainnetController.prepareUSDeMint(100);
     }
 
-    function test_prepareUSDeMint_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
+    function test_prepareUSDeMint_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_MINT(), 0, 0);
+        vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.prepareUSDeMint(100);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.prepareUSDeMint(1e18);
     }
 
     function test_prepareUSDeMint_rateLimitBoundary() external {
@@ -195,13 +178,14 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
         mainnetController.prepareUSDeBurn(100);
     }
 
-    function test_prepareUSDeBurn_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
+    function test_prepareUSDeBurn_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_BURN(), 0, 0);
+        vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.prepareUSDeBurn(100);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.prepareUSDeBurn(1e18);
     }
 
     function test_prepareUSDeBurn_rateLimitBoundary() external {
@@ -276,12 +260,13 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
         mainnetController.cooldownAssetsSUSDe(100e18);
     }
 
-    function test_cooldownAssetsSUSDe_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
+    function test_cooldownAssetsSUSDe_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
+        vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
+        vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.cooldownAssetsSUSDe(100e18);
     }
 
@@ -384,13 +369,16 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
         mainnetController.cooldownSharesSUSDe(100);
     }
 
-    function test_cooldownSharesSUSDe_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
+    function test_cooldownSharesSUSDe_zeroMaxAmount() external {
+        deal(address(susde), address(almProxy), 100e18);  // To get past call
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
+        vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
-        mainnetController.cooldownSharesSUSDe(100);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.cooldownSharesSUSDe(100e18);
     }
 
     function test_cooldownSharesSUSDe_rateLimitBoundary() external {
@@ -508,15 +496,6 @@ contract MainnetControllerUnstakeSUSDeFailureTests is EthenaTestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.unstakeSUSDe();
-    }
-
-    function test_unstakeSUSDe_frozen() external {
-        vm.prank(freezer);
-        mainnetController.freeze();
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/not-active");
         mainnetController.unstakeSUSDe();
     }
 

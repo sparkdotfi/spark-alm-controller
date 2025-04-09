@@ -74,12 +74,12 @@ library ForeignControllerInit {
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);   
-        
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        require(configAddresses.oldController != address(0), "ForeignControllerInit/old-controller-zero-address"); 
+        require(configAddresses.oldController != address(0), "ForeignControllerInit/old-controller-zero-address");
 
         require(almProxy.hasRole(almProxy.CONTROLLER(), configAddresses.oldController),     "ForeignControllerInit/old-controller-not-almProxy-controller");
         require(rateLimits.hasRole(rateLimits.CONTROLLER(), configAddresses.oldController), "ForeignControllerInit/old-controller-not-rateLimits-controller");
@@ -98,7 +98,7 @@ library ForeignControllerInit {
         CheckAddressParams  memory checkAddresses,
         MintRecipient[]     memory mintRecipients
     )
-        private  
+        private
     {
         // Step 1: Perform controller sanity checks
 
@@ -112,8 +112,6 @@ library ForeignControllerInit {
         require(address(newController.psm())  == checkAddresses.psm,  "ForeignControllerInit/incorrect-psm");
         require(address(newController.usdc()) == checkAddresses.usdc, "ForeignControllerInit/incorrect-usdc");
         require(address(newController.cctp()) == checkAddresses.cctp, "ForeignControllerInit/incorrect-cctp");
-
-        require(newController.active(), "ForeignControllerInit/controller-not-active");
 
         require(configAddresses.oldController != address(newController), "ForeignControllerInit/old-controller-is-new-controller");
 

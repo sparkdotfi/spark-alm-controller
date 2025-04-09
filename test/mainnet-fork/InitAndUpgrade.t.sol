@@ -14,7 +14,7 @@ import { MainnetControllerInit as Init } from "../../deploy/MainnetControllerIni
 contract LibraryWrapper {
 
     function initAlmSystem(
-        address vault, 
+        address vault,
         address usds,
         ControllerInstance       memory controllerInst,
         Init.ConfigAddressParams memory configAddresses,
@@ -81,7 +81,7 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
 contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndUpgradeTestBase {
 
     // NOTE: `initAlmSystem` and `upgradeController` are tested in the same contract because
-    //       they both use _initController and have similar specific setups, so it 
+    //       they both use _initController and have similar specific setups, so it
     //       less complex/repetitive to test them together.
 
     LibraryWrapper wrapper;
@@ -101,7 +101,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
         oldController = address(mainnetController);  // Cache for later testing
 
-        // NOTE: initAlmSystem will redundantly call rely and approve on already inited 
+        // NOTE: initAlmSystem will redundantly call rely and approve on already inited
         //       almProxy and rateLimits, this setup was chosen to easily test upgrade and init failures.
         //       It also should be noted that the almProxy and rateLimits that are being used in initAlmSystem
         //       are already deployed. This is technically possible to do and works in the same way, it was
@@ -218,18 +218,6 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-cctp"));
     }
 
-    function test_initAlmSystem_upgradeController_controllerInactive() external {
-        // Cheating to set this outside of init scripts so that the controller can be frozen
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.grantRole(FREEZER, freezer);
-
-        vm.startPrank(freezer);
-        mainnetController.freeze();
-        vm.stopPrank();
-
-        _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/controller-not-active"));
-    }
-
     function test_initAlmSystem_upgradeController_oldControllerIsNewController() external {
         configAddresses.oldController = controllerInst.controller;
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/old-controller-is-new-controller"));
@@ -257,7 +245,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         // Revoke the old controller address in ALM proxy
         vm.startPrank(SPARK_PROXY);
         almProxy.revokeRole(almProxy.CONTROLLER(), configAddresses.oldController);
-        vm.stopPrank(); 
+        vm.stopPrank();
 
         // Try to upgrade with the old controller address that is doesn't have the CONTROLLER role
         vm.expectRevert("MainnetControllerInit/old-controller-not-almProxy-controller");
