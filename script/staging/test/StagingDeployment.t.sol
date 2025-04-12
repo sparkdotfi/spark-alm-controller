@@ -138,9 +138,9 @@ contract StagingDeploymentTestBase is Test {
         vm.setEnv("FOUNDRY_ROOT_CHAINID", "1");
 
         // Domains and bridge
-        mainnet    = getChain("mainnet").createSelectFork(22184288);  // April 2, 2025
-        base       = getChain("base").createFork(28422242);           // April 2, 2025
-        arbitrum   = getChain("arbitrum_one").createFork(322296195);  // April 2, 2025
+        mainnet    = getChain("mainnet").createSelectFork(22233941);  // April 9, 2025
+        base       = getChain("base").createFork(28721799);           // April 9, 2025
+        arbitrum   = getChain("arbitrum_one").createFork(324683441);  // April 9, 2025
 
         cctpBridgeArbitrum = CCTPBridgeTesting.createCircleBridge(mainnet, arbitrum);
         cctpBridgeBase     = CCTPBridgeTesting.createCircleBridge(mainnet, base);
@@ -412,9 +412,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     using DomainHelpers     for *;
     using CCTPBridgeTesting for *;
 
-    address constant AUSDC_BASE        = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
-    address constant MORPHO            = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
-    address constant MORPHO_VAULT_USDC = 0x305E03Ed9ADaAB22F4A58c24515D79f2B1E2FD5D;
+    address constant AUSDC_BASE = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
+    address constant MORPHO     = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
 
     function setUp() public override {
         super.setUp();
@@ -524,8 +523,6 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositWithdrawFundsFromBaseMorphoUsdc() public {
-        _setUpMorphoMarket();
-
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -537,13 +534,13 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
-        baseController.depositERC4626(MORPHO_VAULT_USDC, 10e6);
+        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
         skip(1 days);
-        baseController.withdrawERC4626(MORPHO_VAULT_USDC, 10e6);
+        baseController.withdrawERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
 
         assertEq(usdcBase.balanceOf(address(baseAlmProxy)), 10e6);
 
-        assertGe(IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)), 0);  // Interest earned
+        assertGe(IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)), 0);  // Interest earned
 
         baseController.transferUSDCToCCTP(1e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
         vm.stopPrank();
@@ -557,8 +554,6 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositRedeemFundsFromBaseMorphoUsdc() public {
-        _setUpMorphoMarket();
-
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -570,13 +565,13 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
-        baseController.depositERC4626(MORPHO_VAULT_USDC, 10e6);
+        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
         skip(1 days);
-        baseController.redeemERC4626(MORPHO_VAULT_USDC, IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)));
+        baseController.redeemERC4626(Base.MORPHO_VAULT_SUSDC, IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)));
 
         assertGe(usdcBase.balanceOf(address(baseAlmProxy)), 10e6);  // Interest earned
 
-        assertEq(IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)), 0);
+        assertEq(IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)), 0);
 
         baseController.transferUSDCToCCTP(1e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
         vm.stopPrank();
@@ -586,35 +581,6 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         vm.startPrank(relayerSafe);
         mainnetController.swapUSDCToUSDS(1e6 - 1);
         mainnetController.burnUSDS((1e6 - 1) * 1e12);
-        vm.stopPrank();
-    }
-
-    // TODO: Replace this once market is live
-    function _setUpMorphoMarket() public {
-        vm.startPrank(Base.SPARK_EXECUTOR);
-
-        // Add in the idle markets so deposits can be made
-        MarketParams memory usdcParams = MarketParams({
-            loanToken       : Base.USDC,
-            collateralToken : address(0),
-            oracle          : address(0),
-            irm             : address(0),
-            lltv            : 0
-        });
-
-        IMetaMorpho(MORPHO_VAULT_USDC).submitCap(
-            usdcParams,
-            type(uint184).max
-        );
-
-        skip(1 days);
-
-        IMetaMorpho(MORPHO_VAULT_USDC).acceptCap(usdcParams);
-
-        Id[] memory supplyQueueUSDC = new Id[](1);
-        supplyQueueUSDC[0] = MarketParamsLib.id(usdcParams);
-        IMetaMorpho(MORPHO_VAULT_USDC).setSupplyQueue(supplyQueueUSDC);
-
         vm.stopPrank();
     }
 
