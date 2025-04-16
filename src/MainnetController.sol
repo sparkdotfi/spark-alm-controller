@@ -18,10 +18,9 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
+import { CurveLib }         from "./libraries/CurveLib.sol";
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
-
-import { CurveLib } from "./libraries/CurveLib.sol";
-import { Types } from "./Types.sol";
+import { Types }            from "./Types.sol";
 
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
