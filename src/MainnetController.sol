@@ -18,9 +18,10 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { CurveLib }         from "./libraries/CurveLib.sol";
-import { RateLimitHelpers } from "./RateLimitHelpers.sol";
-import { Types }            from "./Types.sol";
+import { CurveLib }                       from "./libraries/CurveLib.sol";
+import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { RateLimitHelpers }               from "./RateLimitHelpers.sol";
+import { Types }                          from "./Types.sol";
 
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
@@ -29,12 +30,6 @@ interface IATokenWithPool is IAToken {
 interface IBuidlRedeemLike {
     function asset() external view returns(address);
     function redeem(uint256 usdcAmount) external;
-}
-
-interface IDaiUsdsLike {
-    function dai() external view returns (address);
-    function daiToUsds(address usr, uint256 wad) external;
-    function usdsToDai(address usr, uint256 wad) external;
 }
 
 interface IEthenaMinterLike {
@@ -54,14 +49,6 @@ interface ICentrifugeToken is IERC7540 {
 interface IMapleTokenLike is IERC4626 {
     function requestRedeem(uint256 shares, address receiver) external;
     function removeShares(uint256 shares, address receiver) external;
-}
-
-interface IPSMLike {
-    function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
-    function fill() external returns (uint256 wad);
-    function gem() external view returns (address);
-    function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
-    function to18ConversionFactor() external view returns (uint256);
 }
 
 interface ISSRedemptionLike is IERC20 {
@@ -131,7 +118,6 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
     bytes32 public constant LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
     bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
-    bytes32 public constant LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
 
     address public immutable buffer;
 
@@ -747,71 +733,30 @@ contract MainnetController is AccessControl {
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
     function swapUSDSToUSDC(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        _rateLimited(LIMIT_USDS_TO_USDC, usdcAmount);
-
-        uint256 usdsAmount = usdcAmount * psmTo18ConversionFactor;
-
-        // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        _approve(address(usds), address(daiUsds), usdsAmount);
-
-        // Swap USDS to DAI 1:1
-        proxy.doCall(
-            address(daiUsds),
-            abi.encodeCall(daiUsds.usdsToDai, (address(proxy), usdsAmount))
+        PSMLib.swapUSDSToUSDCLib(
+            usdcAmount,
+            proxy,
+            psmTo18ConversionFactor,
+            rateLimits,
+            daiUsds,
+            psm,
+            usds,
+            dai
         );
 
-        // Approve DAI to PSM from the proxy because conversion from USDS to DAI was 1:1
-        _approve(address(dai), address(psm), usdsAmount);
-
-        // Swap DAI to USDC through the PSM
-        proxy.doCall(
-            address(psm),
-            abi.encodeCall(psm.buyGemNoFee, (address(proxy), usdcAmount))
-        );
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        _cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount);
-
-        // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
-        _approve(address(usdc), address(psm), usdcAmount);
-
-        // Max USDC that can be swapped to DAI in one call
-        uint256 limit = dai.balanceOf(address(psm)) / psmTo18ConversionFactor;
-
-        if (usdcAmount <= limit) {
-            _swapUSDCToDAI(usdcAmount);
-        } else {
-            uint256 remainingUsdcToSwap = usdcAmount;
-
-            // Refill the PSM with DAI as many times as needed to get to the full `usdcAmount`.
-            // If the PSM cannot be filled with the full amount, psm.fill() will revert
-            // with `DssLitePsm/nothing-to-fill` since rush() will return 0.
-            // This is desired behavior because this function should only succeed if the full
-            // `usdcAmount` can be swapped.
-            while (remainingUsdcToSwap > 0) {
-                psm.fill();
-
-                limit = dai.balanceOf(address(psm)) / psmTo18ConversionFactor;
-
-                uint256 swapAmount = remainingUsdcToSwap < limit ? remainingUsdcToSwap : limit;
-
-                _swapUSDCToDAI(swapAmount);
-
-                remainingUsdcToSwap -= swapAmount;
-            }
-        }
-
-        uint256 daiAmount = usdcAmount * psmTo18ConversionFactor;
-
-        // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        _approve(address(dai), address(daiUsds), daiAmount);
-
-        // Swap DAI to USDS 1:1
-        proxy.doCall(
-            address(daiUsds),
-            abi.encodeCall(daiUsds.daiToUsds, (address(proxy), daiAmount))
+        PSMLib.swapUSDCToUSDSLib(
+            usdcAmount,
+            proxy,
+            psmTo18ConversionFactor,
+            rateLimits,
+            daiUsds,
+            psm,
+            dai,
+            usds
         );
     }
 
@@ -880,14 +825,6 @@ contract MainnetController is AccessControl {
         );
 
         emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
-    }
-
-    function _swapUSDCToDAI(uint256 usdcAmount) internal {
-        // Swap USDC to DAI through the PSM (1:1 since sellGemNoFee is used)
-        proxy.doCall(
-            address(psm),
-            abi.encodeCall(psm.sellGemNoFee, (address(proxy), usdcAmount))
-        );
     }
 
     /**********************************************************************************************/
