@@ -41,7 +41,7 @@ library CurveLib {
     bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
 
-    function swapCurveLib(
+    function swapCurve(
         Types.swapCurveParam calldata param,
         IALMProxy proxy,
         IRateLimits rateLimits
@@ -102,7 +102,7 @@ library CurveLib {
             
     }
 
-    function addLiquidityCurveLib(
+    function addLiquidityCurve(
         address pool,
         uint256[] memory depositAmounts,
         uint256 minLpAmount,
@@ -174,7 +174,7 @@ library CurveLib {
         );
     }
 
-    function removeLiquidityCurveLib(
+    function removeLiquidityCurve(
         address pool,
         uint256 lpBurnAmount,
         uint256[] memory minWithdrawAmounts,

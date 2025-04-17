@@ -548,7 +548,7 @@ contract MainnetController is AccessControl {
             maxSlippage: maxSlippages[pool]
         });
 
-        amountOut = CurveLib.swapCurveLib(params, proxy, rateLimits);
+        amountOut = CurveLib.swapCurve(params, proxy, rateLimits);
     }
 
     function addLiquidityCurve(
@@ -560,7 +560,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        shares = CurveLib.addLiquidityCurveLib(pool, depositAmounts, minLpAmount, maxSlippages[pool], proxy, rateLimits);
+        shares = CurveLib.addLiquidityCurve(pool, depositAmounts, minLpAmount, maxSlippages[pool], proxy, rateLimits);
     }
 
     function removeLiquidityCurve(
@@ -572,7 +572,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        withdrawnTokens = CurveLib.removeLiquidityCurveLib(pool, lpBurnAmount, minWithdrawAmounts, maxSlippages[pool], proxy, rateLimits);
+        withdrawnTokens = CurveLib.removeLiquidityCurve(pool, lpBurnAmount, minWithdrawAmounts, maxSlippages[pool], proxy, rateLimits);
     }
 
     /**********************************************************************************************/
