@@ -126,7 +126,7 @@ library PSMLib {
     {
         IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
     }
-    
+
     function _swapUSDCToDAI(uint256 usdcAmount, IALMProxy proxy, IPSMLike psm) internal {
         // Swap USDC to DAI through the PSM (1:1 since sellGemNoFee is used)
         proxy.doCall(
