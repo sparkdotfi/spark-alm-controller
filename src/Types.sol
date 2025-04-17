@@ -2,7 +2,7 @@
 pragma solidity ^0.8.21;
 
 library Types {
-    struct swapCurveParam {
+    struct SwapCurveParam {
         address pool;
         uint256 inputIndex;
         uint256 outputIndex;

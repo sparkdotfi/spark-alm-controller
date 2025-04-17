@@ -36,13 +36,13 @@ interface ICurvePoolLike is IERC20 {
 }
 
 library CurveLib {
-    
+
     bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
 
     function swapCurve(
-        Types.swapCurveParam calldata param,
+        Types.SwapCurveParam calldata param,
         IALMProxy proxy,
         IRateLimits rateLimits
     )

@@ -20,6 +20,7 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+
 import { RateLimitHelpers }               from "./RateLimitHelpers.sol";
 import { Types }                          from "./Types.sol";
 
@@ -522,13 +523,13 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        Types.swapCurveParam memory params = Types.swapCurveParam({
-            pool: pool,
-            inputIndex: inputIndex,
-            outputIndex: outputIndex,
-            amountIn: amountIn,
-            minAmountOut: minAmountOut,
-            maxSlippage: maxSlippages[pool]
+        Types.SwapCurveParam memory params = Types.SwapCurveParam({
+            pool         : pool,
+            inputIndex   : inputIndex,
+            outputIndex  : outputIndex,
+            amountIn     : amountIn,
+            minAmountOut : minAmountOut,
+            maxSlippage  : maxSlippages[pool]
         });
 
         amountOut = CurveLib.swapCurve(params, proxy, rateLimits);
@@ -543,7 +544,14 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        shares = CurveLib.addLiquidityCurve(pool, depositAmounts, minLpAmount, maxSlippages[pool], proxy, rateLimits);
+        shares = CurveLib.addLiquidityCurve(
+            pool,
+            depositAmounts,
+            minLpAmount,
+            maxSlippages[pool],
+            proxy,
+            rateLimits
+        );
     }
 
     function removeLiquidityCurve(
@@ -555,7 +563,14 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        withdrawnTokens = CurveLib.removeLiquidityCurve(pool, lpBurnAmount, minWithdrawAmounts, maxSlippages[pool], proxy, rateLimits);
+        withdrawnTokens = CurveLib.removeLiquidityCurve(
+            pool,
+            lpBurnAmount,
+            minWithdrawAmounts,
+            maxSlippages[pool],
+            proxy,
+            rateLimits
+        );
     }
 
     /**********************************************************************************************/

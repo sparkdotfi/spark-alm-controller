@@ -401,7 +401,7 @@ contract FullStagingDeploy is Script {
         RateLimitHelpers.setRateLimitData(domainKeyArbitrum,               rateLimits, rateLimitData6,     "cctpToArbitrumDomainData", 6);
         RateLimitHelpers.setRateLimitData(controller.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",           6);
         RateLimitHelpers.setRateLimitData(controller.LIMIT_USDS_MINT(),    rateLimits, rateLimitData18,    "usdsMintData",             18);
-        RateLimitHelpers.setRateLimitData(PSMLib.LIMIT_USDS_TO_USDC, rateLimits, rateLimitData6,     "usdsToUsdcData",           6);
+        RateLimitHelpers.setRateLimitData(PSMLib.LIMIT_USDS_TO_USDC,       rateLimits, rateLimitData6,     "usdsToUsdcData",           6);
 
         // Ethena-specific rate limits
         RateLimitHelpers.setRateLimitData(controller.LIMIT_SUSDE_COOLDOWN(), rateLimits, rateLimitData18, "susdeCooldownData", 18);
