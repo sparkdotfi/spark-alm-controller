@@ -753,7 +753,7 @@ contract MainnetController is AccessControl {
             daiUsds,
             psm,
             dai,
-            usds
+            usdc
         );
     }
 
