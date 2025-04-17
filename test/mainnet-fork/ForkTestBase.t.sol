@@ -28,6 +28,9 @@ import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 
 import { MainnetControllerInit as Init } from "../../deploy/MainnetControllerInit.sol";
 
+import { CCTPLib } from "../../src/libraries/CCTPLib.sol";
+import { PSMLib } from "../../src/libraries/PSMLib.sol";
+
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
@@ -290,7 +293,7 @@ contract ForkTestBase is DssTest {
         });
 
         bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(
-            mainnetController.LIMIT_USDC_TO_DOMAIN(),
+            CCTPLib.LIMIT_USDC_TO_DOMAIN,
             CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
         );
 
