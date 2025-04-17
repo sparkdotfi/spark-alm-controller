@@ -233,8 +233,18 @@ library CurveLib {
         );
     }
 
+    /**********************************************************************************************/
+    /*** Helper functions                                                                       ***/
+    /**********************************************************************************************/
 
-    function _approve(address token, address spender, uint256 amount, IALMProxy proxy) internal {
+    function _approve(
+        address token,
+        address spender,
+        uint256 amount,
+        IALMProxy proxy
+    ) 
+        internal 
+    {
         IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
     }
 

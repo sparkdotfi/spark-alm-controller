@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
+import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
-import { IRateLimits } from "../interfaces/IRateLimits.sol";
-import { IALMProxy } from "../interfaces/IALMProxy.sol";
+import { IRateLimits }  from "../interfaces/IRateLimits.sol";
+import { IALMProxy }    from "../interfaces/IALMProxy.sol";
 
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
@@ -116,10 +116,17 @@ library PSMLib {
     /*** Helper functions                                                               ***/
     /**********************************************************************************************/
 
-    function _approve(address token, address spender, uint256 amount, IALMProxy proxy) internal {
+    function _approve(
+        address token,
+        address spender,
+        uint256 amount,
+        IALMProxy proxy
+    ) 
+        internal 
+    {
         IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
     }
-
+    
     function _swapUSDCToDAI(uint256 usdcAmount, IALMProxy proxy, IPSMLike psm) internal {
         // Swap USDC to DAI through the PSM (1:1 since sellGemNoFee is used)
         proxy.doCall(
