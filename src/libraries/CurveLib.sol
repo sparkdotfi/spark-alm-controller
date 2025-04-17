@@ -242,10 +242,10 @@ library CurveLib {
         address spender,
         uint256 amount,
         IALMProxy proxy
-    ) 
-        internal 
+    )
+        internal
     {
-        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
     }
 
     function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {

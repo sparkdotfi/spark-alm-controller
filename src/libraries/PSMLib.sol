@@ -113,7 +113,7 @@ library PSMLib {
     }
 
     /**********************************************************************************************/
-    /*** Helper functions                                                               ***/
+    /*** Helper functions                                                                       ***/
     /**********************************************************************************************/
 
     function _approve(
@@ -121,10 +121,10 @@ library PSMLib {
         address spender,
         uint256 amount,
         IALMProxy proxy
-    ) 
-        internal 
+    )
+        internal
     {
-        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
     }
 
     function _swapUSDCToDAI(uint256 usdcAmount, IALMProxy proxy, IPSMLike psm) internal {
