@@ -38,21 +38,21 @@ interface ICurvePoolLike is IERC20 {
 library CurveLib {
 
     function swapCurve(
-        Types.SwapCurveParams calldata param,
+        Types.SwapCurveParams calldata params,
         IALMProxy proxy,
         IRateLimits rateLimits
     )
         external returns (uint256 amountOut)
     {
-        require(param.inputIndex != param.outputIndex, "MainnetController/invalid-indices");
+        require(params.inputIndex != params.outputIndex, "MainnetController/invalid-indices");
 
-        require(param.maxSlippage != 0, "MainnetController/max-slippage-not-set");
+        require(params.maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
-        ICurvePoolLike curvePool = ICurvePoolLike(param.pool);
+        ICurvePoolLike curvePool = ICurvePoolLike(params.pool);
 
         uint256 numCoins = curvePool.N_COINS();
         require(
-            param.inputIndex < numCoins && param.outputIndex < numCoins,
+            params.inputIndex < numCoins && params.outputIndex < numCoins,
             "MainnetController/index-too-high"
         );
 
@@ -64,34 +64,34 @@ library CurveLib {
         //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
         //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
         //   result    = tokensOut * maxSlippage / 1e18
-        uint256 minimumMinAmountOut = param.amountIn
-            * rates[param.inputIndex]
-            * param.maxSlippage
-            / rates[param.outputIndex]
+        uint256 minimumMinAmountOut = params.amountIn
+            * rates[params.inputIndex]
+            * params.maxSlippage
+            / rates[params.outputIndex]
             / 1e18;
 
         require(
-            param.minAmountOut >= minimumMinAmountOut,
+            params.minAmountOut >= minimumMinAmountOut,
             "MainnetController/min-amount-not-met"
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(param.rateLimitId, param.pool),
-            param.amountIn * rates[param.inputIndex] / 1e18
+            RateLimitHelpers.makeAssetKey(params.rateLimitId, params.pool),
+            params.amountIn * rates[params.inputIndex] / 1e18
         );
 
-        _approve(curvePool.coins(param.inputIndex), param.pool, param.amountIn, proxy);
+        _approve(curvePool.coins(params.inputIndex), params.pool, params.amountIn, proxy);
 
         amountOut = abi.decode(
             proxy.doCall(
-                param.pool,
+                params.pool,
                 abi.encodeCall(
                     curvePool.exchange,
                     (
-                        int128(int256(param.inputIndex)),   // safe cast because of 8 token max
-                        int128(int256(param.outputIndex)),  // safe cast because of 8 token max
-                        param.amountIn,
-                        param.minAmountOut,
+                        int128(int256(params.inputIndex)),   // safe cast because of 8 token max
+                        int128(int256(params.outputIndex)),  // safe cast because of 8 token max
+                        params.amountIn,
+                        params.minAmountOut,
                         address(proxy)
                     )
                 )
@@ -101,18 +101,18 @@ library CurveLib {
     }
 
     function addLiquidityCurve(
-        Types.AddLiquidityParams calldata param,
+        Types.AddLiquidityParams calldata params,
         IALMProxy proxy,
         IRateLimits rateLimits
     )
         external returns (uint256 shares)
     {
-        require(param.maxSlippage != 0, "MainnetController/max-slippage-not-set");
+        require(params.maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
-        ICurvePoolLike curvePool = ICurvePoolLike(param.pool);
+        ICurvePoolLike curvePool = ICurvePoolLike(params.pool);
 
         require(
-            param.depositAmounts.length == curvePool.N_COINS(),
+            params.depositAmounts.length == curvePool.N_COINS(),
             "MainnetController/invalid-deposit-amounts"
         );
 
@@ -121,30 +121,30 @@ library CurveLib {
 
         // Aggregate the value of the deposited assets (e.g. USD)
         uint256 valueDeposited;
-        for (uint256 i = 0; i < param.depositAmounts.length; i++) {
-            _approve(curvePool.coins(i), param.pool, param.depositAmounts[i], proxy);
-            valueDeposited += param.depositAmounts[i] * rates[i];
+        for (uint256 i = 0; i < params.depositAmounts.length; i++) {
+            _approve(curvePool.coins(i), params.pool, params.depositAmounts[i], proxy);
+            valueDeposited += params.depositAmounts[i] * rates[i];
         }
         valueDeposited /= 1e18;
 
         // Ensure minimum LP amount expected is greater than max slippage amount.
         require(
-            param.minLpAmount >= valueDeposited * param.maxSlippage / curvePool.get_virtual_price(),
+            params.minLpAmount >= valueDeposited * params.maxSlippage / curvePool.get_virtual_price(),
             "MainnetController/min-amount-not-met"
         );
 
         // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD)
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(param.addLiquidityRateLimitId, param.pool),
+            RateLimitHelpers.makeAssetKey(params.addLiquidityRateLimitId, params.pool),
             valueDeposited
         );
 
         shares = abi.decode(
             proxy.doCall(
-                param.pool,
+                params.pool,
                 abi.encodeCall(
                     curvePool.add_liquidity,
-                    (param.depositAmounts, param.minLpAmount, address(proxy))
+                    (params.depositAmounts, params.minLpAmount, address(proxy))
                 )
             ),
             (uint256)
@@ -155,28 +155,28 @@ library CurveLib {
         // aggregated swap "amount in" by dividing the total value moved by two and decrease the
         // swap rate limit by this amount.
         uint256 totalSwapped;
-        for (uint256 i; i < param.depositAmounts.length; i++) {
+        for (uint256 i; i < params.depositAmounts.length; i++) {
             totalSwapped += _absSubtraction(
                 curvePool.balances(i) * rates[i] * shares / curvePool.totalSupply(),
-                param.depositAmounts[i] * rates[i]
+                params.depositAmounts[i] * rates[i]
             );
         }
         uint256 averageSwap = totalSwapped / 2 / 1e18;
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(param.swapRateLimitId, param.pool),
+            RateLimitHelpers.makeAssetKey(params.swapRateLimitId, params.pool),
             averageSwap
         );
     }
 
     function removeLiquidityCurve(
-        address pool,
-        uint256 lpBurnAmount,
+        address          pool,
+        uint256          lpBurnAmount,
         uint256[] memory minWithdrawAmounts,
-        uint256 maxSlippage,
-        IALMProxy proxy,
-        IRateLimits rateLimits,
-        bytes32 rateLimitId
+        uint256          maxSlippage,
+        IALMProxy        proxy,
+        IRateLimits      rateLimits,
+        bytes32          rateLimitId
     )
         external returns (uint256[] memory withdrawnTokens)
     {
