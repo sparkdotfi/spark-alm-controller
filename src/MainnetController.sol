@@ -550,12 +550,12 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
 
         Types.AddLiquidityParams memory params = Types.AddLiquidityParams({
-            pool             : pool,
-            rateLimitId1     : LIMIT_CURVE_DEPOSIT,
-            rateLimitId2     : LIMIT_CURVE_SWAP,
-            minLpAmount      : minLpAmount,
-            maxSlippage      : maxSlippages[pool],
-            depositAmounts   : depositAmounts
+            pool                    : pool,
+            addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
+            swapRateLimitId         : LIMIT_CURVE_SWAP,
+            minLpAmount             : minLpAmount,
+            maxSlippage             : maxSlippages[pool],
+            depositAmounts          : depositAmounts
         });
 
         shares = CurveLib.addLiquidityCurve(
@@ -757,7 +757,7 @@ contract MainnetController is AccessControl {
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
     function swapUSDSToUSDC(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        PSMLib.swapUSDSToUSDCLib(
+        PSMLib.swapUSDSToUSDC(
             usdcAmount,
             proxy,
             psmTo18ConversionFactor,
@@ -765,14 +765,15 @@ contract MainnetController is AccessControl {
             daiUsds,
             psm,
             usds,
-            dai
+            dai,
+            LIMIT_USDS_TO_USDC
         );
 
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        PSMLib.swapUSDCToUSDSLib(
+        PSMLib.swapUSDCToUSDS(
             usdcAmount,
             proxy,
             psmTo18ConversionFactor,
@@ -780,7 +781,8 @@ contract MainnetController is AccessControl {
             daiUsds,
             psm,
             dai,
-            usdc
+            usdc,
+            LIMIT_USDS_TO_USDC
         );
     }
 

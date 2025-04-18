@@ -24,19 +24,20 @@ interface IPSMLike {
 
 library PSMLib {
 
-    bytes32 public constant LIMIT_USDS_TO_USDC = keccak256("LIMIT_USDS_TO_USDC");
-
-    function swapUSDSToUSDCLib(
-        uint256 usdcAmount,
-        IALMProxy proxy,
-        uint256 psmTo18ConversionFactor,
-        IRateLimits rateLimits,
+    function swapUSDSToUSDC(
+        uint256      usdcAmount,
+        IALMProxy    proxy,
+        uint256      psmTo18ConversionFactor,
+        IRateLimits  rateLimits,
         IDaiUsdsLike daiUsds,
-        IPSMLike psm,
-        IERC20 usds,
-        IERC20 dai
-    ) external {
-        _rateLimited(LIMIT_USDS_TO_USDC, usdcAmount, rateLimits);
+        IPSMLike     psm,
+        IERC20       usds,
+        IERC20       dai,
+        bytes32      rateLimitId
+    ) 
+        external 
+    {
+        _rateLimited(rateLimitId, usdcAmount, rateLimits);
 
         uint256 usdsAmount = usdcAmount * psmTo18ConversionFactor;
 
@@ -59,17 +60,20 @@ library PSMLib {
         );
     }
 
-    function swapUSDCToUSDSLib(
-        uint256 usdcAmount,
-        IALMProxy proxy,
-        uint256 psmTo18ConversionFactor,
-        IRateLimits rateLimits,
+    function swapUSDCToUSDS(
+        uint256      usdcAmount,
+        IALMProxy    proxy,
+        uint256      psmTo18ConversionFactor,
+        IRateLimits  rateLimits,
         IDaiUsdsLike daiUsds,
-        IPSMLike psm,
-        IERC20 dai,
-        IERC20 usdc
-    ) external {
-        _cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount, rateLimits);
+        IPSMLike     psm,
+        IERC20       dai,
+        IERC20       usdc,
+        bytes32      rateLimitId
+    )
+        external
+    {
+        _cancelRateLimit(rateLimitId, usdcAmount, rateLimits);
 
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
         _approve(address(usdc), address(psm), usdcAmount, proxy);
@@ -117,9 +121,9 @@ library PSMLib {
     /**********************************************************************************************/
 
     function _approve(
-        address token,
-        address spender,
-        uint256 amount,
+        address   token,
+        address   spender,
+        uint256   amount,
         IALMProxy proxy
     )
         internal

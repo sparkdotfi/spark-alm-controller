@@ -15,8 +15,8 @@ library Types {
 
     struct AddLiquidityParams {
         address pool;
-        bytes32 rateLimitId1;
-        bytes32 rateLimitId2;
+        bytes32 addLiquidityRateLimitId;
+        bytes32 swapRateLimitId;
         uint256 minLpAmount;
         uint256 maxSlippage;
         uint256[] depositAmounts;

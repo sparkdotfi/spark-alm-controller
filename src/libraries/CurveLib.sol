@@ -98,7 +98,6 @@ library CurveLib {
             ),
             (uint256)
         );
-            
     }
 
     function addLiquidityCurve(
@@ -136,7 +135,7 @@ library CurveLib {
 
         // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD)
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(param.rateLimitId1, param.pool),
+            RateLimitHelpers.makeAssetKey(param.addLiquidityRateLimitId, param.pool),
             valueDeposited
         );
 
@@ -165,7 +164,7 @@ library CurveLib {
         uint256 averageSwap = totalSwapped / 2 / 1e18;
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(param.rateLimitId2, param.pool),
+            RateLimitHelpers.makeAssetKey(param.swapRateLimitId, param.pool),
             averageSwap
         );
     }

@@ -34,8 +34,6 @@ import { MainnetController } from "../../src/MainnetController.sol";
 
 import { RateLimitHelpers, RateLimitData }  from "../../src/RateLimitHelpers.sol";
 
-import { PSMLib } from "../../src/libraries/PSMLib.sol";
-
 interface IChainlogLike {
     function getAddress(bytes32) external view returns (address);
 }
@@ -298,7 +296,7 @@ contract ForkTestBase is DssTest {
 
         // NOTE: Using minimal config for test base setup
         RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    address(rateLimits), standardUsdsData, "usdsMintData",         18);
-        RateLimitHelpers.setRateLimitData(PSMLib.LIMIT_USDS_TO_USDC,              address(rateLimits), standardUsdcData, "usdsToUsdcData",       6);
+        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), address(rateLimits), standardUsdcData, "usdsToUsdcData",       6);
         RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), address(rateLimits), standardUsdcData, "usdcToCctpData",       6);
         RateLimitHelpers.setRateLimitData(domainKeyBase,                          address(rateLimits), standardUsdcData, "cctpToBaseDomainData", 6);
 

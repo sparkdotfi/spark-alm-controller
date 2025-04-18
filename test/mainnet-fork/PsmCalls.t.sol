@@ -21,7 +21,7 @@ contract MainnetControllerSwapUSDSToUSDCFailureTests is ForkTestBase {
 
     function test_swapUSDSToUSDC_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(PSMLib.LIMIT_USDS_TO_USDC, 0, 0);
+        rateLimits.setRateLimitData(mainnet.LIMIT_USDS_TO_USDC(), 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
