@@ -10,6 +10,7 @@ import { ICCTPLike }   from "../interfaces/CCTPInterfaces.sol";
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
 library CCTPLib {
+
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
@@ -23,14 +24,14 @@ library CCTPLib {
     );
 
     /**********************************************************************************************/
-    /*** State variables                                                                        ***/
+    /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
     bytes32 public constant LIMIT_USDC_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public constant LIMIT_USDC_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
 
     /**********************************************************************************************/
-    /*** Main                                                                                   ***/
+    /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
     function transferUSDCToCCTPLib(
