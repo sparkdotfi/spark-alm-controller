@@ -28,8 +28,6 @@ import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 
 import { MainnetControllerInit as Init } from "../../deploy/MainnetControllerInit.sol";
 
-import { PSMLib  }  from "../../src/libraries/PSMLib.sol";
-
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
