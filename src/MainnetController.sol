@@ -107,6 +107,8 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public constant LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public constant LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public constant LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
     bytes32 public constant LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
     bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
@@ -788,6 +790,8 @@ contract MainnetController is AccessControl {
             destinationDomain,
             proxy,
             rateLimits,
+            LIMIT_USDC_TO_DOMAIN,
+            LIMIT_USDC_TO_CCTP,
             mintRecipients[destinationDomain],
             cctp,
             usdc

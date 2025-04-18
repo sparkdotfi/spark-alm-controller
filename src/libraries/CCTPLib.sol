@@ -24,24 +24,19 @@ library CCTPLib {
     );
 
     /**********************************************************************************************/
-    /*** Constants                                                                              ***/
-    /**********************************************************************************************/
-
-    bytes32 public constant LIMIT_USDC_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
-
-    /**********************************************************************************************/
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
     function transferUSDCToCCTPLib(
-        uint256 usdcAmount,
-        uint32 destinationDomain,
-        IALMProxy proxy,
+        uint256     usdcAmount,
+        uint32      destinationDomain,
+        IALMProxy   proxy,
         IRateLimits rateLimits,
-        bytes32 mintRecipient,
-        ICCTPLike cctp,
-        IERC20 usdc
+        bytes32     LIMIT_USDC_TO_DOMAIN,
+        bytes32     LIMIT_USDC_TO_CCTP,
+        bytes32     mintRecipient,
+        ICCTPLike   cctp,
+        IERC20      usdc
     ) external {
         _rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount, rateLimits);
         _rateLimited(
@@ -74,9 +69,9 @@ library CCTPLib {
     /**********************************************************************************************/
 
     function _approve(
-        address token,
-        address spender,
-        uint256 amount,
+        address   token,
+        address   spender,
+        uint256   amount,
         IALMProxy proxy
     )
         internal
@@ -85,12 +80,12 @@ library CCTPLib {
     }
 
     function _initiateCCTPTransfer(
-        uint256 usdcAmount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient,
+        uint256   usdcAmount,
+        uint32    destinationDomain,
+        bytes32   mintRecipient,
         IALMProxy proxy,
         ICCTPLike cctp,
-        IERC20 usdc
+        IERC20    usdc
     )
         internal
     {

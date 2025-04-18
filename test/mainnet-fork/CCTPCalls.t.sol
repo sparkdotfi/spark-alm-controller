@@ -19,8 +19,6 @@ import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 
 import { ForeignControllerInit } from "../../deploy/ForeignControllerInit.sol";
 
-import { CCTPLib } from "../../src/libraries/CCTPLib.sol";
-
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
@@ -43,7 +41,7 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeDomainKey(
-                CCTPLib.LIMIT_USDC_TO_DOMAIN,
+                mainnetController.LIMIT_USDC_TO_DOMAIN(),
                 CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
             ),
             0,
@@ -58,7 +56,7 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
 
     function test_tranferUSDCToCCTP_zeroMaxAmountCCTP() external {
         vm.startPrank(SPARK_PROXY);
-        rateLimits.setRateLimitData(CCTPLib.LIMIT_USDC_TO_CCTP, 0, 0);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -72,13 +70,13 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         // Set this so second modifier will be passed in success case
         rateLimits.setUnlimitedRateLimitData(
             RateLimitHelpers.makeDomainKey(
-                CCTPLib.LIMIT_USDC_TO_DOMAIN,
+                mainnetController.LIMIT_USDC_TO_DOMAIN(),
                 CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
             )
         );
 
         // Rate limit will be constant 10m (higher than setup)
-        rateLimits.setRateLimitData(CCTPLib.LIMIT_USDC_TO_CCTP, 10_000_000e6, 0);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 10_000_000e6, 0);
 
         // Set this for success case
         mainnetController.setMintRecipient(
@@ -101,12 +99,12 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         vm.startPrank(SPARK_PROXY);
 
         // Set this so first modifier will be passed in success case
-        rateLimits.setUnlimitedRateLimitData(CCTPLib.LIMIT_USDC_TO_CCTP);
+        rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP());
 
         // Rate limit will be constant 10m (higher than setup)
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeDomainKey(
-                CCTPLib.LIMIT_USDC_TO_DOMAIN,
+                mainnetController.LIMIT_USDC_TO_DOMAIN(),
                 CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
             ),
             10_000_000e6,
@@ -136,12 +134,12 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
 
         rateLimits.setUnlimitedRateLimitData(
             RateLimitHelpers.makeDomainKey(
-                CCTPLib.LIMIT_USDC_TO_DOMAIN,
+                mainnetController.LIMIT_USDC_TO_DOMAIN(),
                 CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE
             )
         );
 
-        rateLimits.setUnlimitedRateLimitData(CCTPLib.LIMIT_USDC_TO_CCTP);
+        rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP());
 
         vm.stopPrank();
 
@@ -518,7 +516,7 @@ contract USDCToCCTPIntegrationTests is BaseChainUSDCToCCTPTestBase {
     }
 
     function test_transferUSDCToCCTP_sourceToDestination_rateLimited() external {
-        bytes32 key = CCTPLib.LIMIT_USDC_TO_CCTP;
+        bytes32 key = mainnetController.LIMIT_USDC_TO_CCTP();
         deal(address(usdc), address(almProxy), 9_000_000e6);
 
         vm.startPrank(relayer);
