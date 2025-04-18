@@ -20,9 +20,9 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { Types }                          from "./libraries/Types.sol";
 
-import { RateLimitHelpers }               from "./RateLimitHelpers.sol";
-import { Types }                          from "./Types.sol";
+import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
@@ -107,6 +107,9 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_BUIDL_REDEEM_CIRCLE  = keccak256("LIMIT_BUIDL_REDEEM_CIRCLE");
+    bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -116,6 +119,7 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
     bytes32 public constant LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
     bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
+    bytes32 public constant LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
 
     address public immutable buffer;
 
@@ -523,8 +527,9 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        Types.SwapCurveParams memory params = Types.SwapCurveParam({
+        Types.SwapCurveParams memory params = Types.SwapCurveParams({
             pool         : pool,
+            rateLimitId  : LIMIT_CURVE_SWAP,
             inputIndex   : inputIndex,
             outputIndex  : outputIndex,
             amountIn     : amountIn,
@@ -544,11 +549,17 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
+        Types.AddLiquidityParams memory params = Types.AddLiquidityParams({
+            pool             : pool,
+            rateLimitId1     : LIMIT_CURVE_DEPOSIT,
+            rateLimitId2     : LIMIT_CURVE_SWAP,
+            minLpAmount      : minLpAmount,
+            maxSlippage      : maxSlippages[pool],
+            depositAmounts   : depositAmounts
+        });
+
         shares = CurveLib.addLiquidityCurve(
-            pool,
-            depositAmounts,
-            minLpAmount,
-            maxSlippages[pool],
+            params,
             proxy,
             rateLimits
         );
@@ -569,7 +580,8 @@ contract MainnetController is AccessControl {
             minWithdrawAmounts,
             maxSlippages[pool],
             proxy,
-            rateLimits
+            rateLimits,
+            LIMIT_CURVE_WITHDRAW
         );
     }
 

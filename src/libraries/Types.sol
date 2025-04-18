@@ -5,11 +5,21 @@ library Types {
 
     struct SwapCurveParams {
         address pool;
+        bytes32 rateLimitId;
         uint256 inputIndex;
         uint256 outputIndex;
         uint256 amountIn;
         uint256 minAmountOut;
         uint256 maxSlippage;
+    }
+
+    struct AddLiquidityParams {
+        address pool;
+        bytes32 rateLimitId1;
+        bytes32 rateLimitId2;
+        uint256 minLpAmount;
+        uint256 maxSlippage;
+        uint256[] depositAmounts;
     }
 
 }
