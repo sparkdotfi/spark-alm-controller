@@ -523,7 +523,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        Types.SwapCurveParam memory params = Types.SwapCurveParam({
+        Types.SwapCurveParams memory params = Types.SwapCurveParam({
             pool         : pool,
             inputIndex   : inputIndex,
             outputIndex  : outputIndex,

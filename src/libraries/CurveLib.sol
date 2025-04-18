@@ -42,7 +42,7 @@ library CurveLib {
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
 
     function swapCurve(
-        Types.SwapCurveParam calldata param,
+        Types.SwapCurveParams calldata param,
         IALMProxy proxy,
         IRateLimits rateLimits
     )
@@ -86,7 +86,8 @@ library CurveLib {
 
         _approve(curvePool.coins(param.inputIndex), param.pool, param.amountIn, proxy);
 
-        amountOut = abi.decode( proxy.doCall(
+        amountOut = abi.decode(
+            proxy.doCall(
                 param.pool,
                 abi.encodeCall(
                     curvePool.exchange,
@@ -98,7 +99,9 @@ library CurveLib {
                         address(proxy)
                     )
                 )
-            ), (uint256));
+            ),
+            (uint256)
+        );
             
     }
 
@@ -251,4 +254,5 @@ library CurveLib {
     function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : b - a;
     }
+
 }
