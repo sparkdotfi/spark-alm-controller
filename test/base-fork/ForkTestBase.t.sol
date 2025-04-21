@@ -163,15 +163,15 @@ contract ForkTestBase is Test {
         );
 
         // NOTE: Using minimal config for test base setup
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdcBase)), usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase)), usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdcBase)),  usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase)),  usdcMaxAmount, usdcSlope);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdsBase)),  usdsMaxAmount, usdsSlope);
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase)));
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(susdsBase)), usdsMaxAmount, usdsSlope);
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase)));
+        rateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(),                         usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(domainKeyEthereum,                                              usdcMaxAmount, usdcSlope);
 
-        rateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(domainKeyEthereum,                      usdcMaxAmount, usdcSlope);
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase)));
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase)));
 
         vm.stopPrank();
     }

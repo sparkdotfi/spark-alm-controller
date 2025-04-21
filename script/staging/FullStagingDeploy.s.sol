@@ -131,8 +131,8 @@ contract FullStagingDeploy is Script {
     RateLimitData rateLimitData18;
 
     uint256 maxAmount18;
-    uint256 slope18;
     uint256 maxAmount6;
+    uint256 slope18;
     uint256 slope6;
 
     /**********************************************************************************************/
@@ -399,21 +399,23 @@ contract FullStagingDeploy is Script {
         bytes32 domainKeyBase     = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
         // USDS mint/burn and cross-chain transfer rate limits
-        rateLimits.setRateLimitData(domainKeyBase,                   maxAmount6, slope6);
-        rateLimits.setRateLimitData(domainKeyArbitrum,               maxAmount6, slope6);
-        rateLimits.setRateLimitData(controller.LIMIT_USDC_TO_CCTP(), maxAmount6, slope6);
+        rateLimits.setRateLimitData(domainKeyBase,                   maxAmount6,  slope6);
+        rateLimits.setRateLimitData(domainKeyArbitrum,               maxAmount6,  slope6);
         rateLimits.setRateLimitData(controller.LIMIT_USDS_MINT(),    maxAmount18, slope18);
-        rateLimits.setRateLimitData(controller.LIMIT_USDS_TO_USDC(), maxAmount6, slope6);
+        rateLimits.setRateLimitData(controller.LIMIT_USDS_TO_USDC(), maxAmount6,  slope6);
+
+        rateLimits.setUnlimitedRateLimitData(controller.LIMIT_USDC_TO_CCTP());
 
         // Ethena-specific rate limits
         rateLimits.setRateLimitData(controller.LIMIT_SUSDE_COOLDOWN(), maxAmount18, slope18);
         rateLimits.setRateLimitData(controller.LIMIT_USDE_BURN(),      maxAmount18, slope18);
-        rateLimits.setRateLimitData(controller.LIMIT_USDE_MINT(),      maxAmount6, slope6);
+        rateLimits.setRateLimitData(controller.LIMIT_USDE_MINT(),      maxAmount6,  slope6);
         rateLimits.setRateLimitData(susdeDepositKey,                   maxAmount18, slope18);
 
         // Maple-specific deposit/withdraw rate limits
         rateLimits.setRateLimitData(syrupUsdcDepositKey,  maxAmount6, slope6);
-        rateLimits.setRateLimitData(syrupUsdcWithdrawKey, maxAmount6, slope6);
+
+        rateLimits.setUnlimitedRateLimitData(syrupUsdcWithdrawKey);
 
         vm.stopBroadcast();
     }
@@ -439,11 +441,12 @@ contract FullStagingDeploy is Script {
         susds = domain.input.readAddress(".susds");
 
         // PSM rate limits for all three assets
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usdc),  maxAmount6, slope6);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usdc),  maxAmount6, slope6);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usdc),  maxAmount6,  slope6);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usdc),  maxAmount6,  slope6);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usds),  maxAmount18, slope18);
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usds));
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  susds), maxAmount18, slope18);
+        
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usds));
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, susds));
 
         // CCTP rate limits
