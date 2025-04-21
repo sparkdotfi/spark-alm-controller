@@ -33,36 +33,4 @@ library RateLimitHelpers {
         });
     }
 
-    function setRateLimitData(
-        bytes32       key,
-        address       rateLimits,
-        RateLimitData memory data,
-        string        memory name,
-        uint256       decimals
-    )
-        internal
-    {
-        // Handle setting an unlimited rate limit
-        if (data.maxAmount == type(uint256).max) {
-            if (data.slope != 0) {
-                revert InvalidUnlimitedRateLimitSlope(name);
-            }
-        } else {
-            uint256 upperBound = 1e12 * (10 ** decimals);
-            uint256 lowerBound = 10 ** decimals;
-
-            if (data.maxAmount > upperBound || data.maxAmount < lowerBound) {
-                revert InvalidMaxAmountPrecision(name);
-            }
-
-            if (
-                data.slope != 0 &&
-                (data.slope > upperBound / 1 hours || data.slope < lowerBound / 1 hours)
-            ) {
-                revert InvalidSlopePrecision(name);
-            }
-        }
-        IRateLimits(rateLimits).setRateLimitData(key, data.maxAmount, data.slope);
-    }
-
 }

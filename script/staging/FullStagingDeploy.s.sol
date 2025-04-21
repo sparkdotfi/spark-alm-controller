@@ -127,9 +127,13 @@ contract FullStagingDeploy is Script {
     Domain arbitrum;
     Domain base;
 
-    RateLimitData rateLimitData18;
     RateLimitData rateLimitData6;
-    RateLimitData unlimitedRateLimit;
+    RateLimitData rateLimitData18;
+
+    uint256 maxAmount18;
+    uint256 slope18;
+    uint256 maxAmount6;
+    uint256 slope6;
 
     /**********************************************************************************************/
     /*** Mainnet dependency helper functions                                                    ***/
@@ -374,7 +378,7 @@ contract FullStagingDeploy is Script {
     function _setMainnetControllerRateLimits() internal {
         MainnetController controller = MainnetController(mainnetInst.controller);
 
-        address rateLimits = mainnetInst.rateLimits;
+        IRateLimits rateLimits = IRateLimits(mainnetInst.rateLimits);
 
         _onboardAAVEToken(mainnet, mainnetInst, AUSDC, rateLimitData6);
         _onboardAAVEToken(mainnet, mainnetInst, AUSDS, rateLimitData18);
@@ -395,21 +399,21 @@ contract FullStagingDeploy is Script {
         bytes32 domainKeyBase     = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
         // USDS mint/burn and cross-chain transfer rate limits
-        RateLimitHelpers.setRateLimitData(domainKeyBase,                   rateLimits, rateLimitData6,     "cctpToBaseDomainData",     6);
-        RateLimitHelpers.setRateLimitData(domainKeyArbitrum,               rateLimits, rateLimitData6,     "cctpToArbitrumDomainData", 6);
-        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",           6);
-        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDS_MINT(),    rateLimits, rateLimitData18,    "usdsMintData",             18);
-        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDS_TO_USDC(), rateLimits, rateLimitData6,     "usdsToUsdcData",           6);
+        rateLimits.setRateLimitData(domainKeyBase,                   maxAmount6, slope6);
+        rateLimits.setRateLimitData(domainKeyArbitrum,               maxAmount6, slope6);
+        rateLimits.setRateLimitData(controller.LIMIT_USDC_TO_CCTP(), maxAmount6, slope6);
+        rateLimits.setRateLimitData(controller.LIMIT_USDS_MINT(),    maxAmount18, slope18);
+        rateLimits.setRateLimitData(controller.LIMIT_USDS_TO_USDC(), maxAmount6, slope6);
 
         // Ethena-specific rate limits
-        RateLimitHelpers.setRateLimitData(controller.LIMIT_SUSDE_COOLDOWN(), rateLimits, rateLimitData18, "susdeCooldownData", 18);
-        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDE_BURN(),      rateLimits, rateLimitData18, "usdeBurnData",      18);
-        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDE_MINT(),      rateLimits, rateLimitData6,  "usdeMintData",      6);
-        RateLimitHelpers.setRateLimitData(susdeDepositKey,                   rateLimits, rateLimitData18, "susdeDepositData",  18);
+        rateLimits.setRateLimitData(controller.LIMIT_SUSDE_COOLDOWN(), maxAmount18, slope18);
+        rateLimits.setRateLimitData(controller.LIMIT_USDE_BURN(),      maxAmount18, slope18);
+        rateLimits.setRateLimitData(controller.LIMIT_USDE_MINT(),      maxAmount6, slope6);
+        rateLimits.setRateLimitData(susdeDepositKey,                   maxAmount18, slope18);
 
         // Maple-specific deposit/withdraw rate limits
-        RateLimitHelpers.setRateLimitData(syrupUsdcDepositKey,  rateLimits, rateLimitData6,     "syrupUsdcDepositData",  6);
-        RateLimitHelpers.setRateLimitData(syrupUsdcWithdrawKey, rateLimits, unlimitedRateLimit, "syrupUsdcWithdrawData", 6);
+        rateLimits.setRateLimitData(syrupUsdcDepositKey,  maxAmount6, slope6);
+        rateLimits.setRateLimitData(syrupUsdcWithdrawKey, maxAmount6, slope6);
 
         vm.stopBroadcast();
     }
@@ -420,7 +424,7 @@ contract FullStagingDeploy is Script {
 
         ForeignController foreignController = ForeignController(controllerInst.controller);
 
-        address rateLimits = controllerInst.rateLimits;
+        IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
         bytes32 psmDepositKey  = foreignController.LIMIT_PSM_DEPOSIT();
         bytes32 psmWithdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
@@ -435,16 +439,16 @@ contract FullStagingDeploy is Script {
         susds = domain.input.readAddress(".susds");
 
         // PSM rate limits for all three assets
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usdc),  rateLimits, rateLimitData6,     "usdcDepositDataPsm",   6);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usdc),  rateLimits, rateLimitData6,     "usdcWithdrawDataPsm",  6);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usds),  rateLimits, rateLimitData18,    "usdsDepositDataPsm",   18);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usds),  rateLimits, unlimitedRateLimit, "usdsWithdrawDataPsm",  18);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  susds), rateLimits, rateLimitData18,    "susdsDepositDataPsm",  18);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, susds), rateLimits, unlimitedRateLimit, "susdsWithdrawDataPsm", 18);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usdc),  maxAmount6, slope6);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usdc),  maxAmount6, slope6);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usds),  maxAmount18, slope18);
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usds));
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  susds), maxAmount18, slope18);
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, susds));
 
         // CCTP rate limits
-        RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      rateLimits, rateLimitData6,     "cctpToEthereumDomainData", 6);
-        RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",           6);
+        rateLimits.setRateLimitData(domainKeyEthereum, maxAmount6, slope6);
+        rateLimits.setUnlimitedRateLimitData(foreignController.LIMIT_USDC_TO_CCTP());
 
         vm.stopBroadcast();
     }
@@ -548,15 +552,19 @@ contract FullStagingDeploy is Script {
         USDC_UNIT_SIZE = mainnet.input.readUint(".usdcUnitSize") * 1e6;
         USDS_UNIT_SIZE = mainnet.input.readUint(".usdsUnitSize") * 1e18;
 
-        rateLimitData18 = RateLimitData({
-            maxAmount : USDC_UNIT_SIZE * 1e12 * 5,
-            slope     : USDC_UNIT_SIZE * 1e12 / 4 hours
-        });
+        maxAmount18 = USDC_UNIT_SIZE * 1e12 * 5;
+        slope18     = USDC_UNIT_SIZE * 1e12 / 4 hours;
+        maxAmount6  = USDC_UNIT_SIZE * 5;
+        slope6      = USDC_UNIT_SIZE / 4 hours;
+
         rateLimitData6 = RateLimitData({
-            maxAmount : USDC_UNIT_SIZE * 5,
-            slope     : USDC_UNIT_SIZE / 4 hours
+            maxAmount : maxAmount6,
+            slope     : slope6
         });
-        unlimitedRateLimit = RateLimitHelpers.unlimitedRateLimit();
+        rateLimitData18 = RateLimitData({
+            maxAmount : maxAmount18,
+            slope     : slope18
+        });
 
         // Step 2: Deploy and configure all mainnet contracts
 
