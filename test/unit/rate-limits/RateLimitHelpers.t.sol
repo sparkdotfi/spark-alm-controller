@@ -24,17 +24,6 @@ contract RateLimitHelpersWrapper {
         return RateLimitHelpers.unlimitedRateLimit();
     }
 
-    function setRateLimitData(
-        bytes32 key,
-        address rateLimits,
-        RateLimitData memory data,
-        string memory,
-        uint256
-    )
-        public
-    {
-        IRateLimits(rateLimits).setRateLimitData(key, data.maxAmount, data.slope);
-    }
 }
 
 contract RateLimitHelpersTestBase is UnitTestBase {
@@ -100,32 +89,6 @@ contract RateLimitHelpersPureFunctionTests is RateLimitHelpersTestBase {
 
         assertEq(data.maxAmount, type(uint256).max);
         assertEq(data.slope,     0);
-    }
-
-}
-
-contract RateLimitHelpersSetRateLimitDataSuccessTests is RateLimitHelpersTestBase {
-
-    function test_setRateLimitData_unlimited() external {
-        RateLimitData memory data = RateLimitData({
-            maxAmount : type(uint256).max,
-            slope     : 0
-        });
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-
-        _assertLimitData(KEY, type(uint256).max, 0, type(uint256).max, block.timestamp);
-    }
-
-    function test_setRateLimitData() external {
-        RateLimitData memory data = RateLimitData({
-            maxAmount : 100e18,
-            slope     : uint256(1e18) / 1 hours
-        });
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-
-        _assertLimitData(KEY, 100e18, uint256(1e18) / 1 hours, 100e18, block.timestamp);
     }
 
 }
