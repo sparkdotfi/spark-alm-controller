@@ -757,15 +757,15 @@ contract MainnetController is AccessControl {
     function swapUSDSToUSDC(uint256 usdcAmount) external {
         _checkRole(RELAYER);
         PSMLib.swapUSDSToUSDC(
-            usdcAmount,
             proxy,
-            psmTo18ConversionFactor,
             rateLimits,
             daiUsds,
             psm,
             usds,
             dai,
-            LIMIT_USDS_TO_USDC
+            LIMIT_USDS_TO_USDC,
+            usdcAmount,
+            psmTo18ConversionFactor
         );
 
     }
@@ -773,15 +773,15 @@ contract MainnetController is AccessControl {
     function swapUSDCToUSDS(uint256 usdcAmount) external {
         _checkRole(RELAYER);
         PSMLib.swapUSDCToUSDS(
-            usdcAmount,
             proxy,
-            psmTo18ConversionFactor,
             rateLimits,
             daiUsds,
             psm,
             dai,
             usdc,
-            LIMIT_USDS_TO_USDC
+            LIMIT_USDS_TO_USDC,
+            usdcAmount,
+            psmTo18ConversionFactor
         );
     }
 
