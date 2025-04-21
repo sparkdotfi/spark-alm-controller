@@ -20,7 +20,6 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
-import { Types }                          from "./libraries/Types.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -527,17 +526,19 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        Types.SwapCurveParams memory params = Types.SwapCurveParams({
+        CurveLib.SwapCurveParams memory params = CurveLib.SwapCurveParams({
             pool         : pool,
             rateLimitId  : LIMIT_CURVE_SWAP,
             inputIndex   : inputIndex,
             outputIndex  : outputIndex,
             amountIn     : amountIn,
             minAmountOut : minAmountOut,
-            maxSlippage  : maxSlippages[pool]
+            maxSlippage  : maxSlippages[pool],
+            proxy        : proxy,
+            rateLimits   : rateLimits
         });
 
-        amountOut = CurveLib.swapCurve(params, proxy, rateLimits);
+        amountOut = CurveLib.swap(params);
     }
 
     function addLiquidityCurve(
@@ -549,20 +550,18 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        Types.AddLiquidityParams memory params = Types.AddLiquidityParams({
+        CurveLib.AddLiquidityParams memory params = CurveLib.AddLiquidityParams({
             pool                    : pool,
             addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
             swapRateLimitId         : LIMIT_CURVE_SWAP,
             minLpAmount             : minLpAmount,
             maxSlippage             : maxSlippages[pool],
-            depositAmounts          : depositAmounts
+            depositAmounts          : depositAmounts,
+            proxy                   : proxy,
+            rateLimits              : rateLimits
         });
 
-        shares = CurveLib.addLiquidityCurve(
-            params,
-            proxy,
-            rateLimits
-        );
+        shares = CurveLib.addLiquidity(params);
     }
 
     function removeLiquidityCurve(
@@ -574,7 +573,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        withdrawnTokens = CurveLib.removeLiquidityCurve(
+        withdrawnTokens = CurveLib.removeLiquidity(
             pool,
             lpBurnAmount,
             minWithdrawAmounts,
