@@ -23,7 +23,7 @@ import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 
-import { RateLimitHelpers, RateLimitData }  from "../../src/RateLimitHelpers.sol";
+import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 
 contract ForkTestBase is Test {
 

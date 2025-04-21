@@ -41,7 +41,7 @@ import { MainnetControllerInit } from "../../deploy/MainnetControllerInit.sol";
 
 import { IRateLimits } from "../../src/interfaces/IRateLimits.sol";
 
-import { RateLimitHelpers, RateLimitData } from "../../src/RateLimitHelpers.sol";
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import { MockJug }          from "./mocks/MockJug.sol";
 import { MockUsdsJoin }     from "./mocks/MockUsdsJoin.sol";
@@ -53,6 +53,11 @@ struct Domain {
     string  output;
     uint256 forkId;
     address admin;
+}
+
+struct RateLimitData {
+    uint256 maxAmount;
+    uint256 slope;
 }
 
 contract FullStagingDeploy is Script {

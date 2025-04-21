@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import "../UnitTestBase.t.sol";
 
 import { RateLimits, IRateLimits }         from "../../../src/RateLimits.sol";
-import { RateLimitHelpers, RateLimitData } from "../../../src/RateLimitHelpers.sol";
+import { RateLimitHelpers } from "../../../src/RateLimitHelpers.sol";
 
 contract RateLimitHelpersWrapper {
 
@@ -18,10 +18,6 @@ contract RateLimitHelpersWrapper {
 
     function makeDomainKey(bytes32 key, uint32 domain) public pure returns (bytes32) {
         return RateLimitHelpers.makeDomainKey(key, domain);
-    }
-
-    function unlimitedRateLimit() public pure returns (RateLimitData memory) {
-        return RateLimitHelpers.unlimitedRateLimit();
     }
 
 }
@@ -82,13 +78,6 @@ contract RateLimitHelpersPureFunctionTests is RateLimitHelpersTestBase {
             wrapper.makeDomainKey(KEY, 123),
             keccak256(abi.encode(KEY, 123))
         );
-    }
-
-    function test_unlimitedRateLimit() public view {
-        RateLimitData memory data = wrapper.unlimitedRateLimit();
-
-        assertEq(data.maxAmount, type(uint256).max);
-        assertEq(data.slope,     0);
     }
 
 }
