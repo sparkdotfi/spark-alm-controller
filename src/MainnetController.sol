@@ -785,17 +785,19 @@ contract MainnetController is AccessControl {
 
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external {
         _checkRole(RELAYER);
-        CCTPLib.transferUSDCToCCTPLib(
-            usdcAmount,
-            destinationDomain,
-            proxy,
-            rateLimits,
-            LIMIT_USDC_TO_DOMAIN,
-            LIMIT_USDC_TO_CCTP,
-            mintRecipients[destinationDomain],
-            cctp,
-            usdc
-        );
+        CCTPLib.TransferUSDCToCCTPParams memory params = CCTPLib.TransferUSDCToCCTPParams({
+            proxy             : proxy,
+            rateLimits        : rateLimits,
+            cctp              : cctp,
+            usdc              : usdc,
+            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
+            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
+            mintRecipient     : mintRecipients[destinationDomain],
+            destinationDomain : destinationDomain,
+            usdcAmount        : usdcAmount,
+        });
+
+        CCTPLib.transferUSDCToCCTP(params);
     }
 
     /**********************************************************************************************/

@@ -12,6 +12,22 @@ import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 library CCTPLib {
 
     /**********************************************************************************************/
+    /*** Structs                                                                                ***/
+    /**********************************************************************************************/
+
+    struct TransferUSDCToCCTPParams {
+        IALMProxy   proxy;
+        IRateLimits rateLimits;
+        ICCTPLike   cctp;
+        IERC20      usdc;
+        bytes32     domainRateLimitId;
+        bytes32     cctpRateLimitId;
+        bytes32     mintRecipient;
+        uint32      destinationDomain;
+        uint256     usdcAmount;
+    }
+
+    /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
@@ -27,40 +43,46 @@ library CCTPLib {
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function transferUSDCToCCTPLib(
-        uint256     usdcAmount,
-        uint32      destinationDomain,
-        IALMProxy   proxy,
-        IRateLimits rateLimits,
-        bytes32     LIMIT_USDC_TO_DOMAIN,
-        bytes32     LIMIT_USDC_TO_CCTP,
-        bytes32     mintRecipient,
-        ICCTPLike   cctp,
-        IERC20      usdc
+    function transferUSDCToCCTP(
+        TransferUSDCToCCTPParams calldata params,
     ) external {
-        _rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount, rateLimits);
+        _rateLimited(params.cctpRateLimitId, params.usdcAmount, params.rateLimits);
         _rateLimited(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
-            usdcAmount,
-            rateLimits
+            RateLimitHelpers.makeDomainKey(paramas.domainRateLimitId, params.destinationDomain),
+            params.usdcAmount,
+            params.rateLimits
         );
 
-        require(mintRecipient != 0, "MainnetController/domain-not-configured");
+        require(params.mintRecipient != 0, "MainnetController/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        _approve(address(usdc), address(cctp), usdcAmount, proxy);
+        _approve(params.proxy, address(params.usdc), address(params.cctp), params.usdcAmount);
 
         // If amount is larger than limit it must be split into multiple calls
-        uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
+        uint256 burnLimit = paramse.cctp.localMinter().burnLimitsPerMessage(address(params.usdc));
 
-        while (usdcAmount > burnLimit) {
-            _initiateCCTPTransfer(burnLimit, destinationDomain, mintRecipient, proxy, cctp, usdc);
-            usdcAmount -= burnLimit;
+        while (params.usdcAmount > burnLimit) {
+            _initiateCCTPTransfer(
+                params.proxy,
+                params.cctp,
+                params.usdc,
+                burnLimit,
+                params.mintRecipient,
+                params.destinationDomain
+            );
+            params.usdcAmount -= params.burnLimit;
         }
 
         // Send remaining amount (if any)
-        if (usdcAmount > 0) {
-            _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient, proxy, cctp, usdc);
+        if (params.usdcAmount > 0) {
+            _initiateCCTPTransfer(
+                params.proxy,
+                proxy.cctp,
+                proxy.usdc,
+                proxy.usdcAmount,
+                proxy.mintRecipient,
+                proxy.destinationDomain
+            );
         }
     }
 
@@ -69,10 +91,10 @@ library CCTPLib {
     /**********************************************************************************************/
 
     function _approve(
+        IALMProxy proxy,
         address   token,
         address   spender,
-        uint256   amount,
-        IALMProxy proxy
+        uint256   amount
     )
         internal
     {
@@ -80,12 +102,12 @@ library CCTPLib {
     }
 
     function _initiateCCTPTransfer(
-        uint256   usdcAmount,
-        uint32    destinationDomain,
-        bytes32   mintRecipient,
         IALMProxy proxy,
         ICCTPLike cctp,
-        IERC20    usdc
+        IERC20    usdc,
+        uint256   usdcAmount,
+        bytes32   mintRecipient,
+        uint32    destinationDomain
     )
         internal
     {
