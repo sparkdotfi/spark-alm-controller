@@ -136,7 +136,6 @@ library MainnetControllerInit {
 
     function _initController(InitParams[] memory params) private {
         for (uint256 i = 0; i < params.length; i++) {
-
             // Step 1: Perform controller sanity checks
 
             MainnetController newController = MainnetController(params[i].controllerInst.controller);
