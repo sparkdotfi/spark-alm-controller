@@ -59,11 +59,17 @@ library CurveLib {
         IRateLimits rateLimits;
     }
 
-    function swap(
-        SwapCurveParams calldata params
-    )
-        external returns (uint256 amountOut)
-    {
+    struct RemoveLiquidityParams {
+        address     pool;
+        uint256     lpBurnAmount;
+        uint256[]   minWithdrawAmounts;
+        uint256     maxSlippage;
+        IALMProxy   proxy;
+        IRateLimits rateLimits;
+        bytes32     rateLimitId;
+    }
+
+    function swap(SwapCurveParams calldata params) external returns (uint256 amountOut) {
         require(params.inputIndex != params.outputIndex, "MainnetController/invalid-indices");
 
         require(params.maxSlippage != 0, "MainnetController/max-slippage-not-set");
@@ -125,11 +131,7 @@ library CurveLib {
         );
     }
 
-    function addLiquidity(
-        AddLiquidityParams calldata params
-    )
-        external returns (uint256 shares)
-    {
+    function addLiquidity(AddLiquidityParams calldata params) external returns (uint256 shares) {
         require(params.maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
         ICurvePoolLike curvePool = ICurvePoolLike(params.pool);
@@ -197,23 +199,13 @@ library CurveLib {
         );
     }
 
-    function removeLiquidity(
-        address          pool,
-        uint256          lpBurnAmount,
-        uint256[] memory minWithdrawAmounts,
-        uint256          maxSlippage,
-        IALMProxy        proxy,
-        IRateLimits      rateLimits,
-        bytes32          rateLimitId
-    )
-        external returns (uint256[] memory withdrawnTokens)
-    {
-        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
+    function removeLiquidity(RemoveLiquidityParams calldata params) external returns (uint256[] memory withdrawnTokens) {
+        require(params.maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
-        ICurvePoolLike curvePool = ICurvePoolLike(pool);
+        ICurvePoolLike curvePool = ICurvePoolLike(params.pool);
 
         require(
-            minWithdrawAmounts.length == curvePool.N_COINS(),
+            params.minWithdrawAmounts.length == curvePool.N_COINS(),
             "MainnetController/invalid-min-withdraw-amounts"
         );
 
@@ -222,23 +214,23 @@ library CurveLib {
 
         // Aggregate the minimum values of the withdrawn assets (e.g. USD)
         uint256 valueMinWithdrawn;
-        for (uint256 i = 0; i < minWithdrawAmounts.length; i++) {
-            valueMinWithdrawn += minWithdrawAmounts[i] * rates[i];
+        for (uint256 i = 0; i < params.minWithdrawAmounts.length; i++) {
+            valueMinWithdrawn += params.minWithdrawAmounts[i] * rates[i];
         }
         valueMinWithdrawn /= 1e18;
 
         // Check that the aggregated minimums are greater than the max slippage amount
         require(
-            valueMinWithdrawn >= lpBurnAmount * curvePool.get_virtual_price() * maxSlippage / 1e36,
+            valueMinWithdrawn >= params.lpBurnAmount * curvePool.get_virtual_price() * params.maxSlippage / 1e36,
             "MainnetController/min-amount-not-met"
         );
 
         withdrawnTokens = abi.decode(
-            proxy.doCall(
-                pool,
+            params.proxy.doCall(
+                params.pool,
                 abi.encodeCall(
                     curvePool.remove_liquidity,
-                    (lpBurnAmount, minWithdrawAmounts, address(proxy))
+                    (params.lpBurnAmount, params.minWithdrawAmounts, address(params.proxy))
                 )
             ),
             (uint256[])
@@ -251,8 +243,8 @@ library CurveLib {
         }
         valueWithdrawn /= 1e18;
 
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(rateLimitId, pool),
+        params.rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(params.rateLimitId, params.pool),
             valueWithdrawn
         );
     }

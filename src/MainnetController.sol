@@ -573,15 +573,17 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        withdrawnTokens = CurveLib.removeLiquidity(
-            pool,
-            lpBurnAmount,
-            minWithdrawAmounts,
-            maxSlippages[pool],
-            proxy,
-            rateLimits,
-            LIMIT_CURVE_WITHDRAW
-        );
+        CurveLib.RemoveLiquidityParams memory params = CurveLib.RemoveLiquidityParams({
+            pool               : pool,
+            lpBurnAmount       : lpBurnAmount,
+            minWithdrawAmounts : minWithdrawAmounts,
+            maxSlippage        : maxSlippages[pool],
+            proxy              : proxy,
+            rateLimits         : rateLimits,
+            rateLimitId        : LIMIT_CURVE_WITHDRAW
+        });
+
+        withdrawnTokens = CurveLib.removeLiquidity(params);
     }
 
     /**********************************************************************************************/
@@ -756,33 +758,38 @@ contract MainnetController is AccessControl {
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
     function swapUSDSToUSDC(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        PSMLib.swapUSDSToUSDC(
-            proxy,
-            rateLimits,
-            daiUsds,
-            psm,
-            usds,
-            dai,
-            LIMIT_USDS_TO_USDC,
-            usdcAmount,
-            psmTo18ConversionFactor
-        );
 
+        PSMLib.SwapUSDSToUSDCParams memory params = PSMLib.SwapUSDSToUSDCParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            daiUsds                 : daiUsds,
+            psm                     : psm,
+            usds                    : usds,
+            dai                     : dai,
+            rateLimitId             : LIMIT_USDS_TO_USDC,
+            usdcAmount              : usdcAmount,
+            psmTo18ConversionFactor : psmTo18ConversionFactor
+        });
+
+        PSMLib.swapUSDSToUSDC(params);
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        PSMLib.swapUSDCToUSDS(
-            proxy,
-            rateLimits,
-            daiUsds,
-            psm,
-            dai,
-            usdc,
-            LIMIT_USDS_TO_USDC,
-            usdcAmount,
-            psmTo18ConversionFactor
-        );
+
+        PSMLib.SwapUSDCToUSDSParams memory params = PSMLib.SwapUSDCToUSDSParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            daiUsds                 : daiUsds,
+            psm                     : psm,
+            dai                     : dai,
+            usdc                    : usdc,
+            rateLimitId             : LIMIT_USDS_TO_USDC,
+            usdcAmount              : usdcAmount,
+            psmTo18ConversionFactor : psmTo18ConversionFactor
+        });
+
+        PSMLib.swapUSDCToUSDS(params);
     }
 
     /**********************************************************************************************/
