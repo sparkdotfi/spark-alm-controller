@@ -527,15 +527,15 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
 
         CurveLib.SwapCurveParams memory params = CurveLib.SwapCurveParams({
+            proxy        : proxy,
+            rateLimits   : rateLimits,
             pool         : pool,
             rateLimitId  : LIMIT_CURVE_SWAP,
             inputIndex   : inputIndex,
             outputIndex  : outputIndex,
             amountIn     : amountIn,
             minAmountOut : minAmountOut,
-            maxSlippage  : maxSlippages[pool],
-            proxy        : proxy,
-            rateLimits   : rateLimits
+            maxSlippage  : maxSlippages[pool]
         });
 
         amountOut = CurveLib.swap(params);
@@ -551,14 +551,14 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
 
         CurveLib.AddLiquidityParams memory params = CurveLib.AddLiquidityParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
             pool                    : pool,
             addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
             swapRateLimitId         : LIMIT_CURVE_SWAP,
             minLpAmount             : minLpAmount,
             maxSlippage             : maxSlippages[pool],
-            depositAmounts          : depositAmounts,
-            proxy                   : proxy,
-            rateLimits              : rateLimits
+            depositAmounts          : depositAmounts
         });
 
         shares = CurveLib.addLiquidity(params);
@@ -574,13 +574,13 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
 
         CurveLib.RemoveLiquidityParams memory params = CurveLib.RemoveLiquidityParams({
-            pool               : pool,
-            lpBurnAmount       : lpBurnAmount,
-            minWithdrawAmounts : minWithdrawAmounts,
-            maxSlippage        : maxSlippages[pool],
             proxy              : proxy,
             rateLimits         : rateLimits,
-            rateLimitId        : LIMIT_CURVE_WITHDRAW
+            pool               : pool,
+            rateLimitId        : LIMIT_CURVE_WITHDRAW,
+            lpBurnAmount       : lpBurnAmount,
+            minWithdrawAmounts : minWithdrawAmounts,
+            maxSlippage        : maxSlippages[pool]
         });
 
         withdrawnTokens = CurveLib.removeLiquidity(params);

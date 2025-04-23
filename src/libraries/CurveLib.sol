@@ -37,6 +37,8 @@ interface ICurvePoolLike is IERC20 {
 library CurveLib {
 
     struct SwapCurveParams {
+        IALMProxy   proxy;
+        IRateLimits rateLimits;
         address     pool;
         bytes32     rateLimitId;
         uint256     inputIndex;
@@ -44,29 +46,27 @@ library CurveLib {
         uint256     amountIn;
         uint256     minAmountOut;
         uint256     maxSlippage;
-        IALMProxy   proxy;
-        IRateLimits rateLimits;
     }
 
     struct AddLiquidityParams {
+        IALMProxy   proxy;
+        IRateLimits rateLimits;
         address     pool;
         bytes32     addLiquidityRateLimitId;
         bytes32     swapRateLimitId;
         uint256     minLpAmount;
         uint256     maxSlippage;
         uint256[]   depositAmounts;
-        IALMProxy   proxy;
-        IRateLimits rateLimits;
     }
 
     struct RemoveLiquidityParams {
+        IALMProxy   proxy;
+        IRateLimits rateLimits;
         address     pool;
+        bytes32     rateLimitId;
         uint256     lpBurnAmount;
         uint256[]   minWithdrawAmounts;
         uint256     maxSlippage;
-        IALMProxy   proxy;
-        IRateLimits rateLimits;
-        bytes32     rateLimitId;
     }
 
     function swap(SwapCurveParams calldata params) external returns (uint256 amountOut) {
