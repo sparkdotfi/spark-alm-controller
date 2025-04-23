@@ -3,8 +3,8 @@ pragma solidity ^0.8.21;
 
 import "../UnitTestBase.t.sol";
 
-import { RateLimits, IRateLimits }         from "../../../src/RateLimits.sol";
-import { RateLimitHelpers } from "../../../src/RateLimitHelpers.sol";
+import { RateLimits, IRateLimits } from "../../../src/RateLimits.sol";
+import { RateLimitHelpers }        from "../../../src/RateLimitHelpers.sol";
 
 contract RateLimitHelpersWrapper {
 
