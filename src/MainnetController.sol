@@ -794,7 +794,7 @@ contract MainnetController is AccessControl {
             cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
             mintRecipient     : mintRecipients[destinationDomain],
             destinationDomain : destinationDomain,
-            usdcAmount        : usdcAmount,
+            usdcAmount        : usdcAmount
         });
 
         CCTPLib.transferUSDCToCCTP(params);

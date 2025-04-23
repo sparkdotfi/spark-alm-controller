@@ -44,11 +44,11 @@ library CCTPLib {
     /**********************************************************************************************/
 
     function transferUSDCToCCTP(
-        TransferUSDCToCCTPParams calldata params,
+        TransferUSDCToCCTPParams calldata params
     ) external {
         _rateLimited(params.cctpRateLimitId, params.usdcAmount, params.rateLimits);
         _rateLimited(
-            RateLimitHelpers.makeDomainKey(paramas.domainRateLimitId, params.destinationDomain),
+            RateLimitHelpers.makeDomainKey(params.domainRateLimitId, params.destinationDomain),
             params.usdcAmount,
             params.rateLimits
         );
@@ -59,9 +59,12 @@ library CCTPLib {
         _approve(params.proxy, address(params.usdc), address(params.cctp), params.usdcAmount);
 
         // If amount is larger than limit it must be split into multiple calls
-        uint256 burnLimit = paramse.cctp.localMinter().burnLimitsPerMessage(address(params.usdc));
+        uint256 burnLimit = params.cctp.localMinter().burnLimitsPerMessage(address(params.usdc));
 
-        while (params.usdcAmount > burnLimit) {
+        // This variable will get reduced in the loop below
+        uint256 usdcAmountTemp = params.usdcAmount;
+
+        while (usdcAmountTemp > burnLimit) {
             _initiateCCTPTransfer(
                 params.proxy,
                 params.cctp,
@@ -70,18 +73,18 @@ library CCTPLib {
                 params.mintRecipient,
                 params.destinationDomain
             );
-            params.usdcAmount -= params.burnLimit;
+            usdcAmountTemp -= burnLimit;
         }
 
         // Send remaining amount (if any)
-        if (params.usdcAmount > 0) {
+        if (usdcAmountTemp > 0) {
             _initiateCCTPTransfer(
                 params.proxy,
-                proxy.cctp,
-                proxy.usdc,
-                proxy.usdcAmount,
-                proxy.mintRecipient,
-                proxy.destinationDomain
+                params.cctp,
+                params.usdc,
+                usdcAmountTemp,
+                params.mintRecipient,
+                params.destinationDomain
             );
         }
     }
