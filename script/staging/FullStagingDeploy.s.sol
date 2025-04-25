@@ -512,7 +512,7 @@ contract FullStagingDeploy is Script {
 
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  token), maxAmount,       slope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  token), maxAmount,         slope);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, token), type(uint256).max, 0);
 
         vm.stopBroadcast();
