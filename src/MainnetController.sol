@@ -29,12 +29,13 @@ interface IBuidlRedeemLike {
     function redeem(uint256 usdcAmount) external;
 }
 
-interface ICurvePoolLike {
+interface ICurvePoolLike is IERC20 {
     function add_liquidity(
         uint256[] memory amounts,
         uint256 minMintAmount,
         address receiver
     ) external;
+    function balances(uint256 index) external view returns (uint256);
     function coins(uint256 index) external returns (address);
     function exchange(
         int128  inputIndex,
@@ -561,12 +562,27 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
+<<<<<<< HEAD
         uint256 maxSlippage = maxSlippages[pool];
 
+=======
+        require(inputIndex != outputIndex, "MainnetController/invalid-indices");
+
+        uint256 maxSlippage = maxSlippages[pool];
+>>>>>>> dev
         require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
         ICurvePoolLike curvePool = ICurvePoolLike(pool);
 
+<<<<<<< HEAD
+=======
+        uint256 numCoins = curvePool.N_COINS();
+        require(
+            inputIndex < numCoins && outputIndex < numCoins,
+            "MainnetController/index-too-high"
+        );
+
+>>>>>>> dev
         // Normalized to provide 36 decimal precision when multiplied by asset amount
         uint256[] memory rates = curvePool.stored_rates();
 
@@ -599,8 +615,13 @@ contract MainnetController is AccessControl {
                 abi.encodeCall(
                     curvePool.exchange,
                     (
+<<<<<<< HEAD
                         int128(int256(inputIndex)),   // Assuming safe cast because of 8 token max
                         int128(int256(outputIndex)),  // Assuming safe cast because of 8 token max
+=======
+                        int128(int256(inputIndex)),   // safe cast because of 8 token max
+                        int128(int256(outputIndex)),  // safe cast because of 8 token max
+>>>>>>> dev
                         amountIn,
                         minAmountOut,
                         address(proxy)
@@ -621,14 +642,24 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
 
         uint256 maxSlippage = maxSlippages[pool];
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
         require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
         ICurvePoolLike curvePool = ICurvePoolLike(pool);
 
+<<<<<<< HEAD
         uint256 numCoins = curvePool.N_COINS();
 
         require(depositAmounts.length == numCoins, "MainnetController/invalid-deposit-amounts");
+=======
+        require(
+            depositAmounts.length == curvePool.N_COINS(),
+            "MainnetController/invalid-deposit-amounts"
+        );
+>>>>>>> dev
 
         // Normalized to provide 36 decimal precision when multiplied by asset amount
         uint256[] memory rates = curvePool.stored_rates();
@@ -663,6 +694,27 @@ contract MainnetController is AccessControl {
             ),
             (uint256)
         );
+<<<<<<< HEAD
+=======
+
+        // Compute the swap value by taking the difference of the current underlying
+        // asset values from minted shares vs the deposited funds, converting this into an
+        // aggregated swap "amount in" by dividing the total value moved by two and decrease the
+        // swap rate limit by this amount.
+        uint256 totalSwapped;
+        for (uint256 i; i < depositAmounts.length; i++) {
+            totalSwapped += _absSubtraction(
+                curvePool.balances(i) * rates[i] * shares / curvePool.totalSupply(),
+                depositAmounts[i] * rates[i]
+            );
+        }
+        uint256 averageSwap = totalSwapped / 2 / 1e18;
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_SWAP, pool),
+            averageSwap
+        );
+>>>>>>> dev
     }
 
     function removeLiquidityCurve(
@@ -675,15 +727,23 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
 
         uint256 maxSlippage = maxSlippages[pool];
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
         require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
         ICurvePoolLike curvePool = ICurvePoolLike(pool);
 
+<<<<<<< HEAD
         uint256 numCoins = curvePool.N_COINS();
 
         require(
             minWithdrawAmounts.length == numCoins,
+=======
+        require(
+            minWithdrawAmounts.length == curvePool.N_COINS(),
+>>>>>>> dev
             "MainnetController/invalid-min-withdraw-amounts"
         );
 
@@ -692,7 +752,11 @@ contract MainnetController is AccessControl {
 
         // Aggregate the minimum values of the withdrawn assets (e.g. USD)
         uint256 valueMinWithdrawn;
+<<<<<<< HEAD
         for (uint256 i = 0; i < numCoins; i++) {
+=======
+        for (uint256 i = 0; i < minWithdrawAmounts.length; i++) {
+>>>>>>> dev
             valueMinWithdrawn += minWithdrawAmounts[i] * rates[i];
         }
         valueMinWithdrawn /= 1e18;
@@ -1003,6 +1067,10 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
+
+    function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a > b ? a - b : b - a;
+    }
 
     function _approve(address token, address spender, uint256 amount) internal {
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));

@@ -43,6 +43,19 @@ interface IVatLike {
     function can(address, address) external view returns (uint256);
 }
 
+interface IMapleTokenExtended is IERC4626 {
+    function manager() external view returns (address);
+}
+
+interface IWithdrawalManagerLike {
+    function processRedemptions(uint256 maxSharesToProcess) external;
+}
+
+interface IPoolManagerLike {
+    function withdrawalManager() external view returns (IWithdrawalManagerLike);
+    function poolDelegate() external view returns (address);
+}
+
 contract StagingDeploymentTestBase is Test {
 
     using stdJson           for *;
@@ -62,17 +75,17 @@ contract StagingDeploymentTestBase is Test {
     address admin;
 
     // Configuration data
+    string inputArbitrum;
     string inputBase;
     string inputMainnet;
-    string outputBase;
-    string outputBaseDeps;
-    string outputMainnet;
-    string outputMainnetDeps;
 
     // Bridging
     Domain mainnet;
+    Domain arbitrum;
     Domain base;
-    Bridge cctpBridge;
+
+    Bridge cctpBridgeArbitrum;
+    Bridge cctpBridgeBase;
 
     // Mainnet contracts
 
@@ -88,6 +101,20 @@ contract StagingDeploymentTestBase is Test {
     ALMProxy          almProxy;
     MainnetController mainnetController;
     RateLimits        rateLimits;
+
+    // Arbitrum contracts
+
+    address relayerSafeArbitrum;
+
+    PSM3 psmArbitrum;
+
+    IERC20 usdsArbitrum;
+    IERC20 susdsArbitrum;
+    IERC20 usdcArbitrum;
+
+    ALMProxy          arbitrumAlmProxy;
+    ForeignController arbitrumController;
+    RateLimits        arbitrumRateLimits;
 
     // Base contracts
 
@@ -111,52 +138,73 @@ contract StagingDeploymentTestBase is Test {
         vm.setEnv("FOUNDRY_ROOT_CHAINID", "1");
 
         // Domains and bridge
-        mainnet    = getChain("mainnet").createSelectFork();
-        base       = getChain("base").createFork();
-        cctpBridge = CCTPBridgeTesting.createCircleBridge(mainnet, base);
+        mainnet    = getChain("mainnet").createSelectFork(22233941);  // April 9, 2025
+        base       = getChain("base").createFork(28721799);           // April 9, 2025
+        arbitrum   = getChain("arbitrum_one").createFork(324683441);  // April 9, 2025
+
+        cctpBridgeArbitrum = CCTPBridgeTesting.createCircleBridge(mainnet, arbitrum);
+        cctpBridgeBase     = CCTPBridgeTesting.createCircleBridge(mainnet, base);
 
         // JSON data
-        inputBase    = ScriptTools.readInput("base-staging");
-        inputMainnet = ScriptTools.readInput("mainnet-staging");
+        inputArbitrum = ScriptTools.readInput("arbitrum_one-staging");
+        inputBase     = ScriptTools.readInput("base-staging");
+        inputMainnet  = ScriptTools.readInput("mainnet-staging");
 
-        outputBase        = ScriptTools.readOutput("base-staging-release",         RELEASE_DATE);
-        outputBaseDeps    = ScriptTools.readOutput("base-staging-deps-release",    RELEASE_DATE);
-        outputMainnet     = ScriptTools.readOutput("mainnet-staging-release",      RELEASE_DATE);
-        outputMainnetDeps = ScriptTools.readOutput("mainnet-staging-deps-release", RELEASE_DATE);
+        // --- Mainnet ---
 
         // Roles
-        admin       = outputMainnetDeps.readAddress(".admin");
-        relayerSafe = outputMainnetDeps.readAddress(".relayer");
+        admin       = inputMainnet.readAddress(".admin");
+        relayerSafe = inputMainnet.readAddress(".relayer");
 
         // Tokens
-        usds  = Usds(outputMainnetDeps.readAddress(".usds"));
-        susds = SUsds(outputMainnetDeps.readAddress(".susds"));
-        usdc  = IERC20(outputMainnetDeps.readAddress(".usdc"));
-        dai   = IERC20(outputMainnetDeps.readAddress(".dai"));
+        usds  = Usds(inputMainnet.readAddress(".usds"));
+        susds = SUsds(inputMainnet.readAddress(".susds"));
+        usdc  = IERC20(inputMainnet.readAddress(".usdc"));
+        dai   = IERC20(inputMainnet.readAddress(".dai"));
 
         // Dependencies
-        vault    = outputMainnetDeps.readAddress(".allocatorVault");
-        usdsJoin = outputMainnetDeps.readAddress(".usdsJoin");
+        vault    = inputMainnet.readAddress(".allocatorVault");
+        usdsJoin = inputMainnet.readAddress(".usdsJoin");
 
         // ALM system
-        almProxy          = ALMProxy(payable(outputMainnet.readAddress(".almProxy")));
-        rateLimits        = RateLimits(outputMainnet.readAddress(".rateLimits"));
-        mainnetController = MainnetController(outputMainnet.readAddress(".controller"));
+        almProxy          = ALMProxy(payable(inputMainnet.readAddress(".almProxy")));
+        rateLimits        = RateLimits(inputMainnet.readAddress(".rateLimits"));
+        mainnetController = MainnetController(inputMainnet.readAddress(".controller"));
 
-        // Base roles
-        relayerSafeBase = outputBaseDeps.readAddress(".relayer");
+        // --- Arbitrum ---
 
-        // Base tokens
+        // Roles
+        relayerSafeArbitrum = inputArbitrum.readAddress(".relayer");
+
+        // Tokens
+        usdsArbitrum  = IERC20(inputArbitrum.readAddress(".usds"));
+        susdsArbitrum = IERC20(inputArbitrum.readAddress(".susds"));
+        usdcArbitrum  = IERC20(inputArbitrum.readAddress(".usdc"));
+
+        // ALM system
+        arbitrumAlmProxy   = ALMProxy(payable(inputArbitrum.readAddress(".almProxy")));
+        arbitrumController = ForeignController(inputArbitrum.readAddress(".controller"));
+        arbitrumRateLimits = RateLimits(inputArbitrum.readAddress(".rateLimits"));
+
+        // PSM3
+        psmArbitrum = PSM3(inputArbitrum.readAddress(".psm"));
+
+        // --- Base ---
+
+        // Roles
+        relayerSafeBase = inputBase.readAddress(".relayer");
+
+        // Tokens
         usdsBase  = IERC20(inputBase.readAddress(".usds"));
         susdsBase = IERC20(inputBase.readAddress(".susds"));
         usdcBase  = IERC20(inputBase.readAddress(".usdc"));
 
-        // Base ALM system
-        baseAlmProxy   = ALMProxy(payable(outputBase.readAddress(".almProxy")));
-        baseController = ForeignController(outputBase.readAddress(".controller"));
-        baseRateLimits = RateLimits(outputBase.readAddress(".rateLimits"));
+        // ALM system
+        baseAlmProxy   = ALMProxy(payable(inputBase.readAddress(".almProxy")));
+        baseController = ForeignController(inputBase.readAddress(".controller"));
+        baseRateLimits = RateLimits(inputBase.readAddress(".rateLimits"));
 
-        // Base PSM
+        // PSM3
         psmBase = PSM3(inputBase.readAddress(".psm"));
 
         mainnet.selectFork();
@@ -303,6 +351,33 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         assertEq(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);
     }
 
+    // TODO: Get Maple team to whitelist staging almProxy for testing when needed
+    // function test_mintDepositWithdrawSyrupUsdc() public {
+    //     vm.startPrank(relayerSafe);
+    //     mainnetController.mintUSDS(10e18);
+    //     mainnetController.swapUSDSToUSDC(10e6);
+    //     vm.stopPrank();
+
+    //     uint256 startingBalance = usdc.balanceOf(address(almProxy));
+
+    //     vm.startPrank(relayerSafe);
+    //     uint256 shares = mainnetController.depositERC4626(Ethereum.SYRUP_USDC, 10e6);
+
+    //     skip(1 days);
+
+    //     mainnetController.requestMapleRedemption(Ethereum.SYRUP_USDC, shares);
+
+    //     IMapleTokenExtended syrup = IMapleTokenExtended(Ethereum.SYRUP_USDC);
+
+    //     IWithdrawalManagerLike withdrawManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
+    //     vm.startPrank(IPoolManagerLike(syrup.manager()).poolDelegate());
+    //     withdrawManager.processRedemptions(shares);
+    //     vm.stopPrank();
+
+    //     assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
+    // }
+
+
     /**********************************************************************************************/
     /**** Helper functions                                                                      ***/
     /**********************************************************************************************/
@@ -337,9 +412,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     using DomainHelpers     for *;
     using CCTPBridgeTesting for *;
 
-    address constant AUSDC_BASE        = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
-    address constant MORPHO            = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
-    address constant MORPHO_VAULT_USDC = 0x305E03Ed9ADaAB22F4A58c24515D79f2B1E2FD5D;
+    address constant AUSDC_BASE = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
+    address constant MORPHO     = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
 
     function setUp() public override {
         super.setUp();
@@ -360,7 +434,7 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToDestination(true);
+        cctpBridgeBase.relayMessagesToDestination(true);
 
         assertEq(usdcBase.balanceOf(address(baseAlmProxy)), startingBalance + 10e6);
     }
@@ -378,7 +452,7 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToDestination(true);
+        cctpBridgeBase.relayMessagesToDestination(true);
 
         uint256 startingShares = psmBase.shares(address(baseAlmProxy));
 
@@ -400,7 +474,7 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToDestination(true);
+        cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
         baseController.depositPSM(address(usdcBase), 10e6);
@@ -409,7 +483,7 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         baseController.transferUSDCToCCTP(10e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToSource(true);
+        cctpBridgeBase.relayMessagesToSource(true);
 
         vm.startPrank(relayerSafe);
         mainnetController.swapUSDCToUSDS(10e6 - 1);
@@ -426,7 +500,7 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToDestination(true);
+        cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
         baseController.depositAave(AUSDC_BASE, 10e6);
@@ -440,7 +514,7 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         baseController.transferUSDCToCCTP(10e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToSource(true);
+        cctpBridgeBase.relayMessagesToSource(true);
 
         vm.startPrank(relayerSafe);
         mainnetController.swapUSDCToUSDS(10e6 - 1);
@@ -449,8 +523,6 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositWithdrawFundsFromBaseMorphoUsdc() public {
-        _setUpMorphoMarket();
-
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -459,21 +531,21 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToDestination(true);
+        cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
-        baseController.depositERC4626(MORPHO_VAULT_USDC, 10e6);
+        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
         skip(1 days);
-        baseController.withdrawERC4626(MORPHO_VAULT_USDC, 10e6);
+        baseController.withdrawERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
 
         assertEq(usdcBase.balanceOf(address(baseAlmProxy)), 10e6);
 
-        assertGe(IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)), 0);  // Interest earned
+        assertGe(IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)), 0);  // Interest earned
 
         baseController.transferUSDCToCCTP(1e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToSource(true);
+        cctpBridgeBase.relayMessagesToSource(true);
 
         vm.startPrank(relayerSafe);
         mainnetController.swapUSDCToUSDS(1e6 - 1);
@@ -482,8 +554,6 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositRedeemFundsFromBaseMorphoUsdc() public {
-        _setUpMorphoMarket();
-
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -492,21 +562,21 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToDestination(true);
+        cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
-        baseController.depositERC4626(MORPHO_VAULT_USDC, 10e6);
+        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
         skip(1 days);
-        baseController.redeemERC4626(MORPHO_VAULT_USDC, IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)));
+        baseController.redeemERC4626(Base.MORPHO_VAULT_SUSDC, IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)));
 
         assertGe(usdcBase.balanceOf(address(baseAlmProxy)), 10e6);  // Interest earned
 
-        assertEq(IERC20(MORPHO_VAULT_USDC).balanceOf(address(baseAlmProxy)), 0);
+        assertEq(IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)), 0);
 
         baseController.transferUSDCToCCTP(1e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
         vm.stopPrank();
 
-        cctpBridge.relayMessagesToSource(true);
+        cctpBridgeBase.relayMessagesToSource(true);
 
         vm.startPrank(relayerSafe);
         mainnetController.swapUSDCToUSDS(1e6 - 1);
@@ -514,32 +584,86 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         vm.stopPrank();
     }
 
-    // TODO: Replace this once market is live
-    function _setUpMorphoMarket() public {
-        vm.startPrank(Base.SPARK_EXECUTOR);
+}
 
-        // Add in the idle markets so deposits can be made
-        MarketParams memory usdcParams = MarketParams({
-            loanToken       : Base.USDC,
-            collateralToken : address(0),
-            oracle          : address(0),
-            irm             : address(0),
-            lltv            : 0
-        });
+contract ArbitrumStagingDeploymentTests is StagingDeploymentTestBase {
 
-        IMetaMorpho(MORPHO_VAULT_USDC).submitCap(
-            usdcParams,
-            type(uint184).max
-        );
+    using DomainHelpers     for *;
+    using CCTPBridgeTesting for *;
 
+    function setUp() public override {
+        super.setUp();
+
+        arbitrum.selectFork();
+    }
+
+    function test_transferCCTP() public {
+        arbitrum.selectFork();
+
+        uint256 startingBalance = usdcArbitrum.balanceOf(address(arbitrumAlmProxy));
+
+        mainnet.selectFork();
+
+        vm.startPrank(relayerSafe);
+        mainnetController.mintUSDS(10e18);
+        mainnetController.swapUSDSToUSDC(10e6);
+        mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
+        vm.stopPrank();
+
+        cctpBridgeArbitrum.relayMessagesToDestination(true);
+
+        assertEq(usdcArbitrum.balanceOf(address(arbitrumAlmProxy)), startingBalance + 10e6);
+    }
+
+    function test_transferToPSM() public {
+        arbitrum.selectFork();
+
+        uint256 startingBalance = usdcArbitrum.balanceOf(address(psmArbitrum));
+
+        mainnet.selectFork();
+
+        vm.startPrank(relayerSafe);
+        mainnetController.mintUSDS(10e18);
+        mainnetController.swapUSDSToUSDC(10e6);
+        mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
+        vm.stopPrank();
+
+        cctpBridgeArbitrum.relayMessagesToDestination(true);
+
+        uint256 startingShares = psmArbitrum.shares(address(arbitrumAlmProxy));
+
+        vm.startPrank(relayerSafeArbitrum);
+        arbitrumController.depositPSM(address(usdcArbitrum), 10e6);
+        vm.stopPrank();
+
+        assertEq(usdcArbitrum.balanceOf(address(psmArbitrum)), startingBalance + 10e6);
+
+        assertEq(psmArbitrum.shares(address(arbitrumAlmProxy)), startingShares + psmArbitrum.convertToShares(10e18));
+    }
+
+    function test_addAndRemoveFundsFromArbitrumPSM() public {
+        mainnet.selectFork();
+
+        vm.startPrank(relayerSafe);
+        mainnetController.mintUSDS(10e18);
+        mainnetController.swapUSDSToUSDC(10e6);
+        mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
+        vm.stopPrank();
+
+        cctpBridgeArbitrum.relayMessagesToDestination(true);
+
+        vm.startPrank(relayerSafeArbitrum);
+        arbitrumController.depositPSM(address(usdcArbitrum), 10e6);
         skip(1 days);
+        arbitrumController.withdrawPSM(address(usdcArbitrum), 10e6);
+        arbitrumController.transferUSDCToCCTP(10e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
+        vm.stopPrank();
 
-        IMetaMorpho(MORPHO_VAULT_USDC).acceptCap(usdcParams);
+        cctpBridgeArbitrum.relayMessagesToSource(true);
 
-        Id[] memory supplyQueueUSDC = new Id[](1);
-        supplyQueueUSDC[0] = MarketParamsLib.id(usdcParams);
-        IMetaMorpho(MORPHO_VAULT_USDC).setSupplyQueue(supplyQueueUSDC);
-
+        vm.startPrank(relayerSafe);
+        mainnetController.swapUSDCToUSDS(10e6 - 1);
+        mainnetController.burnUSDS((10e6 - 1) * 1e12);
         vm.stopPrank();
     }
 

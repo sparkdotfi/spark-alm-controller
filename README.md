@@ -64,7 +64,7 @@ This is a linear rate limit that increases over time with a maximum limit. This 
 Below are all stated trust assumptions for using this contract in production:
 - The `DEFAULT_ADMIN_ROLE` is fully trusted, to be run by governance.
 - The `RELAYER` role is assumed to be able to be fully compromised by a malicious actor. **This should be a major consideration during auditing engagements.**
-  - The logic in the smart contracts must prevent the movement of value anywhere outside of the ALM system of contracts.
+  - The logic in the smart contracts must prevent the movement of value anywhere outside of the ALM system of contracts. The exception for this is in asynchronous style integrations such as BUIDL, where `transferAsset` can be used to send funds to a whitelisted address. LP tokens are then asynchronously minted into the ALMProxy in a separate transaction.
   - Any action must be limited to "reasonable" slippage/losses/opportunity cost by rate limits.
   - The `FREEZER` must be able to stop the compromised `RELAYER` from performing more harmful actions within the max rate limits by using the `removeRelayer` function.
 - A compromised `RELAYER` can perform DOS attacks. These attacks along with their respective recovery procedures are outlined in the `Attacks.t.sol` test files.
@@ -110,12 +110,16 @@ anvil --fork-url $MAINNET_RPC_URL
 ```
 anvil --fork-url $BASE_RPC_URL -p 8546
 ```
+```
+anvil --fork-url $ARBITRUM_ONE_RPC_URL -p 8547
+```
 
 2. Point to local RPCs.
 
 ```
 export MAINNET_RPC_URL=http://127.0.0.1:8545
 export BASE_RPC_URL=http://127.0.0.1:8546
+export ARBITRUM_ONE_RPC_URL=http://127.0.0.1:8547
 ```
 
 3. Upgrade mainnet contracts impersonating as the `SPARK_PROXY`.
