@@ -55,11 +55,6 @@ struct Domain {
     address admin;
 }
 
-struct RateLimitData {
-    uint256 maxAmount;
-    uint256 slope;
-}
-
 contract FullStagingDeploy is Script {
 
     using stdJson     for string;
