@@ -74,6 +74,7 @@ contract MainnetControllerDeployTests is UnitTestBase {
         address admin;
         address vault;
         address cctp;
+        address dsToken;
     }
 
     function test_deployController() public {
@@ -83,8 +84,9 @@ contract MainnetControllerDeployTests is UnitTestBase {
         vars.psm     = address(new MockPSM(makeAddr("usdc")));
         vars.vault   = address(new MockVault(makeAddr("buffer")));
 
-        vars.admin = makeAddr("admin");
-        vars.cctp  = makeAddr("cctp");
+        vars.admin  = makeAddr("admin");
+        vars.cctp   = makeAddr("cctp");
+        vars.dsToken = makeAddr("dsToken");
 
         address almProxy   = address(new ALMProxy(admin));
         address rateLimits = address(new RateLimits(admin));
@@ -97,7 +99,8 @@ contract MainnetControllerDeployTests is UnitTestBase {
                 vars.vault,
                 vars.psm,
                 vars.daiUsds,
-                vars.cctp
+                vars.cctp,
+                vars.dsToken
             )
         );
 
@@ -125,13 +128,15 @@ contract MainnetControllerDeployTests is UnitTestBase {
 
         vars.admin  = makeAddr("admin");
         vars.cctp   = makeAddr("cctp");
+        vars.dsToken = makeAddr("dsToken");
 
         ControllerInstance memory instance = MainnetControllerDeploy.deployFull(
             admin,
             vars.vault,
             vars.psm,
             vars.daiUsds,
-            vars.cctp
+            vars.cctp,
+            vars.dsToken
         );
 
         ALMProxy          almProxy   = ALMProxy(payable(instance.almProxy));

@@ -112,6 +112,7 @@ contract ForkTestBase is DssTest {
     address constant PAUSE_PROXY    = Ethereum.PAUSE_PROXY;
     address constant PSM            = Ethereum.PSM;
     address constant SPARK_PROXY    = Ethereum.SPARK_PROXY;
+    address constant DS_TOKEN       = 0xc65fEa0aCFeb97bF8d10F655d65C4F9320EDeAb0;
 
     IERC20 constant dai   = IERC20(Ethereum.DAI);
     IERC20 constant usdc  = IERC20(Ethereum.USDC);
@@ -223,7 +224,8 @@ contract ForkTestBase is DssTest {
             vault   : ilkInst.vault,
             psm     : Ethereum.PSM,
             daiUsds : Ethereum.DAI_USDS,
-            cctp    : Ethereum.CCTP_TOKEN_MESSENGER
+            cctp    : Ethereum.CCTP_TOKEN_MESSENGER,
+            dsToken : 0xc65fEa0aCFeb97bF8d10F655d65C4F9320EDeAb0
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));

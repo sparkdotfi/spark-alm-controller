@@ -62,7 +62,8 @@ library MainnetControllerDeploy {
         address vault,
         address psm,
         address daiUsds,
-        address cctp
+        address cctp,
+        address dsToken
     )
         internal returns (address controller)
     {
@@ -73,7 +74,8 @@ library MainnetControllerDeploy {
             vault_      : vault,
             psm_        : psm,
             daiUsds_    : daiUsds,
-            cctp_       : cctp
+            cctp_       : cctp,
+            dsToken_    : dsToken
         }));
     }
 
@@ -82,7 +84,8 @@ library MainnetControllerDeploy {
         address vault,
         address psm,
         address daiUsds,
-        address cctp
+        address cctp,
+        address dsToken
     )
         internal returns (ControllerInstance memory instance)
     {
@@ -96,7 +99,8 @@ library MainnetControllerDeploy {
             vault_      : vault,
             psm_        : psm,
             daiUsds_    : daiUsds,
-            cctp_       : cctp
+            cctp_       : cctp,
+            dsToken_    : dsToken
         }));
     }
 

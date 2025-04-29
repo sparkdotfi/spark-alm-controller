@@ -109,6 +109,10 @@ interface IVaultLike {
     function wipe(uint256 usdsAmount) external;
 }
 
+interface IDSTokenLike {
+    function swapDSToken(uint256 amount) external;
+}
+
 contract MainnetController is AccessControl {
 
     /**********************************************************************************************/
@@ -155,7 +159,7 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
     bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
     bytes32 public constant LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
-
+    bytes32 public constant LIMIT_DSTOKEN_SWAP         = keccak256("LIMIT_DSTOKEN_SWAP");
     address public immutable buffer;
 
     IALMProxy         public immutable proxy;
@@ -167,6 +171,7 @@ contract MainnetController is AccessControl {
     IRateLimits       public immutable rateLimits;
     ISSRedemptionLike public immutable superstateRedemption;
     IVaultLike        public immutable vault;
+    IDSTokenLike      public immutable dsToken;
 
     IERC20     public immutable dai;
     IERC20     public immutable usds;
@@ -192,7 +197,8 @@ contract MainnetController is AccessControl {
         address vault_,
         address psm_,
         address daiUsds_,
-        address cctp_
+        address cctp_,
+        address dsToken_
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
@@ -203,6 +209,7 @@ contract MainnetController is AccessControl {
         psm        = IPSMLike(psm_);
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
+        dsToken    = IDSTokenLike(dsToken_);
 
         buidlRedeem          = IBuidlRedeemLike(Ethereum.BUIDL_REDEEM);
         ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
@@ -544,6 +551,16 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             address(buidlRedeem),
             abi.encodeCall(buidlRedeem.redeem, (usdcAmount))
+        );
+    }
+
+    function swapDSTokenFacility(uint256 buidlITokenAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_DSTOKEN_SWAP, buidlITokenAmount);
+
+        proxy.doCall(
+            address(dsToken),
+            abi.encodeCall(dsToken.swapDSToken, (buidlITokenAmount))
         );
     }
 

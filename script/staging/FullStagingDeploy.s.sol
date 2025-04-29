@@ -246,7 +246,8 @@ contract FullStagingDeploy is Script {
             vault   : vault,
             psm     : psm,  // Wrapper
             daiUsds : daiUsds,
-            cctp    : mainnet.input.readAddress(".cctpTokenMessenger")
+            cctp    : mainnet.input.readAddress(".cctpTokenMessenger"),
+            dsToken : mainnet.input.readAddress(".dsToken")
         });
 
         // Step 2: Initialize ALM system

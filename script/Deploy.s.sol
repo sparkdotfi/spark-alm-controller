@@ -33,7 +33,8 @@ contract DeployMainnetFull is Script {
             vault   : config.readAddress(".allocatorVault"),
             psm     : config.readAddress(".psm"),
             daiUsds : config.readAddress(".daiUsds"),
-            cctp    : config.readAddress(".cctpTokenMessenger")
+            cctp    : config.readAddress(".cctpTokenMessenger"),
+            dsToken : config.readAddress(".dsToken")
         });
 
         vm.stopBroadcast();
@@ -75,7 +76,8 @@ contract DeployMainnetController is Script {
             vault      : config.readAddress(".allocatorVault"),
             psm        : config.readAddress(".psm"),
             daiUsds    : config.readAddress(".daiUsds"),
-            cctp       : config.readAddress(".cctpTokenMessenger")
+            cctp       : config.readAddress(".cctpTokenMessenger"),
+            dsToken    : config.readAddress(".dsToken")
         });
 
         vm.stopBroadcast();

@@ -113,7 +113,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             vault      : address(vault),
             psm        : Ethereum.PSM,
             daiUsds    : Ethereum.DAI_USDS,
-            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
+            cctp       : Ethereum.CCTP_TOKEN_MESSENGER,
+            dsToken    : 0xc65fEa0aCFeb97bF8d10F655d65C4F9320EDeAb0
         }));
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
@@ -321,7 +322,8 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             address(vault),
             Ethereum.PSM,
             Ethereum.DAI_USDS,
-            Ethereum.CCTP_TOKEN_MESSENGER
+            Ethereum.CCTP_TOKEN_MESSENGER,
+            0xc65fEa0aCFeb97bF8d10F655d65C4F9320EDeAb0
         );
 
         // Overwrite storage for all previous deployments in setUp and assert brand new deployment
@@ -434,7 +436,8 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
             vault      : address(vault),
             psm        : Ethereum.PSM,
             daiUsds    : Ethereum.DAI_USDS,
-            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
+            cctp       : Ethereum.CCTP_TOKEN_MESSENGER,
+            dsToken    : 0xc65fEa0aCFeb97bF8d10F655d65C4F9320EDeAb0
         }));
 
         controllerInst = ControllerInstance({

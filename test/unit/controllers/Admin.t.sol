@@ -32,7 +32,8 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
             address(vault),
             address(psm),
             address(daiUsds),
-            makeAddr("cctp")
+            makeAddr("cctp"),
+            makeAddr("dsToken")
         );
     }
 
