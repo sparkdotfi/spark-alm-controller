@@ -32,7 +32,7 @@ import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 
-import { RateLimitHelpers, RateLimitData }  from "../../src/RateLimitHelpers.sol";
+import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 
 interface IChainlogLike {
     function getAddress(bytes32) external view returns (address);
@@ -279,15 +279,10 @@ contract ForkTestBase is DssTest {
 
         mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
 
-        RateLimitData memory standardUsdsData = RateLimitData({
-            maxAmount : 5_000_000e18,
-            slope     : uint256(1_000_000e18) / 4 hours
-        });
-
-        RateLimitData memory standardUsdcData = RateLimitData({
-            maxAmount : 5_000_000e6,
-            slope     : uint256(1_000_000e6) / 4 hours
-        });
+        uint256 usdsMaxAmount = 5_000_000e18;
+        uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
+        uint256 usdcMaxAmount = 5_000_000e6;
+        uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
         bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(
             mainnetController.LIMIT_USDC_TO_DOMAIN(),
@@ -295,10 +290,10 @@ contract ForkTestBase is DssTest {
         );
 
         // NOTE: Using minimal config for test base setup
-        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    address(rateLimits), standardUsdsData, "usdsMintData",         18);
-        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), address(rateLimits), standardUsdcData, "usdsToUsdcData",       6);
-        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), address(rateLimits), standardUsdcData, "usdcToCctpData",       6);
-        RateLimitHelpers.setRateLimitData(domainKeyBase,                          address(rateLimits), standardUsdcData, "cctpToBaseDomainData", 6);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(domainKeyBase,                          usdcMaxAmount, usdcSlope);
 
         vm.stopPrank();
 
