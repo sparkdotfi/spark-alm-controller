@@ -116,9 +116,9 @@ contract UpgradeForeignController is Script {
         relayers[1] = inputConfig.readAddress(".backstopRelayer");
 
         ForeignInit.ConfigAddressParams memory configAddresses = ForeignInit.ConfigAddressParams({
-            freezer        : inputConfig.readAddress(".freezer"),
-            relayers       : relayers,
-            oldController  : oldController
+            freezer       : inputConfig.readAddress(".freezer"),
+            relayers      : relayers,
+            oldController : oldController
         });
 
         ForeignInit.CheckAddressParams memory checkAddresses = ForeignInit.CheckAddressParams({
