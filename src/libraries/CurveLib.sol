@@ -36,6 +36,10 @@ interface ICurvePoolLike is IERC20 {
 
 library CurveLib {
 
+    /**********************************************************************************************/
+    /*** Structs                                                                                ***/
+    /**********************************************************************************************/
+
     struct SwapCurveParams {
         IALMProxy   proxy;
         IRateLimits rateLimits;
@@ -68,6 +72,10 @@ library CurveLib {
         uint256[]   minWithdrawAmounts;
         uint256     maxSlippage;
     }
+
+    /**********************************************************************************************/
+    /*** External functions                                                                     ***/
+    /**********************************************************************************************/
 
     function swap(SwapCurveParams calldata params) external returns (uint256 amountOut) {
         require(params.inputIndex != params.outputIndex, "MainnetController/invalid-indices");
@@ -159,7 +167,9 @@ library CurveLib {
 
         // Ensure minimum LP amount expected is greater than max slippage amount.
         require(
-            params.minLpAmount >= valueDeposited * params.maxSlippage / curvePool.get_virtual_price(),
+            params.minLpAmount >= valueDeposited
+                * params.maxSlippage
+                / curvePool.get_virtual_price(),
             "MainnetController/min-amount-not-met"
         );
 
@@ -199,7 +209,10 @@ library CurveLib {
         );
     }
 
-    function removeLiquidity(RemoveLiquidityParams calldata params) external returns (uint256[] memory withdrawnTokens) {
+    function removeLiquidity(RemoveLiquidityParams calldata params)
+        external
+        returns (uint256[] memory withdrawnTokens)
+    {
         require(params.maxSlippage != 0, "MainnetController/max-slippage-not-set");
 
         ICurvePoolLike curvePool = ICurvePoolLike(params.pool);
@@ -221,7 +234,10 @@ library CurveLib {
 
         // Check that the aggregated minimums are greater than the max slippage amount
         require(
-            valueMinWithdrawn >= params.lpBurnAmount * curvePool.get_virtual_price() * params.maxSlippage / 1e36,
+            valueMinWithdrawn >= params.lpBurnAmount
+                * curvePool.get_virtual_price()
+                * params.maxSlippage
+                / 1e36,
             "MainnetController/min-amount-not-met"
         );
 

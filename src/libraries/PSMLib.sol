@@ -24,6 +24,10 @@ interface IPSMLike {
 
 library PSMLib {
 
+    /**********************************************************************************************/
+    /*** Structs                                                                                ***/
+    /**********************************************************************************************/
+
     struct SwapUSDSToUSDCParams {
         IALMProxy    proxy;
         IRateLimits  rateLimits;
@@ -47,6 +51,10 @@ library PSMLib {
         uint256      usdcAmount;
         uint256      psmTo18ConversionFactor;
     }
+
+    /**********************************************************************************************/
+    /*** External functions                                                                     ***/
+    /**********************************************************************************************/
 
     function swapUSDSToUSDC(SwapUSDSToUSDCParams calldata params) external {
         _rateLimited(params.rateLimitId, params.usdcAmount, params.rateLimits);

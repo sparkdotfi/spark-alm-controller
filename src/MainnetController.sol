@@ -526,7 +526,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        CurveLib.SwapCurveParams memory params = CurveLib.SwapCurveParams({
+        amountOut = CurveLib.swap(CurveLib.SwapCurveParams({
             proxy        : proxy,
             rateLimits   : rateLimits,
             pool         : pool,
@@ -536,9 +536,7 @@ contract MainnetController is AccessControl {
             amountIn     : amountIn,
             minAmountOut : minAmountOut,
             maxSlippage  : maxSlippages[pool]
-        });
-
-        amountOut = CurveLib.swap(params);
+        }));
     }
 
     function addLiquidityCurve(
@@ -550,7 +548,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        CurveLib.AddLiquidityParams memory params = CurveLib.AddLiquidityParams({
+        shares = CurveLib.addLiquidity(CurveLib.AddLiquidityParams({
             proxy                   : proxy,
             rateLimits              : rateLimits,
             pool                    : pool,
@@ -559,9 +557,7 @@ contract MainnetController is AccessControl {
             minLpAmount             : minLpAmount,
             maxSlippage             : maxSlippages[pool],
             depositAmounts          : depositAmounts
-        });
-
-        shares = CurveLib.addLiquidity(params);
+        }));
     }
 
     function removeLiquidityCurve(
@@ -573,7 +569,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        CurveLib.RemoveLiquidityParams memory params = CurveLib.RemoveLiquidityParams({
+        withdrawnTokens = CurveLib.removeLiquidity(CurveLib.RemoveLiquidityParams({
             proxy              : proxy,
             rateLimits         : rateLimits,
             pool               : pool,
@@ -581,9 +577,7 @@ contract MainnetController is AccessControl {
             lpBurnAmount       : lpBurnAmount,
             minWithdrawAmounts : minWithdrawAmounts,
             maxSlippage        : maxSlippages[pool]
-        });
-
-        withdrawnTokens = CurveLib.removeLiquidity(params);
+        }));
     }
 
     /**********************************************************************************************/
@@ -759,7 +753,7 @@ contract MainnetController is AccessControl {
     function swapUSDSToUSDC(uint256 usdcAmount) external {
         _checkRole(RELAYER);
 
-        PSMLib.SwapUSDSToUSDCParams memory params = PSMLib.SwapUSDSToUSDCParams({
+        PSMLib.swapUSDSToUSDC(PSMLib.SwapUSDSToUSDCParams({
             proxy                   : proxy,
             rateLimits              : rateLimits,
             daiUsds                 : daiUsds,
@@ -769,15 +763,13 @@ contract MainnetController is AccessControl {
             rateLimitId             : LIMIT_USDS_TO_USDC,
             usdcAmount              : usdcAmount,
             psmTo18ConversionFactor : psmTo18ConversionFactor
-        });
-
-        PSMLib.swapUSDSToUSDC(params);
+        }));
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount) external {
         _checkRole(RELAYER);
 
-        PSMLib.SwapUSDCToUSDSParams memory params = PSMLib.SwapUSDCToUSDSParams({
+        PSMLib.swapUSDCToUSDS(PSMLib.SwapUSDCToUSDSParams({
             proxy                   : proxy,
             rateLimits              : rateLimits,
             daiUsds                 : daiUsds,
@@ -787,9 +779,7 @@ contract MainnetController is AccessControl {
             rateLimitId             : LIMIT_USDS_TO_USDC,
             usdcAmount              : usdcAmount,
             psmTo18ConversionFactor : psmTo18ConversionFactor
-        });
-
-        PSMLib.swapUSDCToUSDS(params);
+        }));
     }
 
     /**********************************************************************************************/
