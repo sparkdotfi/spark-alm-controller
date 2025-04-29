@@ -39,9 +39,13 @@ contract UpgradeMainnetController is Script {
             rateLimits : inputConfig.readAddress(".rateLimits")
         });
 
+        address[] memory relayers = new address[](2);
+        relayers[0] = inputConfig.readAddress(".relayer");
+        relayers[1] = inputConfig.readAddress(".backstopRelayer");
+
         MainnetInit.ConfigAddressParams memory configAddresses = MainnetInit.ConfigAddressParams({
             freezer       : inputConfig.readAddress(".freezer"),
-            relayer       : inputConfig.readAddress(".relayer"),
+            relayers      : relayers,
             oldController : oldController
         });
 
@@ -107,10 +111,14 @@ contract UpgradeForeignController is Script {
             rateLimits : inputConfig.readAddress(".rateLimits")
         });
 
+        address[] memory relayers = new address[](2);
+        relayers[0] = inputConfig.readAddress(".relayer");
+        relayers[1] = inputConfig.readAddress(".backstopRelayer");
+
         ForeignInit.ConfigAddressParams memory configAddresses = ForeignInit.ConfigAddressParams({
-            freezer       : inputConfig.readAddress(".freezer"),
-            relayer       : inputConfig.readAddress(".relayer"),
-            oldController : oldController
+            freezer        : inputConfig.readAddress(".freezer"),
+            relayers       : relayers,
+            oldController  : oldController
         });
 
         ForeignInit.CheckAddressParams memory checkAddresses = ForeignInit.CheckAddressParams({

@@ -117,10 +117,12 @@ contract ForkTestBase is Test {
 
         /*** Step 3: Configure ALM system through Spark governance (Spark spell payload) ***/
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = relayer;
 
         Init.ConfigAddressParams memory configAddresses = Init.ConfigAddressParams({
             freezer       : freezer,
-            relayer       : relayer,
+            relayers      : relayers,
             oldController : address(0)
         });
 

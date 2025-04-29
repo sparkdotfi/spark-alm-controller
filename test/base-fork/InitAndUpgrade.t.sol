@@ -46,9 +46,12 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
             Init.MintRecipient[]     memory mintRecipients
         )
     {
+        address[] memory relayers = new address[](1);
+        relayers[0] = relayer;
+
         configAddresses = Init.ConfigAddressParams({
             freezer       : freezer,
-            relayer       : relayer,
+            relayers      : relayers,
             oldController : address(0)
         });
 

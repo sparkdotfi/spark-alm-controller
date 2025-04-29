@@ -38,9 +38,9 @@ library MainnetControllerInit {
     }
 
     struct ConfigAddressParams {
-        address freezer;
-        address relayer;
-        address oldController;
+        address   freezer;
+        address[] relayers;
+        address   oldController;
     }
 
     struct MintRecipient {
@@ -159,11 +159,13 @@ library MainnetControllerInit {
             IALMProxy   almProxy   = IALMProxy(params[i].controllerInst.almProxy);
             IRateLimits rateLimits = IRateLimits(params[i].controllerInst.rateLimits);
 
+            almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
             newController.grantRole(newController.FREEZER(), params[i].configAddresses.freezer);
-            newController.grantRole(newController.RELAYER(), params[i].configAddresses.relayer);
+            rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-            almProxy.grantRole(almProxy.CONTROLLER(), address(newController));
-            rateLimits.grantRole(rateLimits.CONTROLLER(), address(newController));
+            for (uint256 j = 0; j < params[i].configAddresses.relayers.length; j++) {
+                newController.grantRole(newController.RELAYER(), params[i].configAddresses.relayers[j]);
+            }
 
             // Step 3: Configure the mint recipients on other domains
 
