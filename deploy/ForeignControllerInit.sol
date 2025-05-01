@@ -70,15 +70,7 @@ library ForeignControllerInit {
 
         // Step 2: Initialize the controller
 
-        InitParams[] memory params = new InitParams[](1);
-        params[0] = InitParams({
-            controllerInst:  controllerInst,
-            configAddresses: configAddresses,
-            checkAddresses:  checkAddresses,
-            mintRecipients:  mintRecipients
-        });
-
-        _initController(params);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
     }
 
     function upgradeController(
@@ -89,15 +81,7 @@ library ForeignControllerInit {
     )
         internal
     {
-        InitParams[] memory params = new InitParams[](1);
-        params[0] = InitParams({
-            controllerInst:  controllerInst,
-            configAddresses: configAddresses,
-            checkAddresses:  checkAddresses,
-            mintRecipients:  mintRecipients
-        });
-
-        _initController(params);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -115,52 +99,57 @@ library ForeignControllerInit {
     /*** Private helper functions                                                               ***/
     /**********************************************************************************************/
 
-    function _initController(InitParams[] memory params) private {
-        for (uint256 i = 0; i < params.length; i++) {
-            // Step 1: Perform controller sanity checks
+    function _initController(
+        ControllerInstance  memory controllerInst,
+        ConfigAddressParams memory configAddresses,
+        CheckAddressParams  memory checkAddresses,
+        MintRecipient[]     memory mintRecipients
+    )
+        private
+    {
+        // Step 1: Perform controller sanity checks
 
-            ForeignController newController = ForeignController(params[i].controllerInst.controller);
+        ForeignController newController = ForeignController(controllerInst.controller);
 
-            require(newController.hasRole(DEFAULT_ADMIN_ROLE, params[i].checkAddresses.admin), "ForeignControllerInit/incorrect-admin-controller");
+        require(newController.hasRole(DEFAULT_ADMIN_ROLE, checkAddresses.admin), "ForeignControllerInit/incorrect-admin-controller");
 
-            require(address(newController.proxy())      == params[i].controllerInst.almProxy,   "ForeignControllerInit/incorrect-almProxy");
-            require(address(newController.rateLimits()) == params[i].controllerInst.rateLimits, "ForeignControllerInit/incorrect-rateLimits");
+        require(address(newController.proxy())      == controllerInst.almProxy,   "ForeignControllerInit/incorrect-almProxy");
+        require(address(newController.rateLimits()) == controllerInst.rateLimits, "ForeignControllerInit/incorrect-rateLimits");
 
-            require(address(newController.psm())  == params[i].checkAddresses.psm,  "ForeignControllerInit/incorrect-psm");
-            require(address(newController.usdc()) == params[i].checkAddresses.usdc, "ForeignControllerInit/incorrect-usdc");
-            require(address(newController.cctp()) == params[i].checkAddresses.cctp, "ForeignControllerInit/incorrect-cctp");
+        require(address(newController.psm())  == checkAddresses.psm,  "ForeignControllerInit/incorrect-psm");
+        require(address(newController.usdc()) == checkAddresses.usdc, "ForeignControllerInit/incorrect-usdc");
+        require(address(newController.cctp()) == checkAddresses.cctp, "ForeignControllerInit/incorrect-cctp");
 
-            require(params[i].configAddresses.oldController != address(newController), "ForeignControllerInit/old-controller-is-new-controller");
+        require(configAddresses.oldController != address(newController), "ForeignControllerInit/old-controller-is-new-controller");
 
-            // Step 2: Perform PSM sanity checks
+        // Step 2: Perform PSM sanity checks
 
-            IPSM3Like psm = IPSM3Like(params[i].checkAddresses.psm);
+        IPSM3Like psm = IPSM3Like(checkAddresses.psm);
 
-            require(psm.totalAssets() >= 1e18, "ForeignControllerInit/psm-totalAssets-not-seeded");
-            require(psm.totalShares() >= 1e18, "ForeignControllerInit/psm-totalShares-not-seeded");
+        require(psm.totalAssets() >= 1e18, "ForeignControllerInit/psm-totalAssets-not-seeded");
+        require(psm.totalShares() >= 1e18, "ForeignControllerInit/psm-totalShares-not-seeded");
 
-            require(psm.usdc()  == params[i].checkAddresses.usdc,  "ForeignControllerInit/psm-incorrect-usdc");
-            require(psm.usds()  == params[i].checkAddresses.usds,  "ForeignControllerInit/psm-incorrect-usds");
-            require(psm.susds() == params[i].checkAddresses.susds, "ForeignControllerInit/psm-incorrect-susds");
+        require(psm.usdc()  == checkAddresses.usdc,  "ForeignControllerInit/psm-incorrect-usdc");
+        require(psm.usds()  == checkAddresses.usds,  "ForeignControllerInit/psm-incorrect-usds");
+        require(psm.susds() == checkAddresses.susds, "ForeignControllerInit/psm-incorrect-susds");
 
-            // Step 3: Configure ACL permissions controller, almProxy, and rateLimits
+        // Step 3: Configure ACL permissions controller, almProxy, and rateLimits
 
-            IALMProxy   almProxy   = IALMProxy(params[i].controllerInst.almProxy);
-            IRateLimits rateLimits = IRateLimits(params[i].controllerInst.rateLimits);
+        IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
+        IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-            almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
-            newController.grantRole(newController.FREEZER(), params[i].configAddresses.freezer);
-            rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
+        almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
+        newController.grantRole(newController.FREEZER(), configAddresses.freezer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-            for (uint256 j = 0; j < params[i].configAddresses.relayers.length; j++) {
-                newController.grantRole(newController.RELAYER(), params[i].configAddresses.relayers[j]);
-            }
+        for (uint256 j = 0; j < configAddresses.relayers.length; j++) {
+            newController.grantRole(newController.RELAYER(), configAddresses.relayers[j]);
+        }
 
-            // Step 4: Configure the mint recipients on other domains
+        // Step 4: Configure the mint recipients on other domains
 
-            for (uint256 j = 0; j < params[i].mintRecipients.length; j++) {
-                newController.setMintRecipient(params[i].mintRecipients[j].domain, params[i].mintRecipients[j].mintRecipient);
-            }
+        for (uint256 j = 0; j < mintRecipients.length; j++) {
+            newController.setMintRecipient(mintRecipients[j].domain, mintRecipients[j].mintRecipient);
         }
     }
 

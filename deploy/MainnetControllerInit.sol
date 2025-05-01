@@ -48,13 +48,6 @@ library MainnetControllerInit {
         bytes32 mintRecipient;
     }
 
-    struct InitParams {
-        ControllerInstance  controllerInst;
-        ConfigAddressParams configAddresses;
-        CheckAddressParams  checkAddresses;
-        MintRecipient[]     mintRecipients;
-    }
-
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
     /**********************************************************************************************/
@@ -78,15 +71,7 @@ library MainnetControllerInit {
 
         // Step 2: Initialize the controller
 
-        InitParams[] memory params = new InitParams[](1);
-        params[0] = InitParams({
-            controllerInst:  controllerInst,
-            configAddresses: configAddresses,
-            checkAddresses:  checkAddresses,
-            mintRecipients:  mintRecipients
-        });
-
-        _initController(params);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
 
         // Step 3: Configure almProxy within the allocation system
 
@@ -104,15 +89,7 @@ library MainnetControllerInit {
     )
         internal
     {
-        InitParams[] memory params = new InitParams[](1);
-        params[0] = InitParams({
-            controllerInst:  controllerInst,
-            configAddresses: configAddresses,
-            checkAddresses:  checkAddresses,
-            mintRecipients:  mintRecipients
-        });
-
-        _initController(params);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -134,44 +111,49 @@ library MainnetControllerInit {
     /*** Private helper functions                                                               ***/
     /**********************************************************************************************/
 
-    function _initController(InitParams[] memory params) private {
-        for (uint256 i = 0; i < params.length; i++) {
-            // Step 1: Perform controller sanity checks
+    function _initController(
+        ControllerInstance  memory controllerInst,
+        ConfigAddressParams memory configAddresses,
+        CheckAddressParams  memory checkAddresses,
+        MintRecipient[]     memory mintRecipients
+    )
+        private
+    {
+        // Step 1: Perform controller sanity checks
 
-            MainnetController newController = MainnetController(params[i].controllerInst.controller);
+        MainnetController newController = MainnetController(controllerInst.controller);
 
-            require(newController.hasRole(DEFAULT_ADMIN_ROLE, params[i].checkAddresses.admin), "MainnetControllerInit/incorrect-admin-controller");
+        require(newController.hasRole(DEFAULT_ADMIN_ROLE, checkAddresses.admin), "MainnetControllerInit/incorrect-admin-controller");
 
-            require(address(newController.proxy())      == params[i].controllerInst.almProxy,   "MainnetControllerInit/incorrect-almProxy");
-            require(address(newController.rateLimits()) == params[i].controllerInst.rateLimits, "MainnetControllerInit/incorrect-rateLimits");
+        require(address(newController.proxy())      == controllerInst.almProxy,   "MainnetControllerInit/incorrect-almProxy");
+        require(address(newController.rateLimits()) == controllerInst.rateLimits, "MainnetControllerInit/incorrect-rateLimits");
 
-            require(address(newController.vault())   == params[i].checkAddresses.vault,   "MainnetControllerInit/incorrect-vault");
-            require(address(newController.psm())     == params[i].checkAddresses.psm,     "MainnetControllerInit/incorrect-psm");
-            require(address(newController.daiUsds()) == params[i].checkAddresses.daiUsds, "MainnetControllerInit/incorrect-daiUsds");
-            require(address(newController.cctp())    == params[i].checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
+        require(address(newController.vault())   == checkAddresses.vault,   "MainnetControllerInit/incorrect-vault");
+        require(address(newController.psm())     == checkAddresses.psm,     "MainnetControllerInit/incorrect-psm");
+        require(address(newController.daiUsds()) == checkAddresses.daiUsds, "MainnetControllerInit/incorrect-daiUsds");
+        require(address(newController.cctp())    == checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
 
-            require(newController.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
+        require(newController.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
 
-            require(params[i].configAddresses.oldController != address(newController), "MainnetControllerInit/old-controller-is-new-controller");
+        require(configAddresses.oldController != address(newController), "MainnetControllerInit/old-controller-is-new-controller");
 
             // Step 2: Configure ACL permissions controller, almProxy, and rateLimits
 
-            IALMProxy   almProxy   = IALMProxy(params[i].controllerInst.almProxy);
-            IRateLimits rateLimits = IRateLimits(params[i].controllerInst.rateLimits);
+        IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
+        IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-            almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
-            newController.grantRole(newController.FREEZER(), params[i].configAddresses.freezer);
-            rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
+        almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
+        newController.grantRole(newController.FREEZER(), configAddresses.freezer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-            for (uint256 j = 0; j < params[i].configAddresses.relayers.length; j++) {
-                newController.grantRole(newController.RELAYER(), params[i].configAddresses.relayers[j]);
-            }
+        for (uint256 j = 0; j < configAddresses.relayers.length; j++) {
+            newController.grantRole(newController.RELAYER(), configAddresses.relayers[j]);
+        }
 
-            // Step 3: Configure the mint recipients on other domains
+        // Step 3: Configure the mint recipients on other domains
 
-            for (uint256 j = 0; j < params[i].mintRecipients.length; j++) {
-                newController.setMintRecipient(params[i].mintRecipients[j].domain, params[i].mintRecipients[j].mintRecipient);
-            }
+        for (uint256 j = 0; j < mintRecipients.length; j++) {
+            newController.setMintRecipient(mintRecipients[j].domain, mintRecipients[j].mintRecipient);
         }
     }
 
