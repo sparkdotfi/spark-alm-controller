@@ -137,7 +137,7 @@ library MainnetControllerInit {
 
         require(configAddresses.oldController != address(newController), "MainnetControllerInit/old-controller-is-new-controller");
 
-            // Step 2: Configure ACL permissions controller, almProxy, and rateLimits
+        // Step 2: Configure ACL permissions controller, almProxy, and rateLimits
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -146,14 +146,14 @@ library MainnetControllerInit {
         newController.grantRole(newController.FREEZER(), configAddresses.freezer);
         rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-        for (uint256 j = 0; j < configAddresses.relayers.length; j++) {
-            newController.grantRole(newController.RELAYER(), configAddresses.relayers[j]);
+        for (uint256 i = 0; i < configAddresses.relayers.length; i++) {
+            newController.grantRole(newController.RELAYER(), configAddresses.relayers[i]);
         }
 
         // Step 3: Configure the mint recipients on other domains
 
-        for (uint256 j = 0; j < mintRecipients.length; j++) {
-            newController.setMintRecipient(mintRecipients[j].domain, mintRecipients[j].mintRecipient);
+        for (uint256 i = 0; i < mintRecipients.length; i++) {
+            newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
     }
 

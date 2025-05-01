@@ -42,13 +42,6 @@ library ForeignControllerInit {
         bytes32 mintRecipient;
     }
 
-    struct InitParams {
-        ControllerInstance  controllerInst;
-        ConfigAddressParams configAddresses;
-        CheckAddressParams  checkAddresses;
-        MintRecipient[]     mintRecipients;
-    }
-
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
     /**********************************************************************************************/
@@ -142,14 +135,14 @@ library ForeignControllerInit {
         newController.grantRole(newController.FREEZER(), configAddresses.freezer);
         rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-        for (uint256 j = 0; j < configAddresses.relayers.length; j++) {
-            newController.grantRole(newController.RELAYER(), configAddresses.relayers[j]);
+        for (uint256 i = 0; i < configAddresses.relayers.length; i++) {
+            newController.grantRole(newController.RELAYER(), configAddresses.relayers[i]);
         }
 
         // Step 4: Configure the mint recipients on other domains
 
-        for (uint256 j = 0; j < mintRecipients.length; j++) {
-            newController.setMintRecipient(mintRecipients[j].domain, mintRecipients[j].mintRecipient);
+        for (uint256 i = 0; i < mintRecipients.length; i++) {
+            newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
     }
 

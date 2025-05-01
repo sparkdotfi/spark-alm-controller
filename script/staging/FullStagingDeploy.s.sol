@@ -318,9 +318,9 @@ contract FullStagingDeploy is Script {
         relayers[1] = domain.input.readAddress(".backstopRelayer");
 
         ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
-            freezer        : domain.input.readAddress(".freezer"),
-            relayers       : relayers,
-            oldController  : address(0)
+            freezer       : domain.input.readAddress(".freezer"),
+            relayers      : relayers,
+            oldController : address(0)
         });
 
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
