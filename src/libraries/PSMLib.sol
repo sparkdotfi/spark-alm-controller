@@ -24,67 +24,75 @@ interface IPSMLike {
 
 library PSMLib {
 
-    function swapUSDSToUSDC(
-        uint256      usdcAmount,
-        IALMProxy    proxy,
-        uint256      psmTo18ConversionFactor,
-        IRateLimits  rateLimits,
-        IDaiUsdsLike daiUsds,
-        IPSMLike     psm,
-        IERC20       usds,
-        IERC20       dai,
-        bytes32      rateLimitId
-    ) 
-        external 
-    {
-        _rateLimited(rateLimitId, usdcAmount, rateLimits);
+    /**********************************************************************************************/
+    /*** Structs                                                                                ***/
+    /**********************************************************************************************/
 
-        uint256 usdsAmount = usdcAmount * psmTo18ConversionFactor;
+    struct SwapUSDSToUSDCParams {
+        IALMProxy    proxy;
+        IRateLimits  rateLimits;
+        IDaiUsdsLike daiUsds;
+        IPSMLike     psm;
+        IERC20       usds;
+        IERC20       dai;
+        bytes32      rateLimitId;
+        uint256      usdcAmount;
+        uint256      psmTo18ConversionFactor;
+    }
+
+    struct SwapUSDCToUSDSParams {
+        IALMProxy    proxy;
+        IRateLimits  rateLimits;
+        IDaiUsdsLike daiUsds;
+        IPSMLike     psm;
+        IERC20       dai;
+        IERC20       usdc;
+        bytes32      rateLimitId;
+        uint256      usdcAmount;
+        uint256      psmTo18ConversionFactor;
+    }
+
+    /**********************************************************************************************/
+    /*** External functions                                                                     ***/
+    /**********************************************************************************************/
+
+    function swapUSDSToUSDC(SwapUSDSToUSDCParams calldata params) external {
+        _rateLimited(params.rateLimitId, params.usdcAmount, params.rateLimits);
+
+        uint256 usdsAmount = params.usdcAmount * params.psmTo18ConversionFactor;
 
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        _approve(address(usds), address(daiUsds), usdsAmount, proxy);
+        _approve(params.proxy, address(params.usds), address(params.daiUsds), usdsAmount);
 
         // Swap USDS to DAI 1:1
-        proxy.doCall(
-            address(daiUsds),
-            abi.encodeCall(daiUsds.usdsToDai, (address(proxy), usdsAmount))
+        params.proxy.doCall(
+            address(params.daiUsds),
+            abi.encodeCall(params.daiUsds.usdsToDai, (address(params.proxy), usdsAmount))
         );
 
         // Approve DAI to PSM from the proxy because conversion from USDS to DAI was 1:1
-        _approve(address(dai), address(psm), usdsAmount, proxy);
+        _approve(params.proxy, address(params.dai), address(params.psm), usdsAmount);
 
         // Swap DAI to USDC through the PSM
-        proxy.doCall(
-            address(psm),
-            abi.encodeCall(psm.buyGemNoFee, (address(proxy), usdcAmount))
+        params.proxy.doCall(
+            address(params.psm),
+            abi.encodeCall(params.psm.buyGemNoFee, (address(params.proxy), params.usdcAmount))
         );
     }
 
-    function swapUSDCToUSDS(
-        uint256      usdcAmount,
-        IALMProxy    proxy,
-        uint256      psmTo18ConversionFactor,
-        IRateLimits  rateLimits,
-        IDaiUsdsLike daiUsds,
-        IPSMLike     psm,
-        IERC20       dai,
-        IERC20       usdc,
-        bytes32      rateLimitId
-    )
-        external
-    {
-        _cancelRateLimit(rateLimitId, usdcAmount, rateLimits);
+    function swapUSDCToUSDS(SwapUSDCToUSDSParams calldata params) external {
+        _cancelRateLimit(params.rateLimitId, params.usdcAmount, params.rateLimits);
 
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
-        _approve(address(usdc), address(psm), usdcAmount, proxy);
+        _approve(params.proxy, address(params.usdc), address(params.psm), params.usdcAmount);
 
         // Max USDC that can be swapped to DAI in one call
-        uint256 limit = dai.balanceOf(address(psm)) / psmTo18ConversionFactor;
+        uint256 limit = params.dai.balanceOf(address(params.psm)) / params.psmTo18ConversionFactor;
 
-        if (usdcAmount <= limit) {
-            _swapUSDCToDAI(usdcAmount, proxy, psm);
+        if (params.usdcAmount <= limit) {
+            _swapUSDCToDAI(params.proxy, params.psm, params.usdcAmount);
         } else {
-            uint256 remainingUsdcToSwap = usdcAmount;
+            uint256 remainingUsdcToSwap = params.usdcAmount;
 
             // Refill the PSM with DAI as many times as needed to get to the full `usdcAmount`.
             // If the PSM cannot be filled with the full amount, psm.fill() will revert
@@ -92,27 +100,27 @@ library PSMLib {
             // This is desired behavior because this function should only succeed if the full
             // `usdcAmount` can be swapped.
             while (remainingUsdcToSwap > 0) {
-                psm.fill();
+                params.psm.fill();
 
-                limit = dai.balanceOf(address(psm)) / psmTo18ConversionFactor;
+                limit = params.dai.balanceOf(address(params.psm)) / params.psmTo18ConversionFactor;
 
                 uint256 swapAmount = remainingUsdcToSwap < limit ? remainingUsdcToSwap : limit;
 
-                _swapUSDCToDAI(swapAmount, proxy, psm);
+                _swapUSDCToDAI(params.proxy, params.psm, swapAmount);
 
                 remainingUsdcToSwap -= swapAmount;
             }
         }
 
-        uint256 daiAmount = usdcAmount * psmTo18ConversionFactor;
+        uint256 daiAmount = params.usdcAmount * params.psmTo18ConversionFactor;
 
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        _approve(address(dai), address(daiUsds), daiAmount, proxy);
+        _approve(params.proxy, address(params.dai), address(params.daiUsds), daiAmount);
 
         // Swap DAI to USDS 1:1
-        proxy.doCall(
-            address(daiUsds),
-            abi.encodeCall(daiUsds.daiToUsds, (address(proxy), daiAmount))
+        params.proxy.doCall(
+            address(params.daiUsds),
+            abi.encodeCall(params.daiUsds.daiToUsds, (address(params.proxy), daiAmount))
         );
     }
 
@@ -121,17 +129,17 @@ library PSMLib {
     /**********************************************************************************************/
 
     function _approve(
+        IALMProxy proxy,
         address   token,
         address   spender,
-        uint256   amount,
-        IALMProxy proxy
+        uint256   amount
     )
         internal
     {
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
     }
 
-    function _swapUSDCToDAI(uint256 usdcAmount, IALMProxy proxy, IPSMLike psm) internal {
+    function _swapUSDCToDAI(IALMProxy proxy, IPSMLike psm, uint256 usdcAmount) internal {
         // Swap USDC to DAI through the PSM (1:1 since sellGemNoFee is used)
         proxy.doCall(
             address(psm),

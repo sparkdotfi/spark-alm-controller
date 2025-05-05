@@ -21,7 +21,6 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
-import { Types }                          from "./libraries/Types.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -520,7 +519,9 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        Types.SwapCurveParams memory params = Types.SwapCurveParams({
+        amountOut = CurveLib.swap(CurveLib.SwapCurveParams({
+            proxy        : proxy,
+            rateLimits   : rateLimits,
             pool         : pool,
             rateLimitId  : LIMIT_CURVE_SWAP,
             inputIndex   : inputIndex,
@@ -528,9 +529,7 @@ contract MainnetController is AccessControl {
             amountIn     : amountIn,
             minAmountOut : minAmountOut,
             maxSlippage  : maxSlippages[pool]
-        });
-
-        amountOut = CurveLib.swapCurve(params, proxy, rateLimits);
+        }));
     }
 
     function addLiquidityCurve(
@@ -542,20 +541,16 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        Types.AddLiquidityParams memory params = Types.AddLiquidityParams({
+        shares = CurveLib.addLiquidity(CurveLib.AddLiquidityParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
             pool                    : pool,
             addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
             swapRateLimitId         : LIMIT_CURVE_SWAP,
             minLpAmount             : minLpAmount,
             maxSlippage             : maxSlippages[pool],
             depositAmounts          : depositAmounts
-        });
-
-        shares = CurveLib.addLiquidityCurve(
-            params,
-            proxy,
-            rateLimits
-        );
+        }));
     }
 
     function removeLiquidityCurve(
@@ -567,15 +562,15 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        withdrawnTokens = CurveLib.removeLiquidityCurve(
-            pool,
-            lpBurnAmount,
-            minWithdrawAmounts,
-            maxSlippages[pool],
-            proxy,
-            rateLimits,
-            LIMIT_CURVE_WITHDRAW
-        );
+        withdrawnTokens = CurveLib.removeLiquidity(CurveLib.RemoveLiquidityParams({
+            proxy              : proxy,
+            rateLimits         : rateLimits,
+            pool               : pool,
+            rateLimitId        : LIMIT_CURVE_WITHDRAW,
+            lpBurnAmount       : lpBurnAmount,
+            minWithdrawAmounts : minWithdrawAmounts,
+            maxSlippage        : maxSlippages[pool]
+        }));
     }
 
     /**********************************************************************************************/
@@ -750,33 +745,34 @@ contract MainnetController is AccessControl {
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
     function swapUSDSToUSDC(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        PSMLib.swapUSDSToUSDC(
-            usdcAmount,
-            proxy,
-            psmTo18ConversionFactor,
-            rateLimits,
-            daiUsds,
-            psm,
-            usds,
-            dai,
-            LIMIT_USDS_TO_USDC
-        );
 
+        PSMLib.swapUSDSToUSDC(PSMLib.SwapUSDSToUSDCParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            daiUsds                 : daiUsds,
+            psm                     : psm,
+            usds                    : usds,
+            dai                     : dai,
+            rateLimitId             : LIMIT_USDS_TO_USDC,
+            usdcAmount              : usdcAmount,
+            psmTo18ConversionFactor : psmTo18ConversionFactor
+        }));
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        PSMLib.swapUSDCToUSDS(
-            usdcAmount,
-            proxy,
-            psmTo18ConversionFactor,
-            rateLimits,
-            daiUsds,
-            psm,
-            dai,
-            usdc,
-            LIMIT_USDS_TO_USDC
-        );
+
+        PSMLib.swapUSDCToUSDS(PSMLib.SwapUSDCToUSDSParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            daiUsds                 : daiUsds,
+            psm                     : psm,
+            dai                     : dai,
+            usdc                    : usdc,
+            rateLimitId             : LIMIT_USDS_TO_USDC,
+            usdcAmount              : usdcAmount,
+            psmTo18ConversionFactor : psmTo18ConversionFactor
+        }));
     }
 
     /**********************************************************************************************/
