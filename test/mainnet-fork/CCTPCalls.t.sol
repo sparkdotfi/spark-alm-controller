@@ -265,18 +265,16 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
             mintRecipients
         );
 
-        RateLimitData memory standardUsdcData = RateLimitData({
-            maxAmount : 5_000_000e6,
-            slope     : uint256(1_000_000e6) / 4 hours
-        });
+        uint256 usdcMaxAmount = 5_000_000e6;
+        uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
         bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
             foreignController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
         );
 
-        RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), address(foreignRateLimits), standardUsdcData, "usdcToCctpData",           6);
-        RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      address(foreignRateLimits), standardUsdcData, "cctpToEthereumDomainData", 6);
+        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
+        foreignRateLimits.setRateLimitData(domainKeyEthereum,                      usdcMaxAmount, usdcSlope);
 
         vm.stopPrank();
 

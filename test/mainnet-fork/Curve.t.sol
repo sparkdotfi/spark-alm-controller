@@ -5,7 +5,7 @@ import { IERC4626 } from "lib/forge-std/src/interfaces/IERC4626.sol";
 
 import "./ForkTestBase.t.sol";
 
-import { ICurvePoolLike } from "../../src/MainnetController.sol";
+import { ICurvePoolLike } from "../../src/libraries/CurveLib.sol";
 
 contract CurveTestBase is ForkTestBase {
 
