@@ -43,9 +43,7 @@ library CCTPLib {
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function transferUSDCToCCTP(
-        TransferUSDCToCCTPParams calldata params
-    ) external {
+    function transferUSDCToCCTP(TransferUSDCToCCTPParams calldata params) external {
         _rateLimited(params.cctpRateLimitId, params.usdcAmount, params.rateLimits);
         _rateLimited(
             RateLimitHelpers.makeDomainKey(params.domainRateLimitId, params.destinationDomain),

@@ -781,7 +781,8 @@ contract MainnetController is AccessControl {
 
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external {
         _checkRole(RELAYER);
-        CCTPLib.TransferUSDCToCCTPParams memory params = CCTPLib.TransferUSDCToCCTPParams({
+
+        CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
             proxy             : proxy,
             rateLimits        : rateLimits,
             cctp              : cctp,
@@ -791,9 +792,7 @@ contract MainnetController is AccessControl {
             mintRecipient     : mintRecipients[destinationDomain],
             destinationDomain : destinationDomain,
             usdcAmount        : usdcAmount
-        });
-
-        CCTPLib.transferUSDCToCCTP(params);
+        }));
     }
 
     /**********************************************************************************************/
