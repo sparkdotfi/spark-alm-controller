@@ -146,13 +146,13 @@ library MainnetControllerInit {
         newController.grantRole(newController.FREEZER(), configAddresses.freezer);
         rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-        for (uint256 i = 0; i < configAddresses.relayers.length; i++) {
+        for (uint256 i; i < configAddresses.relayers.length; ++i) {
             newController.grantRole(newController.RELAYER(), configAddresses.relayers[i]);
         }
 
         // Step 3: Configure the mint recipients on other domains
 
-        for (uint256 i = 0; i < mintRecipients.length; i++) {
+        for (uint256 i; i < mintRecipients.length; ++i) {
             newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
     }
