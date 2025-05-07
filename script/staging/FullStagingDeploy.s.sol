@@ -253,7 +253,6 @@ contract FullStagingDeploy is Script {
 
         address[] memory relayers = new address[](2);
         relayers[0] = mainnet.input.readAddress(".relayer");
-        relayers[1] = mainnet.input.readAddress(".backstopRelayer");
 
         MainnetControllerInit.ConfigAddressParams memory configAddresses
             = MainnetControllerInit.ConfigAddressParams({
@@ -316,7 +315,6 @@ contract FullStagingDeploy is Script {
 
         address[] memory relayers = new address[](2);
         relayers[0] = domain.input.readAddress(".relayer");
-        relayers[1] = domain.input.readAddress(".backstopRelayer");
 
         ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
             freezer       : domain.input.readAddress(".freezer"),
