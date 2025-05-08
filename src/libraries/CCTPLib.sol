@@ -44,11 +44,11 @@ library CCTPLib {
     /**********************************************************************************************/
 
     function transferUSDCToCCTP(TransferUSDCToCCTPParams calldata params) external {
-        _rateLimited(params.cctpRateLimitId, params.usdcAmount, params.rateLimits);
+        _rateLimited(params.rateLimits, params.cctpRateLimitId, params.usdcAmount);
         _rateLimited(
+            params.rateLimits,
             RateLimitHelpers.makeDomainKey(params.domainRateLimitId, params.destinationDomain),
-            params.usdcAmount,
-            params.rateLimits
+            params.usdcAmount
         );
 
         require(params.mintRecipient != 0, "MainnetController/domain-not-configured");
@@ -135,7 +135,7 @@ library CCTPLib {
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
 
-    function _rateLimited(bytes32 key, uint256 amount, IRateLimits rateLimits) internal {
+    function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
