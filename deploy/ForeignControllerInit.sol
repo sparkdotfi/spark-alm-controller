@@ -32,9 +32,9 @@ library ForeignControllerInit {
     }
 
     struct ConfigAddressParams {
-        address freezer;
-        address relayer;
-        address oldController;
+        address   freezer;
+        address[] relayers;
+        address   oldController;
     }
 
     struct MintRecipient {
@@ -131,15 +131,17 @@ library ForeignControllerInit {
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
+        almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
         newController.grantRole(newController.FREEZER(), configAddresses.freezer);
-        newController.grantRole(newController.RELAYER(), configAddresses.relayer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-        almProxy.grantRole(almProxy.CONTROLLER(), address(newController));
-        rateLimits.grantRole(rateLimits.CONTROLLER(), address(newController));
+        for (uint256 i; i < configAddresses.relayers.length; ++i) {
+            newController.grantRole(newController.RELAYER(), configAddresses.relayers[i]);
+        }
 
         // Step 4: Configure the mint recipients on other domains
 
-        for (uint256 i = 0; i < mintRecipients.length; i++) {
+        for (uint256 i; i < mintRecipients.length; ++i) {
             newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
     }

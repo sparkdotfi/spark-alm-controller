@@ -234,10 +234,13 @@ contract ForkTestBase is DssTest {
         FREEZER    = mainnetController.FREEZER();
         RELAYER    = mainnetController.RELAYER();
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = relayer;
+
         Init.ConfigAddressParams memory configAddresses
             = Init.ConfigAddressParams({
                 freezer       : freezer,
-                relayer       : relayer,
+                relayers      : relayers,
                 oldController : address(0)
             });
 

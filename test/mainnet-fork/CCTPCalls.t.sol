@@ -231,9 +231,12 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
         foreignRateLimits = RateLimits(controllerInst.rateLimits);
         foreignController = ForeignController(controllerInst.controller);
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = relayer;
+
         ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
             freezer       : freezer,
-            relayer       : relayer,
+            relayers      : relayers,
             oldController : address(0)
         });
 
