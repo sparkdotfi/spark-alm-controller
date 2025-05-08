@@ -18,6 +18,7 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
+import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 
@@ -78,14 +79,6 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
-
-    // NOTE: This is used to track individual transfers for offchain processing of CCTP transactions
-    event CCTPTransferInitiated(
-        uint64  indexed nonce,
-        uint32  indexed destinationDomain,
-        bytes32 indexed mintRecipient,
-        uint256 usdcAmount
-    );
 
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
@@ -788,31 +781,18 @@ contract MainnetController is AccessControl {
 
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external {
         _checkRole(RELAYER);
-        _rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount);
-        _rateLimited(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
-            usdcAmount
-        );
 
-        bytes32 mintRecipient = mintRecipients[destinationDomain];
-
-        require(mintRecipient != 0, "MainnetController/domain-not-configured");
-
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        _approve(address(usdc), address(cctp), usdcAmount);
-
-        // If amount is larger than limit it must be split into multiple calls
-        uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
-
-        while (usdcAmount > burnLimit) {
-            _initiateCCTPTransfer(burnLimit, destinationDomain, mintRecipient);
-            usdcAmount -= burnLimit;
-        }
-
-        // Send remaining amount (if any)
-        if (usdcAmount > 0) {
-            _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
-        }
+        CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
+            proxy             : proxy,
+            rateLimits        : rateLimits,
+            cctp              : cctp,
+            usdc              : usdc,
+            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
+            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
+            mintRecipient     : mintRecipients[destinationDomain],
+            destinationDomain : destinationDomain,
+            usdcAmount        : usdcAmount
+        }));
     }
 
     /**********************************************************************************************/
@@ -821,32 +801,6 @@ contract MainnetController is AccessControl {
 
     function _approve(address token, address spender, uint256 amount) internal {
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
-    }
-
-    function _initiateCCTPTransfer(
-        uint256 usdcAmount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient
-    )
-        internal
-    {
-        uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
-                abi.encodeCall(
-                    cctp.depositForBurn,
-                    (
-                        usdcAmount,
-                        destinationDomain,
-                        mintRecipient,
-                        address(usdc)
-                    )
-                )
-            ),
-            (uint64)
-        );
-
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
     }
 
     /**********************************************************************************************/
