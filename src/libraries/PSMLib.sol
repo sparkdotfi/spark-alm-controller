@@ -128,6 +128,8 @@ library PSMLib {
     /*** Helper functions                                                                       ***/
     /**********************************************************************************************/
 
+    // NOTE: As we are swapping USDC to USDS and vice versa, we are not using 
+    //       `_forceApprove` logic in this function.
     function _approve(
         IALMProxy proxy,
         address   token,
