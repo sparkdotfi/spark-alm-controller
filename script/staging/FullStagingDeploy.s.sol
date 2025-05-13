@@ -23,6 +23,9 @@ import { IERC20 }  from "forge-std/interfaces/IERC20.sol";
 import { Script }  from "forge-std/Script.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
+import { Base }     from "lib/spark-address-registry/src/Base.sol";
+import { Ethereum } from "lib/spark-address-registry/src/Ethereum.sol";
+
 import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
 import {
@@ -46,9 +49,8 @@ import { MockVat }          from "./mocks/MockVat.sol";
 import { PSMWrapper }       from "./mocks/PSMWrapper.sol";
 
 struct Domain {
-    string  name;
-    string  nameDeps;
-    string  config;
+    string  input;
+    string  output;
     uint256 forkId;
     address admin;
 }
@@ -62,8 +64,14 @@ contract FullStagingDeploy is Script {
     /*** Deployed contracts                                                                     ***/
     /**********************************************************************************************/
 
-    address constant AUSDS = 0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259;
-    address constant AUSDC = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
+    address constant AUSDS  = 0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259;
+    address constant AUSDC  = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
+    address constant SPUSDC = Ethereum.USDC_ATOKEN;  // SparkLend spUSDC
+
+    address constant FLUID_SUSDS_VAULT      = 0x2BBE31d63E6813E3AC858C04dae43FB2a72B0D11;
+    address constant FLUID_SUSDS_VAULT_BASE = 0xf62e339f21d8018940f188F6987Bcdf02A849619;
+
+    address constant SYRUP_USDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
 
     address constant AUSDC_BASE             = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
     address constant MORPHO_BASE            = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
@@ -101,11 +109,9 @@ contract FullStagingDeploy is Script {
     /*** ALM system deployments                                                                 ***/
     /**********************************************************************************************/
 
-    address baseAlmProxy;
-    address baseController;
-
-    address mainnetAlmProxy;
-    address mainnetController;
+    ControllerInstance arbitrumInst;
+    ControllerInstance baseInst;
+    ControllerInstance mainnetInst;
 
     /**********************************************************************************************/
     /*** Deployment-specific variables                                                          ***/
@@ -118,24 +124,30 @@ contract FullStagingDeploy is Script {
     uint256 USDS_UNIT_SIZE;
 
     Domain mainnet;
+    Domain arbitrum;
     Domain base;
 
+    RateLimitData rateLimitData18;
+    RateLimitData rateLimitData6;
+    RateLimitData unlimitedRateLimit;
+
     /**********************************************************************************************/
-    /*** Helper functions                                                                       ***/
+    /*** Mainnet dependency helper functions                                                    ***/
     /**********************************************************************************************/
 
-    function _setUpDependencies() internal {
+    function _setUpMainnetDependencies() internal {
         vm.selectFork(mainnet.forkId);
-        vm.startBroadcast();
 
         // Step 1: Use existing contracts for tokens, DaiUsds and PSM
 
-        dai     = mainnet.config.readAddress(".dai");
-        usds    = mainnet.config.readAddress(".usds");
-        susds   = mainnet.config.readAddress(".susds");
-        usdc    = mainnet.config.readAddress(".usdc");
-        daiUsds = mainnet.config.readAddress(".daiUsds");
-        livePsm = mainnet.config.readAddress(".psm");
+        dai     = mainnet.input.readAddress(".dai");
+        usds    = mainnet.input.readAddress(".usds");
+        susds   = mainnet.input.readAddress(".susds");
+        usdc    = mainnet.input.readAddress(".usdc");
+        daiUsds = mainnet.input.readAddress(".daiUsds");
+        livePsm = mainnet.input.readAddress(".psm");
+
+        vm.startBroadcast();
 
         // This contract is necessary to get past the `kiss` requirement from the pause proxy.
         // It wraps the `noFee` calls with regular PSM swap calls.
@@ -162,20 +174,15 @@ contract FullStagingDeploy is Script {
 
         vm.stopBroadcast();
 
-        // Step 4: Export all deployed addresses
+        // Step 4: Export all dependency addresses
 
-        ScriptTools.exportContract(mainnet.nameDeps, "dai",      dai);
-        ScriptTools.exportContract(mainnet.nameDeps, "daiUsds",  daiUsds);
-        ScriptTools.exportContract(mainnet.nameDeps, "jug",      jug);
-        ScriptTools.exportContract(mainnet.nameDeps, "psm",      psm);
-        ScriptTools.exportContract(mainnet.nameDeps, "susds",    susds);
-        ScriptTools.exportContract(mainnet.nameDeps, "usdc",     usdc);
-        ScriptTools.exportContract(mainnet.nameDeps, "usds",     usds);
-        ScriptTools.exportContract(mainnet.nameDeps, "usdsJoin", usdsJoin);
-        ScriptTools.exportContract(mainnet.nameDeps, "vat",      vat);
+        ScriptTools.exportContract(mainnet.output, "jug",        jug);
+        ScriptTools.exportContract(mainnet.output, "psmWrapper", psm);
+        ScriptTools.exportContract(mainnet.output, "usdsJoin",   usdsJoin);
+        ScriptTools.exportContract(mainnet.output, "vat",        vat);
     }
 
-    function _setUpAllocationSystem() internal {
+    function _setUpMainnetAllocationSystem() internal {
         vm.selectFork(mainnet.forkId);
         vm.startBroadcast();
 
@@ -215,13 +222,17 @@ contract FullStagingDeploy is Script {
 
         // Step 4: Export all deployed addresses
 
-        ScriptTools.exportContract(mainnet.nameDeps, "allocatorOracle",   oracle);
-        ScriptTools.exportContract(mainnet.nameDeps, "allocatorRegistry", registry);
-        ScriptTools.exportContract(mainnet.nameDeps, "allocatorRoles",    roles);
+        ScriptTools.exportContract(mainnet.output, "allocatorOracle",   oracle);
+        ScriptTools.exportContract(mainnet.output, "allocatorRegistry", registry);
+        ScriptTools.exportContract(mainnet.output, "allocatorRoles",    roles);
 
-        ScriptTools.exportContract(mainnet.nameDeps, "allocatorBuffer", buffer);
-        ScriptTools.exportContract(mainnet.nameDeps, "allocatorVault",  vault);
+        ScriptTools.exportContract(mainnet.output, "allocatorBuffer", buffer);
+        ScriptTools.exportContract(mainnet.output, "allocatorVault",  vault);
     }
+
+    /**********************************************************************************************/
+    /*** ALM Controller initialization helper functions                                         ***/
+    /**********************************************************************************************/
 
     function _setUpMainnetController() internal {
         vm.selectFork(mainnet.forkId);
@@ -229,35 +240,32 @@ contract FullStagingDeploy is Script {
 
         // Step 1: Deploy ALM controller
 
-        ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
+        mainnetInst = MainnetControllerDeploy.deployFull({
             admin   : mainnet.admin,
             vault   : vault,
             psm     : psm,  // Wrapper
             daiUsds : daiUsds,
-            cctp    : mainnet.config.readAddress(".cctpTokenMessenger")
+            cctp    : mainnet.input.readAddress(".cctpTokenMessenger")
         });
-
-        mainnetAlmProxy   = controllerInst.almProxy;
-        mainnetController = controllerInst.controller;
 
         // Step 2: Initialize ALM system
 
-        MainnetControllerInit.ConfigAddressParams memory configAddresses 
+        MainnetControllerInit.ConfigAddressParams memory configAddresses
             = MainnetControllerInit.ConfigAddressParams({
-                freezer       : mainnet.config.readAddress(".freezer"),
-                relayer       : mainnet.config.readAddress(".relayer"),
+                freezer       : mainnet.input.readAddress(".freezer"),
+                relayer       : mainnet.input.readAddress(".relayer"),
                 oldController : address(0)
             });
 
         MainnetControllerInit.CheckAddressParams memory checkAddresses
             = MainnetControllerInit.CheckAddressParams({
                 admin      : mainnet.admin,
-                proxy      : controllerInst.almProxy,
-                rateLimits : controllerInst.rateLimits,
+                proxy      : mainnetInst.almProxy,
+                rateLimits : mainnetInst.rateLimits,
                 vault      : vault,
                 psm        : psm,
-                daiUsds    : mainnet.config.readAddress(".daiUsds"),
-                cctp       : mainnet.config.readAddress(".cctpTokenMessenger")
+                daiUsds    : mainnet.input.readAddress(".daiUsds"),
+                cctp       : mainnet.input.readAddress(".cctpTokenMessenger")
             });
 
         MainnetControllerInit.MintRecipient[] memory mintRecipients = new MainnetControllerInit.MintRecipient[](0);
@@ -265,106 +273,166 @@ contract FullStagingDeploy is Script {
         MainnetControllerInit.initAlmSystem(
             vault,
             address(usds),
+            mainnetInst,
+            configAddresses,
+            checkAddresses,
+            mintRecipients
+        );
+
+        // Step 5: Transfer ownership of mock usdsJoin to the vault (able to mint usds)
+
+        MockUsdsJoin(usdsJoin).transferOwnership(vault);
+
+        vm.stopBroadcast();
+
+        // Step 6: Export all relevant addresses
+
+        ScriptTools.exportContract(mainnet.output, "freezer",    mainnet.input.readAddress(".freezer"));
+        ScriptTools.exportContract(mainnet.output, "relayer",    mainnet.input.readAddress(".relayer"));
+        ScriptTools.exportContract(mainnet.output, "almProxy",   mainnetInst.almProxy);
+        ScriptTools.exportContract(mainnet.output, "controller", mainnetInst.controller);
+        ScriptTools.exportContract(mainnet.output, "rateLimits", mainnetInst.rateLimits);
+    }
+
+    function _setUpForeignALMController(Domain memory domain) internal returns (ControllerInstance memory controllerInst) {
+        vm.selectFork(domain.forkId);
+        vm.startBroadcast();
+
+        // Step 1: Deploy ALM controller
+
+        controllerInst = ForeignControllerDeploy.deployFull({
+            admin : domain.admin,
+            psm   : domain.input.readAddress(".psm"),
+            usdc  : domain.input.readAddress(".usdc"),
+            cctp  : domain.input.readAddress(".cctpTokenMessenger")
+        });
+
+        // Step 2: Initialize ALM system
+
+        ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
+            freezer       : domain.input.readAddress(".freezer"),
+            relayer       : domain.input.readAddress(".relayer"),
+            oldController : address(0)
+        });
+
+        ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
+            admin : domain.admin,
+            psm   : domain.input.readAddress(".psm"),
+            cctp  : domain.input.readAddress(".cctpTokenMessenger"),
+            usdc  : domain.input.readAddress(".usdc"),
+            susds : domain.input.readAddress(".susds"),
+            usds  : domain.input.readAddress(".usds")
+        });
+
+        ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);
+
+        mintRecipients[0] = ForeignControllerInit.MintRecipient({
+            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            mintRecipient : bytes32(uint256(uint160(mainnetInst.almProxy)))
+        });
+
+        ForeignControllerInit.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
             mintRecipients
         );
 
-        // Step 3: Set all rate limits for the controller
-
-        _setMainnetControllerRateLimits(controllerInst.rateLimits);
-        
-        // Step 4: Transfer ownership of mock usdsJoin to the vault (able to mint usds)
-
-        MockUsdsJoin(usdsJoin).transferOwnership(vault);
-
         vm.stopBroadcast();
 
-        // Step 5: Export all deployed addresses
+        // Step 4: Export all relevant addresses
 
-        ScriptTools.exportContract(mainnet.nameDeps, "freezer", mainnet.config.readAddress(".freezer"));
-        ScriptTools.exportContract(mainnet.nameDeps, "relayer", mainnet.config.readAddress(".relayer"));
-
-        ScriptTools.exportContract(mainnet.name, "almProxy",   controllerInst.almProxy);
-        ScriptTools.exportContract(mainnet.name, "controller", controllerInst.controller);
-        ScriptTools.exportContract(mainnet.name, "rateLimits", controllerInst.rateLimits);
+        ScriptTools.exportContract(domain.output, "freezer",    domain.input.readAddress(".freezer"));
+        ScriptTools.exportContract(domain.output, "relayer",    domain.input.readAddress(".relayer"));
+        ScriptTools.exportContract(domain.output, "almProxy",   controllerInst.almProxy);
+        ScriptTools.exportContract(domain.output, "controller", controllerInst.controller);
+        ScriptTools.exportContract(domain.output, "rateLimits", controllerInst.rateLimits);
     }
 
-    function _setMainnetControllerRateLimits(address rateLimits) internal {
-        // Still constrained by the USDC_UNIT_SIZE
-        RateLimitData memory rateLimitData18 = RateLimitData({
-            maxAmount : USDC_UNIT_SIZE * 1e12 * 5,
-            slope     : USDC_UNIT_SIZE * 1e12 / 4 hours
-        });
-        RateLimitData memory rateLimitData6 = RateLimitData({
-            maxAmount : USDC_UNIT_SIZE * 5,
-            slope     : USDC_UNIT_SIZE / 4 hours
-        });
+    function _setUpMainnetMintRecipients() internal {
+        vm.selectFork(mainnet.forkId);
+        vm.startBroadcast();
 
-        RateLimitData memory unlimitedRateLimit = RateLimitHelpers.unlimitedRateLimit();
+        MainnetController controller = MainnetController(mainnetInst.controller);
 
-        MainnetController mainnetController_ = MainnetController(mainnetController);
+        controller.setMintRecipient(
+            CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
+            bytes32(uint256(uint160(baseInst.almProxy)))
+        );
+        controller.setMintRecipient(
+            CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE,
+            bytes32(uint256(uint160(arbitrumInst.almProxy)))
+        );
 
-        bytes32 ausdcDepositKey  = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_AAVE_DEPOSIT(),   AUSDC);
-        bytes32 ausdcWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_AAVE_WITHDRAW(),  AUSDC);
-        bytes32 ausdsDepositKey  = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_AAVE_DEPOSIT(),   AUSDS);
-        bytes32 ausdsWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_AAVE_WITHDRAW(),  AUSDS);
-        bytes32 susdeDepositKey  = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_DEPOSIT(),   address(mainnetController_.susde()));
-        bytes32 susdsDepositKey  = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_DEPOSIT(),   susds);
-        bytes32 susdsWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController_.LIMIT_4626_WITHDRAW(),  susds);
+        vm.stopBroadcast();
+    }
 
-        bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(mainnetController_.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+    /**********************************************************************************************/
+    /*** Rate limit helper functions                                                            ***/
+    /**********************************************************************************************/
+
+    function _setMainnetControllerRateLimits() internal {
+        MainnetController controller = MainnetController(mainnetInst.controller);
+
+        address rateLimits = mainnetInst.rateLimits;
+
+        _onboardAAVEToken(mainnet, mainnetInst, AUSDC, rateLimitData6);
+        _onboardAAVEToken(mainnet, mainnetInst, AUSDS, rateLimitData18);
+        _onboardAAVEToken(mainnet, mainnetInst, SPUSDC, rateLimitData6);
+
+        _onboardERC4626Token(mainnet, mainnetInst, address(controller.susde()), rateLimitData18);
+        _onboardERC4626Token(mainnet, mainnetInst, Ethereum.SUSDS,              rateLimitData18);
+        _onboardERC4626Token(mainnet, mainnetInst, FLUID_SUSDS_VAULT,           rateLimitData18);
+
+        vm.startBroadcast();
+
+        bytes32 susdeDepositKey = RateLimitHelpers.makeAssetKey(controller.LIMIT_4626_DEPOSIT(), address(controller.susde()));
+
+        bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAssetKey(controller.LIMIT_4626_DEPOSIT(), SYRUP_USDC);
+        bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAssetKey(controller.LIMIT_MAPLE_REDEEM(), SYRUP_USDC);
+
+        bytes32 domainKeyArbitrum = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
+        bytes32 domainKeyBase     = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
         // USDS mint/burn and cross-chain transfer rate limits
-        RateLimitHelpers.setRateLimitData(domainKeyBase,                           rateLimits, rateLimitData6,     "cctpToBaseDomainData", 6);
-        RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",       6);
-        RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_USDS_MINT(),    rateLimits, rateLimitData18,    "usdsMintData",         18);
-        RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_USDS_TO_USDC(), rateLimits, rateLimitData6,     "usdsToUsdcData",       6);
+        RateLimitHelpers.setRateLimitData(domainKeyBase,                   rateLimits, rateLimitData6,     "cctpToBaseDomainData",     6);
+        RateLimitHelpers.setRateLimitData(domainKeyArbitrum,               rateLimits, rateLimitData6,     "cctpToArbitrumDomainData", 6);
+        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",           6);
+        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDS_MINT(),    rateLimits, rateLimitData18,    "usdsMintData",             18);
+        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDS_TO_USDC(), rateLimits, rateLimitData6,     "usdsToUsdcData",           6);
 
         // Ethena-specific rate limits
-        RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_SUSDE_COOLDOWN(), rateLimits, rateLimitData18, "susdeCooldownData", 18);
-        RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_USDE_BURN(),      rateLimits, rateLimitData18, "usdeBurnData",      18);
-        RateLimitHelpers.setRateLimitData(mainnetController_.LIMIT_USDE_MINT(),      rateLimits, rateLimitData6,  "usdeMintData",      6);
+        RateLimitHelpers.setRateLimitData(controller.LIMIT_SUSDE_COOLDOWN(), rateLimits, rateLimitData18, "susdeCooldownData", 18);
+        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDE_BURN(),      rateLimits, rateLimitData18, "usdeBurnData",      18);
+        RateLimitHelpers.setRateLimitData(controller.LIMIT_USDE_MINT(),      rateLimits, rateLimitData6,  "usdeMintData",      6);
+        RateLimitHelpers.setRateLimitData(susdeDepositKey,                   rateLimits, rateLimitData18, "susdeDepositData",  18);
 
-        // 4626 and AAVE deposit/withdraw rate limits
-        RateLimitHelpers.setRateLimitData(ausdcDepositKey,  rateLimits, rateLimitData6,     "ausdcDepositData",  6);
-        RateLimitHelpers.setRateLimitData(ausdcWithdrawKey, rateLimits, unlimitedRateLimit, "ausdcWithdrawData", 6);
-        RateLimitHelpers.setRateLimitData(ausdsDepositKey,  rateLimits, rateLimitData18,    "ausdsDepositData",  18);
-        RateLimitHelpers.setRateLimitData(ausdsWithdrawKey, rateLimits, unlimitedRateLimit, "ausdcWithdrawData", 18);
-        RateLimitHelpers.setRateLimitData(susdeDepositKey,  rateLimits, rateLimitData18,    "susdeDepositData",  18);
-        RateLimitHelpers.setRateLimitData(susdsDepositKey,  rateLimits, unlimitedRateLimit, "susdsDepositData",  18);
-        RateLimitHelpers.setRateLimitData(susdsWithdrawKey, rateLimits, unlimitedRateLimit, "susdsWithdrawData", 18);
+        // Maple-specific deposit/withdraw rate limits
+        RateLimitHelpers.setRateLimitData(syrupUsdcDepositKey,  rateLimits, rateLimitData6,     "syrupUsdcDepositData",  6);
+        RateLimitHelpers.setRateLimitData(syrupUsdcWithdrawKey, rateLimits, unlimitedRateLimit, "syrupUsdcWithdrawData", 6);
+
+        vm.stopBroadcast();
     }
 
-    function _setBaseControllerRateLimits(address rateLimits) internal {
-        RateLimitData memory rateLimitData18 = RateLimitData({
-            maxAmount : USDC_UNIT_SIZE * 1e12 * 5,
-            slope     : USDC_UNIT_SIZE * 1e12 / 4 hours
-        });
-        RateLimitData memory rateLimitData6 = RateLimitData({
-            maxAmount : USDC_UNIT_SIZE * 5,
-            slope     : USDC_UNIT_SIZE / 4 hours
-        });
-        RateLimitData memory unlimitedRateLimit = RateLimitHelpers.unlimitedRateLimit();
+    function _setForeignControllerRateLimits(Domain memory domain, ControllerInstance memory controllerInst) internal {
+        vm.selectFork(domain.forkId);
+        vm.startBroadcast();
 
-        ForeignController foreignController = ForeignController(baseController);
+        ForeignController foreignController = ForeignController(controllerInst.controller);
 
-        bytes32 aaveDepositKey   = foreignController.LIMIT_AAVE_DEPOSIT();
-        bytes32 aaveWithdrawKey  = foreignController.LIMIT_AAVE_WITHDRAW();
-        bytes32 psmDepositKey    = foreignController.LIMIT_PSM_DEPOSIT();
-        bytes32 psmWithdrawKey   = foreignController.LIMIT_PSM_WITHDRAW();
-        bytes32 vaultDepositKey  = foreignController.LIMIT_4626_DEPOSIT();
-        bytes32 vaultWithdrawKey = foreignController.LIMIT_4626_WITHDRAW();
-        
+        address rateLimits = controllerInst.rateLimits;
+
+        bytes32 psmDepositKey  = foreignController.LIMIT_PSM_DEPOSIT();
+        bytes32 psmWithdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
+
         bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
             foreignController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
         );
 
-        usdc  = base.config.readAddress(".usdc");
-        usds  = base.config.readAddress(".usds");
-        susds = base.config.readAddress(".susds");
+        usdc  = domain.input.readAddress(".usdc");
+        usds  = domain.input.readAddress(".usds");
+        susds = domain.input.readAddress(".susds");
 
         // PSM rate limits for all three assets
         RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usdc),  rateLimits, rateLimitData6,     "usdcDepositDataPsm",   6);
@@ -378,89 +446,75 @@ contract FullStagingDeploy is Script {
         RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      rateLimits, rateLimitData6,     "cctpToEthereumDomainData", 6);
         RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), rateLimits, unlimitedRateLimit, "usdsToCctpData",           6);
 
-        // AAVE rate limits
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(aaveDepositKey,  AUSDC_BASE), rateLimits, rateLimitData6,     "usdcDepositDataAave",  6);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(aaveWithdrawKey, AUSDC_BASE), rateLimits, unlimitedRateLimit, "usdcWithdrawDataAave", 6);
-        
-        // Morpho rate limits
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(vaultDepositKey,  MORPHO_VAULT_USDC_BASE), rateLimits, rateLimitData6,     "usdsDepositDataMorpho",  6);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(vaultWithdrawKey, MORPHO_VAULT_USDC_BASE), rateLimits, unlimitedRateLimit, "usdsWithdrawDataMorpho", 6);
-    }
-
-    function _setUpBaseALMController() internal {
-        vm.selectFork(base.forkId);
-        vm.startBroadcast();
-
-        // Step 1: Deploy ALM controller
-
-        ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin : base.admin,
-            psm   : base.config.readAddress(".psm"),
-            usdc  : base.config.readAddress(".usdc"),
-            cctp  : base.config.readAddress(".cctpTokenMessenger")
-        });
-
-        baseAlmProxy   = controllerInst.almProxy;
-        baseController = controllerInst.controller;
-
-        // Step 2: Initialize ALM system
-
-        ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
-            freezer       : base.config.readAddress(".freezer"),
-            relayer       : base.config.readAddress(".relayer"),
-            oldController : address(0)
-        });
-
-        ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin : base.admin,
-            psm   : base.config.readAddress(".psm"),
-            cctp  : base.config.readAddress(".cctpTokenMessenger"),
-            usdc  : base.config.readAddress(".usdc"),
-            susds : base.config.readAddress(".susds"),
-            usds  : base.config.readAddress(".usds")
-        });
-
-        ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);
-
-        mintRecipients[0] = ForeignControllerInit.MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient : bytes32(uint256(uint160(mainnetAlmProxy)))
-        });
-
-        ForeignControllerInit.initAlmSystem(
-            controllerInst,
-            configAddresses,
-            checkAddresses,
-            mintRecipients
-        );
-
-        // Step 3: Set all rate limits for the controller
-
-        _setBaseControllerRateLimits(controllerInst.rateLimits);
-
         vm.stopBroadcast();
-
-        // Step 4: Export all deployed addresses
-
-        ScriptTools.exportContract(base.nameDeps, "freezer", base.config.readAddress(".freezer"));
-        ScriptTools.exportContract(base.nameDeps, "relayer", base.config.readAddress(".relayer"));
-
-        ScriptTools.exportContract(base.name, "almProxy",   controllerInst.almProxy);
-        ScriptTools.exportContract(base.name, "controller", controllerInst.controller);
-        ScriptTools.exportContract(base.name, "rateLimits", controllerInst.rateLimits);
     }
 
-    function _setBaseMintRecipient() internal {
-        vm.selectFork(mainnet.forkId);
+    function _setArbitrumRateLimits() internal {
+        _setForeignControllerRateLimits(arbitrum, arbitrumInst);
+    }
+
+    function _setBaseRateLimits() internal {
+        _setForeignControllerRateLimits(base, baseInst);
+
+        _onboardAAVEToken(base, baseInst, AUSDC_BASE, rateLimitData6);
+
+        _onboardERC4626Token(base, baseInst, FLUID_SUSDS_VAULT_BASE,  rateLimitData6);
+        _onboardERC4626Token(base, baseInst, Base.MORPHO_VAULT_SUSDC, rateLimitData6);
+    }
+
+    /**********************************************************************************************/
+    /*** Rate limit utility functions                                                           ***/
+    /**********************************************************************************************/
+
+    function _onboardAAVEToken(
+        Domain memory domain,
+        ControllerInstance memory controllerInst,
+        address aToken,
+        RateLimitData memory rateLimitData
+    )
+        internal
+    {
+        vm.selectFork(domain.forkId);
         vm.startBroadcast();
 
-        MainnetController(mainnetController).setMintRecipient(
-            CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
-            bytes32(uint256(uint160(baseAlmProxy)))
-        );
+        // NOTE: MainnetController and ForeignController both have the same LIMIT constants for this
+        bytes32 depositKey  = MainnetController(controllerInst.controller).LIMIT_AAVE_DEPOSIT();
+        bytes32 withdrawKey = MainnetController(controllerInst.controller).LIMIT_AAVE_WITHDRAW();
+
+        IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
+
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  aToken), rateLimitData.maxAmount, rateLimitData.slope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, aToken), type(uint256).max,       0);
 
         vm.stopBroadcast();
     }
+
+    function _onboardERC4626Token(
+        Domain memory domain,
+        ControllerInstance memory controllerInst,
+        address token,
+        RateLimitData memory rateLimitData
+    )
+        internal
+    {
+        vm.selectFork(domain.forkId);
+        vm.startBroadcast();
+
+        // NOTE: MainnetController and ForeignController both have the same LIMIT constants for this
+        bytes32 depositKey  = MainnetController(controllerInst.controller).LIMIT_4626_DEPOSIT();
+        bytes32 withdrawKey = MainnetController(controllerInst.controller).LIMIT_4626_WITHDRAW();
+
+        IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
+
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  token), rateLimitData.maxAmount, rateLimitData.slope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, token), type(uint256).max,       0);
+
+        vm.stopBroadcast();
+    }
+
+    /**********************************************************************************************/
+    /*** Script running functions                                                               ***/
+    /**********************************************************************************************/
 
     function run() public {
         vm.setEnv("FOUNDRY_ROOT_CHAINID",             "1");
@@ -468,36 +522,66 @@ contract FullStagingDeploy is Script {
 
         deployer = msg.sender;
 
+        // Step 1: Declare domains and source files
+
         mainnet = Domain({
-            name     : "mainnet-staging",
-            nameDeps : "mainnet-staging-deps",
-            config   : ScriptTools.loadConfig("mainnet-staging"),
-            forkId   : vm.createFork(getChain("mainnet").rpcUrl),
-            admin    : deployer
+            input  : ScriptTools.loadConfig("mainnet-staging"),
+            output : "mainnet-staging",
+            forkId : vm.createFork(getChain("mainnet").rpcUrl),
+            admin  : deployer
+        });
+        arbitrum = Domain({
+            input  : ScriptTools.loadConfig("arbitrum_one-staging"),
+            output : "arbitrum_one-staging",
+            forkId : vm.createFork(getChain("arbitrum_one").rpcUrl),
+            admin  : deployer
         });
         base = Domain({
-            name     : "base-staging",
-            nameDeps : "base-staging-deps",
-            config   : ScriptTools.loadConfig("base-staging"),
-            forkId :   vm.createFork(getChain("base").rpcUrl),
-            admin    : deployer
+            input  : ScriptTools.loadConfig("base-staging"),
+            output : "base-staging",
+            forkId : vm.createFork(getChain("base").rpcUrl),
+            admin  : deployer
         });
 
         // Ballpark sizing of rate limits, tokens in PSMs, etc
         // Ballpark sizing of USDS to put in the join contracts, PSMs, etc
-        USDC_UNIT_SIZE = mainnet.config.readUint(".usdcUnitSize") * 1e6;
-        USDS_UNIT_SIZE = mainnet.config.readUint(".usdsUnitSize") * 1e18;
+        USDC_UNIT_SIZE = mainnet.input.readUint(".usdcUnitSize") * 1e6;
+        USDS_UNIT_SIZE = mainnet.input.readUint(".usdsUnitSize") * 1e18;
 
-        // Run deployment scripts after setting storage variables
+        rateLimitData18 = RateLimitData({
+            maxAmount : USDC_UNIT_SIZE * 1e12 * 5,
+            slope     : USDC_UNIT_SIZE * 1e12 / 4 hours
+        });
+        rateLimitData6 = RateLimitData({
+            maxAmount : USDC_UNIT_SIZE * 5,
+            slope     : USDC_UNIT_SIZE / 4 hours
+        });
+        unlimitedRateLimit = RateLimitHelpers.unlimitedRateLimit();
 
-        _setUpDependencies();
-        _setUpAllocationSystem();
+        // Step 2: Deploy and configure all mainnet contracts
+
+        _setUpMainnetDependencies();
+        _setUpMainnetAllocationSystem();
         _setUpMainnetController();
-        _setUpBaseALMController();
-        _setBaseMintRecipient();
+        _setMainnetControllerRateLimits();
 
-        ScriptTools.exportContract(mainnet.nameDeps, "admin", deployer);
-        ScriptTools.exportContract(base.nameDeps,    "admin", deployer);
+        // Step 3: Deploy and configure all L2 contracts, and set them as mint recipients on mainnet
+
+        arbitrumInst = _setUpForeignALMController(arbitrum);
+        baseInst     = _setUpForeignALMController(base);
+
+        _setUpMainnetMintRecipients();
+
+        // Step 4: Set rate limits for all L2 contracts
+
+        _setArbitrumRateLimits();
+        _setBaseRateLimits();
+
+        // Step 4: Export deployer address
+
+        ScriptTools.exportContract(mainnet.output,  "admin", deployer);
+        ScriptTools.exportContract(arbitrum.output, "admin", deployer);
+        ScriptTools.exportContract(base.output,     "admin", deployer);
     }
 
 }
