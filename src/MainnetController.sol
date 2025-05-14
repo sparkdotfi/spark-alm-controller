@@ -20,6 +20,7 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
+import { FluidLib }                       from "./libraries/FluidLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
@@ -102,6 +103,8 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public constant LIMIT_FLUID_SL_DEPOSIT     = keccak256("LIMIT_FLUID_SL_DEPOSIT");
+    bytes32 public constant LIMIT_FLUID_SL_WITHDRAW    = keccak256("LIMIT_FLUID_SL_WITHDRAW");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -703,6 +706,52 @@ contract MainnetController is AccessControl {
             address(superstateRedemption),
             abi.encodeCall(superstateRedemption.redeem, (ustbAmount))
         );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Fluid functions                                                                ***/
+    /**********************************************************************************************/
+    
+    function depositFluidSmartLending(
+        address smartLending,
+        uint256 token0Amount,
+        uint256 token1Amount,
+        uint256 minShares
+    )
+        external returns (uint256 shares)
+    {
+        _checkRole(RELAYER);
+
+        shares = FluidLib.depositSmartLending(FluidLib.DepositSmartLendingParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            smartLending            : smartLending,
+            token0Amount            : token0Amount,
+            token1Amount            : token1Amount,
+            minShares               : minShares,
+            depositSLRateLimitId    : LIMIT_FLUID_SL_DEPOSIT
+        }));
+    }
+
+    function withdrawFluidSmartLending(
+        address smartLending,
+        uint256 token0Amount,
+        uint256 token1Amount,
+        uint256 maxShares
+    )
+        external returns (uint256 shares)
+    {
+        _checkRole(RELAYER);
+
+        shares = FluidLib.withdrawSmartLending(FluidLib.WithdrawSmartLendingParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            smartLending            : smartLending,
+            token0Amount            : token0Amount,
+            token1Amount            : token1Amount,
+            maxShares               : maxShares,
+            withdrawSLRateLimitId   : LIMIT_FLUID_SL_WITHDRAW
+        }));
     }
 
     /**********************************************************************************************/
