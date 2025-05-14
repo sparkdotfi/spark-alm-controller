@@ -6,6 +6,10 @@ import "./ForkTestBase.t.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 
+interface IHarness {
+    function approve(address token, address spender, uint256 amount) external;
+}
+
 contract MainnetControllerHarness is MainnetController {
 
     constructor(
@@ -39,10 +43,6 @@ contract ForeignControllerHarness is ForeignController {
         _approve(token, spender, amount);
     }
 
-}
-
-interface IHarness {
-    function approve(address token, address spender, uint256 amount) external;
 }
 
 contract ApproveTestBase is ForkTestBase {
@@ -168,4 +168,5 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
         _approveTest(Ethereum.WETH,   harness);
         _approveTest(Ethereum.WSTETH, harness);
     }
+
 }

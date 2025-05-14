@@ -91,8 +91,7 @@ library CCTPLib {
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
 
-    // NOTE: As we are transferring USDC using CCTP, we are not using the `_forceApprove` logic
-    //       in this function.
+    // NOTE: As USDC is the only asset transferred using CCTP, _forceApprove logic is unnecessary.
     function _approve(
         IALMProxy proxy,
         address   token,

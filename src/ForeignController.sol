@@ -371,7 +371,7 @@ contract ForeignController is AccessControl {
     /*** Internal helper functions                                                              ***/
     /**********************************************************************************************/
 
-    // NOTE: This logic was inspired by OpenZeppelin's forceAprove in SafeERC20 library
+    // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
     function _approve(address token, address spender, uint256 amount) internal {
         bytes memory approveData = abi.encodeCall(IERC20.approve, (spender, amount));
 
