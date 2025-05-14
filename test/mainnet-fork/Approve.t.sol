@@ -16,6 +16,7 @@ interface IHarness {
 }
 
 contract MainnetControllerHarness is MainnetController {
+
     using CurveLib for IALMProxy;
 
     constructor(
