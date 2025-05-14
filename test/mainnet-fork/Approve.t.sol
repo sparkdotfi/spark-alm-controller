@@ -6,11 +6,17 @@ import "./ForkTestBase.t.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 
+import { CurveLib } from "../../src/libraries/CurveLib.sol";
+
+import { IALMProxy } from "../../src/interfaces/IALMProxy.sol";
+
 interface IHarness {
     function approve(address token, address spender, uint256 amount) external;
+    function approveCurve(address proxy, address token, address spender, uint256 amount) external;
 }
 
 contract MainnetControllerHarness is MainnetController {
+    using CurveLib for IALMProxy;
 
     constructor(
         address admin_,
@@ -24,6 +30,10 @@ contract MainnetControllerHarness is MainnetController {
 
     function approve(address token, address spender, uint256 amount) external {
         _approve(token, spender, amount);
+    }
+
+    function approveCurve(address proxy, address token, address spender, uint256 amount) external {
+        IALMProxy(proxy)._approve(token, spender, amount);
     }
 
 }
@@ -57,6 +67,20 @@ contract ApproveTestBase is ForkTestBase {
         assertEq(IERC20(token).allowance(address(almProxy), spender), 100);
 
         IHarness(harness).approve(token, spender, 200);  // Would revert without setting to zero
+
+        assertEq(IERC20(token).allowance(address(almProxy), spender), 200);
+    }
+
+    function _approveCurveTest(address token, address harness) internal {
+        address spender = makeAddr("spender");
+
+        assertEq(IERC20(token).allowance(harness, spender), 0);
+
+        IHarness(harness).approveCurve(address(almProxy), token, spender, 100);
+
+        assertEq(IERC20(token).allowance(address(almProxy), spender), 100);
+
+        IHarness(harness).approveCurve(address(almProxy), token, spender, 200);  // Would revert without setting to zero
 
         assertEq(IERC20(token).allowance(address(almProxy), spender), 200);
     }
@@ -104,6 +128,27 @@ contract MainnetControllerApproveSuccessTests is ApproveTestBase {
         _approveTest(Ethereum.WEETH,  harness);
         _approveTest(Ethereum.WETH,   harness);
         _approveTest(Ethereum.WSTETH, harness);
+    }
+
+    function test_approveCurveTokens() public {
+        _approveCurveTest(Ethereum.CBBTC,  harness);
+        _approveCurveTest(Ethereum.DAI,    harness);
+        _approveCurveTest(Ethereum.GNO,    harness);
+        _approveCurveTest(Ethereum.MKR,    harness);
+        _approveCurveTest(Ethereum.RETH,   harness);
+        _approveCurveTest(Ethereum.SDAI,   harness);
+        _approveCurveTest(Ethereum.SUSDE,  harness);
+        _approveCurveTest(Ethereum.SUSDS,  harness);
+        _approveCurveTest(Ethereum.USDC,   harness);
+        _approveCurveTest(Ethereum.USDE,   harness);
+        _approveCurveTest(Ethereum.USDS,   harness);
+        _approveCurveTest(Ethereum.USCC,   harness);
+        _approveCurveTest(Ethereum.USDT,   harness);
+        _approveCurveTest(Ethereum.USTB,   harness);
+        _approveCurveTest(Ethereum.WBTC,   harness);
+        _approveCurveTest(Ethereum.WEETH,  harness);
+        _approveCurveTest(Ethereum.WETH,   harness);
+        _approveCurveTest(Ethereum.WSTETH, harness);
     }
 
 }
