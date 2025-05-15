@@ -511,13 +511,13 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function swapDSTokenFacility(uint256 buidlITokenAmount) external {
+    function swapDSTokenFacility(uint256 buidlIAmount) external {
         _checkRole(RELAYER);
-        _rateLimited(LIMIT_DSTOKEN_SWAP, buidlITokenAmount);
+        _rateLimited(LIMIT_DSTOKEN_SWAP, buidlIAmount);
 
         proxy.doCall(
             address(dsToken),
-            abi.encodeCall(dsToken.swapDSToken, (buidlITokenAmount))
+            abi.encodeCall(dsToken.swapDSToken, (buidlIAmount))
         );
     }
 
