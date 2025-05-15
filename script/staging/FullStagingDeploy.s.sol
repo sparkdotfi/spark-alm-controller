@@ -252,10 +252,13 @@ contract FullStagingDeploy is Script {
 
         // Step 2: Initialize ALM system
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = mainnet.input.readAddress(".relayer");
+
         MainnetControllerInit.ConfigAddressParams memory configAddresses
             = MainnetControllerInit.ConfigAddressParams({
                 freezer       : mainnet.input.readAddress(".freezer"),
-                relayer       : mainnet.input.readAddress(".relayer"),
+                relayers      : relayers,
                 oldController : address(0)
             });
 
@@ -311,9 +314,12 @@ contract FullStagingDeploy is Script {
 
         // Step 2: Initialize ALM system
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = domain.input.readAddress(".relayer");
+
         ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
             freezer       : domain.input.readAddress(".freezer"),
-            relayer       : domain.input.readAddress(".relayer"),
+            relayers      : relayers,
             oldController : address(0)
         });
 
