@@ -91,6 +91,7 @@ library CCTPLib {
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
 
+    // NOTE: As USDC is the only asset transferred using CCTP, _forceApprove logic is unnecessary.
     function _approve(
         IALMProxy proxy,
         address   token,
@@ -134,7 +135,7 @@ library CCTPLib {
     /**********************************************************************************************/
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
-
+    
     function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }

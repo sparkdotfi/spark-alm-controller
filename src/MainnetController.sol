@@ -848,7 +848,26 @@ contract MainnetController is AccessControl {
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
 
+    // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
     function _approve(address token, address spender, uint256 amount) internal {
+        bytes memory approveData = abi.encodeCall(IERC20.approve, (spender, amount));
+
+        // Call doCall on proxy to approve the token
+        ( bool success, bytes memory data )
+            = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
+
+        // Decode the first 32 bytes of the data, ALMProxy returns 96 bytes
+        bytes32 result;
+        assembly { result := mload(add(data, 32)) }
+
+        // Decode the result to check if the approval was successful
+        bool decodedSuccess = (data.length == 0) || result != bytes32(0);
+
+        // If call succeeded with expected calldata, return
+        if (success && decodedSuccess) return;
+
+        // If call reverted, set to zero and try again
+        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
     }
 

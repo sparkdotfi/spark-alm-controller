@@ -25,5 +25,6 @@ base = { key = "${BASESCAN_API_KEY}" }
 gnosis_chain = { key = "${GNOSISSCAN_API_KEY}", url = "https://api.gnosisscan.io/api" }
 arbitrum_one = { key = "${ARBISCAN_API_KEY}" }
 world_chain = { key = "${WORLD_CHAIN_API_KEY}", chain = 480, url = "https://worldchain-mainnet-explorer.alchemy.com/api" }
+unichain = { key = "${UNICHAIN_API_KEY}", chain = 130, url = "https://unichain.blockscout.com/api" }
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
