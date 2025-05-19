@@ -749,9 +749,32 @@ contract MainnetController is AccessControl {
             smartLending            : smartLending,
             token0Amount            : token0Amount,
             token1Amount            : token1Amount,
-            maxShares               : maxShares,
+            maxSLTokens             : maxShares,
             withdrawSLRateLimitId   : LIMIT_FLUID_SL_WITHDRAW
         }));
+    }
+
+    function withdrawPerfectFluidSmartLending(
+        address smartLending,
+        uint256 shares,
+        uint256 minToken0Amount,
+        uint256 minToken1Amount
+    )
+        external returns (uint256)
+    {
+        _checkRole(RELAYER);
+
+        shares = FluidLib.withdrawPerfectSmartLending(FluidLib.WithdrawPerfectSmartLendingParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            smartLending            : smartLending,
+            sLTokensAmount          : shares,
+            minToken0Amount         : minToken0Amount,
+            minToken1Amount         : minToken1Amount,
+            withdrawSLRateLimitId   : LIMIT_FLUID_SL_WITHDRAW
+        }));
+
+        return shares;
     }
 
     /**********************************************************************************************/

@@ -37,6 +37,23 @@ interface IFluidSmartLending is IERC20 {
         address to_
     ) external returns (uint256 amount_, uint256 shares_);
 
+    /// @dev This function allows users to withdraw a perfect amount of collateral liquidity
+    /// @param shares_ The number of shares to withdraw. set to type(uint).max to withdraw maximum balance.
+    /// @param minToken0Withdraw_ The minimum amount of token0 the user is willing to accept
+    /// @param minToken1Withdraw_ The minimum amount of token1 the user is willing to accept
+    /// @param to_ Recipient of withdrawn tokens. If to_ == address(0) then out tokens will be sent to msg.sender.
+    /// @return amount_ amount_ of shares actually burnt
+    /// @return token0Amt_ The amount of token0 withdrawn
+    /// @return token1Amt_ The amount of token1 withdrawn
+    function withdrawPerfect(
+        uint256 shares_,
+        uint256 minToken0Withdraw_,
+        uint256 minToken1Withdraw_,
+        address to_
+    )
+        external
+        returns (uint256 amount_, uint256 token0Amt_, uint256 token1Amt_);
+
     function TOKEN0() external returns (address);
     function TOKEN1() external returns (address);
 }
@@ -62,7 +79,17 @@ library FluidLib {
         address smartLending;
         uint256 token0Amount;
         uint256 token1Amount;
-        uint256 maxShares;
+        uint256 maxSLTokens; // maximum smart lending tokens amount allowed to burn
+        bytes32 withdrawSLRateLimitId;
+    }
+
+    struct WithdrawPerfectSmartLendingParams {
+        IALMProxy proxy;
+        IRateLimits rateLimits;
+        address smartLending;
+        uint256 sLTokensAmount; // smart lending tokens amount to burn
+        uint256 minToken0Amount;
+        uint256 minToken1Amount;
         bytes32 withdrawSLRateLimitId;
     }
 
@@ -94,8 +121,8 @@ library FluidLib {
             // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
             _approve(
                 params.proxy,
-                params.smartLending,
                 token0,
+                params.smartLending,
                 params.token0Amount
             );
         }
@@ -114,8 +141,8 @@ library FluidLib {
             // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
             _approve(
                 params.proxy,
-                params.smartLending,
                 token1,
+                params.smartLending,
                 params.token1Amount
             );
         }
@@ -151,12 +178,12 @@ library FluidLib {
 
         params.rateLimits.triggerRateLimitDecrease(
             rateLimitKey,
-            params.maxShares
+            params.maxSLTokens
         );
 
         // Withdraw asset from a token, decode resulting shares.
         // Assumes proxy has adequate token shares.
-        (, shares) = abi.decode(
+        (shares, ) = abi.decode(
             params.proxy.doCall(
                 params.smartLending,
                 abi.encodeCall(
@@ -164,7 +191,7 @@ library FluidLib {
                     (
                         params.token0Amount,
                         params.token1Amount,
-                        params.maxShares,
+                        params.maxSLTokens,
                         address(params.proxy)
                     )
                 )
@@ -172,13 +199,51 @@ library FluidLib {
             (uint256, uint256)
         );
 
-        uint256 sharesDiff = params.maxShares - shares; // actual withdrawn shares is always <= maxShares
+        uint256 sharesDiff = params.maxSLTokens - shares; // actual withdrawn SL tokens is always <= maxSLTokens
         if (sharesDiff > 0) {
             params.rateLimits.triggerRateLimitIncrease(
                 rateLimitKey,
                 sharesDiff
             );
         }
+    }
+
+    function withdrawPerfectSmartLending(
+        WithdrawPerfectSmartLendingParams calldata params
+    ) external returns (uint256 shares) {
+        IFluidSmartLending smartLending = IFluidSmartLending(
+            params.smartLending
+        );
+
+        bytes32 rateLimitKey = RateLimitHelpers.makeAssetKey(
+            params.withdrawSLRateLimitId,
+            params.smartLending
+        );
+
+        params.rateLimits.triggerRateLimitDecrease(
+            rateLimitKey,
+            params.sLTokensAmount == type(uint256).max
+                ? IERC20(params.smartLending).balanceOf(address(params.proxy))
+                : params.sLTokensAmount
+        );
+
+        // Withdraw asset from a token, decode resulting shares.
+        // Assumes proxy has adequate token shares.
+        (shares, , ) = abi.decode(
+            params.proxy.doCall(
+                params.smartLending,
+                abi.encodeCall(
+                    smartLending.withdrawPerfect,
+                    (
+                        params.sLTokensAmount,
+                        params.minToken0Amount,
+                        params.minToken1Amount,
+                        address(params.proxy)
+                    )
+                )
+            ),
+            (uint256, uint256, uint256)
+        );
     }
 
     /**********************************************************************************************/
