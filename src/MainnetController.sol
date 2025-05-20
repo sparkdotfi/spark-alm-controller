@@ -28,11 +28,6 @@ interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
 }
 
-interface IBuidlRedeemLike {
-    function asset() external view returns(address);
-    function redeem(uint256 usdcAmount) external;
-}
-
 interface IEthenaMinterLike {
     function setDelegatedSigner(address delegateSigner) external;
     function removeDelegatedSigner(address delegateSigner) external;
@@ -98,7 +93,6 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public constant LIMIT_BUIDL_REDEEM_CIRCLE  = keccak256("LIMIT_BUIDL_REDEEM_CIRCLE");
     bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
@@ -116,7 +110,6 @@ contract MainnetController is AccessControl {
     address public immutable buffer;
 
     IALMProxy         public immutable proxy;
-    IBuidlRedeemLike  public immutable buidlRedeem;
     ICCTPLike         public immutable cctp;
     IDaiUsdsLike      public immutable daiUsds;
     IEthenaMinterLike public immutable ethenaMinter;
@@ -161,7 +154,6 @@ contract MainnetController is AccessControl {
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
 
-        buidlRedeem          = IBuidlRedeemLike(Ethereum.BUIDL_REDEEM);
         ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
         superstateRedemption = ISSRedemptionLike(Ethereum.SUPERSTATE_REDEMPTION);
 
@@ -485,22 +477,6 @@ contract MainnetController is AccessControl {
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
             amountWithdrawn
-        );
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer BlackRock BUIDL functions                                                      ***/
-    /**********************************************************************************************/
-
-    function redeemBUIDLCircleFacility(uint256 usdcAmount) external {
-        _checkRole(RELAYER);
-        _rateLimited(LIMIT_BUIDL_REDEEM_CIRCLE, usdcAmount);
-
-        _approve(address(buidlRedeem.asset()), address(buidlRedeem), usdcAmount);
-
-        proxy.doCall(
-            address(buidlRedeem),
-            abi.encodeCall(buidlRedeem.redeem, (usdcAmount))
         );
     }
 
