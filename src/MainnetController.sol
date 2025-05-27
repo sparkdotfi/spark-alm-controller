@@ -18,9 +18,13 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
+import  "./interfaces/ILayerZero.sol";
+
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+
+import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -71,6 +75,8 @@ interface IVaultLike {
 
 contract MainnetController is AccessControl {
 
+    using OptionsBuilder for bytes;
+
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
@@ -96,6 +102,7 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -749,6 +756,49 @@ contract MainnetController is AccessControl {
             usdcAmount              : usdcAmount,
             psmTo18ConversionFactor : psmTo18ConversionFactor
         }));
+    }
+
+    // NOTE: !!! This function does not have integrations tests !!!
+    //       Set rate limit to zero.
+    function transferTokenLayerZero(
+        address oftAddress,
+        address target,
+        uint256 amount,
+        uint32  dstEid
+    )
+        external
+    {
+        _checkRole(RELAYER);
+        _rateLimited(
+            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, target, dstEid)),
+            amount
+        );
+
+        _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : dstEid,
+            to           : bytes32(uint256(uint160(target))),
+            amountLD     : amount,
+            minAmountLD  : 0,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        // Query the min amount received on the destination chain and set it.
+        (,, OFTReceipt memory receipt) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        sendParams.minAmountLD = receipt.amountReceivedLD;
+
+        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
+
+        proxy.doCallWithValue(
+            oftAddress,
+            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
+            fee.nativeFee
+        );
     }
 
     /**********************************************************************************************/

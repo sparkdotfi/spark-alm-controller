@@ -17,6 +17,10 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
+import  "./interfaces/ILayerZero.sol";
+
+import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
@@ -24,6 +28,8 @@ interface IATokenWithPool is IAToken {
 }
 
 contract ForeignController is AccessControl {
+
+    using OptionsBuilder for bytes;
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -48,14 +54,15 @@ contract ForeignController is AccessControl {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_4626_DEPOSIT   = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public constant LIMIT_4626_WITHDRAW  = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public constant LIMIT_AAVE_DEPOSIT   = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public constant LIMIT_AAVE_WITHDRAW  = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public constant LIMIT_PSM_DEPOSIT    = keccak256("LIMIT_PSM_DEPOSIT");
-    bytes32 public constant LIMIT_PSM_WITHDRAW   = keccak256("LIMIT_PSM_WITHDRAW");
-    bytes32 public constant LIMIT_USDC_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public constant LIMIT_4626_DEPOSIT       = keccak256("LIMIT_4626_DEPOSIT");
+    bytes32 public constant LIMIT_4626_WITHDRAW      = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
+    bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
+    bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
 
     IALMProxy   public immutable proxy;
     ICCTPLike   public immutable cctp;
@@ -213,6 +220,47 @@ contract ForeignController is AccessControl {
         if (usdcAmount > 0) {
             _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
         }
+    }
+
+    // NOTE: !!! This function does not have integrations tests !!!
+    //       Set rate limit to zero.
+    function transferTokenLayerZero(
+        address oftAddress,
+        address target,
+        uint256 amount,
+        uint32  dstEid
+    )
+        external
+    {
+        _checkRole(RELAYER);
+        _rateLimited(
+            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, target, dstEid)),
+            amount
+        );
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : dstEid,
+            to           : bytes32(uint256(uint160(target))),
+            amountLD     : amount,
+            minAmountLD  : 0,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        // Query the min amount received on the destination chain and set it.
+        (,, OFTReceipt memory receipt) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        sendParams.minAmountLD = receipt.amountReceivedLD;
+
+        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
+
+        proxy.doCallWithValue(
+            oftAddress,
+            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
+            fee.nativeFee
+        );
     }
 
     /**********************************************************************************************/
@@ -418,6 +466,10 @@ contract ForeignController is AccessControl {
         );
 
         emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
+    }
+
+    function _rateLimited(bytes32 key, uint256 amount) internal {
+        rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
 }
