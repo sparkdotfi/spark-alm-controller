@@ -107,6 +107,8 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
     bytes32 public constant LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
 
+    uint256 internal constant CENTRIFUGE_REQUEST_ID = 0;
+
     address public immutable buffer;
 
     IALMProxy         public immutable proxy;
@@ -374,8 +376,6 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     // NOTE: These cancelation methods are compatible with ERC-7887
-
-    uint256 CENTRIFUGE_REQUEST_ID = 0;
 
     function cancelCentrifugeDepositRequest(address token) external {
         _checkRole(RELAYER);
