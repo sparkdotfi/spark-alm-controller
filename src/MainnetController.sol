@@ -81,7 +81,7 @@ contract MainnetController is AccessControl {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
-    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, address layerZeroRecipient);
+    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
@@ -137,9 +137,8 @@ contract MainnetController is AccessControl {
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
-    mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
-
-    mapping(uint32 destinationEndpointId => address layerZeroRecipient) public layerZeroRecipients;
+    mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
+    mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -189,7 +188,7 @@ contract MainnetController is AccessControl {
 
     function setLayerZeroRecipient(
         uint32  destinationEndpointId,
-        address layerZeroRecipient
+        bytes32 layerZeroRecipient
     ) 
         external
     {
@@ -796,7 +795,7 @@ contract MainnetController is AccessControl {
 
         SendParam memory sendParams = SendParam({
             dstEid       : destinationEndpointId,
-            to           : bytes32(uint256(uint160(layerZeroRecipients[destinationEndpointId]))),
+            to           : layerZeroRecipients[destinationEndpointId],
             amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,

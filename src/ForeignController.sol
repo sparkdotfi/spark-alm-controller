@@ -43,7 +43,7 @@ contract ForeignController is AccessControl {
         uint256 usdcAmount
     );
 
-    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, address layerZeroRecipient);
+    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
 
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
@@ -73,9 +73,8 @@ contract ForeignController is AccessControl {
 
     IERC20 public immutable usdc;
 
-    mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
-
-    mapping(uint32 destinationEndpointId => address layerZeroRecipient) public layerZeroRecipients;
+    mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
+    mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -131,7 +130,8 @@ contract ForeignController is AccessControl {
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
     }
-    function setLayerZeroRecipient(uint32 destinationEndpointId,address layerZeroRecipient) 
+
+    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient) 
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -251,11 +251,11 @@ contract ForeignController is AccessControl {
             amount
         );
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
         SendParam memory sendParams = SendParam({
             dstEid       : destinationEndpointId,
-            to           : bytes32(uint256(uint160(layerZeroRecipients[destinationEndpointId]))),
+            to           : layerZeroRecipients[destinationEndpointId],
             amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,

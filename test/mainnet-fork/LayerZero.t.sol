@@ -82,7 +82,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
         mainnetController.setLayerZeroRecipient(
             destinationEndpointId,
-            makeAddr("layerZeroRecipient")
+            bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))))
         );
 
         vm.stopPrank();
@@ -274,7 +274,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
         foreignController.setLayerZeroRecipient(
             destinationEndpointId,
-            makeAddr("layerZeroRecipient")
+            bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))))
         );
 
         vm.stopPrank();
