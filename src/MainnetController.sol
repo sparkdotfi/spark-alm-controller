@@ -81,6 +81,7 @@ contract MainnetController is AccessControl {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, address layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
@@ -138,6 +139,8 @@ contract MainnetController is AccessControl {
 
     mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
 
+    mapping(uint32 destinationEndpointId => address layerZeroRecipient) public layerZeroRecipients;
+
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
@@ -182,6 +185,17 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
+    }
+
+    function setLayerZeroRecipient(
+        uint32  destinationEndpointId,
+        address layerZeroRecipient
+    ) 
+        external
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
+        emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
     }
 
     function setMaxSlippage(address pool, uint256 maxSlippage) external {
@@ -762,25 +776,26 @@ contract MainnetController is AccessControl {
     //       Set rate limit to zero.
     function transferTokenLayerZero(
         address oftAddress,
-        address target,
         uint256 amount,
-        uint32  dstEid
+        uint32  destinationEndpointId
     )
         external
     {
         _checkRole(RELAYER);
         _rateLimited(
-            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, target, dstEid)),
+            keccak256(
+                abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)
+            ),
             amount
         );
 
         _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200000, 0);
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
         SendParam memory sendParams = SendParam({
-            dstEid       : dstEid,
-            to           : bytes32(uint256(uint160(target))),
+            dstEid       : destinationEndpointId,
+            to           : bytes32(uint256(uint160(layerZeroRecipients[destinationEndpointId]))),
             amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,
