@@ -28,6 +28,10 @@ import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
 contract MainnetControllerLayerZeroTestBase is ForkTestBase {
 
+    uint32 constant destinationEndpointId = 30110; // Arbitrum EID
+
+    address constant USDT_OFT = 0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee;
+
     function _getBlock() internal pure override returns (uint256) {
         return 22468758;  // May 12, 2025
     }
@@ -36,17 +40,13 @@ contract MainnetControllerLayerZeroTestBase is ForkTestBase {
 
 contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLayerZeroTestBase {
 
-    uint32 destinationEndpointId = 30110; // Arbitrum EID
-
-    address OFT_ADDRESS = 0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee;  // USDT OFT address
-
     function test_transferTokenLayerZero_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             RELAYER
         ));
-        mainnetController.transferTokenLayerZero(OFT_ADDRESS, 1e6, 30110);
+        mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, 30110);
     }
 
     function test_transferTokenLayerZero_zeroMaxAmount() external {
@@ -54,7 +54,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         rateLimits.setRateLimitData(
             keccak256(abi.encode(
                 mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
+                USDT_OFT,
                 destinationEndpointId
             )),
             0,
@@ -64,7 +64,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        mainnetController.transferTokenLayerZero(OFT_ADDRESS, 1e6, destinationEndpointId);
+        mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, destinationEndpointId);
     }
 
     function test_transferTokenLayerZero_rateLimitedBoundary() external {
@@ -73,7 +73,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         rateLimits.setRateLimitData(
             keccak256(abi.encode(
                 mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
+                USDT_OFT,
                 destinationEndpointId
             )),
             10_000_000e6,
@@ -93,9 +93,9 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.transferTokenLayerZero(OFT_ADDRESS, 10_000_000e6 + 1, destinationEndpointId);
+        mainnetController.transferTokenLayerZero(USDT_OFT, 10_000_000e6 + 1, destinationEndpointId);
 
-        mainnetController.transferTokenLayerZero(OFT_ADDRESS, 10_000_000e6, destinationEndpointId);
+        mainnetController.transferTokenLayerZero(USDT_OFT, 10_000_000e6, destinationEndpointId);
     }
 
 }
@@ -110,22 +110,16 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
         uint256 amountReceivedLD // Amount of tokens received in local decimals.
     );
 
-    uint32 destinationEndpointId = 30110; // Arbitrum EID
-
-    address OFT_ADDRESS = 0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee;  // USDT OFT address
-
     function test_transferTokenLayerZero() external {
         vm.startPrank(SPARK_PROXY);
 
-        rateLimits.setRateLimitData(
-            keccak256(abi.encode(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
-                destinationEndpointId
-            )),
-            10_000_000e6,
-            0
-        );
+        bytes32 key = keccak256(abi.encode(
+            mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+            USDT_OFT,
+            destinationEndpointId
+        ));
+
+        rateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
         mainnetController.setLayerZeroRecipient(
             destinationEndpointId,
@@ -138,13 +132,14 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
         deal(address(usdt), address(almProxy), 10_000_000e6);
         deal(address(almProxy), 1 ether);   // gas cost for LayerZero
 
-        uint256 oftBalanceBefore = IERC20(usdt).balanceOf(OFT_ADDRESS);
+        uint256 oftBalanceBefore = IERC20(usdt).balanceOf(USDT_OFT);
 
         vm.startPrank(relayer);
 
+        assertEq(rateLimits.getCurrentRateLimit(key),       10_000_000e6);
         assertEq(IERC20(usdt).balanceOf(address(almProxy)), 10_000_000e6);
 
-        vm.expectEmit(OFT_ADDRESS);
+        vm.expectEmit(USDT_OFT);
         emit OFTSent(
             bytes32(0xb6ebf135f758657b482818d84091e50f1af1cb378bd6f4e013f45dfa6f860cd6),
             destinationEndpointId,
@@ -152,20 +147,11 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
             10_000_000e6,
             10_000_000e6
         );
-        mainnetController.transferTokenLayerZero(OFT_ADDRESS, 10_000_000e6, destinationEndpointId);
+        mainnetController.transferTokenLayerZero(USDT_OFT, 10_000_000e6, destinationEndpointId);
 
-        assertEq(IERC20(usdt).balanceOf(OFT_ADDRESS),       oftBalanceBefore + 10_000_000e6);
+        assertEq(IERC20(usdt).balanceOf(USDT_OFT),          oftBalanceBefore + 10_000_000e6);
         assertEq(IERC20(usdt).balanceOf(address(almProxy)), 0);
-
-
-        IRateLimits.RateLimitData memory d = rateLimits.getRateLimitData(
-            keccak256(abi.encode(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
-                destinationEndpointId
-            ))
-        );
-        assertEq(d.lastAmount, 0);
+        assertEq(rateLimits.getCurrentRateLimit(key),       0);
     }
 
 }
@@ -188,6 +174,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
     address constant SPARK_EXECUTOR     = Arbitrum.SPARK_EXECUTOR;
     address constant SSR_ORACLE         = Arbitrum.SSR_AUTH_ORACLE;
     address constant USDC_ARB           = Arbitrum.USDC;
+    address constant USDT_OFT           = 0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92;
+    address constant USDT0              = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
@@ -206,6 +194,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
     IERC20 usdcArb;
 
     IPSM3 psmArb;
+
+    uint32 constant destinationEndpointId = 30101;  // Ethereum EID
 
     function setUp() public override virtual {
         super.setUp();
@@ -292,11 +282,6 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
     using DomainHelpers for *;
 
-    uint32 destinationEndpointId = 30101;  // Ethereum EID
-
-    address ArbitrumExtensionV2 = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
-    address OFT_ADDRESS         = 0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92;  // USDT OFT address
-
     function setUp() public override virtual {
         super.setUp();
         destination.selectFork();
@@ -308,7 +293,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
             address(this),
             RELAYER
         ));
-        foreignController.transferTokenLayerZero(OFT_ADDRESS, 1e6, destinationEndpointId);
+        foreignController.transferTokenLayerZero(USDT_OFT, 1e6, destinationEndpointId);
     }
 
     function test_transferTokenLayerZero_zeroMaxAmount() external {
@@ -316,7 +301,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         foreignRateLimits.setRateLimitData(
             keccak256(abi.encode(
                 foreignController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
+                USDT_OFT,
                 destinationEndpointId
             )),
             0,
@@ -326,7 +311,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        foreignController.transferTokenLayerZero(OFT_ADDRESS, 1e6, destinationEndpointId);
+        foreignController.transferTokenLayerZero(USDT_OFT, 1e6, destinationEndpointId);
     }
 
     function test_transferTokenLayerZero_rateLimitedBoundary() external {
@@ -335,7 +320,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         foreignRateLimits.setRateLimitData(
             keccak256(abi.encode(
                 foreignController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
+                USDT_OFT,
                 destinationEndpointId
             )),
             10_000_000e6,
@@ -350,14 +335,14 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         vm.stopPrank();
 
         // Setup token balances
-        deal(ArbitrumExtensionV2, address(foreignAlmProxy), 10_000_000e6);
+        deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
         deal(address(foreignAlmProxy), 1 ether);  // gas cost for LayerZero
 
         vm.startPrank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        foreignController.transferTokenLayerZero(OFT_ADDRESS, 10_000_000e6 + 1, destinationEndpointId);
+        foreignController.transferTokenLayerZero(USDT_OFT, 10_000_000e6 + 1, destinationEndpointId);
 
-        foreignController.transferTokenLayerZero(OFT_ADDRESS, 10_000_000e6, destinationEndpointId);
+        foreignController.transferTokenLayerZero(USDT_OFT, 10_000_000e6, destinationEndpointId);
     }
 
 }
@@ -375,11 +360,6 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
         uint256 amountReceivedLD // Amount of tokens received in local decimals.
     );
 
-    uint32 destinationEndpointId = 30101;  // Ethereum EID
-
-    address ArbitrumExtensionV2 = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
-    address OFT_ADDRESS         = 0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92;  // USDT OFT address
-
     function setUp() public override virtual {
         super.setUp();
         destination.selectFork();
@@ -388,15 +368,13 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
     function test_transferTokenLayerZero() external {
         vm.startPrank(SPARK_EXECUTOR);
 
-        foreignRateLimits.setRateLimitData(
-            keccak256(abi.encode(
-                foreignController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
-                destinationEndpointId
-            )),
-            10_000_000e6,
-            0
-        );
+        bytes32 key = keccak256(abi.encode(
+            foreignController.LIMIT_LAYERZERO_TRANSFER(),
+            USDT_OFT,
+            destinationEndpointId
+        ));
+
+        foreignRateLimits.setRateLimitData(key,10_000_000e6,0);
 
         foreignController.setLayerZeroRecipient(
             destinationEndpointId,
@@ -406,14 +384,15 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
         vm.stopPrank();
 
         // Setup token balances
-        deal(ArbitrumExtensionV2, address(foreignAlmProxy), 10_000_000e6);
+        deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
         deal(address(foreignAlmProxy), 1 ether);   // gas cost for LayerZero
 
         vm.startPrank(relayer);
 
-        assertEq(IERC20(ArbitrumExtensionV2).balanceOf(address(foreignAlmProxy)), 10_000_000e6);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),        10_000_000e6);
+        assertEq(IERC20(USDT0).balanceOf(address(foreignAlmProxy)), 10_000_000e6);
 
-        vm.expectEmit(OFT_ADDRESS);
+        vm.expectEmit(USDT_OFT);
         emit OFTSent(
             bytes32(0xce4454206df6ee6a9cab360f7d76fd11ae258f65a9e8cc88faf1110c0bb36864),
             destinationEndpointId,
@@ -421,18 +400,10 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
             10_000_000e6,
             10_000_000e6
         );
-        foreignController.transferTokenLayerZero(OFT_ADDRESS, 10_000_000e6, destinationEndpointId);
+        foreignController.transferTokenLayerZero(USDT_OFT, 10_000_000e6, destinationEndpointId);
 
-        assertEq(IERC20(ArbitrumExtensionV2).balanceOf(address(foreignAlmProxy)), 0);
-
-        IRateLimits.RateLimitData memory d = foreignRateLimits.getRateLimitData(
-            keccak256(abi.encode(
-                foreignController.LIMIT_LAYERZERO_TRANSFER(),
-                OFT_ADDRESS,
-                destinationEndpointId
-            ))
-        );
-        assertEq(d.lastAmount, 0);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),        0);
+        assertEq(IERC20(USDT0).balanceOf(address(foreignAlmProxy)), 0);
     }
 
 }

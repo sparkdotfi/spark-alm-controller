@@ -783,9 +783,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
         _rateLimited(
-            keccak256(
-                abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)
-            ),
+            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
             amount
         );
 
@@ -804,7 +802,7 @@ contract MainnetController is AccessControl {
         });
 
         // Query the min amount received on the destination chain and set it.
-        (,, OFTReceipt memory receipt) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        ( ,, OFTReceipt memory receipt) = ILayerZero(oftAddress).quoteOFT(sendParams);
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
