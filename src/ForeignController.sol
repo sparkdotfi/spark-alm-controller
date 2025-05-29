@@ -233,8 +233,9 @@ contract ForeignController is AccessControl {
         }
     }
 
-    // NOTE: !!! This function does not have integrations tests !!!
-    //       Set rate limit to zero.
+    // NOTE: !!! This function was deployed without integration testing !!!
+    //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
+    //       all functionality has been thoroughly integration tested.
     function transferTokenLayerZero(
         address oftAddress,
         uint256 amount,
