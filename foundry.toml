@@ -10,6 +10,14 @@ fs_permissions = [
     { access = "read-write", path = "./script/output/"}
 ]
 evm_version = 'cancun'
+remappings = [
+    '@layerzerolabs/oft-evm/=lib/devtools/packages/oft-evm/',
+    'layerzerolabs/oapp-evm/=lib/devtools/packages/oapp-evm/',
+    '@layerzerolabs/lz-evm-protocol-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/protocol',
+    '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
+    '@layerzerolabs/lz-evm-messagelib-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib/',
+    'solidity-bytes-utils/=lib/solidity-bytes-utils/',
+]
 
 [fuzz]
 runs = 1000

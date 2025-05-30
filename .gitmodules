@@ -34,3 +34,12 @@
 [submodule "lib/spark-address-registry"]
 	path = lib/spark-address-registry
 	url = https://github.com/sparkdotfi/spark-address-registry
+[submodule "lib/devtools"]
+	path = lib/devtools
+	url = https://github.com/LayerZero-Labs/devtools
+[submodule "lib/layerzero-v2"]
+	path = lib/layerzero-v2
+	url = https://github.com/LayerZero-Labs/layerzero-v2
+[submodule "lib/solidity-bytes-utils"]
+	path = lib/solidity-bytes-utils
+	url = https://github.com/GNSPS/solidity-bytes-utils
