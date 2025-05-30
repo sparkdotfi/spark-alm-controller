@@ -16,10 +16,10 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
     event MintRecipientSet(uint32 indexed destinationDomain,      bytes32 mintRecipient);
     event LayerZeroRecipientSet(uint32 indexed destinationDomain, bytes32 layerZeroRecipient);
 
-    bytes32 mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
-    bytes32 mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
+    bytes32 mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
+    bytes32 mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
 
     MainnetController mainnetController;
 
@@ -183,10 +183,10 @@ contract ForeignControllerAdminTests is UnitTestBase {
 
     ForeignController foreignController;
 
-    bytes32 mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
-    bytes32 mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
+    bytes32 mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
+    bytes32 mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
 
     function setUp() public {
         foreignController = new ForeignController(
@@ -216,6 +216,23 @@ contract ForeignControllerAdminTests is UnitTestBase {
         foreignController.setMintRecipient(1, mintRecipient1);
     }
 
+    function test_setLayerZeroRecipient_unauthorizedAccount() public {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
+
+        vm.prank(freezer);
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            freezer,
+            DEFAULT_ADMIN_ROLE
+        ));
+        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
+    }
+
     function test_setMintRecipient() public {
         assertEq(foreignController.mintRecipients(1), bytes32(0));
         assertEq(foreignController.mintRecipients(2), bytes32(0));
@@ -240,23 +257,6 @@ contract ForeignControllerAdminTests is UnitTestBase {
         foreignController.setMintRecipient(1, mintRecipient2);
 
         assertEq(foreignController.mintRecipients(1), mintRecipient2);
-    }
-
-    function test_setLayerZeroRecipient_unauthorizedAccount() public {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
-
-        vm.prank(freezer);
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            freezer,
-            DEFAULT_ADMIN_ROLE
-        ));
-        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
     }
 
     function test_setLayerZeroRecipient() public {
