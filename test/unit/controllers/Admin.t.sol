@@ -12,9 +12,9 @@ import "../UnitTestBase.t.sol";
 
 contract MainnetControllerAdminTestBase is UnitTestBase {
 
-    event MaxSlippageSet(address indexed pool,                    uint256 maxSlippage);
-    event MintRecipientSet(uint32 indexed destinationDomain,      bytes32 mintRecipient);
     event LayerZeroRecipientSet(uint32 indexed destinationDomain, bytes32 layerZeroRecipient);
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
+    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
@@ -178,8 +178,8 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
 
 contract ForeignControllerAdminTests is UnitTestBase {
 
-    event MintRecipientSet(uint32 indexed destinationDomain,      bytes32 mintRecipient);
     event LayerZeroRecipientSet(uint32 indexed destinationDomain, bytes32 layerZeroRecipient);
+    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     ForeignController foreignController;
 
