@@ -396,7 +396,7 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
 
         bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
-        foreignRateLimits.setRateLimitData(key,10_000_000e6,0);
+        foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
         foreignController.setLayerZeroRecipient(destinationEndpointId, target);
 
