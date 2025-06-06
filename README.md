@@ -150,6 +150,3 @@ OLD_CONTROLLER=0xc07f705D0C0e9F8C79C5fbb748aC1246BBCC37Ba \
 NEW_CONTROLLER=0x5F032555353f3A1D16aA6A4ADE0B35b369da0440 \
 forge script script/Upgrade.s.sol:UpgradeForeignController --broadcast --unlocked --sender $SPARK_EXECUTOR
 ```
-
-
-***
