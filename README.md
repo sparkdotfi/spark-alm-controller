@@ -153,8 +153,3 @@ forge script script/Upgrade.s.sol:UpgradeForeignController --broadcast --unlocke
 
 
 ***
-*The IP in this repository was assigned to Mars SPC Limited in respect of the MarsOne SP*
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/841397d0-0cd4-4464-b4b4-6024b6ad6c6d" height="120" />
-</p>
