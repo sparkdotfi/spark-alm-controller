@@ -787,7 +787,9 @@ contract MainnetController is AccessControl {
             amount
         );
 
-        _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+        if (ILayerZero(oftAddress).approvalRequired()) {
+            _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+        }
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
