@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { Ethereum } from "spark-address-registry/Ethereum.sol";
+
 import { ALMProxy }          from "../src/ALMProxy.sol";
 import { ForeignController } from "../src/ForeignController.sol";
 import { MainnetController } from "../src/MainnetController.sol";
@@ -54,6 +56,17 @@ library ForeignControllerDeploy {
 }
 
 library MainnetControllerDeploy {
+    
+    function _addresses() internal pure returns (MainnetController.Addresses memory addresses) {
+        return MainnetController.Addresses({
+                USDS                  : Ethereum.USDS,
+                USDE                  : Ethereum.USDE,
+                SUSDE                 : Ethereum.SUSDE,
+                USTB                  : Ethereum.USTB,
+                ETHENA_MINTER         : Ethereum.ETHENA_MINTER,
+                SUPERSTATE_REDEMPTION : Ethereum.SUPERSTATE_REDEMPTION
+        });
+    }
 
     function deployController(
         address admin,
@@ -73,7 +86,8 @@ library MainnetControllerDeploy {
             vault_      : vault,
             psm_        : psm,
             daiUsds_    : daiUsds,
-            cctp_       : cctp
+            cctp_       : cctp,
+            addresses   : _addresses()
         }));
     }
 
@@ -96,7 +110,8 @@ library MainnetControllerDeploy {
             vault_      : vault,
             psm_        : psm,
             daiUsds_    : daiUsds,
-            cctp_       : cctp
+            cctp_       : cctp,
+            addresses   : _addresses()
         }));
     }
 

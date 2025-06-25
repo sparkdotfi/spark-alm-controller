@@ -26,8 +26,9 @@ contract MainnetControllerHarness is MainnetController {
         address vault_,
         address psm_,
         address daiUsds_,
-        address cctp_
-    ) MainnetController(admin_, proxy_, rateLimits_, vault_, psm_, daiUsds_, cctp_) {}
+        address cctp_,
+        MainnetController.Addresses memory addresses_
+    ) MainnetController(admin_, proxy_, rateLimits_, vault_, psm_, daiUsds_, cctp_, addresses_) {}
 
     function approve(address token, address spender, uint256 amount) external {
         _approve(token, spender, amount);
@@ -102,7 +103,15 @@ contract MainnetControllerApproveSuccessTests is ApproveTestBase {
             address(mainnetController.vault()),
             address(mainnetController.psm()),
             address(mainnetController.daiUsds()),
-            address(mainnetController.cctp())
+            address(mainnetController.cctp()),
+            MainnetController.Addresses({
+                USDS                  : address(mainnetController.usds()),
+                USDE                  : address(mainnetController.usde()),
+                SUSDE                 : address(mainnetController.susde()),
+                USTB                  : address(mainnetController.ustb()),
+                ETHENA_MINTER         : address(mainnetController.ethenaMinter()),
+                SUPERSTATE_REDEMPTION : address(mainnetController.superstateRedemption())
+            })
         );
 
         vm.etch(address(mainnetController), address(harnessCode).code);

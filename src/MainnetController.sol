@@ -12,8 +12,6 @@ import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMo
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
-
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
@@ -76,6 +74,18 @@ interface IVaultLike {
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
+
+    /**********************************************************************************************/
+    /*** Structs                                                                                ***/
+    /**********************************************************************************************/
+    struct Addresses {
+        address USDS;
+        address USDE;
+        address SUSDE;
+        address USTB;
+        address ETHENA_MINTER;
+        address SUPERSTATE_REDEMPTION;
+    }
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -153,7 +163,8 @@ contract MainnetController is AccessControl {
         address vault_,
         address psm_,
         address daiUsds_,
-        address cctp_
+        address cctp_,
+        Addresses memory addresses
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
@@ -165,15 +176,15 @@ contract MainnetController is AccessControl {
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
 
-        ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
-        superstateRedemption = ISSRedemptionLike(Ethereum.SUPERSTATE_REDEMPTION);
+        ethenaMinter         = IEthenaMinterLike(addresses.ETHENA_MINTER);
+        superstateRedemption = ISSRedemptionLike(addresses.SUPERSTATE_REDEMPTION);
 
-        susde = ISUSDELike(Ethereum.SUSDE);
-        ustb  = IUSTBLike(Ethereum.USTB);
+        susde = ISUSDELike(addresses.SUSDE);
+        ustb  = IUSTBLike(addresses.USTB);
         dai   = IERC20(daiUsds.dai());
         usdc  = IERC20(psm.gem());
-        usds  = IERC20(Ethereum.USDS);
-        usde  = IERC20(Ethereum.USDE);
+        usds  = IERC20(addresses.USDS);
+        usde  = IERC20(addresses.USDE);
 
         psmTo18ConversionFactor = psm.to18ConversionFactor();
     }

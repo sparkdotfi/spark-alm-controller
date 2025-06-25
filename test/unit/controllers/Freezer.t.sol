@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { Ethereum } from "spark-address-registry/Ethereum.sol";
+
 import { MainnetController } from "../../../src/MainnetController.sol";
 import { ForeignController } from "../../../src/ForeignController.sol";
 
@@ -32,7 +34,15 @@ contract MainnetControllerRemoveRelayerTests is UnitTestBase {
             address(vault),
             address(psm),
             address(daiUsds),
-            makeAddr("cctp")
+            makeAddr("cctp"),
+            MainnetController.Addresses({
+                USDS                  : Ethereum.USDS,
+                USDE                  : Ethereum.USDE,
+                SUSDE                 : Ethereum.SUSDE,
+                USTB                  : Ethereum.USTB,
+                ETHENA_MINTER         : Ethereum.ETHENA_MINTER,
+                SUPERSTATE_REDEMPTION : Ethereum.SUPERSTATE_REDEMPTION
+            })
         );
 
         vm.startPrank(admin);
