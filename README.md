@@ -1,4 +1,6 @@
-# Spark ALM Controller
+# Sky Star ALM Controller
+
+**This repository was cloned from spark [ALM Controller](https://github.com/sparkdotfi/spark-alm-controller)**
 
 ![Foundry CI](https://github.com/marsfoundation/spark-alm-controller/actions/workflows/ci.yml/badge.svg)
 [![Foundry][foundry-badge]][foundry]
