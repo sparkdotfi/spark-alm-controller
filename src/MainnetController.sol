@@ -191,7 +191,7 @@ contract MainnetController is AccessControl {
     function setLayerZeroRecipient(
         uint32  destinationEndpointId,
         bytes32 layerZeroRecipient
-    ) 
+    )
         external
     {
         _checkRole(DEFAULT_ADMIN_ROLE);
@@ -846,19 +846,29 @@ contract MainnetController is AccessControl {
         ( bool success, bytes memory data )
             = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
 
-        // Decode the first 32 bytes of the data, ALMProxy returns 96 bytes
-        bytes32 result;
-        assembly { result := mload(add(data, 32)) }
+        bytes memory approveCallReturnData;
 
-        // Decode the result to check if the approval was successful
-        bool decodedSuccess = (data.length == 0) || result != bytes32(0);
+        if (success) {
+            // Data is the ABI-encoding of the approve call bytes return data, need to
+            // decode it first
+            approveCallReturnData = abi.decode(data, (bytes));
+            // Approve was successful if 1) no return value or 2) true return value
+            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
+                return;
+            }
+        }
 
-        // If call succeeded with expected calldata, return
-        if (success && decodedSuccess) return;
-
-        // If call reverted, set to zero and try again
+        // If call was unsuccessful, set to zero and try again
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+
+        approveCallReturnData
+            = proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+
+        // Revert if approve returns false
+        require(
+            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
+            "MainnetController/approve-failed"
+        );
     }
 
     /**********************************************************************************************/
