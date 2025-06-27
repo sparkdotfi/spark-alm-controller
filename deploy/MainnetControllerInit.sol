@@ -62,10 +62,10 @@ library MainnetControllerInit {
     function initAlmSystem(
         address vault,
         address usds,
-        ControllerInstance  memory  controllerInst,
-        ConfigAddressParams memory  configAddresses,
-        CheckAddressParams  memory  checkAddresses,
-        MintRecipient[]     memory  mintRecipients,
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
         LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
@@ -88,10 +88,10 @@ library MainnetControllerInit {
     }
 
     function upgradeController(
-        ControllerInstance  memory  controllerInst,
-        ConfigAddressParams memory  configAddresses,
-        CheckAddressParams  memory  checkAddresses,
-        MintRecipient[]     memory  mintRecipients,
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
         LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
@@ -119,10 +119,10 @@ library MainnetControllerInit {
     /**********************************************************************************************/
 
     function _initController(
-        ControllerInstance  memory  controllerInst,
-        ConfigAddressParams memory  configAddresses,
-        CheckAddressParams  memory  checkAddresses,
-        MintRecipient[]     memory  mintRecipients,
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
         LayerZeroRecipient[] memory layerZeroRecipients
     )
         private

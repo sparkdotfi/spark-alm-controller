@@ -54,10 +54,10 @@ library ForeignControllerInit {
     /**********************************************************************************************/
 
     function initAlmSystem(
-        ControllerInstance  memory  controllerInst,
-        ConfigAddressParams memory  configAddresses,
-        CheckAddressParams  memory  checkAddresses,
-        MintRecipient[]     memory  mintRecipients,
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
         LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
@@ -73,10 +73,10 @@ library ForeignControllerInit {
     }
 
     function upgradeController(
-        ControllerInstance  memory  controllerInst,
-        ConfigAddressParams memory  configAddresses,
-        CheckAddressParams  memory  checkAddresses,
-        MintRecipient[]     memory  mintRecipients,
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
         LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
@@ -100,10 +100,10 @@ library ForeignControllerInit {
     /**********************************************************************************************/
 
     function _initController(
-        ControllerInstance  memory  controllerInst,
-        ConfigAddressParams memory  configAddresses,
-        CheckAddressParams  memory  checkAddresses,
-        MintRecipient[]     memory  mintRecipients,
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
         LayerZeroRecipient[] memory layerZeroRecipients
     )
         private

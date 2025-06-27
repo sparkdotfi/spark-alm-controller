@@ -16,10 +16,10 @@ contract LibraryWrapper {
     function initAlmSystem(
         address vault,
         address usds,
-        ControllerInstance       memory  controllerInst,
-        Init.ConfigAddressParams memory  configAddresses,
-        Init.CheckAddressParams  memory  checkAddresses,
-        Init.MintRecipient[]     memory  mintRecipients,
+        ControllerInstance        memory controllerInst,
+        Init.ConfigAddressParams  memory configAddresses,
+        Init.CheckAddressParams   memory checkAddresses,
+        Init.MintRecipient[]      memory mintRecipients,
         Init.LayerZeroRecipient[] memory layerZeroRecipients
     )
         external
@@ -36,10 +36,10 @@ contract LibraryWrapper {
     }
 
     function upgradeController(
-        ControllerInstance       memory  controllerInst,
-        Init.ConfigAddressParams memory  configAddresses,
-        Init.CheckAddressParams  memory  checkAddresses,
-        Init.MintRecipient[]     memory  mintRecipients,
+        ControllerInstance        memory controllerInst,
+        Init.ConfigAddressParams  memory configAddresses,
+        Init.CheckAddressParams   memory checkAddresses,
+        Init.MintRecipient[]      memory mintRecipients,
         Init.LayerZeroRecipient[] memory layerZeroRecipients
     )
         external
@@ -65,9 +65,9 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
 
     function _getDefaultParams()
         internal returns (
-            Init.ConfigAddressParams memory  configAddresses,
-            Init.CheckAddressParams  memory  checkAddresses,
-            Init.MintRecipient[]     memory  mintRecipients,
+            Init.ConfigAddressParams  memory configAddresses,
+            Init.CheckAddressParams   memory checkAddresses,
+            Init.MintRecipient[]      memory mintRecipients,
             Init.LayerZeroRecipient[] memory layerZeroRecipients
         )
     {
