@@ -16,25 +16,41 @@ contract LibraryWrapper {
     function initAlmSystem(
         address vault,
         address usds,
-        ControllerInstance       memory controllerInst,
-        Init.ConfigAddressParams memory configAddresses,
-        Init.CheckAddressParams  memory checkAddresses,
-        Init.MintRecipient[]     memory mintRecipients
+        ControllerInstance       memory  controllerInst,
+        Init.ConfigAddressParams memory  configAddresses,
+        Init.CheckAddressParams  memory  checkAddresses,
+        Init.MintRecipient[]     memory  mintRecipients,
+        Init.LayerZeroRecipient[] memory layerZeroRecipients
     )
         external
     {
-        Init.initAlmSystem(vault, usds, controllerInst, configAddresses, checkAddresses, mintRecipients);
+        Init.initAlmSystem(
+            vault,
+            usds,
+            controllerInst,
+            configAddresses,
+            checkAddresses,
+            mintRecipients,
+            layerZeroRecipients
+        );
     }
 
     function upgradeController(
-        ControllerInstance       memory controllerInst,
-        Init.ConfigAddressParams memory configAddresses,
-        Init.CheckAddressParams  memory checkAddresses,
-        Init.MintRecipient[]     memory mintRecipients
+        ControllerInstance       memory  controllerInst,
+        Init.ConfigAddressParams memory  configAddresses,
+        Init.CheckAddressParams  memory  checkAddresses,
+        Init.MintRecipient[]     memory  mintRecipients,
+        Init.LayerZeroRecipient[] memory layerZeroRecipients
     )
         external
     {
-        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        Init.upgradeController(
+            controllerInst,
+            configAddresses,
+            checkAddresses,
+            mintRecipients,
+            layerZeroRecipients
+        );
     }
 
     function pauseProxyInitAlmSystem(address psm, address almProxy) external {
@@ -95,9 +111,10 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
     address public oldController;
 
-    Init.ConfigAddressParams configAddresses;
-    Init.CheckAddressParams  checkAddresses;
-    Init.MintRecipient[]     mintRecipients;
+    Init.ConfigAddressParams  configAddresses;
+    Init.CheckAddressParams   checkAddresses;
+    Init.MintRecipient[]      mintRecipients;
+    Init.LayerZeroRecipient[] layerZeroRecipients;
 
     function setUp() public override {
         super.setUp();
@@ -157,7 +174,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -172,7 +190,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -238,7 +257,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -256,7 +276,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -274,7 +295,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -290,7 +312,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         vm.expectRevert(expectedError);
@@ -298,7 +321,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -312,9 +336,10 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
 
     address public mismatchAddress = makeAddr("mismatchAddress");
 
-    Init.ConfigAddressParams configAddresses;
-    Init.CheckAddressParams  checkAddresses;
-    Init.MintRecipient[]     mintRecipients;
+    Init.ConfigAddressParams  configAddresses;
+    Init.CheckAddressParams   checkAddresses;
+    Init.MintRecipient[]      mintRecipients;
+    Init.LayerZeroRecipient[] layerZeroRecipients;
 
     function setUp() public override {
         super.setUp();
@@ -368,7 +393,8 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         assertEq(mainnetController.hasRole(mainnetController.FREEZER(), freezer), true);
@@ -415,9 +441,10 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
     address public mismatchAddress = makeAddr("mismatchAddress");
 
-    Init.ConfigAddressParams configAddresses;
-    Init.CheckAddressParams  checkAddresses;
-    Init.MintRecipient[]     mintRecipients;
+    Init.ConfigAddressParams  configAddresses;
+    Init.CheckAddressParams   checkAddresses;
+    Init.MintRecipient[]      mintRecipients;
+    Init.LayerZeroRecipient[] layerZeroRecipients;
 
     MainnetController newController;
 
@@ -476,7 +503,8 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         assertEq(newController.hasRole(newController.FREEZER(), freezer), true);

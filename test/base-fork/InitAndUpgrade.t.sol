@@ -14,25 +14,27 @@ import { ForeignControllerInit as Init } from "../../deploy/ForeignControllerIni
 contract LibraryWrapper {
 
     function initAlmSystem(
-        ControllerInstance       memory controllerInst,
-        Init.ConfigAddressParams memory configAddresses,
-        Init.CheckAddressParams  memory checkAddresses,
-        Init.MintRecipient[]     memory mintRecipients
+        ControllerInstance       memory  controllerInst,
+        Init.ConfigAddressParams memory  configAddresses,
+        Init.CheckAddressParams  memory  checkAddresses,
+        Init.MintRecipient[]     memory  mintRecipients,
+        Init.LayerZeroRecipient[] memory layerZeroRecipients
     )
         external
     {
-        Init.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        Init.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
     }
 
     function upgradeController(
-        ControllerInstance       memory controllerInst,
-        Init.ConfigAddressParams memory configAddresses,
-        Init.CheckAddressParams  memory checkAddresses,
-        Init.MintRecipient[]     memory mintRecipients
+        ControllerInstance       memory  controllerInst,
+        Init.ConfigAddressParams memory  configAddresses,
+        Init.CheckAddressParams  memory  checkAddresses,
+        Init.MintRecipient[]     memory  mintRecipients,
+        Init.LayerZeroRecipient[] memory layerZeroRecipients
     )
         external
     {
-        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
     }
 
 }
@@ -88,9 +90,10 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
 
     address public oldController;
 
-    Init.ConfigAddressParams configAddresses;
-    Init.CheckAddressParams  checkAddresses;
-    Init.MintRecipient[]     mintRecipients;
+    Init.ConfigAddressParams  configAddresses;
+    Init.CheckAddressParams   checkAddresses;
+    Init.MintRecipient[]      mintRecipients;
+    Init.LayerZeroRecipient[] layerZeroRecipients;
 
     function setUp() public override {
         super.setUp();
@@ -145,7 +148,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -158,7 +162,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -334,7 +339,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -352,7 +358,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -370,7 +377,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -384,7 +392,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         vm.expectRevert(expectedError);
@@ -392,7 +401,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -403,7 +413,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         vm.revertTo(id);
@@ -414,7 +425,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
     }
 
@@ -426,9 +438,10 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
 
     ControllerInstance public controllerInst;
 
-    Init.ConfigAddressParams configAddresses;
-    Init.CheckAddressParams  checkAddresses;
-    Init.MintRecipient[]     mintRecipients;
+    Init.ConfigAddressParams  configAddresses;
+    Init.CheckAddressParams   checkAddresses;
+    Init.MintRecipient[]      mintRecipients;
+    Init.LayerZeroRecipient[] layerZeroRecipients;
 
     function setUp() public override {
         super.setUp();
@@ -476,7 +489,8 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         assertEq(foreignController.hasRole(foreignController.FREEZER(), freezer), true);
@@ -504,9 +518,10 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
 
     ControllerInstance public controllerInst;
 
-    Init.ConfigAddressParams configAddresses;
-    Init.CheckAddressParams  checkAddresses;
-    Init.MintRecipient[]     mintRecipients;
+    Init.ConfigAddressParams  configAddresses;
+    Init.CheckAddressParams   checkAddresses;
+    Init.MintRecipient[]      mintRecipients;
+    Init.LayerZeroRecipient[] layerZeroRecipients;
 
     ForeignController newController;
 
@@ -564,7 +579,8 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         assertEq(newController.hasRole(newController.FREEZER(), freezer), true);

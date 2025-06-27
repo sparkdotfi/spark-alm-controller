@@ -48,6 +48,11 @@ library MainnetControllerInit {
         bytes32 mintRecipient;
     }
 
+    struct LayerZeroRecipient {
+        uint32  destinationEndpointId;
+        bytes32 recipient;
+    }
+
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
     /**********************************************************************************************/
@@ -57,10 +62,11 @@ library MainnetControllerInit {
     function initAlmSystem(
         address vault,
         address usds,
-        ControllerInstance  memory controllerInst,
-        ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        ControllerInstance  memory  controllerInst,
+        ConfigAddressParams memory  configAddresses,
+        CheckAddressParams  memory  checkAddresses,
+        MintRecipient[]     memory  mintRecipients,
+        LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
     {
@@ -71,7 +77,7 @@ library MainnetControllerInit {
 
         // Step 2: Initialize the controller
 
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
 
         // Step 3: Configure almProxy within the allocation system
 
@@ -82,14 +88,15 @@ library MainnetControllerInit {
     }
 
     function upgradeController(
-        ControllerInstance  memory controllerInst,
-        ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        ControllerInstance  memory  controllerInst,
+        ConfigAddressParams memory  configAddresses,
+        CheckAddressParams  memory  checkAddresses,
+        MintRecipient[]     memory  mintRecipients,
+        LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -112,10 +119,11 @@ library MainnetControllerInit {
     /**********************************************************************************************/
 
     function _initController(
-        ControllerInstance  memory controllerInst,
-        ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        ControllerInstance  memory  controllerInst,
+        ConfigAddressParams memory  configAddresses,
+        CheckAddressParams  memory  checkAddresses,
+        MintRecipient[]     memory  mintRecipients,
+        LayerZeroRecipient[] memory layerZeroRecipients
     )
         private
     {
@@ -154,6 +162,12 @@ library MainnetControllerInit {
 
         for (uint256 i; i < mintRecipients.length; ++i) {
             newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+        }
+
+        // Step 4: Configure LayerZero recipients
+
+        for (uint256 i; i < layerZeroRecipients.length; ++i) {
+            newController.setLayerZeroRecipient(layerZeroRecipients[i].destinationEndpointId, layerZeroRecipients[i].recipient);
         }
     }
 

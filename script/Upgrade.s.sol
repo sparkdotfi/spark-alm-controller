@@ -61,6 +61,8 @@ contract UpgradeMainnetController is Script {
 
         MainnetInit.MintRecipient[] memory mintRecipients = new MainnetInit.MintRecipient[](1);
 
+        MainnetInit.LayerZeroRecipient[] memory layerZeroRecipients = new MainnetInit.LayerZeroRecipient[](0);
+
         string memory baseInputConfig = ScriptTools.readInput(string(abi.encodePacked("base-", vm.envString("ENV"))));
 
         address baseAlmProxy = baseInputConfig.readAddress(".almProxy");
@@ -70,7 +72,7 @@ contract UpgradeMainnetController is Script {
             mintRecipient : bytes32(uint256(uint160(baseAlmProxy)))
         });
 
-        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
 
         vm.stopBroadcast();
 
@@ -130,6 +132,8 @@ contract UpgradeForeignController is Script {
             usds  : inputConfig.readAddress(".usds")
         });
 
+        ForeignInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignInit.LayerZeroRecipient[](0);
+
         ForeignInit.MintRecipient[] memory mintRecipients = new ForeignInit.MintRecipient[](1);
 
         string memory mainnetInputConfig = ScriptTools.readInput(string(abi.encodePacked("mainnet-", vm.envString("ENV"))));
@@ -141,7 +145,7 @@ contract UpgradeForeignController is Script {
             mintRecipient : bytes32(uint256(uint160(mainnetAlmProxy)))
         });
 
-        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
 
         vm.stopBroadcast();
 

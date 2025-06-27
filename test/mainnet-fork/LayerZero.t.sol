@@ -279,13 +279,16 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
             mintRecipient : bytes32(uint256(uint160(address(almProxy))))
         });
 
+        ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
 
         ForeignControllerInit.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         vm.stopPrank();

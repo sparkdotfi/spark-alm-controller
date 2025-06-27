@@ -142,13 +142,16 @@ contract ForkTestBase is Test {
             mintRecipient : bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
         });
 
+        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
 
         Init.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         uint256 usdcMaxAmount = 5_000_000e6;

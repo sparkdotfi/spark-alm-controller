@@ -274,13 +274,16 @@ contract FullStagingDeploy is Script {
 
         MainnetControllerInit.MintRecipient[] memory mintRecipients = new MainnetControllerInit.MintRecipient[](0);
 
+        MainnetControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new MainnetControllerInit.LayerZeroRecipient[](0);
+
         MainnetControllerInit.initAlmSystem(
             vault,
             address(usds),
             mainnetInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         // Step 5: Transfer ownership of mock usdsJoin to the vault (able to mint usds)
@@ -338,11 +341,14 @@ contract FullStagingDeploy is Script {
             mintRecipient : bytes32(uint256(uint160(mainnetInst.almProxy)))
         });
 
+        ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
+
         ForeignControllerInit.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         vm.stopBroadcast();

@@ -255,6 +255,8 @@ contract ForkTestBase is DssTest {
                 cctp       : Ethereum.CCTP_TOKEN_MESSENGER
             });
 
+        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
+
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
 
         mintRecipients[0] = Init.MintRecipient({
@@ -277,7 +279,8 @@ contract ForkTestBase is DssTest {
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);

@@ -256,13 +256,15 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
             mintRecipient : bytes32(uint256(uint160(address(almProxy))))
         });
 
-        vm.startPrank(SPARK_EXECUTOR);
+        ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 
+        vm.startPrank(SPARK_EXECUTOR);
         ForeignControllerInit.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         uint256 usdcMaxAmount = 5_000_000e6;
