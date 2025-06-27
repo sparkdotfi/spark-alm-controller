@@ -2,7 +2,6 @@
 pragma solidity ^0.8.21;
 
 import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy } from "../interfaces/IALMProxy.sol";
