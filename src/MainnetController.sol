@@ -8,8 +8,6 @@ import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
 import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
-import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
-
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
