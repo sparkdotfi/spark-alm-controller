@@ -779,7 +779,7 @@ contract MainnetController is AccessControl {
         uint256 amount,
         uint32  destinationEndpointId
     )
-        external
+        external payable
     {
         _checkRole(RELAYER);
         _rateLimited(
@@ -807,7 +807,7 @@ contract MainnetController is AccessControl {
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
 
-        proxy.doCallWithValue(
+        proxy.doCallWithValue{value: fee.nativeFee}(
             oftAddress,
             abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
             fee.nativeFee
