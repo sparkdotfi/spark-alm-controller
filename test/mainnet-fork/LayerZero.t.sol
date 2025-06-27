@@ -30,7 +30,7 @@ import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
 contract MainnetControllerLayerZeroTestBase is ForkTestBase {
 
-    uint32 constant destinationEndpointId = 30110; // Arbitrum EID
+    uint32 constant destinationEndpointId = 30110;  // Arbitrum EID
 
     address constant USDT_OFT = 0x6C96dE32CEa08842dcc4058c14d3aaAD7Fa41dee;
 
@@ -92,11 +92,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
         // Setup token balances
         deal(address(usdt), address(almProxy), 10_000_000e6);
-        deal(relayer, 1 ether);  // gas cost for LayerZero
-
-        vm.startPrank(relayer);
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.transferTokenLayerZero(USDT_OFT, 10_000_000e6 + 1, destinationEndpointId);
+        deal(relayer, 1 ether);  // Gas cost for LayerZero
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
@@ -111,6 +107,14 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         });
 
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.startPrank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6 + 1,
+            destinationEndpointId
+        );
 
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
@@ -152,7 +156,7 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
 
         // Setup token balances
         deal(address(usdt), address(almProxy), 10_000_000e6);
-        deal(relayer, 1 ether);   // gas cost for LayerZero
+        deal(relayer, 1 ether);  // Gas cost for LayerZero
 
         uint256 oftBalanceBefore = IERC20(usdt).balanceOf(USDT_OFT);
 
@@ -322,7 +326,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
 
 contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZeroTestBase {
 
-    using DomainHelpers for *;
+    using DomainHelpers  for *;
     using OptionsBuilder for bytes;
 
     function setUp() public override virtual {
@@ -381,11 +385,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
         // Setup token balances
         deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
-        deal(relayer, 1 ether);  // gas cost for LayerZero
-
-        vm.startPrank(relayer);
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
-        foreignController.transferTokenLayerZero(USDT_OFT, 10_000_000e6 + 1, destinationEndpointId);
+        deal(relayer, 1 ether);  // Gas cost for LayerZero
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
@@ -401,6 +401,14 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
+        vm.startPrank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6 + 1,
+            destinationEndpointId
+        );
+
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
@@ -413,7 +421,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
 contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZeroTestBase {
 
-    using DomainHelpers for *;
+    using DomainHelpers  for *;
     using OptionsBuilder for bytes;
 
     event OFTSent(
@@ -448,7 +456,7 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
 
         // Setup token balances
         deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
-        deal(relayer, 1 ether);   // gas cost for LayerZero
+        deal(relayer, 1 ether);  // Gas cost for LayerZero
 
         vm.startPrank(relayer);
 
