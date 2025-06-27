@@ -10,9 +10,39 @@ import { CurveLib } from "../../src/libraries/CurveLib.sol";
 
 import { IALMProxy } from "../../src/interfaces/IALMProxy.sol";
 
+import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+
 interface IHarness {
     function approve(address token, address spender, uint256 amount) external;
     function approveCurve(address proxy, address token, address spender, uint256 amount) external;
+}
+
+contract ERC20ApproveFalseExistingAllowance is ERC20 {
+
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
+
+    function approve(address spender, uint256 value) public virtual override returns (bool) {
+        // USDT-like resetting to 0 required. but returns false instead of reverting
+        if ((value != 0) && (allowance(msg.sender, spender) != 0)) {
+            return false;
+        }
+
+        return super.approve(spender, value);
+    }
+
+}
+
+contract ERC20ApproveFalseNonZeroAmount is ERC20 {
+
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
+
+    function approve(address spender, uint256 value) public virtual override returns (bool) {
+        // Used to assert hitting second revert condition
+        if (value != 0) return false;
+
+        return super.approve(spender, value);
+    }
+
 }
 
 contract MainnetControllerHarness is MainnetController {
@@ -87,7 +117,7 @@ contract ApproveTestBase is ForkTestBase {
     }
 
 }
- 
+
 contract MainnetControllerApproveSuccessTests is ApproveTestBase {
 
     address harness;
@@ -213,6 +243,50 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
         _approveTest(Ethereum.WEETH,  harness);
         _approveTest(Ethereum.WETH,   harness);
         _approveTest(Ethereum.WSTETH, harness);
+    }
+
+}
+
+contract ERC20ApproveReturningFalseExistingAllowanceMainnetTest is MainnetControllerApproveSuccessTests {
+
+    function test_approveReturningFalseOnExistingAllowance() public {
+        ERC20ApproveFalseExistingAllowance mock = new ERC20ApproveFalseExistingAllowance("Mock", "MOCK");
+        _approveTest(address(mock), harness);
+        _approveCurveTest(address(mock), harness);
+    }
+
+}
+
+contract ERC20ApproveReturningFalseNonZeroAmountMainnetTest is MainnetControllerApproveSuccessTests {
+
+    function test_approveReturningFalseOnNonZeroAmount() public {
+        ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
+
+        vm.expectRevert("MainnetController/approve-failed");
+        IHarness(harness).approve(address(mock), makeAddr("spender"), 100);
+
+        vm.expectRevert("CurveLib/approve-failed");
+        IHarness(harness).approveCurve(address(almProxy), address(mock), makeAddr("spender"), 100);
+    }
+
+}
+
+contract ERC20ApproveReturningFalseExistingAllowanceForeignTest is ForeignControllerApproveSuccessTests {
+
+    function test_approveCustom() public {
+        ERC20ApproveFalseExistingAllowance mock = new ERC20ApproveFalseExistingAllowance("Mock", "MOCK");
+        _approveTest(address(mock), harness);
+    }
+
+}
+
+contract ERC20ApproveReturningFalseNonZeroAmountForeignTest is ForeignControllerApproveSuccessTests {
+
+    function test_approveReturningFalseOnNonZeroAmount() public {
+        ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
+
+        vm.expectRevert("ForeignController/approve-failed");
+        IHarness(harness).approve(address(mock), makeAddr("spender"), 100);
     }
 
 }
