@@ -20,6 +20,10 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
+import  "./interfaces/ILayerZero.sol";
+
+import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
@@ -27,6 +31,8 @@ interface IATokenWithPool is IAToken {
 }
 
 contract ForeignController is AccessControl {
+
+    using OptionsBuilder for bytes;
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -40,6 +46,8 @@ contract ForeignController is AccessControl {
         uint256 usdcAmount
     );
 
+    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
+
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     event RelayerRemoved(address indexed relayer);
@@ -51,14 +59,15 @@ contract ForeignController is AccessControl {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_4626_DEPOSIT   = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public constant LIMIT_4626_WITHDRAW  = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public constant LIMIT_AAVE_DEPOSIT   = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public constant LIMIT_AAVE_WITHDRAW  = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public constant LIMIT_PSM_DEPOSIT    = keccak256("LIMIT_PSM_DEPOSIT");
-    bytes32 public constant LIMIT_PSM_WITHDRAW   = keccak256("LIMIT_PSM_WITHDRAW");
-    bytes32 public constant LIMIT_USDC_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public constant LIMIT_4626_DEPOSIT       = keccak256("LIMIT_4626_DEPOSIT");
+    bytes32 public constant LIMIT_4626_WITHDRAW      = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
+    bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
+    bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
 
     IALMProxy   public immutable proxy;
     ICCTPLike   public immutable cctp;
@@ -67,7 +76,8 @@ contract ForeignController is AccessControl {
 
     IERC20 public immutable usdc;
 
-    mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
+    mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
+    mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -122,6 +132,14 @@ contract ForeignController is AccessControl {
     {
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
+    }
+
+    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
+        emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
     }
 
     /**********************************************************************************************/
@@ -216,6 +234,47 @@ contract ForeignController is AccessControl {
         if (usdcAmount > 0) {
             _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
         }
+    }
+
+    // NOTE: !!! This function was deployed without integration testing !!!
+    //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
+    //       all functionality has been thoroughly integration tested.
+    function transferTokenLayerZero(
+        address oftAddress,
+        uint256 amount,
+        uint32  destinationEndpointId
+    )
+        external
+    {
+        _checkRole(RELAYER);
+        _rateLimited(
+            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
+            amount
+        );
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : layerZeroRecipients[destinationEndpointId],
+            amountLD     : amount,
+            minAmountLD  : 0,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        // Query the min amount received on the destination chain and set it.
+        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        sendParams.minAmountLD = receipt.amountReceivedLD;
+
+        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
+
+        proxy.doCallWithValue(
+            oftAddress,
+            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
+            fee.nativeFee
+        );
     }
 
     /**********************************************************************************************/
@@ -382,19 +441,29 @@ contract ForeignController is AccessControl {
         ( bool success, bytes memory data )
             = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
 
-        // Decode the first 32 bytes of the data, ALMProxy returns 96 bytes
-        bytes32 result;
-        assembly { result := mload(add(data, 32)) }
+        bytes memory approveCallReturnData;
 
-        // Decode the result to check if the approval was successful
-        bool decodedSuccess = (data.length == 0) || result != bytes32(0);
+        if (success) {
+            // Data is the ABI-encoding of the approve call bytes return data, need to
+            // decode it first
+            approveCallReturnData = abi.decode(data, (bytes));
+            // Approve was successful if 1) no return value or 2) true return value
+            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
+                return;
+            }
+        }
 
-        // If call succeeded with expected calldata, return
-        if (success && decodedSuccess) return;
-
-        // If call reverted, set to zero and try again
+        // If call was unsuccessful, set to zero and try again
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+
+        approveCallReturnData
+            = proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+
+        // Revert if approve returns false
+        require(
+            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
+            "ForeignController/approve-failed"
+        );
     }
 
     function _initiateCCTPTransfer(
@@ -421,6 +490,10 @@ contract ForeignController is AccessControl {
         );
 
         emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
+    }
+
+    function _rateLimited(bytes32 key, uint256 amount) internal {
+        rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
 }

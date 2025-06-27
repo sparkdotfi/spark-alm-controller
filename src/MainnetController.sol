@@ -18,9 +18,13 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
+import  "./interfaces/ILayerZero.sol";
+
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+
+import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -71,10 +75,13 @@ interface IVaultLike {
 
 contract MainnetController is AccessControl {
 
+    using OptionsBuilder for bytes;
+
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
@@ -96,6 +103,7 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -131,7 +139,8 @@ contract MainnetController is AccessControl {
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
-    mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
+    mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
+    mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -177,6 +186,17 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
+    }
+
+    function setLayerZeroRecipient(
+        uint32  destinationEndpointId,
+        bytes32 layerZeroRecipient
+    )
+        external
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
+        emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
     }
 
     function setMaxSlippage(address pool, uint256 maxSlippage) external {
@@ -751,6 +771,49 @@ contract MainnetController is AccessControl {
         }));
     }
 
+    // NOTE: !!! This function was deployed without integration testing !!!
+    //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
+    //       all functionality has been thoroughly integration tested.
+    function transferTokenLayerZero(
+        address oftAddress,
+        uint256 amount,
+        uint32  destinationEndpointId
+    )
+        external
+    {
+        _checkRole(RELAYER);
+        _rateLimited(
+            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
+            amount
+        );
+
+        _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : layerZeroRecipients[destinationEndpointId],
+            amountLD     : amount,
+            minAmountLD  : 0,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        // Query the min amount received on the destination chain and set it.
+        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        sendParams.minAmountLD = receipt.amountReceivedLD;
+
+        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
+
+        proxy.doCallWithValue(
+            oftAddress,
+            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
+            fee.nativeFee
+        );
+    }
+
     /**********************************************************************************************/
     /*** Relayer bridging functions                                                             ***/
     /**********************************************************************************************/
@@ -783,19 +846,29 @@ contract MainnetController is AccessControl {
         ( bool success, bytes memory data )
             = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
 
-        // Decode the first 32 bytes of the data, ALMProxy returns 96 bytes
-        bytes32 result;
-        assembly { result := mload(add(data, 32)) }
+        bytes memory approveCallReturnData;
 
-        // Decode the result to check if the approval was successful
-        bool decodedSuccess = (data.length == 0) || result != bytes32(0);
+        if (success) {
+            // Data is the ABI-encoding of the approve call bytes return data, need to
+            // decode it first
+            approveCallReturnData = abi.decode(data, (bytes));
+            // Approve was successful if 1) no return value or 2) true return value
+            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
+                return;
+            }
+        }
 
-        // If call succeeded with expected calldata, return
-        if (success && decodedSuccess) return;
-
-        // If call reverted, set to zero and try again
+        // If call was unsuccessful, set to zero and try again
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+
+        approveCallReturnData
+            = proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+
+        // Revert if approve returns false
+        require(
+            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
+            "MainnetController/approve-failed"
+        );
     }
 
     /**********************************************************************************************/
