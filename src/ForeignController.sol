@@ -4,9 +4,6 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-// This one has been reviewed, and is compliant with the specs: https://eips.ethereum.org/EIPS/eip-7540
-import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
-
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
