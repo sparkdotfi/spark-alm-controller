@@ -454,7 +454,7 @@ contract ForeignController is AccessControl {
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
 
         approveCallReturnData
-            = proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+            = proxy.doCall(token, aproveData);
 
         // Revert if approve returns false
         require(
