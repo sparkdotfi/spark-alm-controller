@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
+import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
-import { IALMProxy } from "../interfaces/IALMProxy.sol";
 
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
@@ -94,7 +93,7 @@ library CurveLib {
         uint256[] memory rates = curvePool.stored_rates();
 
         // Below code is simplified from the following logic.
-        // `maxSlippage` was multipled first to avoid precision loss.
+        // `maxSlippage` was multiplied first to avoid precision loss.
         //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
         //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
         //   result    = tokensOut * maxSlippage / 1e18
