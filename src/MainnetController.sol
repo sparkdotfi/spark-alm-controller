@@ -4,13 +4,13 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+// This interface has been reviewed, and is compliant with the specs: https://eips.ethereum.org/EIPS/eip-7540
 import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
-import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
-
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+
+import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
@@ -861,8 +861,7 @@ contract MainnetController is AccessControl {
         // If call was unsuccessful, set to zero and try again
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
 
-        approveCallReturnData
-            = proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+        approveCallReturnData = proxy.doCall(token, approveData);
 
         // Revert if approve returns false
         require(

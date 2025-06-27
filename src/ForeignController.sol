@@ -4,12 +4,12 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
-
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+
+import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
 
@@ -453,8 +453,7 @@ contract ForeignController is AccessControl {
         // If call was unsuccessful, set to zero and try again
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
 
-        approveCallReturnData
-            = proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+        approveCallReturnData = proxy.doCall(token, approveData);
 
         // Revert if approve returns false
         require(
