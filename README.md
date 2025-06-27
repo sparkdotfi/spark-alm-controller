@@ -150,11 +150,3 @@ OLD_CONTROLLER=0xc07f705D0C0e9F8C79C5fbb748aC1246BBCC37Ba \
 NEW_CONTROLLER=0x5F032555353f3A1D16aA6A4ADE0B35b369da0440 \
 forge script script/Upgrade.s.sol:UpgradeForeignController --broadcast --unlocked --sender $SPARK_EXECUTOR
 ```
-
-
-***
-*The IP in this repository was assigned to Mars SPC Limited in respect of the MarsOne SP*
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/841397d0-0cd4-4464-b4b4-6024b6ad6c6d" height="120" />
-</p>
