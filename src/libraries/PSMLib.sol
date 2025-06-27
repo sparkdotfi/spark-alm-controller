@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "forge-std/interfaces/IERC20.sol";
+import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
 import { IRateLimits }  from "../interfaces/IRateLimits.sol";
 import { IALMProxy }    from "../interfaces/IALMProxy.sol";
-
-import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
 interface IDaiUsdsLike {
     function dai() external view returns (address);
@@ -57,7 +55,7 @@ library PSMLib {
     /**********************************************************************************************/
 
     function swapUSDSToUSDC(SwapUSDSToUSDCParams calldata params) external {
-        _rateLimited(params.rateLimitId, params.usdcAmount, params.rateLimits);
+        _rateLimited(params.rateLimits, params.rateLimitId, params.usdcAmount);
 
         uint256 usdsAmount = params.usdcAmount * params.psmTo18ConversionFactor;
 
@@ -81,7 +79,7 @@ library PSMLib {
     }
 
     function swapUSDCToUSDS(SwapUSDCToUSDSParams calldata params) external {
-        _cancelRateLimit(params.rateLimitId, params.usdcAmount, params.rateLimits);
+        _cancelRateLimit(params.rateLimits, params.rateLimitId, params.usdcAmount);
 
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
         _approve(params.proxy, address(params.usdc), address(params.psm), params.usdcAmount);
@@ -153,11 +151,11 @@ library PSMLib {
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
 
-    function _rateLimited(bytes32 key, uint256 amount, IRateLimits rateLimits) internal {
+    function _rateLimited(IRateLimits rateLimits,bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
-    function _cancelRateLimit(bytes32 key, uint256 amount, IRateLimits rateLimits) internal {
+    function _cancelRateLimit(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitIncrease(key, amount);
     }
 

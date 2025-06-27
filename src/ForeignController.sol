@@ -4,12 +4,12 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
-
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+
+import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
 
@@ -131,7 +131,7 @@ contract ForeignController is AccessControl {
         emit MintRecipientSet(destinationDomain, mintRecipient);
     }
 
-    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient) 
+    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -241,7 +241,7 @@ contract ForeignController is AccessControl {
         uint256 amount,
         uint32  destinationEndpointId
     )
-        external
+        external payable
     {
         _checkRole(RELAYER);
         _rateLimited(
@@ -271,7 +271,7 @@ contract ForeignController is AccessControl {
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
 
-        proxy.doCallWithValue(
+        proxy.doCallWithValue{value: fee.nativeFee}(
             oftAddress,
             abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
             fee.nativeFee
@@ -442,19 +442,28 @@ contract ForeignController is AccessControl {
         ( bool success, bytes memory data )
             = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
 
-        // Decode the first 32 bytes of the data, ALMProxy returns 96 bytes
-        bytes32 result;
-        assembly { result := mload(add(data, 32)) }
+        bytes memory approveCallReturnData;
 
-        // Decode the result to check if the approval was successful
-        bool decodedSuccess = (data.length == 0) || result != bytes32(0);
+        if (success) {
+            // Data is the ABI-encoding of the approve call bytes return data, need to
+            // decode it first
+            approveCallReturnData = abi.decode(data, (bytes));
+            // Approve was successful if 1) no return value or 2) true return value
+            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
+                return;
+            }
+        }
 
-        // If call succeeded with expected calldata, return
-        if (success && decodedSuccess) return;
-
-        // If call reverted, set to zero and try again
+        // If call was unsuccessful, set to zero and try again
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+
+        approveCallReturnData = proxy.doCall(token, approveData);
+
+        // Revert if approve returns false
+        require(
+            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
+            "ForeignController/approve-failed"
+        );
     }
 
     function _initiateCCTPTransfer(
