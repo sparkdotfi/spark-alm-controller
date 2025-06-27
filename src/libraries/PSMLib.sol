@@ -6,8 +6,6 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 import { IRateLimits }  from "../interfaces/IRateLimits.sol";
 import { IALMProxy }    from "../interfaces/IALMProxy.sol";
 
-import { RateLimitHelpers } from "../RateLimitHelpers.sol";
-
 interface IDaiUsdsLike {
     function dai() external view returns (address);
     function daiToUsds(address usr, uint256 wad) external;
