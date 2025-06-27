@@ -93,7 +93,7 @@ library CurveLib {
         uint256[] memory rates = curvePool.stored_rates();
 
         // Below code is simplified from the following logic.
-        // `maxSlippage` was multipled first to avoid precision loss.
+        // `maxSlippage` was multiplied first to avoid precision loss.
         //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
         //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
         //   result    = tokensOut * maxSlippage / 1e18
