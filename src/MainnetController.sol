@@ -861,8 +861,7 @@ contract MainnetController is AccessControl {
         // If call was unsuccessful, set to zero and try again
         proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
 
-        approveCallReturnData
-            = proxy.doCall(token, approveData));
+        approveCallReturnData = proxy.doCall(token, approveData);
 
         // Revert if approve returns false
         require(
