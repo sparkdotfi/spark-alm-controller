@@ -476,9 +476,12 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_ ) = _getDefaultParams();
+        Init.LayerZeroRecipient[] memory layerZeroRecipients_ = new Init.LayerZeroRecipient[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_ ) = _getDefaultParams();
 
         mintRecipients.push(mintRecipients_[0]);
+        layerZeroRecipients.push(layerZeroRecipients_[0]);
 
         newController = MainnetController(MainnetControllerDeploy.deployController({
             admin      : Ethereum.SPARK_PROXY,
