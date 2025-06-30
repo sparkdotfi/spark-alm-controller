@@ -787,6 +787,8 @@ contract MainnetController is AccessControl {
             amount
         );
 
+        // NOTE: !! This is not fully integration tested !!
+        //       ADD TESTS for this before using it in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
             _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
         }
