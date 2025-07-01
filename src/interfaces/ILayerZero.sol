@@ -68,4 +68,6 @@ interface ILayerZero {
 
     function token() external view returns (address);
 
+    function approvalRequired() external pure returns (bool);
+
 }

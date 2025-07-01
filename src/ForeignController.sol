@@ -249,6 +249,13 @@ contract ForeignController is AccessControl {
             amount
         );
 
+        // NOTE: Full integration testing of this logic is not possible without OFTs with
+        //       approvalRequired == true. Add integration testing for this case before 
+        //       using in production.
+        if (ILayerZero(oftAddress).approvalRequired()) {
+            _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+        }
+
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
         SendParam memory sendParams = SendParam({
