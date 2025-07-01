@@ -250,7 +250,7 @@ contract ForeignController is AccessControl {
         );
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == false. Add integration testing for this case before 
+        //       approvalRequired == true. Add integration testing for this case before 
         //       using in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
             _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
