@@ -4,6 +4,9 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
+// This interface has been reviewed, and is compliant with the specs: https://eips.ethereum.org/EIPS/eip-7540
+import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
+
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
@@ -25,6 +28,15 @@ import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
+}
+
+interface ICentrifugeToken is IERC7540 {
+    function cancelDepositRequest(uint256 requestId, address controller) external;
+    function cancelRedeemRequest(uint256 requestId, address controller) external;
+    function claimCancelDepositRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 assets);
+    function claimCancelRedeemRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 shares);
 }
 
 contract ForeignController is AccessControl {
@@ -58,13 +70,18 @@ contract ForeignController is AccessControl {
 
     bytes32 public constant LIMIT_4626_DEPOSIT       = keccak256("LIMIT_4626_DEPOSIT");
     bytes32 public constant LIMIT_4626_WITHDRAW      = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public constant LIMIT_7540_DEPOSIT       = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public constant LIMIT_7540_REDEEM        = keccak256("LIMIT_7540_REDEEM");
     bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_ASSET_TRANSFER     = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
     bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
+
+    uint256 internal constant CENTRIFUGE_REQUEST_ID = 0;
 
     IALMProxy   public immutable proxy;
     ICCTPLike   public immutable cctp;
@@ -250,7 +267,7 @@ contract ForeignController is AccessControl {
         );
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == true. Add integration testing for this case before 
+        //       approvalRequired == true. Add integration testing for this case before
         //       using in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
             _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
@@ -343,6 +360,136 @@ contract ForeignController is AccessControl {
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
             assets
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer ERC7540 functions                                                              ***/
+    /**********************************************************************************************/
+
+    function requestDepositERC7540(address token, uint256 amount)
+        external
+        onlyRole(RELAYER)
+        rateLimitedAsset(LIMIT_7540_DEPOSIT, token, amount)
+    {
+        // Note that whitelist is done by rate limits
+        IERC20 asset = IERC20(IERC7540(token).asset());
+
+        // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
+        _approve(address(asset), token, amount);
+
+        // Submit deposit request by transferring assets
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC7540(token).requestDeposit, (amount, address(proxy), address(proxy)))
+        );
+    }
+
+    function claimDepositERC7540(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
+    {
+        uint256 shares = IERC7540(token).maxMint(address(proxy));
+
+        // Claim shares from the vault to the proxy
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC4626(token).mint, (shares, address(proxy)))
+        );
+    }
+
+    function requestRedeemERC7540(address token, uint256 shares)
+        external
+        onlyRole(RELAYER)
+        rateLimitedAsset(LIMIT_7540_REDEEM, token, IERC7540(token).convertToAssets(shares))
+    {
+        // Submit redeem request by transferring shares
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC7540(token).requestRedeem, (shares, address(proxy), address(proxy)))
+        );
+    }
+
+    function claimRedeemERC7540(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
+    {
+        uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
+
+        // Claim assets from the vault to the proxy
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC7540(token).withdraw, (assets, address(proxy), address(proxy)))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Centrifuge functions                                                           ***/
+    /**********************************************************************************************/
+
+    // NOTE: These cancelation methods are compatible with ERC-7887
+
+    function cancelCentrifugeDepositRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
+    {
+
+        // NOTE: While the cancelation is pending, no new deposit request can be submitted
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).cancelDepositRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy))
+            )
+        );
+    }
+
+    function claimCentrifugeCancelDepositRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token))
+    {
+
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).claimCancelDepositRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
+            )
+        );
+    }
+
+    function cancelCentrifugeRedeemRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
+    {
+
+        // NOTE: While the cancelation is pending, no new redeem request can be submitted
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).cancelRedeemRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy))
+            )
+        );
+    }
+
+    function claimCentrifugeCancelRedeemRequest(address token)
+        external
+        onlyRole(RELAYER)
+        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token))
+    {
+
+        proxy.doCall(
+            token,
+            abi.encodeCall(
+                ICentrifugeToken(token).claimCancelRedeemRequest,
+                (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
+            )
         );
     }
 
