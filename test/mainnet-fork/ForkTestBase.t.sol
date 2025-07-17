@@ -32,7 +32,7 @@ import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 
-import { RateLimitHelpers, RateLimitData }  from "../../src/RateLimitHelpers.sol";
+import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 
 interface IChainlogLike {
     function getAddress(bytes32) external view returns (address);
@@ -117,6 +117,7 @@ contract ForkTestBase is DssTest {
     IERC20 constant usdc  = IERC20(Ethereum.USDC);
     IERC20 constant usde  = IERC20(Ethereum.USDE);
     IERC20 constant usds  = IERC20(Ethereum.USDS);
+    IERC20 constant usdt  = IERC20(Ethereum.USDT);
     ISUsds constant susds = ISUsds(Ethereum.SUSDS);
 
     ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
@@ -233,10 +234,13 @@ contract ForkTestBase is DssTest {
         FREEZER    = mainnetController.FREEZER();
         RELAYER    = mainnetController.RELAYER();
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = relayer;
+
         Init.ConfigAddressParams memory configAddresses
             = Init.ConfigAddressParams({
                 freezer       : freezer,
-                relayer       : relayer,
+                relayers      : relayers,
                 oldController : address(0)
             });
 
@@ -250,6 +254,8 @@ contract ForkTestBase is DssTest {
                 daiUsds    : Ethereum.DAI_USDS,
                 cctp       : Ethereum.CCTP_TOKEN_MESSENGER
             });
+
+        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
 
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
 
@@ -273,20 +279,16 @@ contract ForkTestBase is DssTest {
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
         mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
 
-        RateLimitData memory standardUsdsData = RateLimitData({
-            maxAmount : 5_000_000e18,
-            slope     : uint256(1_000_000e18) / 4 hours
-        });
-
-        RateLimitData memory standardUsdcData = RateLimitData({
-            maxAmount : 5_000_000e6,
-            slope     : uint256(1_000_000e6) / 4 hours
-        });
+        uint256 usdsMaxAmount = 5_000_000e18;
+        uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
+        uint256 usdcMaxAmount = 5_000_000e6;
+        uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
         bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(
             mainnetController.LIMIT_USDC_TO_DOMAIN(),
@@ -294,10 +296,10 @@ contract ForkTestBase is DssTest {
         );
 
         // NOTE: Using minimal config for test base setup
-        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    address(rateLimits), standardUsdsData, "usdsMintData",         18);
-        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), address(rateLimits), standardUsdcData, "usdsToUsdcData",       6);
-        RateLimitHelpers.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), address(rateLimits), standardUsdcData, "usdcToCctpData",       6);
-        RateLimitHelpers.setRateLimitData(domainKeyBase,                          address(rateLimits), standardUsdcData, "cctpToBaseDomainData", 6);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(domainKeyBase,                          usdcMaxAmount, usdcSlope);
 
         vm.stopPrank();
 
@@ -313,6 +315,10 @@ contract ForkTestBase is DssTest {
     // Default configuration for the fork, can be overridden in inheriting tests
     function _getBlock() internal virtual pure returns (uint256) {
         return 20917850; //  October 7, 2024
+    }
+
+    function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a > b ? a - b : b - a;
     }
 
 }

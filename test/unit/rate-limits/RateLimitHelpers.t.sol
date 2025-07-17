@@ -3,8 +3,8 @@ pragma solidity ^0.8.21;
 
 import "../UnitTestBase.t.sol";
 
-import { RateLimits, IRateLimits }         from "../../../src/RateLimits.sol";
-import { RateLimitHelpers, RateLimitData } from "../../../src/RateLimitHelpers.sol";
+import { RateLimits, IRateLimits } from "../../../src/RateLimits.sol";
+import { RateLimitHelpers }        from "../../../src/RateLimitHelpers.sol";
 
 contract RateLimitHelpersWrapper {
 
@@ -20,21 +20,6 @@ contract RateLimitHelpersWrapper {
         return RateLimitHelpers.makeDomainKey(key, domain);
     }
 
-    function unlimitedRateLimit() public pure returns (RateLimitData memory) {
-        return RateLimitHelpers.unlimitedRateLimit();
-    }
-
-    function setRateLimitData(
-        bytes32 key,
-        address rateLimits,
-        RateLimitData memory data,
-        string memory name,
-        uint256 decimals
-    )
-        public
-    {
-        RateLimitHelpers.setRateLimitData(key, rateLimits, data, name, decimals);
-    }
 }
 
 contract RateLimitHelpersTestBase is UnitTestBase {
@@ -74,147 +59,25 @@ contract RateLimitHelpersTestBase is UnitTestBase {
 
 contract RateLimitHelpersPureFunctionTests is RateLimitHelpersTestBase {
 
-    function test_makeAssetKey() public {
+    function test_makeAssetKey() public view {
         assertEq(
             wrapper.makeAssetKey(KEY, address(this)),
             keccak256(abi.encode(KEY, address(this)))
         );
     }
 
-    function test_makeAssetDestinationKey() public {
+    function test_makeAssetDestinationKey() public view {
         assertEq(
             wrapper.makeAssetDestinationKey(KEY, address(this), address(0)),
             keccak256(abi.encode(KEY, address(this), address(0)))
         );
     }
 
-    function test_makeDomainKey() public {
+    function test_makeDomainKey() public view {
         assertEq(
             wrapper.makeDomainKey(KEY, 123),
             keccak256(abi.encode(KEY, 123))
         );
-    }
-
-    function test_unlimitedRateLimit() public {
-        RateLimitData memory data = wrapper.unlimitedRateLimit();
-
-        assertEq(data.maxAmount, type(uint256).max);
-        assertEq(data.slope,     0);
-    }
-
-}
-
-contract RateLimitHelpersSetRateLimitDataFailureTests is RateLimitHelpersTestBase {
-
-    function test_setRateLimitData_unlimitedWithNonZeroSlope() external {
-        RateLimitData memory data = RateLimitData({
-            maxAmount : type(uint256).max,
-            slope     : 1
-        });
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "InvalidUnlimitedRateLimitSlope(string)",
-            NAME
-        ));
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-    }
-
-    function test_setRateLimitData_maxAmountUpperBoundBoundary() external {
-        // Set 1e18 precision value on a 6 decimal token
-        RateLimitData memory data = RateLimitData({
-            maxAmount : 1e18 + 1,
-            slope     : 0
-        });
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "InvalidMaxAmountPrecision(string)",
-            NAME
-        ));
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 6);
-
-        data.maxAmount = 1e18;
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 6);
-    }
-
-    function test_setRateLimitData_maxAmountLowerBoundBoundary() external {
-        // Set 1e6 precision value on a 18 decimal token
-        RateLimitData memory data = RateLimitData({
-            maxAmount : 1_000_000_000_000e6 - 1,
-            slope     : 0
-        });
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "InvalidMaxAmountPrecision(string)",
-            NAME
-        ));
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-
-        data.maxAmount = 1_000_000_000_000e6;
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-    }
-
-    function test_setRateLimitData_slopeUpperBoundBoundary() external {
-        // Set 1e18 precision value on a 6 decimal token
-        RateLimitData memory data = RateLimitData({
-            maxAmount : 100e6,
-            slope     : uint256(1e18) / 1 hours + 1
-        });
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "InvalidSlopePrecision(string)",
-            NAME
-        ));
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 6);
-
-        data.slope = uint256(1e18) / 1 hours;
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 6);
-    }
-
-    function test_setRateLimitData_slopeLowerBoundBoundary() external {
-        // Set 1e6 precision value on a 18 decimal token
-        RateLimitData memory data = RateLimitData({
-            maxAmount : 100e18,
-            slope     : uint256(1_000_000_000_000e6) / 1 hours - 1
-        });
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "InvalidSlopePrecision(string)",
-            NAME
-        ));
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-
-        data.slope = uint256(1_000_000_000_000e6) / 1 hours;
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-    }
-
-}
-
-contract RateLimitHelpersSetRateLimitDataSuccessTests is RateLimitHelpersTestBase {
-
-    function test_setRateLimitData_unlimited() external {
-        RateLimitData memory data = RateLimitData({
-            maxAmount : type(uint256).max,
-            slope     : 0
-        });
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-
-        _assertLimitData(KEY, type(uint256).max, 0, type(uint256).max, block.timestamp);
-    }
-
-    function test_setRateLimitData() external {
-        RateLimitData memory data = RateLimitData({
-            maxAmount : 100e18,
-            slope     : uint256(1e18) / 1 hours
-        });
-
-        wrapper.setRateLimitData(KEY, address(rateLimits), data, NAME, 18);
-
-        _assertLimitData(KEY, 100e18, uint256(1e18) / 1 hours, 100e18, block.timestamp);
     }
 
 }

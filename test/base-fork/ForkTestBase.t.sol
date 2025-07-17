@@ -23,7 +23,7 @@ import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 
-import { RateLimitHelpers, RateLimitData }  from "../../src/RateLimitHelpers.sol";
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 contract ForkTestBase is Test {
 
@@ -117,10 +117,12 @@ contract ForkTestBase is Test {
 
         /*** Step 3: Configure ALM system through Spark governance (Spark spell payload) ***/
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = relayer;
 
         Init.ConfigAddressParams memory configAddresses = Init.ConfigAddressParams({
             freezer       : freezer,
-            relayer       : relayer,
+            relayers      : relayers,
             oldController : address(0)
         });
 
@@ -140,29 +142,22 @@ contract ForkTestBase is Test {
             mintRecipient : bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
         });
 
+        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
 
         Init.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
-        RateLimitData memory standardUsdcData = RateLimitData({
-            maxAmount : 5_000_000e6,
-            slope     : uint256(1_000_000e6) / 4 hours
-        });
-
-        RateLimitData memory standardUsdsData = RateLimitData({
-            maxAmount : 5_000_000e18,
-            slope     : uint256(1_000_000e18) / 4 hours
-        });
-
-        RateLimitData memory unlimitedData = RateLimitData({
-            maxAmount : type(uint256).max,
-            slope     : 0
-        });
+        uint256 usdcMaxAmount = 5_000_000e6;
+        uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
+        uint256 usdsMaxAmount = 5_000_000e18;
+        uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
 
         bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
         bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
@@ -173,15 +168,15 @@ contract ForkTestBase is Test {
         );
 
         // NOTE: Using minimal config for test base setup
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdcBase)),  address(rateLimits), standardUsdcData, "usdcDepositData",   6);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase)),  address(rateLimits), standardUsdcData, "usdcWithdrawData",  6);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdsBase)),  address(rateLimits), standardUsdsData, "usdsDepositData",   18);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase)),  address(rateLimits), unlimitedData,    "usdsWithdrawData",  18);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(susdsBase)), address(rateLimits), standardUsdsData, "susdsDepositData",  18);
-        RateLimitHelpers.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase)), address(rateLimits), unlimitedData,    "susdsWithdrawData", 18);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdcBase)),  usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase)),  usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdsBase)),  usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(susdsBase)), usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(),                         usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(domainKeyEthereum,                                              usdcMaxAmount, usdcSlope);
 
-        RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), address(rateLimits), standardUsdcData, "usdcToCctpData",           6);
-        RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      address(rateLimits), standardUsdcData, "cctpToEthereumDomainData", 6);
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase)));
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase)));
 
         vm.stopPrank();
     }

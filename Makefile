@@ -1,5 +1,5 @@
 # Staging Full Deployment with Dependencies
-deploy-staging-full :; forge script script/staging/FullStagingDeploy.s.sol:FullStagingDeploy --sender ${ETH_FROM} --broadcast --verify
+deploy-staging-full :; forge script script/staging/FullStagingDeploy.s.sol:FullStagingDeploy --sender ${ETH_FROM} --broadcast --verify --multi
 
 # Staging Mainnet Deployment with Dependencies
 deploy-staging-mainnet :; forge script script/staging/MainnetStagingDeploy.s.sol:MainnetStagingDeploy --sender ${ETH_FROM} --broadcast --verify
@@ -14,3 +14,6 @@ deploy-mainnet-production-controller :; ENV=production forge script script/Deplo
 
 deploy-base-production-full       :; CHAIN=base ENV=production forge script script/Deploy.s.sol:DeployForeignFull --sender ${ETH_FROM} --broadcast --verify
 deploy-base-production-controller :; CHAIN=base ENV=production forge script script/Deploy.s.sol:DeployForeignController --sender ${ETH_FROM} --broadcast --verify
+
+deploy-unichain-production-full       :; CHAIN=unichain ENV=production forge script script/Deploy.s.sol:DeployForeignFull --sender ${ETH_FROM} --broadcast --verify
+deploy-unichain-production-controller :; CHAIN=unichain ENV=production forge script script/Deploy.s.sol:DeployForeignController --sender ${ETH_FROM} --broadcast --verify

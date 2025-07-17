@@ -38,14 +38,19 @@ library MainnetControllerInit {
     }
 
     struct ConfigAddressParams {
-        address freezer;
-        address relayer;
-        address oldController;
+        address   freezer;
+        address[] relayers;
+        address   oldController;
     }
 
     struct MintRecipient {
         uint32  domain;
         bytes32 mintRecipient;
+    }
+
+    struct LayerZeroRecipient {
+        uint32  destinationEndpointId;
+        bytes32 recipient;
     }
 
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
@@ -57,10 +62,11 @@ library MainnetControllerInit {
     function initAlmSystem(
         address vault,
         address usds,
-        ControllerInstance  memory controllerInst,
-        ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
+        LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
     {
@@ -71,7 +77,7 @@ library MainnetControllerInit {
 
         // Step 2: Initialize the controller
 
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
 
         // Step 3: Configure almProxy within the allocation system
 
@@ -82,14 +88,15 @@ library MainnetControllerInit {
     }
 
     function upgradeController(
-        ControllerInstance  memory controllerInst,
-        ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
+        LayerZeroRecipient[] memory layerZeroRecipients
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -112,10 +119,11 @@ library MainnetControllerInit {
     /**********************************************************************************************/
 
     function _initController(
-        ControllerInstance  memory controllerInst,
-        ConfigAddressParams memory configAddresses,
-        CheckAddressParams  memory checkAddresses,
-        MintRecipient[]     memory mintRecipients
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses,
+        MintRecipient[]      memory mintRecipients,
+        LayerZeroRecipient[] memory layerZeroRecipients
     )
         private
     {
@@ -142,16 +150,24 @@ library MainnetControllerInit {
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
+        almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
         newController.grantRole(newController.FREEZER(), configAddresses.freezer);
-        newController.grantRole(newController.RELAYER(), configAddresses.relayer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
 
-        almProxy.grantRole(almProxy.CONTROLLER(), address(newController));
-        rateLimits.grantRole(rateLimits.CONTROLLER(), address(newController));
+        for (uint256 i; i < configAddresses.relayers.length; ++i) {
+            newController.grantRole(newController.RELAYER(), configAddresses.relayers[i]);
+        }
 
         // Step 3: Configure the mint recipients on other domains
 
-        for (uint256 i = 0; i < mintRecipients.length; i++) {
+        for (uint256 i; i < mintRecipients.length; ++i) {
             newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+        }
+
+        // Step 4: Configure LayerZero recipients
+
+        for (uint256 i; i < layerZeroRecipients.length; ++i) {
+            newController.setLayerZeroRecipient(layerZeroRecipients[i].destinationEndpointId, layerZeroRecipients[i].recipient);
         }
     }
 
