@@ -307,6 +307,8 @@ contract MainnetController is AccessControl {
             ),
             (uint256)
         );
+
+        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), amount);
     }
 
     // NOTE: !!! Rate limited at end of function !!!
@@ -496,6 +498,11 @@ contract MainnetController is AccessControl {
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
+            amountWithdrawn
+        );
+
+        _cancelRateLimit(
+            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
             amountWithdrawn
         );
     }

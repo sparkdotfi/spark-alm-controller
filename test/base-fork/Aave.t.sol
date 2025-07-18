@@ -156,7 +156,11 @@ contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
 contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
 
     function test_withdrawAave_usdc() public {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            foreignController.LIMIT_AAVE_DEPOSIT(),
+            ATOKEN_USDC
+        );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
             foreignController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );
@@ -176,7 +180,7 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)), 0);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6);
 
         // Partial withdraw
         vm.prank(relayer);
@@ -186,7 +190,8 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)), 400_000e6);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 100_000e6);  // 500k - 400k
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 600_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 600_000e6);
 
         // Withdraw all
         vm.prank(relayer);
@@ -196,19 +201,24 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)), fullBalance - 1);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6 - fullBalance + 1);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6 - fullBalance + 1);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6 - fullBalance + 1);
 
         // Interest accrued was withdrawn, reducing cash balance
         assertLe(usdcBase.balanceOf(address(ausdc)), startingAUSDCBalance);
     }
 
     function test_withdrawAave_usdc_unlimitedRateLimit() public {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            foreignController.LIMIT_AAVE_DEPOSIT(),
+            ATOKEN_USDC
+        );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
             foreignController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );
         vm.prank(Base.SPARK_EXECUTOR);
-        rateLimits.setUnlimitedRateLimitData(key);
+        rateLimits.setUnlimitedRateLimitData(withdrawKey);
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
         vm.prank(relayer);
@@ -220,7 +230,7 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
 
         assertGe(fullBalance, 1_000_000e6);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), type(uint256).max);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);
 
         assertEq(ausdc.balanceOf(address(almProxy)),     fullBalance);
         assertEq(usdcBase.balanceOf(address(almProxy)),  0);
@@ -230,7 +240,8 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         vm.prank(relayer);
         assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), type(uint256).max);  // No change
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);  // No change
 
         assertEq(ausdc.balanceOf(address(almProxy)),    0);
         assertEq(usdcBase.balanceOf(address(almProxy)), fullBalance);

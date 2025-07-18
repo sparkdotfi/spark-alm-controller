@@ -150,6 +150,11 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
 contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
 
     function test_withdrawERC4626() external {
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_4626_DEPOSIT(),
+            Ethereum.SUSDS
+        );
+
         vm.startPrank(relayer);
         mainnetController.mintUSDS(1e18);
         mainnetController.depositERC4626(address(susds), 1e18);
@@ -166,9 +171,13 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
         assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18);
         assertEq(susds.balanceOf(address(almProxy)), SUSDS_CONVERTED_SHARES);
 
+        uint256 rateLimitBeforeWithdraw = rateLimits.getCurrentRateLimit(depositKey);
+
         // Max available with rounding
         vm.prank(relayer);
         uint256 shares = mainnetController.withdrawERC4626(address(susds), 1e18 - 1);  // Rounding
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey), rateLimitBeforeWithdraw + (1e18 - 1));
 
         assertEq(shares, SUSDS_CONVERTED_SHARES);
 
