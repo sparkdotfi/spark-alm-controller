@@ -349,6 +349,10 @@ contract ForeignController is AccessControl {
             RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
             assets
         );
+        rateLimits.triggerRateLimitIncrease(
+            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
+            assets
+        );
     }
 
     /**********************************************************************************************/

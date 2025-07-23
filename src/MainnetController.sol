@@ -329,6 +329,8 @@ contract MainnetController is AccessControl {
             RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
             assets
         );
+
+        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), assets);
     }
 
     /**********************************************************************************************/

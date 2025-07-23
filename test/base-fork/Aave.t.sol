@@ -7,6 +7,8 @@ import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import "./ForkTestBase.t.sol";
 
+import "forge-std/console2.sol";
+
 contract AaveV3BaseMarketTestBase is ForkTestBase {
 
     address constant ATOKEN_USDC = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
@@ -155,7 +157,7 @@ contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
 
 contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
 
-    function test_withdrawAave_usdc() public {
+    function test_withdrawAave_usdc_test() public {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
             foreignController.LIMIT_AAVE_DEPOSIT(),
             ATOKEN_USDC
@@ -180,6 +182,7 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)), 0);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6);
 
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6);
 
         // Partial withdraw
@@ -217,6 +220,7 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
             foreignController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );
+
         vm.prank(Base.SPARK_EXECUTOR);
         rateLimits.setUnlimitedRateLimitData(withdrawKey);
 
@@ -224,12 +228,9 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
 
-        skip(1 days);
-
         uint256 fullBalance = ausdc.balanceOf(address(almProxy));
 
-        assertGe(fullBalance, 1_000_000e6);
-
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  0);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);
 
         assertEq(ausdc.balanceOf(address(almProxy)),     fullBalance);

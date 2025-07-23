@@ -233,6 +233,10 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
             foreignController.LIMIT_4626_DEPOSIT(),
             MORPHO_VAULT_USDS
         );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+            foreignController.LIMIT_4626_WITHDRAW(),
+            MORPHO_VAULT_USDS
+        );
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
         vm.prank(relayer);
@@ -241,12 +245,14 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         assertEq(usdsVault.convertToAssets(usdsVault.balanceOf(address(almProxy))), 1_000_000e18);
         assertEq(IERC20(Base.USDS).balanceOf(address(almProxy)),                    0);
 
-        uint256 rateLimitBeforeWithdraw = rateLimits.getCurrentRateLimit(depositKey);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
         vm.prank(relayer);
         assertEq(foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18), 1_000_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey), rateLimitBeforeWithdraw + 1_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
 
         assertEq(usdsVault.convertToAssets(usdsVault.balanceOf(address(almProxy))), 0);
         assertEq(IERC20(Base.USDS).balanceOf(address(almProxy)),                    1_000_000e18);
@@ -257,6 +263,10 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
             foreignController.LIMIT_4626_DEPOSIT(),
             MORPHO_VAULT_USDC
         );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+            foreignController.LIMIT_4626_WITHDRAW(),
+            MORPHO_VAULT_USDC
+        );
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
         vm.prank(relayer);
@@ -265,12 +275,14 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         assertEq(usdcVault.convertToAssets(usdcVault.balanceOf(address(almProxy))), 1_000_000e6);
         assertEq(IERC20(Base.USDC).balanceOf(address(almProxy)),                    0);
 
-        uint256 rateLimitBeforeWithdraw = rateLimits.getCurrentRateLimit(depositKey);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
 
         vm.prank(relayer);
         assertEq(foreignController.withdrawERC4626(MORPHO_VAULT_USDC, 1_000_000e6), 1_000_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey), rateLimitBeforeWithdraw + 1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e6);
 
         assertEq(usdcVault.convertToAssets(usdcVault.balanceOf(address(almProxy))), 0);
         assertEq(IERC20(Base.USDC).balanceOf(address(almProxy)),                    1_000_000e6);
