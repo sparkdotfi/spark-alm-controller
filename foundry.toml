@@ -27,7 +27,7 @@ runs = 1
 depth = 100
 
 [etherscan]
-mainnet = { key = "${ETHERSCAN_API_KEY}" }
+mainnet = { key = "${MAINNET_API_KEY}" }
 optimism = { key = "${OPTIMISMSCAN_API_KEY}" }
 base = { key = "${BASESCAN_API_KEY}" }
 gnosis_chain = { key = "${GNOSISSCAN_API_KEY}", url = "https://api.gnosisscan.io/api" }
