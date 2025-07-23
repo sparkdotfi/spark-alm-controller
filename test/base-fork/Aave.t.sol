@@ -7,8 +7,6 @@ import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import "./ForkTestBase.t.sol";
 
-import "forge-std/console2.sol";
-
 contract AaveV3BaseMarketTestBase is ForkTestBase {
 
     address constant ATOKEN_USDC = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
@@ -157,7 +155,7 @@ contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
 
 contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
 
-    function test_withdrawAave_usdc_test() public {
+    function test_withdrawAave_usdc() public {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
             foreignController.LIMIT_AAVE_DEPOSIT(),
             ATOKEN_USDC

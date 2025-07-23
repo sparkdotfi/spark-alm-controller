@@ -182,7 +182,8 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
         vm.prank(relayer);
         uint256 shares = mainnetController.withdrawERC4626(address(susds), 1e18 - 1);  // Rounding
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey), 4_999_999e18 + (1e18 - 1));
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 1));
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 1));
 
         assertEq(shares, SUSDS_CONVERTED_SHARES);
 
@@ -261,6 +262,15 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
 contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
 
     function test_redeemERC4626() external {
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_4626_DEPOSIT(),
+            Ethereum.SUSDS
+        );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_4626_WITHDRAW(),
+            Ethereum.SUSDS
+        );
+        
         vm.startPrank(relayer);
         mainnetController.mintUSDS(1e18);
         mainnetController.depositERC4626(address(susds), 1e18);
@@ -277,8 +287,14 @@ contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
         assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18);
         assertEq(susds.balanceOf(address(almProxy)), SUSDS_CONVERTED_SHARES);
 
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
+
         vm.prank(relayer);
         uint256 assets = mainnetController.redeemERC4626(address(susds), SUSDS_CONVERTED_SHARES);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 1));
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 1));
 
         assertEq(assets, 1e18 - 1);  // Rounding
 
