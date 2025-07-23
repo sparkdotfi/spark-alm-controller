@@ -4,13 +4,13 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+// This interface has been reviewed, and is compliant with the specs: https://eips.ethereum.org/EIPS/eip-7540
 import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
-import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
-
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+
+import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
@@ -18,46 +18,18 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
+import  "./interfaces/ILayerZero.sol";
+
+import { CCTPLib }                        from "./libraries/CCTPLib.sol";
+import { CurveLib }                       from "./libraries/CurveLib.sol";
+import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+
+import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
-}
-
-interface IBuidlRedeemLike {
-    function asset() external view returns(address);
-    function redeem(uint256 usdcAmount) external;
-}
-
-interface ICurvePoolLike is IERC20 {
-    function add_liquidity(
-        uint256[] memory amounts,
-        uint256 minMintAmount,
-        address receiver
-    ) external;
-    function balances(uint256 index) external view returns (uint256);
-    function coins(uint256 index) external returns (address);
-    function exchange(
-        int128  inputIndex,
-        int128  outputIndex,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        address receiver
-    ) external returns (uint256 tokensOut);
-    function get_virtual_price() external view returns (uint256);
-    function N_COINS() external view returns (uint256);
-    function remove_liquidity(
-        uint256 burnAmount,
-        uint256[] memory minAmounts,
-        address receiver
-    ) external;
-    function stored_rates() external view returns (uint256[] memory);
-}
-
-interface IDaiUsdsLike {
-    function dai() external view returns (address);
-    function daiToUsds(address usr, uint256 wad) external;
-    function usdsToDai(address usr, uint256 wad) external;
 }
 
 interface IEthenaMinterLike {
@@ -77,14 +49,6 @@ interface ICentrifugeToken is IERC7540 {
 interface IMapleTokenLike is IERC4626 {
     function requestRedeem(uint256 shares, address receiver) external;
     function removeShares(uint256 shares, address receiver) external;
-}
-
-interface IPSMLike {
-    function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
-    function fill() external returns (uint256 wad);
-    function gem() external view returns (address);
-    function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
-    function to18ConversionFactor() external view returns (uint256);
 }
 
 interface ISSRedemptionLike is IERC20 {
@@ -111,18 +75,13 @@ interface IVaultLike {
 
 contract MainnetController is AccessControl {
 
+    using OptionsBuilder for bytes;
+
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
-    // NOTE: This is used to track individual transfers for offchain processing of CCTP transactions
-    event CCTPTransferInitiated(
-        uint64  indexed nonce,
-        uint32  indexed destinationDomain,
-        bytes32 indexed mintRecipient,
-        uint256 usdcAmount
-    );
-
+    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
@@ -141,10 +100,10 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public constant LIMIT_BUIDL_REDEEM_CIRCLE  = keccak256("LIMIT_BUIDL_REDEEM_CIRCLE");
     bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -156,10 +115,11 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
     bytes32 public constant LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
 
+    uint256 internal constant CENTRIFUGE_REQUEST_ID = 0;
+
     address public immutable buffer;
 
     IALMProxy         public immutable proxy;
-    IBuidlRedeemLike  public immutable buidlRedeem;
     ICCTPLike         public immutable cctp;
     IDaiUsdsLike      public immutable daiUsds;
     IEthenaMinterLike public immutable ethenaMinter;
@@ -179,7 +139,8 @@ contract MainnetController is AccessControl {
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
-    mapping(uint32 destinationDomain => bytes32 mintRecipient) public mintRecipients;
+    mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
+    mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -204,7 +165,6 @@ contract MainnetController is AccessControl {
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
 
-        buidlRedeem          = IBuidlRedeemLike(Ethereum.BUIDL_REDEEM);
         ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
         superstateRedemption = ISSRedemptionLike(Ethereum.SUPERSTATE_REDEMPTION);
 
@@ -226,6 +186,17 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
+    }
+
+    function setLayerZeroRecipient(
+        uint32  destinationEndpointId,
+        bytes32 layerZeroRecipient
+    )
+        external
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
+        emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
     }
 
     function setMaxSlippage(address pool, uint256 maxSlippage) external {
@@ -426,8 +397,6 @@ contract MainnetController is AccessControl {
 
     // NOTE: These cancelation methods are compatible with ERC-7887
 
-    uint256 CENTRIFUGE_REQUEST_ID = 0;
-
     function cancelCentrifugeDepositRequest(address token) external {
         _checkRole(RELAYER);
         _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
@@ -532,22 +501,6 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Relayer BlackRock BUIDL functions                                                      ***/
-    /**********************************************************************************************/
-
-    function redeemBUIDLCircleFacility(uint256 usdcAmount) external {
-        _checkRole(RELAYER);
-        _rateLimited(LIMIT_BUIDL_REDEEM_CIRCLE, usdcAmount);
-
-        _approve(address(buidlRedeem.asset()), address(buidlRedeem), usdcAmount);
-
-        proxy.doCall(
-            address(buidlRedeem),
-            abi.encodeCall(buidlRedeem.redeem, (usdcAmount))
-        );
-    }
-
-    /**********************************************************************************************/
     /*** Relayer Curve StableSwap functions                                                     ***/
     /**********************************************************************************************/
 
@@ -562,61 +515,17 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        require(inputIndex != outputIndex, "MainnetController/invalid-indices");
-
-        uint256 maxSlippage = maxSlippages[pool];
-        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
-
-        ICurvePoolLike curvePool = ICurvePoolLike(pool);
-
-        uint256 numCoins = curvePool.N_COINS();
-        require(
-            inputIndex < numCoins && outputIndex < numCoins,
-            "MainnetController/index-too-high"
-        );
-
-        // Normalized to provide 36 decimal precision when multiplied by asset amount
-        uint256[] memory rates = curvePool.stored_rates();
-
-        // Below code is simplified from the following logic.
-        // `maxSlippage` was multipled first to avoid precision loss.
-        //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
-        //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
-        //   result    = tokensOut * maxSlippage / 1e18
-        uint256 minimumMinAmountOut = amountIn
-            * rates[inputIndex]
-            * maxSlippage
-            / rates[outputIndex]
-            / 1e18;
-
-        require(
-            minAmountOut >= minimumMinAmountOut,
-            "MainnetController/min-amount-not-met"
-        );
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_SWAP, pool),
-            amountIn * rates[inputIndex] / 1e18
-        );
-
-        _approve(curvePool.coins(inputIndex), pool, amountIn);
-
-        amountOut = abi.decode(
-            proxy.doCall(
-                pool,
-                abi.encodeCall(
-                    curvePool.exchange,
-                    (
-                        int128(int256(inputIndex)),   // safe cast because of 8 token max
-                        int128(int256(outputIndex)),  // safe cast because of 8 token max
-                        amountIn,
-                        minAmountOut,
-                        address(proxy)
-                    )
-                )
-            ),
-            (uint256)
-        );
+        amountOut = CurveLib.swap(CurveLib.SwapCurveParams({
+            proxy        : proxy,
+            rateLimits   : rateLimits,
+            pool         : pool,
+            rateLimitId  : LIMIT_CURVE_SWAP,
+            inputIndex   : inputIndex,
+            outputIndex  : outputIndex,
+            amountIn     : amountIn,
+            minAmountOut : minAmountOut,
+            maxSlippage  : maxSlippages[pool]
+        }));
     }
 
     function addLiquidityCurve(
@@ -628,67 +537,16 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        uint256 maxSlippage = maxSlippages[pool];
-        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
-
-        ICurvePoolLike curvePool = ICurvePoolLike(pool);
-
-        require(
-            depositAmounts.length == curvePool.N_COINS(),
-            "MainnetController/invalid-deposit-amounts"
-        );
-
-        // Normalized to provide 36 decimal precision when multiplied by asset amount
-        uint256[] memory rates = curvePool.stored_rates();
-
-        // Aggregate the value of the deposited assets (e.g. USD)
-        uint256 valueDeposited;
-        for (uint256 i = 0; i < depositAmounts.length; i++) {
-            _approve(curvePool.coins(i), pool, depositAmounts[i]);
-            valueDeposited += depositAmounts[i] * rates[i];
-        }
-        valueDeposited /= 1e18;
-
-        // Ensure minimum LP amount expected is greater than max slippage amount.
-        require(
-            minLpAmount >= valueDeposited * maxSlippage / curvePool.get_virtual_price(),
-            "MainnetController/min-amount-not-met"
-        );
-
-        // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD)
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_DEPOSIT, pool),
-            valueDeposited
-        );
-
-        shares = abi.decode(
-            proxy.doCall(
-                pool,
-                abi.encodeCall(
-                    curvePool.add_liquidity,
-                    (depositAmounts, minLpAmount, address(proxy))
-                )
-            ),
-            (uint256)
-        );
-
-        // Compute the swap value by taking the difference of the current underlying
-        // asset values from minted shares vs the deposited funds, converting this into an
-        // aggregated swap "amount in" by dividing the total value moved by two and decrease the
-        // swap rate limit by this amount.
-        uint256 totalSwapped;
-        for (uint256 i; i < depositAmounts.length; i++) {
-            totalSwapped += _absSubtraction(
-                curvePool.balances(i) * rates[i] * shares / curvePool.totalSupply(),
-                depositAmounts[i] * rates[i]
-            );
-        }
-        uint256 averageSwap = totalSwapped / 2 / 1e18;
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_SWAP, pool),
-            averageSwap
-        );
+        shares = CurveLib.addLiquidity(CurveLib.AddLiquidityParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            pool                    : pool,
+            addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
+            swapRateLimitId         : LIMIT_CURVE_SWAP,
+            minLpAmount             : minLpAmount,
+            maxSlippage             : maxSlippages[pool],
+            depositAmounts          : depositAmounts
+        }));
     }
 
     function removeLiquidityCurve(
@@ -700,54 +558,15 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        uint256 maxSlippage = maxSlippages[pool];
-        require(maxSlippage != 0, "MainnetController/max-slippage-not-set");
-
-        ICurvePoolLike curvePool = ICurvePoolLike(pool);
-
-        require(
-            minWithdrawAmounts.length == curvePool.N_COINS(),
-            "MainnetController/invalid-min-withdraw-amounts"
-        );
-
-        // Normalized to provide 36 decimal precision when multiplied by asset amount
-        uint256[] memory rates = curvePool.stored_rates();
-
-        // Aggregate the minimum values of the withdrawn assets (e.g. USD)
-        uint256 valueMinWithdrawn;
-        for (uint256 i = 0; i < minWithdrawAmounts.length; i++) {
-            valueMinWithdrawn += minWithdrawAmounts[i] * rates[i];
-        }
-        valueMinWithdrawn /= 1e18;
-
-        // Check that the aggregated minimums are greater than the max slippage amount
-        require(
-            valueMinWithdrawn >= lpBurnAmount * curvePool.get_virtual_price() * maxSlippage / 1e36,
-            "MainnetController/min-amount-not-met"
-        );
-
-        withdrawnTokens = abi.decode(
-            proxy.doCall(
-                pool,
-                abi.encodeCall(
-                    curvePool.remove_liquidity,
-                    (lpBurnAmount, minWithdrawAmounts, address(proxy))
-                )
-            ),
-            (uint256[])
-        );
-
-        // Aggregate value withdrawn to reduce the rate limit
-        uint256 valueWithdrawn;
-        for (uint256 i = 0; i < withdrawnTokens.length; i++) {
-            valueWithdrawn += withdrawnTokens[i] * rates[i];
-        }
-        valueWithdrawn /= 1e18;
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_CURVE_WITHDRAW, pool),
-            valueWithdrawn
-        );
+        withdrawnTokens = CurveLib.removeLiquidity(CurveLib.RemoveLiquidityParams({
+            proxy              : proxy,
+            rateLimits         : rateLimits,
+            pool               : pool,
+            rateLimitId        : LIMIT_CURVE_WITHDRAW,
+            lpBurnAmount       : lpBurnAmount,
+            minWithdrawAmounts : minWithdrawAmounts,
+            maxSlippage        : maxSlippages[pool]
+        }));
     }
 
     /**********************************************************************************************/
@@ -922,71 +741,81 @@ contract MainnetController is AccessControl {
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
     function swapUSDSToUSDC(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        _rateLimited(LIMIT_USDS_TO_USDC, usdcAmount);
 
-        uint256 usdsAmount = usdcAmount * psmTo18ConversionFactor;
-
-        // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        _approve(address(usds), address(daiUsds), usdsAmount);
-
-        // Swap USDS to DAI 1:1
-        proxy.doCall(
-            address(daiUsds),
-            abi.encodeCall(daiUsds.usdsToDai, (address(proxy), usdsAmount))
-        );
-
-        // Approve DAI to PSM from the proxy because conversion from USDS to DAI was 1:1
-        _approve(address(dai), address(psm), usdsAmount);
-
-        // Swap DAI to USDC through the PSM
-        proxy.doCall(
-            address(psm),
-            abi.encodeCall(psm.buyGemNoFee, (address(proxy), usdcAmount))
-        );
+        PSMLib.swapUSDSToUSDC(PSMLib.SwapUSDSToUSDCParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            daiUsds                 : daiUsds,
+            psm                     : psm,
+            usds                    : usds,
+            dai                     : dai,
+            rateLimitId             : LIMIT_USDS_TO_USDC,
+            usdcAmount              : usdcAmount,
+            psmTo18ConversionFactor : psmTo18ConversionFactor
+        }));
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount) external {
         _checkRole(RELAYER);
-        _cancelRateLimit(LIMIT_USDS_TO_USDC, usdcAmount);
 
-        // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
-        _approve(address(usdc), address(psm), usdcAmount);
+        PSMLib.swapUSDCToUSDS(PSMLib.SwapUSDCToUSDSParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            daiUsds                 : daiUsds,
+            psm                     : psm,
+            dai                     : dai,
+            usdc                    : usdc,
+            rateLimitId             : LIMIT_USDS_TO_USDC,
+            usdcAmount              : usdcAmount,
+            psmTo18ConversionFactor : psmTo18ConversionFactor
+        }));
+    }
 
-        // Max USDC that can be swapped to DAI in one call
-        uint256 limit = dai.balanceOf(address(psm)) / psmTo18ConversionFactor;
+    // NOTE: !!! This function was deployed without integration testing !!!
+    //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
+    //       all functionality has been thoroughly integration tested.
+    function transferTokenLayerZero(
+        address oftAddress,
+        uint256 amount,
+        uint32  destinationEndpointId
+    )
+        external payable
+    {
+        _checkRole(RELAYER);
+        _rateLimited(
+            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
+            amount
+        );
 
-        if (usdcAmount <= limit) {
-            _swapUSDCToDAI(usdcAmount);
-        } else {
-            uint256 remainingUsdcToSwap = usdcAmount;
-
-            // Refill the PSM with DAI as many times as needed to get to the full `usdcAmount`.
-            // If the PSM cannot be filled with the full amount, psm.fill() will revert
-            // with `DssLitePsm/nothing-to-fill` since rush() will return 0.
-            // This is desired behavior because this function should only succeed if the full
-            // `usdcAmount` can be swapped.
-            while (remainingUsdcToSwap > 0) {
-                psm.fill();
-
-                limit = dai.balanceOf(address(psm)) / psmTo18ConversionFactor;
-
-                uint256 swapAmount = remainingUsdcToSwap < limit ? remainingUsdcToSwap : limit;
-
-                _swapUSDCToDAI(swapAmount);
-
-                remainingUsdcToSwap -= swapAmount;
-            }
+        // NOTE: Full integration testing of this logic is not possible without OFTs with
+        //       approvalRequired == false. Add integration testing for this case before
+        //       using in production.
+        if (ILayerZero(oftAddress).approvalRequired()) {
+            _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
         }
 
-        uint256 daiAmount = usdcAmount * psmTo18ConversionFactor;
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
-        // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        _approve(address(dai), address(daiUsds), daiAmount);
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : layerZeroRecipients[destinationEndpointId],
+            amountLD     : amount,
+            minAmountLD  : 0,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
 
-        // Swap DAI to USDS 1:1
-        proxy.doCall(
-            address(daiUsds),
-            abi.encodeCall(daiUsds.daiToUsds, (address(proxy), daiAmount))
+        // Query the min amount received on the destination chain and set it.
+        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        sendParams.minAmountLD = receipt.amountReceivedLD;
+
+        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
+
+        proxy.doCallWithValue{value: fee.nativeFee}(
+            oftAddress,
+            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
+            fee.nativeFee
         );
     }
 
@@ -996,76 +825,53 @@ contract MainnetController is AccessControl {
 
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external {
         _checkRole(RELAYER);
-        _rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount);
-        _rateLimited(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
-            usdcAmount
-        );
 
-        bytes32 mintRecipient = mintRecipients[destinationDomain];
-
-        require(mintRecipient != 0, "MainnetController/domain-not-configured");
-
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        _approve(address(usdc), address(cctp), usdcAmount);
-
-        // If amount is larger than limit it must be split into multiple calls
-        uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
-
-        while (usdcAmount > burnLimit) {
-            _initiateCCTPTransfer(burnLimit, destinationDomain, mintRecipient);
-            usdcAmount -= burnLimit;
-        }
-
-        // Send remaining amount (if any)
-        if (usdcAmount > 0) {
-            _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
-        }
+        CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
+            proxy             : proxy,
+            rateLimits        : rateLimits,
+            cctp              : cctp,
+            usdc              : usdc,
+            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
+            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
+            mintRecipient     : mintRecipients[destinationDomain],
+            destinationDomain : destinationDomain,
+            usdcAmount        : usdcAmount
+        }));
     }
 
     /**********************************************************************************************/
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
 
-    function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a > b ? a - b : b - a;
-    }
-
+    // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
     function _approve(address token, address spender, uint256 amount) internal {
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
-    }
+        bytes memory approveData = abi.encodeCall(IERC20.approve, (spender, amount));
 
-    function _initiateCCTPTransfer(
-        uint256 usdcAmount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient
-    )
-        internal
-    {
-        uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
-                abi.encodeCall(
-                    cctp.depositForBurn,
-                    (
-                        usdcAmount,
-                        destinationDomain,
-                        mintRecipient,
-                        address(usdc)
-                    )
-                )
-            ),
-            (uint64)
-        );
+        // Call doCall on proxy to approve the token
+        ( bool success, bytes memory data )
+            = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
 
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
-    }
+        bytes memory approveCallReturnData;
 
-    function _swapUSDCToDAI(uint256 usdcAmount) internal {
-        // Swap USDC to DAI through the PSM (1:1 since sellGemNoFee is used)
-        proxy.doCall(
-            address(psm),
-            abi.encodeCall(psm.sellGemNoFee, (address(proxy), usdcAmount))
+        if (success) {
+            // Data is the ABI-encoding of the approve call bytes return data, need to
+            // decode it first
+            approveCallReturnData = abi.decode(data, (bytes));
+            // Approve was successful if 1) no return value or 2) true return value
+            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
+                return;
+            }
+        }
+
+        // If call was unsuccessful, set to zero and try again
+        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
+
+        approveCallReturnData = proxy.doCall(token, approveData);
+
+        // Revert if approve returns false
+        require(
+            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
+            "MainnetController/approve-failed"
         );
     }
 

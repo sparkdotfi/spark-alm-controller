@@ -231,9 +231,12 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
         foreignRateLimits = RateLimits(controllerInst.rateLimits);
         foreignController = ForeignController(controllerInst.controller);
 
+        address[] memory relayers = new address[](1);
+        relayers[0] = relayer;
+
         ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
             freezer       : freezer,
-            relayer       : relayer,
+            relayers      : relayers,
             oldController : address(0)
         });
 
@@ -253,27 +256,27 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
             mintRecipient : bytes32(uint256(uint160(address(almProxy))))
         });
 
-        vm.startPrank(SPARK_EXECUTOR);
+        ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 
+        vm.startPrank(SPARK_EXECUTOR);
         ForeignControllerInit.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
-            mintRecipients
+            mintRecipients,
+            layerZeroRecipients
         );
 
-        RateLimitData memory standardUsdcData = RateLimitData({
-            maxAmount : 5_000_000e6,
-            slope     : uint256(1_000_000e6) / 4 hours
-        });
+        uint256 usdcMaxAmount = 5_000_000e6;
+        uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
         bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
             foreignController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
         );
 
-        RateLimitHelpers.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), address(foreignRateLimits), standardUsdcData, "usdcToCctpData",           6);
-        RateLimitHelpers.setRateLimitData(domainKeyEthereum,                      address(foreignRateLimits), standardUsdcData, "cctpToEthereumDomainData", 6);
+        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
+        foreignRateLimits.setRateLimitData(domainKeyEthereum,                      usdcMaxAmount, usdcSlope);
 
         vm.stopPrank();
 
