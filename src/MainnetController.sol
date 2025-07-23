@@ -51,6 +51,11 @@ interface IMapleTokenLike is IERC4626 {
     function removeShares(uint256 shares, address receiver) external;
 }
 
+interface ISPKFarmLike {
+    function stake(uint256 amount) external;
+    function withdraw(uint256 amount) external;
+}
+
 interface ISSRedemptionLike is IERC20 {
     function calculateUsdcOut(uint256 ustbAmount)
         external view returns (uint256 usdcOutAmount, uint256 usdPerUstbChainlinkRaw);
@@ -105,6 +110,8 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public constant LIMIT_SPK_FARM_DEPOSIT     = keccak256("LIMIT_SPK_FARM_DEPOSIT");
+    bytes32 public constant LIMIT_SPK_FARM_WITHDRAW    = keccak256("LIMIT_SPK_FARM_WITHDRAW");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -125,6 +132,7 @@ contract MainnetController is AccessControl {
     IEthenaMinterLike public immutable ethenaMinter;
     IPSMLike          public immutable psm;
     IRateLimits       public immutable rateLimits;
+    ISPKFarmLike      public immutable spkFarm;
     ISSRedemptionLike public immutable superstateRedemption;
     IVaultLike        public immutable vault;
 
@@ -153,7 +161,8 @@ contract MainnetController is AccessControl {
         address vault_,
         address psm_,
         address daiUsds_,
-        address cctp_
+        address cctp_,
+        address spkFarm_
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
@@ -164,6 +173,7 @@ contract MainnetController is AccessControl {
         psm        = IPSMLike(psm_);
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
+        spkFarm    = ISPKFarmLike(spkFarm_);
 
         ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
         superstateRedemption = ISSRedemptionLike(Ethereum.SUPERSTATE_REDEMPTION);
@@ -837,6 +847,32 @@ contract MainnetController is AccessControl {
             destinationDomain : destinationDomain,
             usdcAmount        : usdcAmount
         }));
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer SPK Farm functions                                                             ***/
+    /**********************************************************************************************/
+
+    function depositUSDSToSPKFarm(uint256 usdsAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_SPK_FARM_DEPOSIT, usdsAmount);
+
+        _approve(address(usds), address(spkFarm), usdsAmount);
+
+        proxy.doCall(
+            address(spkFarm),
+            abi.encodeCall(spkFarm.stake, (usdsAmount))
+        );
+    }
+
+    function withdrawUSDSFromSPKFarm(uint256 usdsAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_SPK_FARM_WITHDRAW, usdsAmount);
+
+        proxy.doCall(
+            address(spkFarm),
+            abi.encodeCall(spkFarm.withdraw, (usdsAmount))
+        );
     }
 
     /**********************************************************************************************/
