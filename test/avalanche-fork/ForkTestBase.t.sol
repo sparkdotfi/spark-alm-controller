@@ -7,7 +7,7 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { Avalanche } from "grove-address-registry/Avalanche.sol";
 
 import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "spark-psm/src/PSM3.sol";
@@ -27,15 +27,13 @@ import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 contract MockSSROracle {
 
-    function getConversionRate() external view returns (uint256) {
+    function getConversionRate() external pure returns (uint256) {
         return 1e18;
     }
 
 }
 
 contract ForkTestBase is Test {
-
-    // TODO: Refactor to use live addresses
 
     /**********************************************************************************************/
     /*** Constants/state variables                                                              ***/
@@ -47,17 +45,17 @@ contract ForkTestBase is Test {
     bytes32 FREEZER;
     bytes32 RELAYER;
 
-    address freezer                = makeAddr("freezer"); // TODO: Change to constant, fetch from Avalanche registry
-    address relayer                = makeAddr("relayer"); // TODO: Change to constant, fetch from Avalanche registry
-    address pocket                 = makeAddr("pocket");
-    address groveExecutor          = makeAddr("groveExecutor"); // TODO: Change to constant, fetch from Avalanche registry
-    address cctpMessengerAvalanche = makeAddr("cctpMessenger"); // TODO: Change to constant, fetch from Avalanche registry
+    address pocket = makeAddr("pocket");
 
     /**********************************************************************************************/
     /*** Avalanche addresses                                                                   ***/
     /**********************************************************************************************/
 
-    address constant USDC_AVALANCHE = Ethereum.USDC; // TODO: Fetch value from Avalanche registry
+    address constant ALM_FREEZER          = Avalanche.ALM_FREEZER;
+    address constant ALM_RELAYER          = Avalanche.ALM_RELAYER;
+    address constant CCTP_TOKEN_MESSENGER = Avalanche.CCTP_TOKEN_MESSENGER;
+    address constant GROVE_EXECUTOR       = Avalanche.GROVE_EXECUTOR;
+    address constant USDC_AVALANCHE       = Avalanche.USDC;
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
@@ -86,8 +84,7 @@ contract ForkTestBase is Test {
     function setUp() public virtual {
         /*** Step 1: Set up environment, deploy mock addresses ***/
 
-        // TODO: Change to Avalanche
-        vm.createSelectFork(getChain('mainnet').rpcUrl, _getBlock());
+        vm.createSelectFork(getChain('avalanche').rpcUrl, _getBlock());
 
         usdsAvalanche  = IERC20(address(new ERC20Mock()));
         susdsAvalanche = IERC20(address(new ERC20Mock()));
@@ -100,10 +97,10 @@ contract ForkTestBase is Test {
         deal(address(usdsAvalanche), address(this), 1e18);  // For seeding PSM during deployment
 
         psmAvalanche = IPSM3(PSM3Deploy.deploy(
-            groveExecutor, USDC_AVALANCHE, address(usdsAvalanche), address(susdsAvalanche), address(ssrOracle)
+            GROVE_EXECUTOR, USDC_AVALANCHE, address(usdsAvalanche), address(susdsAvalanche), address(ssrOracle)
         ));
 
-        vm.prank(groveExecutor);
+        vm.prank(GROVE_EXECUTOR);
         psmAvalanche.setPocket(pocket);
 
         vm.prank(pocket);
@@ -112,10 +109,10 @@ contract ForkTestBase is Test {
         /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin : groveExecutor,
+            admin : GROVE_EXECUTOR,
             psm   : address(psmAvalanche),
             usdc  : USDC_AVALANCHE,
-            cctp  : cctpMessengerAvalanche
+            cctp  : CCTP_TOKEN_MESSENGER
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -129,18 +126,18 @@ contract ForkTestBase is Test {
         /*** Step 3: Configure ALM system through Grove governance (Grove spell payload) ***/
 
         address[] memory relayers = new address[](1);
-        relayers[0] = relayer;
+        relayers[0] = ALM_RELAYER;
 
         Init.ConfigAddressParams memory configAddresses = Init.ConfigAddressParams({
-            freezer       : freezer,
+            freezer       : ALM_FREEZER,
             relayers      : relayers,
             oldController : address(0)
         });
 
         Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
-            admin : groveExecutor,
+            admin : GROVE_EXECUTOR,
             psm   : address(psmAvalanche),
-            cctp  : cctpMessengerAvalanche,
+            cctp  : CCTP_TOKEN_MESSENGER,
             usdc  : USDC_AVALANCHE,
             susds : address(susdsAvalanche),
             usds  : address(usdsAvalanche)
@@ -155,7 +152,7 @@ contract ForkTestBase is Test {
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
 
-        vm.startPrank(groveExecutor);
+        vm.startPrank(GROVE_EXECUTOR);
 
         Init.initAlmSystem(
             controllerInst,
@@ -171,7 +168,7 @@ contract ForkTestBase is Test {
     // TODO: Change to a proper Avalanche block after switching to Avalanche fork
     // Default configuration for the fork, can be overridden in inheriting tests
     function _getBlock() internal virtual pure returns (uint256) {
-        return 20782500;  // October 8, 2024
+        return 65896755;  // July 22, 2025
     }
 
 }
