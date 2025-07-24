@@ -159,6 +159,7 @@ contract MainnetControllerSPKFarmWithdrawSuccessTests is MainnetControllerSPKFar
 
         assertEq(usds.balanceOf(address(almProxy)),                  0);
         assertEq(ISPKFarmLike(spkFarm).balanceOf(address(almProxy)), 1_000_000e18);
+        assertEq(IERC20(Ethereum.SPK).balanceOf(address(almProxy)),  0);
 
         skip(1 days);
 
