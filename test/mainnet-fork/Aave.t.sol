@@ -305,7 +305,7 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
         assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 1_000_000e18 - fullBalance);
     }
 
-    function test_withdrawAave_usdc_test() public {
+    function test_withdrawAave_usdc() public {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_AAVE_DEPOSIT(),
             ATOKEN_USDC
