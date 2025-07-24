@@ -54,6 +54,7 @@ interface IMapleTokenLike is IERC4626 {
 interface ISPKFarmLike {
     function stake(uint256 amount) external;
     function withdraw(uint256 amount) external;
+    function getReward() external;
 }
 
 interface ISSRedemptionLike is IERC20 {
@@ -875,6 +876,10 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             spkFarm,
             abi.encodeCall(ISPKFarmLike.withdraw, (usdsAmount))
+        );
+        proxy.doCall(
+            spkFarm,
+            abi.encodeCall(ISPKFarmLike.getReward, ())
         );
     }
 
