@@ -5,7 +5,6 @@ import "./ForkTestBase.t.sol";
 
 interface ISPKFarmLike {
     function balanceOf(address account) external view returns (uint256);
-    function earned(address account) external view returns (uint256);
 }
 
 contract MainnetControllerSPKFarmTestBase is ForkTestBase {
@@ -163,8 +162,6 @@ contract MainnetControllerSPKFarmWithdrawSuccessTests is MainnetControllerSPKFar
 
         skip(1 days);
 
-        uint256 rewardTokenEarned = ISPKFarmLike(spkFarm).earned(address(almProxy));
-
         vm.prank(relayer);
         mainnetController.withdrawUSDSFromSPKFarm(spkFarm, 1_000_000e18);
 
@@ -172,7 +169,7 @@ contract MainnetControllerSPKFarmWithdrawSuccessTests is MainnetControllerSPKFar
 
         assertEq(usds.balanceOf(address(almProxy)),                  1_000_000e18);
         assertEq(ISPKFarmLike(spkFarm).balanceOf(address(almProxy)), 0);
-        assertEq(IERC20(Ethereum.SPK).balanceOf(address(almProxy)),  rewardTokenEarned);
+        assertEq(IERC20(Ethereum.SPK).balanceOf(address(almProxy)),  2930.857045118398e18);
     }
 
 }
