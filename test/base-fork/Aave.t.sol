@@ -170,8 +170,6 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 500_000e6);
 
-        skip(1 days);
-
         uint256 fullBalance = ausdc.balanceOf(address(almProxy));
 
         assertGe(fullBalance, 500_000e6);
@@ -180,30 +178,30 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)), 0);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6);
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  500_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6);
 
         // Partial withdraw
         vm.prank(relayer);
         assertEq(foreignController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);
 
-        assertEq(ausdc.balanceOf(address(almProxy)),    fullBalance - 400_000e6 - 1);
+        assertEq(ausdc.balanceOf(address(almProxy)),    fullBalance - 400_000e6);
         assertEq(usdcBase.balanceOf(address(almProxy)), 400_000e6);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 100_000e6);  // 500k - 400k
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  900_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 600_000e6);
 
         // Withdraw all
         vm.prank(relayer);
-        assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance - 400_000e6 - 1);
+        assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance - 400_000e6);
 
         assertEq(ausdc.balanceOf(address(almProxy)),    0);
-        assertEq(usdcBase.balanceOf(address(almProxy)), fullBalance - 1);
-        assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6 - fullBalance + 1);
+        assertEq(usdcBase.balanceOf(address(almProxy)), fullBalance);
+        assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 500_000e6 - fullBalance);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
-        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6 - fullBalance + 1);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6 - fullBalance);
 
         // Interest accrued was withdrawn, reducing cash balance
         assertLe(usdcBase.balanceOf(address(ausdc)), startingAUSDCBalance);
