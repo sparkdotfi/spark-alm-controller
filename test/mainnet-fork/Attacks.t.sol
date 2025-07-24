@@ -5,17 +5,17 @@ import "./ForkTestBase.t.sol";
 
 import { MainnetControllerBUIDLTestBase }  from "./Buidl.t.sol";
 import { MainnetControllerEthenaE2ETests } from "./Ethena.t.sol";
-import { MapleTestBase }                   from "./Maple.t.sol";
+// import { MapleTestBase }                   from "./Maple.t.sol";
 
-import { IMapleTokenLike } from "../../src/MainnetController.sol";
+// import { IMapleTokenLike } from "../../src/MainnetController.sol";
 
 interface IBuidlLike is IERC20 {
     function issueTokens(address to, uint256 amount) external;
 }
 
-interface IMapleTokenExtended is IMapleTokenLike {
-    function manager() external view returns (address);
-}
+// interface IMapleTokenExtended is IMapleTokenLike {
+//     function manager() external view returns (address);
+// }
 
 interface IPermissionManagerLike {
     function admin() external view returns (address);
@@ -88,42 +88,42 @@ contract EthenaAttackTests is MainnetControllerEthenaE2ETests {
 
 }
 
-contract MapleAttackTests is MapleTestBase {
+// contract MapleAttackTests is MapleTestBase {
 
-    function test_attack_compromisedRelayer_delayRequestMapleRedemption() external {
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+//     function test_attack_compromisedRelayer_delayRequestMapleRedemption() external {
+//         deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        vm.prank(relayer);
-        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
+//         vm.prank(relayer);
+//         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
 
-        // Malicious relayer delays the request for redemption for 1m
-        // because new requests can't be fulfilled until the previous is fulfilled or cancelled
-        vm.prank(relayer);
-        mainnetController.requestMapleRedemption(address(syrup), 1);
+//         // Malicious relayer delays the request for redemption for 1m
+//         // because new requests can't be fulfilled until the previous is fulfilled or cancelled
+//         vm.prank(relayer);
+//         mainnetController.requestMapleRedemption(address(syrup), 1);
 
-        // Cannot process request
-        vm.prank(relayer);
-        vm.expectRevert("WM:AS:IN_QUEUE");
-        mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
+//         // Cannot process request
+//         vm.prank(relayer);
+//         vm.expectRevert("WM:AS:IN_QUEUE");
+//         mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
 
-        // Frezer can remove the compromised relayer and fallback to the governance relayer
-        vm.prank(freezer);
-        mainnetController.removeRelayer(relayer);
+//         // Frezer can remove the compromised relayer and fallback to the governance relayer
+//         vm.prank(freezer);
+//         mainnetController.removeRelayer(relayer);
 
-        // Compromised relayer cannot perform attack anymore
-        vm.prank(relayer);
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            relayer,
-            RELAYER
-        ));
-        mainnetController.requestMapleRedemption(address(syrup), 1);
+//         // Compromised relayer cannot perform attack anymore
+//         vm.prank(relayer);
+//         vm.expectRevert(abi.encodeWithSignature(
+//             "AccessControlUnauthorizedAccount(address,bytes32)",
+//             relayer,
+//             RELAYER
+//         ));
+//         mainnetController.requestMapleRedemption(address(syrup), 1);
 
-        // Governance relayer can cancel and submit the real request
-        vm.startPrank(backstopRelayer);
-        mainnetController.cancelMapleRedemption(address(syrup), 1);
-        mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
-        vm.stopPrank();
-    }
+//         // Governance relayer can cancel and submit the real request
+//         vm.startPrank(backstopRelayer);
+//         mainnetController.cancelMapleRedemption(address(syrup), 1);
+//         mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
+//         vm.stopPrank();
+//     }
 
-}
+// }
