@@ -232,9 +232,9 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
 
         skip(1 hours);
 
-        uint256 fullBalance = ausdc.balanceOf(address(almProxy));
+        uint256 aTokenBalance = ausdc.balanceOf(address(almProxy));
 
-        assertGe(fullBalance, 1_000_000e6);  // Earn some interest
+        assertEq(aTokenBalance, 1_000_015.893506e6);  // Earn some interest
 
         uint256 startingDepositRateLimit = rateLimits.getCurrentRateLimit(depositKey);
 
@@ -243,20 +243,20 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);
 
-        assertEq(ausdc.balanceOf(address(almProxy)),     fullBalance);
+        assertEq(ausdc.balanceOf(address(almProxy)),     aTokenBalance);
         assertEq(usdcBase.balanceOf(address(almProxy)),  0);
         assertEq(usdcBase.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6);
 
         // Partial withdraw
         vm.prank(relayer);
-        assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance);
+        assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), aTokenBalance);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  1_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);  // No change
 
         assertEq(ausdc.balanceOf(address(almProxy)),    0);
-        assertEq(usdcBase.balanceOf(address(almProxy)), fullBalance);
-        assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 1_000_000e6 - fullBalance);
+        assertEq(usdcBase.balanceOf(address(almProxy)), aTokenBalance);
+        assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance + 1_000_000e6 - aTokenBalance);
     }
 
 }
