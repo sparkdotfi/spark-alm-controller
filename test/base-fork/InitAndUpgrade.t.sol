@@ -64,9 +64,9 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
             admin : Base.SPARK_EXECUTOR,
             psm   : address(psmBase),
             cctp  : Base.CCTP_TOKEN_MESSENGER,
-            usdc  : address(usdcBase),
-            susds : address(susdsBase),
-            usds  : address(usdsBase)
+            usdc  : address(usdcBase)
+            // susds : address(susdsBase),
+            // usds  : address(usdsBase)
         });
 
         mintRecipients = new Init.MintRecipient[](1);
@@ -227,6 +227,9 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     /**********************************************************************************************/
 
     function test_initAlmSystem_upgradeController_totalAssetsNotSeededBoundary() external {
+        // TODO Unskip when proper PSM is deployed
+        vm.skip(true);
+
         // Remove one wei from PSM to make seeded condition not met
         vm.prank(address(0));
         psmBase.withdraw(address(usdsBase), address(this), 1);  // Withdraw one wei from PSM
@@ -246,6 +249,9 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     }
 
     function test_initAlmSystem_upgradeController_totalSharesNotSeededBoundary() external {
+        // TODO Unskip when proper PSM is deployed
+        vm.skip(true);
+
         // Remove one wei from PSM to make seeded condition not met
         vm.prank(address(0));
         psmBase.withdraw(address(usdsBase), address(this), 1);  // Withdraw one wei from PSM
@@ -269,6 +275,9 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     }
 
     function test_initAlmSystem_upgradeController_incorrectPsmUsdc() external {
+        // TODO Unskip when proper PSM is deployed
+        vm.skip(true);
+
         ERC20Mock wrongUsdc = new ERC20Mock();
 
         deal(address(usdsBase), address(this), 1e18);  // For seeding PSM during deployment
@@ -292,6 +301,9 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     }
 
     function test_initAlmSystem_upgradeController_incorrectPsmUsds() external {
+        // TODO Unskip when proper PSM is deployed
+        vm.skip(true);
+
         ERC20Mock wrongUsds = new ERC20Mock();
 
         deal(address(wrongUsds), address(this), 1e18);  // For seeding PSM during deployment
@@ -315,6 +327,9 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     }
 
     function test_initAlmSystem_upgradeController_incorrectPsmSUsds() external {
+        // TODO Unskip when proper PSM is deployed
+        vm.skip(true);
+
         ERC20Mock wrongSUsds = new ERC20Mock();
 
         deal(address(usdsBase), address(this), 1e18);  // For seeding PSM during deployment

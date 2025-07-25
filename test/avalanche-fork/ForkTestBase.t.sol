@@ -138,9 +138,9 @@ contract ForkTestBase is Test {
             admin : GROVE_EXECUTOR,
             psm   : address(psmAvalanche),
             cctp  : CCTP_TOKEN_MESSENGER,
-            usdc  : USDC_AVALANCHE,
-            susds : address(susdsAvalanche),
-            usds  : address(usdsAvalanche)
+            usdc  : USDC_AVALANCHE
+            // susds : address(susdsAvalanche),
+            // usds  : address(usdsAvalanche)
         });
 
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);

@@ -127,9 +127,9 @@ contract UpgradeForeignController is Script {
             admin : inputConfig.readAddress(".admin"),
             psm   : inputConfig.readAddress(".psm"),
             cctp  : inputConfig.readAddress(".cctpTokenMessenger"),
-            usdc  : inputConfig.readAddress(".usdc"),
-            susds : inputConfig.readAddress(".susds"),
-            usds  : inputConfig.readAddress(".usds")
+            usdc  : inputConfig.readAddress(".usdc")
+            // susds : inputConfig.readAddress(".susds"),
+            // usds  : inputConfig.readAddress(".usds")
         });
 
         ForeignInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignInit.LayerZeroRecipient[](0);

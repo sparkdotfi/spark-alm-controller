@@ -294,9 +294,9 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
             admin : SPARK_EXECUTOR,
             psm   : address(psmArb),
             cctp  : CCTP_MESSENGER_ARB,
-            usdc  : address(usdcArb),
-            susds : address(susdsArb),
-            usds  : address(usdsArb)
+            usdc  : address(usdcArb)
+            // susds : address(susdsArb),
+            // usds  : address(usdsArb)
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);

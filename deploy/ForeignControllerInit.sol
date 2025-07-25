@@ -27,8 +27,8 @@ library ForeignControllerInit {
         address psm;
         address cctp;
         address usdc;
-        address susds;
-        address usds;
+        // address susds;
+        // address usds;
     }
 
     struct ConfigAddressParams {
@@ -125,14 +125,14 @@ library ForeignControllerInit {
 
         // Step 2: Perform PSM sanity checks
 
-        IPSM3Like psm = IPSM3Like(checkAddresses.psm);
+        // IPSM3Like psm = IPSM3Like(checkAddresses.psm);
 
-        require(psm.totalAssets() >= 1e18, "ForeignControllerInit/psm-totalAssets-not-seeded");
-        require(psm.totalShares() >= 1e18, "ForeignControllerInit/psm-totalShares-not-seeded");
+        // require(psm.totalAssets() >= 1e18, "ForeignControllerInit/psm-totalAssets-not-seeded");
+        // require(psm.totalShares() >= 1e18, "ForeignControllerInit/psm-totalShares-not-seeded");
 
-        require(psm.usdc()  == checkAddresses.usdc,  "ForeignControllerInit/psm-incorrect-usdc");
-        require(psm.usds()  == checkAddresses.usds,  "ForeignControllerInit/psm-incorrect-usds");
-        require(psm.susds() == checkAddresses.susds, "ForeignControllerInit/psm-incorrect-susds");
+        // require(psm.usdc()  == checkAddresses.usdc,  "ForeignControllerInit/psm-incorrect-usdc");
+        // require(psm.usds()  == checkAddresses.usds,  "ForeignControllerInit/psm-incorrect-usds");
+        // require(psm.susds() == checkAddresses.susds, "ForeignControllerInit/psm-incorrect-susds");
 
         // Step 3: Configure ACL permissions controller, almProxy, and rateLimits
 

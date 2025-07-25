@@ -244,9 +244,9 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
             admin : Base.SPARK_EXECUTOR,
             psm   : address(psmBase),
             cctp  : Base.CCTP_TOKEN_MESSENGER,
-            usdc  : address(usdcBase),
-            susds : address(susdsBase),
-            usds  : address(usdsBase)
+            usdc  : address(usdcBase)
+            // susds : address(susdsBase),
+            // usds  : address(usdsBase)
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);

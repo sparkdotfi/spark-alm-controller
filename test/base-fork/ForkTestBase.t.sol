@@ -130,9 +130,9 @@ contract ForkTestBase is Test {
             admin : Base.SPARK_EXECUTOR,
             psm   : address(psmBase),
             cctp  : Base.CCTP_TOKEN_MESSENGER,
-            usdc  : address(usdcBase),
-            susds : address(susdsBase),
-            usds  : address(usdsBase)
+            usdc  : address(usdcBase)
+            // susds : address(susdsBase),
+            // usds  : address(usdsBase)
         });
 
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);

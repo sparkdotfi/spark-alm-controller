@@ -329,9 +329,9 @@ contract FullStagingDeploy is Script {
             admin : domain.admin,
             psm   : domain.input.readAddress(".psm"),
             cctp  : domain.input.readAddress(".cctpTokenMessenger"),
-            usdc  : domain.input.readAddress(".usdc"),
-            susds : domain.input.readAddress(".susds"),
-            usds  : domain.input.readAddress(".usds")
+            usdc  : domain.input.readAddress(".usdc")
+            // susds : domain.input.readAddress(".susds"),
+            // usds  : domain.input.readAddress(".usds")
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);
