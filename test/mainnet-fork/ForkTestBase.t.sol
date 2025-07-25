@@ -56,18 +56,18 @@ interface IPSMLike {
     function rush() external view returns (uint256);
 }
 
-// interface ISSTokenLike is IERC20 {
-//     function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin)
-//         external view returns (
-//             uint256 superstateTokenOutAmount,
-//             uint256 stablcoinInAmountAfterFee,
-//             uint256 feeOnStablecoinInAmount
-//         );
-//     function mint(address to, uint256 amount) external;
-//     function burn(address src, uint256 amount) external;
-//     function owner() external view returns (address);
-//     function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
-// }
+interface ISSTokenLike is IERC20 {
+    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin)
+        external view returns (
+            uint256 superstateTokenOutAmount,
+            uint256 stablcoinInAmountAfterFee,
+            uint256 feeOnStablecoinInAmount
+        );
+    function mint(address to, uint256 amount) external;
+    function burn(address src, uint256 amount) external;
+    function owner() external view returns (address);
+    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
+}
 
 interface IVaultLike {
     function rely(address) external;
@@ -120,8 +120,8 @@ contract ForkTestBase is DssTest {
     IERC20 constant usdt  = IERC20(Ethereum.USDT);
     ISUsds constant susds = ISUsds(Ethereum.SUSDS);
 
-    // ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
-    // ISSTokenLike constant ustb  = ISSTokenLike(Ethereum.USTB);
+    ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
+    ISSTokenLike constant ustb  = ISSTokenLike(Ethereum.USTB);
     ISUSDELike   constant susde = ISUSDELike(Ethereum.SUSDE);
 
     IPSMLike constant psm = IPSMLike(PSM);

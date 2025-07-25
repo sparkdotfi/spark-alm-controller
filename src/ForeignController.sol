@@ -20,8 +20,7 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import "./interfaces/CentrifugeInterfaces.sol";
-import "./interfaces/ILayerZero.sol";
+import  "./interfaces/ILayerZero.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -29,6 +28,15 @@ import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
+}
+
+interface ICentrifugeToken is IERC7540 {
+    function cancelDepositRequest(uint256 requestId, address controller) external;
+    function cancelRedeemRequest(uint256 requestId, address controller) external;
+    function claimCancelDepositRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 assets);
+    function claimCancelRedeemRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 shares);
 }
 
 contract ForeignController is AccessControl {
@@ -47,8 +55,6 @@ contract ForeignController is AccessControl {
         uint256 usdcAmount
     );
 
-    event CentrifugeRecipientSet(uint16 indexed centrifugeId, bytes32 recipient);
-
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
 
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
@@ -62,19 +68,17 @@ contract ForeignController is AccessControl {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_4626_DEPOSIT        = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public constant LIMIT_4626_WITHDRAW       = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public constant LIMIT_7540_DEPOSIT        = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public constant LIMIT_7540_REDEEM         = keccak256("LIMIT_7540_REDEEM");
-    bytes32 public constant LIMIT_AAVE_DEPOSIT        = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public constant LIMIT_AAVE_WITHDRAW       = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public constant LIMIT_ASSET_TRANSFER      = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public constant LIMIT_CENTRIFUGE_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
-    bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = keccak256("LIMIT_LAYERZERO_TRANSFER");
-    bytes32 public constant LIMIT_PSM_DEPOSIT         = keccak256("LIMIT_PSM_DEPOSIT");
-    bytes32 public constant LIMIT_PSM_WITHDRAW        = keccak256("LIMIT_PSM_WITHDRAW");
-    bytes32 public constant LIMIT_USDC_TO_CCTP        = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN      = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public constant LIMIT_4626_DEPOSIT       = keccak256("LIMIT_4626_DEPOSIT");
+    bytes32 public constant LIMIT_4626_WITHDRAW      = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public constant LIMIT_7540_DEPOSIT       = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public constant LIMIT_7540_REDEEM        = keccak256("LIMIT_7540_REDEEM");
+    bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
+    bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
+    bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
 
     uint256 internal constant CENTRIFUGE_REQUEST_ID = 0;
 
@@ -87,7 +91,6 @@ contract ForeignController is AccessControl {
 
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
-    mapping(uint16 centrifugeId          => bytes32 recipient)          public centrifugeRecipients;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -150,14 +153,6 @@ contract ForeignController is AccessControl {
     {
         layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
         emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
-    }
-
-    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        centrifugeRecipients[centrifugeId] = recipient;
-        emit CentrifugeRecipientSet(centrifugeId, recipient);
     }
 
     /**********************************************************************************************/
@@ -494,45 +489,6 @@ contract ForeignController is AccessControl {
                 ICentrifugeToken(token).claimCancelRedeemRequest,
                 (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
             )
-        );
-    }
-
-    function transferSharesCentrifuge(
-        address token,
-        uint128 amount,
-        uint16  destinationCentrifugeId,
-        uint128 remoteExtraGasLimit
-    )
-        external payable
-    {
-        _checkRole(RELAYER);
-        _rateLimited(
-            keccak256(abi.encode(LIMIT_CENTRIFUGE_TRANSFER, token, destinationCentrifugeId)),
-            amount
-        );
-
-        bytes32 recipient = centrifugeRecipients[destinationCentrifugeId];
-        require(recipient != 0, "MainnetController/centrifuge-id-not-configured");
-
-        ICentrifugeV3VaultLike centrifugeVault = ICentrifugeV3VaultLike(token);
-
-        address spoke = IAsyncRedeemManagerLike(centrifugeVault.manager()).spoke();
-
-        // Initiate cross-chain transfer via the specific spoke address
-        proxy.doCallWithValue{value: msg.value}(
-            spoke,
-            abi.encodeCall(
-                ISpokeLike(spoke).crosschainTransferShares,
-                (
-                    destinationCentrifugeId,
-                    centrifugeVault.poolId(),
-                    centrifugeVault.scId(),
-                    recipient,
-                    amount,
-                    remoteExtraGasLimit
-                )
-            ),
-            msg.value
         );
     }
 

@@ -71,7 +71,7 @@ contract FullStagingDeploy is Script {
     address constant FLUID_SUSDS_VAULT      = 0x2BBE31d63E6813E3AC858C04dae43FB2a72B0D11;
     address constant FLUID_SUSDS_VAULT_BASE = 0xf62e339f21d8018940f188F6987Bcdf02A849619;
 
-    // address constant SYRUP_USDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
+    address constant SYRUP_USDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
 
     address constant AUSDC_BASE             = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
     address constant MORPHO_BASE            = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
@@ -401,8 +401,8 @@ contract FullStagingDeploy is Script {
 
         bytes32 susdeDepositKey = RateLimitHelpers.makeAssetKey(controller.LIMIT_4626_DEPOSIT(), address(controller.susde()));
 
-        // bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAssetKey(controller.LIMIT_4626_DEPOSIT(), SYRUP_USDC);
-        // bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAssetKey(controller.LIMIT_MAPLE_REDEEM(), SYRUP_USDC);
+        bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAssetKey(controller.LIMIT_4626_DEPOSIT(), SYRUP_USDC);
+        bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAssetKey(controller.LIMIT_MAPLE_REDEEM(), SYRUP_USDC);
 
         bytes32 domainKeyArbitrum = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
         bytes32 domainKeyBase     = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
@@ -422,9 +422,9 @@ contract FullStagingDeploy is Script {
         rateLimits.setRateLimitData(susdeDepositKey,                   maxAmount18, slope18);
 
         // Maple-specific deposit/withdraw rate limits
-        // rateLimits.setRateLimitData(syrupUsdcDepositKey, maxAmount6, slope6);
+        rateLimits.setRateLimitData(syrupUsdcDepositKey, maxAmount6, slope6);
 
-        // rateLimits.setUnlimitedRateLimitData(syrupUsdcWithdrawKey);
+        rateLimits.setUnlimitedRateLimitData(syrupUsdcWithdrawKey);
 
         vm.stopBroadcast();
     }
@@ -454,7 +454,7 @@ contract FullStagingDeploy is Script {
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usdc),  maxAmount6,  slope6);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usds),  maxAmount18, slope18);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  susds), maxAmount18, slope18);
-
+        
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usds));
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, susds));
 

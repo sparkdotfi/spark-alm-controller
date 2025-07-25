@@ -41,7 +41,7 @@ interface IInvestmentManager {
         uint128 assets,
         uint128 shares
     ) external;
-
+        
 }
 
 interface IERC20Mintable is IERC20 {
