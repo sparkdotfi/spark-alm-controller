@@ -210,7 +210,7 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6 - aTokenBalance - 1);  // Rounding
 
         // Interest accrued was withdrawn, reducing cash balance
-        assertLe(usdcBase.balanceOf(address(ausdc)), startingAUSDCBalance);
+        assertLt(usdcBase.balanceOf(address(ausdc)), startingAUSDCBalance);
     }
 
     function test_withdrawAave_usdc_unlimitedRateLimit() public {
@@ -247,7 +247,7 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)),  0);
         assertEq(usdcBase.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6);
 
-        // Partial withdraw
+        // Full withdraw
         vm.prank(relayer);
         assertEq(foreignController.withdrawAave(ATOKEN_USDC, type(uint256).max), aTokenBalance);
 
