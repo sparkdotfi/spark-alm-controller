@@ -51,7 +51,7 @@ interface IMapleTokenLike is IERC4626 {
     function removeShares(uint256 shares, address receiver) external;
 }
 
-interface ISPKFarmLike {
+interface IFarmLike {
     function stake(uint256 amount) external;
     function withdraw(uint256 amount) external;
     function getReward() external;
@@ -111,8 +111,8 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
-    bytes32 public constant LIMIT_SPK_FARM_DEPOSIT     = keccak256("LIMIT_SPK_FARM_DEPOSIT");
-    bytes32 public constant LIMIT_SPK_FARM_WITHDRAW    = keccak256("LIMIT_SPK_FARM_WITHDRAW");
+    bytes32 public constant LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
+    bytes32 public constant LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -851,35 +851,35 @@ contract MainnetController is AccessControl {
     /*** Relayer SPK Farm functions                                                             ***/
     /**********************************************************************************************/
 
-    function depositUSDSToSPKFarm(address spkFarm, uint256 usdsAmount) external {
+    function depositToFarm(address farm, uint256 usdsAmount) external {
         _checkRole(RELAYER);
         _rateLimited(
-            keccak256(abi.encode(LIMIT_SPK_FARM_DEPOSIT, spkFarm)),
+            keccak256(abi.encode(LIMIT_FARM_DEPOSIT, farm)),
             usdsAmount
         );
 
-        _approve(address(usds), spkFarm, usdsAmount);
+        _approve(address(usds), farm, usdsAmount);
 
         proxy.doCall(
-            spkFarm,
-            abi.encodeCall(ISPKFarmLike.stake, (usdsAmount))
+            farm,
+            abi.encodeCall(IFarmLike.stake, (usdsAmount))
         );
     }
 
-    function withdrawUSDSFromSPKFarm(address spkFarm, uint256 usdsAmount) external {
+    function withdrawFromFarm(address farm, uint256 usdsAmount) external {
         _checkRole(RELAYER);
         _rateLimited(
-            keccak256(abi.encode(LIMIT_SPK_FARM_WITHDRAW, spkFarm)),
+            keccak256(abi.encode(LIMIT_FARM_WITHDRAW, farm)),
             usdsAmount
         );
 
         proxy.doCall(
-            spkFarm,
-            abi.encodeCall(ISPKFarmLike.withdraw, (usdsAmount))
+            farm,
+            abi.encodeCall(IFarmLike.withdraw, (usdsAmount))
         );
         proxy.doCall(
-            spkFarm,
-            abi.encodeCall(ISPKFarmLike.getReward, ())
+            farm,
+            abi.encodeCall(IFarmLike.getReward, ())
         );
     }
 
