@@ -322,11 +322,6 @@ contract ForeignController is AccessControl {
             ),
             (uint256)
         );
-
-        rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
-            amount
-        );
     }
 
     // NOTE: !!! Rate limited at end of function !!!
@@ -347,10 +342,6 @@ contract ForeignController is AccessControl {
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
-            assets
-        );
-        rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
             assets
         );
     }
@@ -400,11 +391,6 @@ contract ForeignController is AccessControl {
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
-            amountWithdrawn
-        );
-
-        rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
             amountWithdrawn
         );
     }
