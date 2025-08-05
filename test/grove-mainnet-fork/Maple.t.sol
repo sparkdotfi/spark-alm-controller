@@ -51,7 +51,7 @@ contract MapleTestBase is ForkTestBase {
         depositKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_DEPOSIT(), address(syrup));
         redeemKey  = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_MAPLE_REDEEM(), address(syrup));
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(depositKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
         rateLimits.setRateLimitData(redeemKey,  1_000_000e6, uint256(1_000_000e6) / 1 days);
         vm.stopPrank();
@@ -104,7 +104,7 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
     }
 
     function test_depositERC4626_maple_zeroMaxAmount() external {
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(depositKey, 0, 0);
 
         vm.prank(relayer);
@@ -169,7 +169,7 @@ contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
     }
 
     function test_requestMapleRedemption_zeroMaxAmount() external {
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(redeemKey, 0, 0);
 
         vm.prank(relayer);
@@ -178,7 +178,7 @@ contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
     }
 
     function test_requestMapleRedemption_rateLimitBoundary() external {
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(depositKey, 5_000_000e6, uint256(1_000_000e6) / 1 days);
 
         deal(address(usdc), address(almProxy), 5_000_000e6);
@@ -274,7 +274,7 @@ contract MainnetControllerMapleE2ETests is MapleTestBase {
 
     function test_e2e_mapleDepositAndRedeem() external {
         // Increase withdraw rate limit so interest can be accrued
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(redeemKey,  2_000_000e6, uint256(1_000_000e6) / 1 days);
 
         deal(address(usdc), address(almProxy), 1_000_000e6);

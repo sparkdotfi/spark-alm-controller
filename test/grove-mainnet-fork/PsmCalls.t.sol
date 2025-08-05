@@ -20,7 +20,7 @@ contract MainnetControllerSwapUSDSToUSDCFailureTests is ForkTestBase {
     }
 
     function test_swapUSDSToUSDC_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), 0, 0);
         vm.stopPrank();
 
@@ -85,7 +85,7 @@ contract MainnetControllerSwapUSDSToUSDCTests is ForkTestBase {
     }
 
     function test_swapUSDSToUSDC_rateLimited() external {
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDS_MINT());
         vm.stopPrank();
 
@@ -136,7 +136,7 @@ contract MainnetControllerSwapUSDCToUSDSFailureTests is ForkTestBase {
     }
 
     function test_swapUSDCToUSDS_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), 0, 0);
         vm.stopPrank();
 

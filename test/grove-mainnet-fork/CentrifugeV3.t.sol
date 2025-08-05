@@ -60,7 +60,7 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
     }
 
     function test_transferSharesCentrifuge_rateLimitedBoundary() external {
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
 
         bytes32 target = bytes32(uint256(uint160(makeAddr("centrifugeRecipient"))));
 
@@ -100,7 +100,7 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
     }
 
         function test_transferSharesCentrifuge_invalidCentrifugeId() external {
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
 
         rateLimits.setRateLimitData(
             keccak256(abi.encode(
@@ -142,7 +142,7 @@ contract MainnetControllerTransferSharesCentrifugeSuccessTests is CentrifugeTest
     );
 
     function test_transferSharesCentrifuge() external {
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
 
         bytes32 target = bytes32(uint256(uint160(makeAddr("centrifugeRecipient"))));
 

@@ -19,7 +19,7 @@ contract SUSDSTestBase is ForkTestBase {
         bytes32 depositKey  = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
         bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
         vm.stopPrank();
@@ -199,7 +199,7 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
 
     function test_redeemERC4626_zeroMaxAmount() external {
         // Longer setup because rate limit revert is at the end of the function
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_4626_WITHDRAW(),

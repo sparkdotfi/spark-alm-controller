@@ -105,7 +105,7 @@ contract MainnetControllerRequestDepositERC7540FailureTests is CentrifugeTestBas
     }
 
     function test_requestDepositERC7540_rateLimitBoundary() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_7540_DEPOSIT(),
@@ -144,7 +144,7 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -211,7 +211,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_500_000e6, uint256(1_500_000e6) / 1 days);
     }
 
@@ -360,7 +360,7 @@ contract MainnetControllerCancelCentrifugeDepositSuccessTests is CentrifugeTestB
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -416,7 +416,7 @@ contract MainnetControllerClaimCentrifugeCancelDepositSuccessTests is Centrifuge
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -490,7 +490,7 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
     }
 
     function test_requestRedeemERC7540_rateLimitsBoundary() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_7540_REDEEM(),
@@ -536,7 +536,7 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -605,7 +605,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 2_000_000e6, uint256(2_000_000e6) / 1 days);
     }
 
@@ -770,7 +770,7 @@ contract MainnetControllerCancelCentrifugeRedeemRequestSuccessTests is Centrifug
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -830,7 +830,7 @@ contract MainnetControllerClaimCentrifugeCancelRedeemRequestSuccessTests is Cent
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 

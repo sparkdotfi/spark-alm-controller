@@ -126,7 +126,7 @@ contract MainnetControllerApproveSuccessTests is ApproveTestBase {
         super.setUp();
 
         MainnetControllerHarness harnessCode = new MainnetControllerHarness(
-            SPARK_PROXY,
+            GROVE_PROXY,
             address(mainnetController.proxy()),
             address(mainnetController.rateLimits()),
             address(mainnetController.vault()),
@@ -197,7 +197,7 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
         // NOTE: This etching setup is necessary to get coverage to work
 
         ForeignController foreignController = new ForeignController(
-            SPARK_PROXY,
+            GROVE_PROXY,
             address(almProxy),
             makeAddr("rateLimits"),
             makeAddr("psm"),
@@ -206,7 +206,7 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
         );
 
         ForeignControllerHarness harnessCode = new ForeignControllerHarness(
-            SPARK_PROXY,
+            GROVE_PROXY,
             address(almProxy),
             makeAddr("rateLimits"),
             makeAddr("psm"),
@@ -215,7 +215,7 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
         );
 
         // Allow the foreign controller to call the ALMProxy
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         almProxy.grantRole(almProxy.CONTROLLER(), address(foreignController));
         vm.stopPrank();
 
