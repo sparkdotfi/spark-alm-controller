@@ -258,13 +258,16 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
 
         ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 
+        ForeignControllerInit.CentrifugeRecipient[] memory centrifugeRecipients = new ForeignControllerInit.CentrifugeRecipient[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
         ForeignControllerInit.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         uint256 usdcMaxAmount = 5_000_000e6;

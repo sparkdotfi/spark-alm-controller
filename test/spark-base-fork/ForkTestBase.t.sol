@@ -144,6 +144,8 @@ contract ForkTestBase is Test {
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
 
+        Init.CentrifugeRecipient[] memory centrifugeRecipients = new Init.CentrifugeRecipient[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
 
         Init.initAlmSystem(
@@ -151,7 +153,8 @@ contract ForkTestBase is Test {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         uint256 usdcMaxAmount = 5_000_000e6;

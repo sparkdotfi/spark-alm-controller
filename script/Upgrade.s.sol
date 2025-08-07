@@ -63,6 +63,8 @@ contract UpgradeMainnetController is Script {
 
         MainnetInit.LayerZeroRecipient[] memory layerZeroRecipients = new MainnetInit.LayerZeroRecipient[](0);
 
+        MainnetInit.CentrifugeRecipient[] memory centrifugeRecipients = new MainnetInit.CentrifugeRecipient[](0);
+
         string memory baseInputConfig = ScriptTools.readInput(string(abi.encodePacked("base-", vm.envString("ENV"))));
 
         address baseAlmProxy = baseInputConfig.readAddress(".almProxy");
@@ -72,7 +74,7 @@ contract UpgradeMainnetController is Script {
             mintRecipient : bytes32(uint256(uint160(baseAlmProxy)))
         });
 
-        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, centrifugeRecipients);
 
         vm.stopBroadcast();
 
@@ -132,20 +134,27 @@ contract UpgradeForeignController is Script {
             // usds  : inputConfig.readAddress(".usds")
         });
 
-        ForeignInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignInit.LayerZeroRecipient[](0);
-
-        ForeignInit.MintRecipient[] memory mintRecipients = new ForeignInit.MintRecipient[](1);
-
         string memory mainnetInputConfig = ScriptTools.readInput(string(abi.encodePacked("mainnet-", vm.envString("ENV"))));
 
         address mainnetAlmProxy = mainnetInputConfig.readAddress(".almProxy");
+
+        ForeignInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignInit.LayerZeroRecipient[](0);
+
+        ForeignInit.MintRecipient[] memory mintRecipients = new ForeignInit.MintRecipient[](1);
 
         mintRecipients[0] = ForeignInit.MintRecipient({
             domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
             mintRecipient : bytes32(uint256(uint160(mainnetAlmProxy)))
         });
 
-        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        ForeignInit.CentrifugeRecipient[] memory centrifugeRecipients = new ForeignInit.CentrifugeRecipient[](1);
+
+        centrifugeRecipients[0] = ForeignInit.CentrifugeRecipient({
+            destinationCentrifugeId : 1, // Ethereum Mainnet Centrifuge ID
+            recipient               : bytes32(uint256(uint160(mainnetAlmProxy)))
+        });
+
+        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, centrifugeRecipients);
 
         vm.stopBroadcast();
 

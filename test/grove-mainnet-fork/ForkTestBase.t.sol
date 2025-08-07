@@ -242,6 +242,8 @@ contract ForkTestBase is DssTest {
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
 
+        Init.CentrifugeRecipient[] memory centrifugeRecipients = new Init.CentrifugeRecipient[](0);
+
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
 
         mintRecipients[0] = Init.MintRecipient({
@@ -265,7 +267,8 @@ contract ForkTestBase is DssTest {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);

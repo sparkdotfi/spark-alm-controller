@@ -53,6 +53,11 @@ library MainnetControllerInit {
         bytes32 recipient;
     }
 
+    struct CentrifugeRecipient {
+        uint16  destinationCentrifugeId;
+        bytes32 recipient;
+    }
+
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
     /**********************************************************************************************/
@@ -62,11 +67,12 @@ library MainnetControllerInit {
     function initAlmSystem(
         address vault,
         address usds,
-        ControllerInstance   memory controllerInst,
-        ConfigAddressParams  memory configAddresses,
-        CheckAddressParams   memory checkAddresses,
-        MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        ControllerInstance    memory controllerInst,
+        ConfigAddressParams   memory configAddresses,
+        CheckAddressParams    memory checkAddresses,
+        MintRecipient[]       memory mintRecipients,
+        LayerZeroRecipient[]  memory layerZeroRecipients,
+        CentrifugeRecipient[] memory centrifugeRecipients
     )
         internal
     {
@@ -77,7 +83,7 @@ library MainnetControllerInit {
 
         // Step 2: Initialize the controller
 
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, centrifugeRecipients);
 
         // Step 3: Configure almProxy within the allocation system
 
@@ -88,15 +94,16 @@ library MainnetControllerInit {
     }
 
     function upgradeController(
-        ControllerInstance   memory controllerInst,
-        ConfigAddressParams  memory configAddresses,
-        CheckAddressParams   memory checkAddresses,
-        MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        ControllerInstance    memory controllerInst,
+        ConfigAddressParams   memory configAddresses,
+        CheckAddressParams    memory checkAddresses,
+        MintRecipient[]       memory mintRecipients,
+        LayerZeroRecipient[]  memory layerZeroRecipients,
+        CentrifugeRecipient[] memory centrifugeRecipients
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, centrifugeRecipients);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -119,11 +126,12 @@ library MainnetControllerInit {
     /**********************************************************************************************/
 
     function _initController(
-        ControllerInstance   memory controllerInst,
-        ConfigAddressParams  memory configAddresses,
-        CheckAddressParams   memory checkAddresses,
-        MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        ControllerInstance    memory controllerInst,
+        ConfigAddressParams   memory configAddresses,
+        CheckAddressParams    memory checkAddresses,
+        MintRecipient[]       memory mintRecipients,
+        LayerZeroRecipient[]  memory layerZeroRecipients,
+        CentrifugeRecipient[] memory centrifugeRecipients
     )
         private
     {
@@ -168,6 +176,12 @@ library MainnetControllerInit {
 
         for (uint256 i; i < layerZeroRecipients.length; ++i) {
             newController.setLayerZeroRecipient(layerZeroRecipients[i].destinationEndpointId, layerZeroRecipients[i].recipient);
+        }
+
+        // Step 5: Configure the centrifuge recipients
+
+        for (uint256 i; i < centrifugeRecipients.length; ++i) {
+            newController.setCentrifugeRecipient(centrifugeRecipients[i].destinationCentrifugeId, centrifugeRecipients[i].recipient);
         }
     }
 
