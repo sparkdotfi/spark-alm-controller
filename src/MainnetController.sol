@@ -404,8 +404,7 @@ contract MainnetController is AccessControl {
     function transferSharesCentrifuge(
         address token,
         uint128 amount,
-        uint16  destinationCentrifugeId,
-        uint128 remoteExtraGasLimit
+        uint16  destinationCentrifugeId
     )
         external payable
     {
@@ -418,7 +417,6 @@ contract MainnetController is AccessControl {
                 amount                  : amount,
                 recipient               : centrifugeRecipients[destinationCentrifugeId],
                 destinationCentrifugeId : destinationCentrifugeId,
-                remoteExtraGasLimit     : remoteExtraGasLimit,
                 rateLimitId             : LIMIT_CENTRIFUGE_TRANSFER
             })
         );

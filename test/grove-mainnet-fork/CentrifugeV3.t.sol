@@ -50,13 +50,13 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
             address(this),
             RELAYER
         ));
-        mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID, 0);
+        mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID);
     }
 
     function test_transferSharesCentrifuge_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID, 0);
+        mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID);
     }
 
     function test_transferSharesCentrifuge_rateLimitedBoundary() external {
@@ -87,15 +87,13 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6 + 1,
-            DESTINATION_CENTRIFUGE_ID,
-            0
+            DESTINATION_CENTRIFUGE_ID
         );
 
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,
-            DESTINATION_CENTRIFUGE_ID,
-            0
+            DESTINATION_CENTRIFUGE_ID
         );
     }
 
@@ -123,8 +121,7 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,
-            DESTINATION_CENTRIFUGE_ID,
-            0
+            DESTINATION_CENTRIFUGE_ID
         );
     }
 
@@ -190,8 +187,7 @@ contract MainnetControllerTransferSharesCentrifugeSuccessTests is CentrifugeTest
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,
-            DESTINATION_CENTRIFUGE_ID,
-            0
+            DESTINATION_CENTRIFUGE_ID
         );
 
         uint256 proxyBalanceAfter     = IERC20(vaultToken).balanceOf(address(almProxy));

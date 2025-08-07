@@ -497,8 +497,7 @@ contract ForeignController is AccessControl {
     function transferSharesCentrifuge(
         address token,
         uint128 amount,
-        uint16  destinationCentrifugeId,
-        uint128 remoteExtraGasLimit
+        uint16  destinationCentrifugeId
     )
         external payable
     {
@@ -526,7 +525,7 @@ contract ForeignController is AccessControl {
                     centrifugeVault.scId(),
                     recipient,
                     amount,
-                    remoteExtraGasLimit
+                    0
                 )
             ),
             msg.value
