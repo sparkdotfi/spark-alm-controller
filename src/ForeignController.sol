@@ -19,7 +19,7 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { ICentrifugeV3VaultLike, ICentrifugeToken, IAsyncRedeemManagerLike, ISpokeLike } from "./interfaces/CentrifugeInterfaces.sol";
+import { ICentrifugeV3VaultLike, IAsyncRedeemManagerLike, ISpokeLike } from "./interfaces/CentrifugeInterfaces.sol";
 
 import "./interfaces/ILayerZero.sol";
 
@@ -445,7 +445,7 @@ contract ForeignController is AccessControl {
         proxy.doCall(
             token,
             abi.encodeCall(
-                ICentrifugeToken(token).cancelDepositRequest,
+                ICentrifugeV3VaultLike(token).cancelDepositRequest,
                 (CENTRIFUGE_REQUEST_ID, address(proxy))
             )
         );
@@ -459,7 +459,7 @@ contract ForeignController is AccessControl {
         proxy.doCall(
             token,
             abi.encodeCall(
-                ICentrifugeToken(token).claimCancelDepositRequest,
+                ICentrifugeV3VaultLike(token).claimCancelDepositRequest,
                 (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
             )
         );
@@ -474,7 +474,7 @@ contract ForeignController is AccessControl {
         proxy.doCall(
             token,
             abi.encodeCall(
-                ICentrifugeToken(token).cancelRedeemRequest,
+                ICentrifugeV3VaultLike(token).cancelRedeemRequest,
                 (CENTRIFUGE_REQUEST_ID, address(proxy))
             )
         );
@@ -488,7 +488,7 @@ contract ForeignController is AccessControl {
         proxy.doCall(
             token,
             abi.encodeCall(
-                ICentrifugeToken(token).claimCancelRedeemRequest,
+                ICentrifugeV3VaultLike(token).claimCancelRedeemRequest,
                 (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
             )
         );

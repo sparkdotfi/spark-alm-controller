@@ -3,15 +3,6 @@ pragma solidity ^0.8.21;
 
 import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
-interface ICentrifugeToken {
-    function cancelDepositRequest(uint256 requestId, address controller) external;
-    function cancelRedeemRequest(uint256 requestId, address controller) external;
-    function claimCancelDepositRequest(uint256 requestId, address receiver, address controller)
-        external returns (uint256 assets);
-    function claimCancelRedeemRequest(uint256 requestId, address receiver, address controller)
-        external returns (uint256 shares);
-}
-
 interface ICentrifugeV3VaultLike is IERC7540 {
     function asset()   external view returns (address);
     function share()   external view returns (address);
@@ -28,6 +19,13 @@ interface ICentrifugeV3VaultLike is IERC7540 {
         external view returns (bool isPending);
     function pendingCancelRedeemRequest(uint256 requestId, address controller)
         external view returns (bool isPending);
+
+    function cancelDepositRequest(uint256 requestId, address controller) external;
+    function cancelRedeemRequest(uint256 requestId, address controller) external;
+    function claimCancelDepositRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 assets);
+    function claimCancelRedeemRequest(uint256 requestId, address receiver, address controller)
+        external returns (uint256 shares);
 }
 
 interface IAsyncRedeemManagerLike {
