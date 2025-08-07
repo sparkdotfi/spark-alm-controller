@@ -6,6 +6,8 @@ import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces
 
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
+import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
+
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
@@ -17,7 +19,8 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import "./interfaces/CentrifugeInterfaces.sol";
+import { ICentrifugeV3VaultLike, ICentrifugeToken, IAsyncRedeemManagerLike, ISpokeLike } from "./interfaces/CentrifugeInterfaces.sol";
+
 import "./interfaces/ILayerZero.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -506,7 +509,7 @@ contract ForeignController is AccessControl {
         );
 
         bytes32 recipient = centrifugeRecipients[destinationCentrifugeId];
-        require(recipient != 0, "MainnetController/centrifuge-id-not-configured");
+        require(recipient != 0, "ForeignController/centrifuge-id-not-configured");
 
         ICentrifugeV3VaultLike centrifugeVault = ICentrifugeV3VaultLike(token);
 

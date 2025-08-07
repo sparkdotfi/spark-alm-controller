@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import "../../src/interfaces/CentrifugeInterfaces.sol";
+import { ICentrifugeV3VaultLike, IAsyncRedeemManagerLike, ISpokeLike } from "../../src/interfaces/CentrifugeInterfaces.sol";
 
 import "./ForkTestBase.t.sol";
 
@@ -1014,7 +1014,7 @@ contract ForeignControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
         deal(ALM_RELAYER, 1 ether);  // Gas cost for Centrifuge
 
         vm.startPrank(ALM_RELAYER);
-        vm.expectRevert("MainnetController/centrifuge-id-not-configured");
+        vm.expectRevert("ForeignController/centrifuge-id-not-configured");
         foreignController.transferSharesCentrifuge{value: 0.5 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,
