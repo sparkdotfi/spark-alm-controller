@@ -97,7 +97,7 @@ contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
     }
 
     function test_prepareUSDeMint_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_MINT(), 0, 0);
         vm.stopPrank();
 
@@ -107,7 +107,7 @@ contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
     }
 
     function test_prepareUSDeMint_rateLimitBoundary() external {
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(
             mainnetController.LIMIT_USDE_MINT(),
             100e6,
@@ -134,7 +134,7 @@ contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
 
         key = mainnetController.LIMIT_USDE_MINT();
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e6, uint256(1_000_000e6) / 4 hours);
     }
 
@@ -179,7 +179,7 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
     }
 
     function test_prepareUSDeBurn_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_BURN(), 0, 0);
         vm.stopPrank();
 
@@ -189,7 +189,7 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
     }
 
     function test_prepareUSDeBurn_rateLimitBoundary() external {
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(
             mainnetController.LIMIT_USDE_BURN(),
             100e18,
@@ -216,7 +216,7 @@ contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
 
         key = mainnetController.LIMIT_USDE_BURN();
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
     }
 
@@ -261,7 +261,7 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
     }
 
     function test_cooldownAssetsSUSDe_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
         vm.stopPrank();
 
@@ -274,7 +274,7 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
         // For success case (exchange rate is more than 1:1)
         deal(address(susde), address(almProxy), 100e18);
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(
             mainnetController.LIMIT_SUSDE_COOLDOWN(),
             100e18,
@@ -309,7 +309,7 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
 
         key = mainnetController.LIMIT_SUSDE_COOLDOWN();
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
     }
 
@@ -372,7 +372,7 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
     function test_cooldownSharesSUSDe_zeroMaxAmount() external {
         deal(address(susde), address(almProxy), 100e18);  // To get past call
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
         vm.stopPrank();
 
@@ -384,7 +384,7 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
     function test_cooldownSharesSUSDe_rateLimitBoundary() external {
         deal(address(susde), address(almProxy), 100e18);  // For success case
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(
             mainnetController.LIMIT_SUSDE_COOLDOWN(),
             100e18,
@@ -426,7 +426,7 @@ contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
 
         key = mainnetController.LIMIT_SUSDE_COOLDOWN();
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
     }
 
@@ -503,7 +503,7 @@ contract MainnetControllerUnstakeSUSDeFailureTests is EthenaTestBase {
         // Exchange rate greater than 1:1
         deal(address(susde), address(almProxy), 100e18);
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(
             mainnetController.LIMIT_SUSDE_COOLDOWN(),
             100e18,
@@ -532,7 +532,7 @@ contract MainnetControllerUnstakeSUSDeSuccessTests is EthenaTestBase {
 
     function test_unstakeSUSDe() external {
         // Setting higher rate limit so shares can be used for cooldown
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(
             mainnetController.LIMIT_SUSDE_COOLDOWN(),
             1000e18,
@@ -577,7 +577,7 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
     function setUp() public override {
         super.setUp();
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
 
         burnKey     = mainnetController.LIMIT_USDE_BURN();
         cooldownKey = mainnetController.LIMIT_SUSDE_COOLDOWN();

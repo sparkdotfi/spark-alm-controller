@@ -15,7 +15,7 @@ contract MainnetControllerMintUSDSFailureTests is ForkTestBase {
     }
 
     function test_mintUSDS_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
         vm.stopPrank();
 
@@ -108,7 +108,7 @@ contract MainnetControllerBurnUSDSFailureTests is ForkTestBase {
     }
 
     function test_burnUSDS_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
         vm.stopPrank();
 

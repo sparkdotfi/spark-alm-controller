@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import "test/mainnet-fork/ForkTestBase.t.sol";
+import "test/grove-mainnet-fork/ForkTestBase.t.sol";
 
 import { IRateLimits } from "src/interfaces/IRateLimits.sol";
 
@@ -16,11 +16,12 @@ contract LibraryWrapper {
     function initAlmSystem(
         address vault,
         address usds,
-        ControllerInstance        memory controllerInst,
-        Init.ConfigAddressParams  memory configAddresses,
-        Init.CheckAddressParams   memory checkAddresses,
-        Init.MintRecipient[]      memory mintRecipients,
-        Init.LayerZeroRecipient[] memory layerZeroRecipients
+        ControllerInstance         memory controllerInst,
+        Init.ConfigAddressParams   memory configAddresses,
+        Init.CheckAddressParams    memory checkAddresses,
+        Init.MintRecipient[]       memory mintRecipients,
+        Init.LayerZeroRecipient[]  memory layerZeroRecipients,
+        Init.CentrifugeRecipient[] memory centrifugeRecipients
     )
         external
     {
@@ -31,16 +32,18 @@ contract LibraryWrapper {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
     function upgradeController(
-        ControllerInstance        memory controllerInst,
-        Init.ConfigAddressParams  memory configAddresses,
-        Init.CheckAddressParams   memory checkAddresses,
-        Init.MintRecipient[]      memory mintRecipients,
-        Init.LayerZeroRecipient[] memory layerZeroRecipients
+        ControllerInstance         memory controllerInst,
+        Init.ConfigAddressParams   memory configAddresses,
+        Init.CheckAddressParams    memory checkAddresses,
+        Init.MintRecipient[]       memory mintRecipients,
+        Init.LayerZeroRecipient[]  memory layerZeroRecipients,
+        Init.CentrifugeRecipient[] memory centrifugeRecipients
     )
         external
     {
@@ -49,7 +52,8 @@ contract LibraryWrapper {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
@@ -61,14 +65,16 @@ contract LibraryWrapper {
 
 contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
 
-    uint32 constant destinationEndpointId = 30110;  // Arbitrum EID
+    uint32 constant destinationEndpointId   = 30110;  // Arbitrum EID
+    uint16 constant destinationCentrifugeId = 5;
 
     function _getDefaultParams()
         internal returns (
-            Init.ConfigAddressParams  memory configAddresses,
-            Init.CheckAddressParams   memory checkAddresses,
-            Init.MintRecipient[]      memory mintRecipients,
-            Init.LayerZeroRecipient[] memory layerZeroRecipients
+            Init.ConfigAddressParams   memory configAddresses,
+            Init.CheckAddressParams    memory checkAddresses,
+            Init.MintRecipient[]       memory mintRecipients,
+            Init.LayerZeroRecipient[]  memory layerZeroRecipients,
+            Init.CentrifugeRecipient[] memory centrifugeRecipients
         )
     {
         address[] memory relayers = new address[](1);
@@ -81,7 +87,7 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
         });
 
         checkAddresses = Init.CheckAddressParams({
-            admin      : Ethereum.SPARK_PROXY,
+            admin      : Ethereum.GROVE_PROXY,
             proxy      : address(almProxy),
             rateLimits : address(rateLimits),
             vault      : address(vault),
@@ -103,6 +109,13 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
             destinationEndpointId : destinationEndpointId,
             recipient             : bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
         });
+
+        centrifugeRecipients = new Init.CentrifugeRecipient[](1);
+
+        centrifugeRecipients[0] = Init.CentrifugeRecipient({
+            destinationCentrifugeId : destinationCentrifugeId,
+            recipient               : bytes32(uint256(uint160(makeAddr("centrifugeRecipient"))))
+        });
     }
 
 }
@@ -121,10 +134,11 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
     address public oldController;
 
-    Init.ConfigAddressParams  configAddresses;
-    Init.CheckAddressParams   checkAddresses;
-    Init.MintRecipient[]      mintRecipients;
-    Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.ConfigAddressParams   configAddresses;
+    Init.CheckAddressParams    checkAddresses;
+    Init.MintRecipient[]       mintRecipients;
+    Init.LayerZeroRecipient[]  layerZeroRecipients;
+    Init.CentrifugeRecipient[] centrifugeRecipients;
 
     function setUp() public override {
         super.setUp();
@@ -137,7 +151,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         //       are already deployed. This is technically possible to do and works in the same way, it was
         //       done also for make testing easier.
         mainnetController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : Ethereum.SPARK_PROXY,
+            admin      : Ethereum.GROVE_PROXY,
             almProxy   : address(almProxy),
             rateLimits : address(rateLimits),
             vault      : address(vault),
@@ -148,7 +162,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, ) = _getDefaultParams();
+        ( configAddresses, checkAddresses, mintRecipients_,, ) = _getDefaultParams();
 
         // NOTE: This would need to be refactored to a for loop if more than one recipient
         mintRecipients.push(mintRecipients_[0]);
@@ -160,9 +174,9 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         });
 
         // Admin will be calling the library from its own address
-        vm.etch(SPARK_PROXY, address(new LibraryWrapper()).code);
+        vm.etch(GROVE_PROXY, address(new LibraryWrapper()).code);
 
-        wrapper = LibraryWrapper(SPARK_PROXY);
+        wrapper = LibraryWrapper(GROVE_PROXY);
     }
 
     function _getBlock() internal pure override returns (uint256) {
@@ -174,8 +188,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
     /**********************************************************************************************/
 
     function test_initAlmSystem_incorrectAdminAlmProxy() external {
-        vm.prank(SPARK_PROXY);
-        almProxy.revokeRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
+        almProxy.revokeRole(DEFAULT_ADMIN_ROLE, GROVE_PROXY);
 
         vm.expectRevert("MainnetControllerInit/incorrect-admin-almProxy");
         wrapper.initAlmSystem(
@@ -185,13 +199,14 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
     function test_initAlmSystem_incorrectAdminRateLimits() external {
-        vm.prank(SPARK_PROXY);
-        rateLimits.revokeRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
+        rateLimits.revokeRole(DEFAULT_ADMIN_ROLE, GROVE_PROXY);
 
         vm.expectRevert("MainnetControllerInit/incorrect-admin-rateLimits");
         wrapper.initAlmSystem(
@@ -201,13 +216,14 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
     function test_initAlmSystem_upgradeController_incorrectAdminController() external {
-        vm.prank(SPARK_PROXY);
-        mainnetController.revokeRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
+        mainnetController.revokeRole(DEFAULT_ADMIN_ROLE, GROVE_PROXY);
 
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-admin-controller"));
     }
@@ -218,14 +234,14 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
     function test_initAlmSystem_upgradeController_incorrectAlmProxy() external {
         // Deploy new address that will not EVM revert on OZ ACL check
-        controllerInst.almProxy = address(new ALMProxy(SPARK_PROXY));
+        controllerInst.almProxy = address(new ALMProxy(GROVE_PROXY));
 
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-almProxy"));
     }
 
     function test_initAlmSystem_upgradeController_incorrectRateLimits() external {
         // Deploy new address that will not EVM revert on OZ ACL check
-        controllerInst.rateLimits = address(new RateLimits(SPARK_PROXY));
+        controllerInst.rateLimits = address(new RateLimits(GROVE_PROXY));
 
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-rateLimits"));
     }
@@ -268,7 +284,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
@@ -276,7 +293,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         configAddresses.oldController = oldController;
 
         // Revoke the old controller address in ALM proxy
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         almProxy.revokeRole(almProxy.CONTROLLER(), configAddresses.oldController);
         vm.stopPrank();
 
@@ -287,7 +304,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
@@ -295,7 +313,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         configAddresses.oldController = oldController;
 
         // Revoke the old controller address in rate limits
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.revokeRole(rateLimits.CONTROLLER(), configAddresses.oldController);
         vm.stopPrank();
 
@@ -306,7 +324,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
@@ -323,7 +342,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         vm.expectRevert(expectedError);
@@ -332,7 +352,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
     }
 
@@ -346,16 +367,17 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
 
     address public mismatchAddress = makeAddr("mismatchAddress");
 
-    Init.ConfigAddressParams  configAddresses;
-    Init.CheckAddressParams   checkAddresses;
-    Init.MintRecipient[]      mintRecipients;
-    Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.ConfigAddressParams   configAddresses;
+    Init.CheckAddressParams    checkAddresses;
+    Init.MintRecipient[]       mintRecipients;
+    Init.LayerZeroRecipient[]  layerZeroRecipients;
+    Init.CentrifugeRecipient[] centrifugeRecipients;
 
     function setUp() public override {
         super.setUp();
 
         controllerInst = MainnetControllerDeploy.deployFull(
-            Ethereum.SPARK_PROXY,
+            Ethereum.GROVE_PROXY,
             address(vault),
             Ethereum.PSM,
             Ethereum.DAI_USDS,
@@ -371,15 +393,18 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients_ = new Init.LayerZeroRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_ ) = _getDefaultParams();
+        Init.CentrifugeRecipient[] memory centrifugeRecipients_ = new Init.CentrifugeRecipient[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_, centrifugeRecipients_ ) = _getDefaultParams();
 
         mintRecipients.push(mintRecipients_[0]);
         layerZeroRecipients.push(layerZeroRecipients_[0]);
+        centrifugeRecipients.push(centrifugeRecipients_[0]);
 
         // Admin will be calling the library from its own address
-        vm.etch(SPARK_PROXY, address(new LibraryWrapper()).code);
+        vm.etch(GROVE_PROXY, address(new LibraryWrapper()).code);
 
-        wrapper = LibraryWrapper(SPARK_PROXY);
+        wrapper = LibraryWrapper(GROVE_PROXY);
     }
 
     function _getBlock() internal pure override returns (uint256) {
@@ -399,7 +424,7 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         assertEq(IVaultLike(vault).wards(controllerInst.almProxy), 0);
         assertEq(usds.allowance(buffer, controllerInst.almProxy),  0);
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         wrapper.initAlmSystem(
             address(vault),
             address(usds),
@@ -407,7 +432,8 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         assertEq(mainnetController.hasRole(mainnetController.FREEZER(), freezer), true);
@@ -464,10 +490,11 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
     address public mismatchAddress = makeAddr("mismatchAddress");
 
-    Init.ConfigAddressParams  configAddresses;
-    Init.CheckAddressParams   checkAddresses;
-    Init.MintRecipient[]      mintRecipients;
-    Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.ConfigAddressParams   configAddresses;
+    Init.CheckAddressParams    checkAddresses;
+    Init.MintRecipient[]       mintRecipients;
+    Init.LayerZeroRecipient[]  layerZeroRecipients;
+    Init.CentrifugeRecipient[] centrifugeRecipients;
 
     MainnetController newController;
 
@@ -478,13 +505,16 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients_ = new Init.LayerZeroRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_ ) = _getDefaultParams();
+        Init.CentrifugeRecipient[] memory centrifugeRecipients_ = new Init.CentrifugeRecipient[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_, centrifugeRecipients_ ) = _getDefaultParams();
 
         mintRecipients.push(mintRecipients_[0]);
         layerZeroRecipients.push(layerZeroRecipients_[0]);
+        centrifugeRecipients.push(centrifugeRecipients_[0]);
 
         newController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : Ethereum.SPARK_PROXY,
+            admin      : Ethereum.GROVE_PROXY,
             almProxy   : address(almProxy),
             rateLimits : address(rateLimits),
             vault      : address(vault),
@@ -502,9 +532,9 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         configAddresses.oldController = address(mainnetController);  // Revoke from old controller
 
         // Admin will be calling the library from its own address
-        vm.etch(SPARK_PROXY, address(new LibraryWrapper()).code);
+        vm.etch(GROVE_PROXY, address(new LibraryWrapper()).code);
 
-        wrapper = LibraryWrapper(SPARK_PROXY);
+        wrapper = LibraryWrapper(GROVE_PROXY);
     }
 
     function _getBlock() internal pure override returns (uint256) {
@@ -524,13 +554,14 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(newController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
         assertEq(newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         assertEq(newController.hasRole(newController.FREEZER(), freezer), true);
@@ -560,6 +591,16 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(
             newController.layerZeroRecipients(destinationEndpointId),
             bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
+        );
+
+        assertEq(
+            newController.centrifugeRecipients(centrifugeRecipients[0].destinationCentrifugeId),
+            centrifugeRecipients[0].recipient
+        );
+
+        assertEq(
+            newController.centrifugeRecipients(destinationCentrifugeId),
+            bytes32(uint256(uint160(makeAddr("centrifugeRecipient"))))
         );
     }
 

@@ -26,14 +26,14 @@ contract CurveTestBase is ForkTestBase {
         curveSwapKey     = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_SWAP(),     CURVE_POOL);
         curveWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_WITHDRAW(), CURVE_POOL);
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveDepositKey,  2_000_000e18, uint256(2_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveSwapKey,     1_000_000e18, uint256(1_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveWithdrawKey, 3_000_000e18, uint256(3_000_000e18) / 1 days);
         vm.stopPrank();
 
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.98e18);
     }
 
@@ -87,7 +87,7 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
 
         uint256 minLpAmount = 1_950_000e18;
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
@@ -141,7 +141,7 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
     function test_addLiquidityCurve_zeroMaxAmount() public {
         bytes32 curveDeposit = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_DEPOSIT(), CURVE_POOL);
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveDeposit, 0, 0);
 
         uint256[] memory amounts = new uint256[](2);
@@ -254,7 +254,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
     function test_addLiquidityCurve_swapRateLimit() public {
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.7e18);
 
         deal(address(usdc), address(almProxy), 1_000_000e6);
@@ -310,7 +310,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
     function testFuzz_addLiquidityCurve_swapRateLimit(uint256 usdcAmount, uint256 usdtAmount) public {
         // Set slippage to be zero and unlimited rate limits for purposes of this test
         // Not using actual unlimited rate limit because need to get swap amount to be reduced.
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 1);  // 1e-16%
         rateLimits.setUnlimitedRateLimitData(curveDepositKey);
         rateLimits.setUnlimitedRateLimitData(curveWithdrawKey);
@@ -386,7 +386,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
 
         uint256 lpReturn = 1_980_000e18;
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
@@ -439,7 +439,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
     function test_removeLiquidityCurve_zeroMaxAmount() public {
         bytes32 curveWithdraw = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_WITHDRAW(), CURVE_POOL);
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveWithdraw, 0, 0);
 
         uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e6);
@@ -473,7 +473,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
         bytes32 curveWithdraw = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_WITHDRAW(), CURVE_POOL);
 
         // Set to below boundary
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveWithdraw, totalWithdrawn - 1, totalWithdrawn / 1 days);
 
         vm.prank(relayer);
@@ -481,7 +481,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
         // Set to boundary
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveWithdraw, totalWithdrawn, totalWithdrawn / 1 days);
 
         vm.prank(relayer);
@@ -598,7 +598,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
     }
 
     function test_swapCurve_slippageNotSet() public {
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
@@ -635,7 +635,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
     function test_swapCurve_zeroMaxAmount() public {
         bytes32 curveSwap = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_SWAP(), CURVE_POOL);
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveSwap, 0, 0);
 
         vm.prank(relayer);
@@ -664,7 +664,7 @@ contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
         _addLiquidity(1_000_000e6, 1_000_000e6);
         skip(1 days);  // Recharge swap rate limit from deposit
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.999e18);  // 0.1%
 
         uint256 startingUsdtBalance = usdt.balanceOf(CURVE_POOL);
@@ -705,7 +705,7 @@ contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
 contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
 
     function test_getVirtualPrice_stressTest() public {
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setUnlimitedRateLimitData(curveDepositKey);
         rateLimits.setUnlimitedRateLimitData(curveSwapKey);
         rateLimits.setUnlimitedRateLimitData(curveWithdrawKey);
@@ -719,7 +719,7 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
 
         deal(address(usdc), address(almProxy), 100_000_000e6);
 
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 1);  // 1e-16%
 
         // Perform a massive swap to stress the virtual price
@@ -785,14 +785,14 @@ contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
         curveSwapKey     = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_SWAP(),     CURVE_POOL);
         curveWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_WITHDRAW(), CURVE_POOL);
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveDepositKey,  5_000_000e18, uint256(5_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveSwapKey,     5_000_000e18, uint256(5_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveWithdrawKey, 5_000_000e18, uint256(5_000_000e18) / 1 days);
         vm.stopPrank();
 
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.001e18);
     }
 
@@ -860,14 +860,14 @@ contract MainnetControllerSUsdsUsdtSwapRateLimitTest is ForkTestBase {
         curveSwapKey     = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_SWAP(),     CURVE_POOL);
         curveWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_WITHDRAW(), CURVE_POOL);
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveDepositKey,  5_000_000e18, uint256(5_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveSwapKey,     5_000_000e18, uint256(5_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveWithdrawKey, 5_000_000e18, uint256(5_000_000e18) / 1 days);
         vm.stopPrank();
 
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.01e18);
 
         // Seed the pool with some liquidity to be able to perform the swap
@@ -938,7 +938,7 @@ contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
 
     function test_e2e_addSwapAndRemoveLiquidityCurve() public {
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.95e18);
 
         deal(address(usdc), address(almProxy), 1_000_000e6);
@@ -1072,14 +1072,14 @@ contract MainnetControllerE2ECurveSUsdsUsdtPoolTest is ForkTestBase {
         curveSwapKey     = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_SWAP(),     CURVE_POOL);
         curveWithdrawKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_CURVE_WITHDRAW(), CURVE_POOL);
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(GROVE_PROXY);
         rateLimits.setRateLimitData(curveDepositKey,  2_000_000e18, uint256(2_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveSwapKey,     1_000_000e18, uint256(1_000_000e18) / 1 days);
         rateLimits.setRateLimitData(curveWithdrawKey, 3_000_000e18, uint256(3_000_000e18) / 1 days);
         vm.stopPrank();
 
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        vm.prank(GROVE_PROXY);
         mainnetController.setMaxSlippage(CURVE_POOL, 0.95e18);
     }
 

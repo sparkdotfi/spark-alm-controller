@@ -17,7 +17,7 @@ import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
 import { ISUsds } from "sdai/src/ISUsds.sol";
 
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { Ethereum } from "grove-address-registry/Ethereum.sol";
 
 import { Bridge }                from "xchain-helpers/testing/Bridge.sol";
 import { CCTPForwarder }         from "xchain-helpers/forwarders/CCTPForwarder.sol";
@@ -54,19 +54,6 @@ interface IPSMLike {
     function pocket() external view returns (address);
     function kiss(address) external;
     function rush() external view returns (uint256);
-}
-
-interface ISSTokenLike is IERC20 {
-    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin)
-        external view returns (
-            uint256 superstateTokenOutAmount,
-            uint256 stablcoinInAmountAfterFee,
-            uint256 feeOnStablecoinInAmount
-        );
-    function mint(address to, uint256 amount) external;
-    function burn(address src, uint256 amount) external;
-    function owner() external view returns (address);
-    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
 }
 
 interface IVaultLike {
@@ -111,7 +98,7 @@ contract ForkTestBase is DssTest {
     address constant ETHENA_MINTER  = Ethereum.ETHENA_MINTER;
     address constant PAUSE_PROXY    = Ethereum.PAUSE_PROXY;
     address constant PSM            = Ethereum.PSM;
-    address constant SPARK_PROXY    = Ethereum.SPARK_PROXY;
+    address constant GROVE_PROXY    = Ethereum.GROVE_PROXY;
 
     IERC20 constant dai   = IERC20(Ethereum.DAI);
     IERC20 constant usdc  = IERC20(Ethereum.USDC);
@@ -120,9 +107,7 @@ contract ForkTestBase is DssTest {
     IERC20 constant usdt  = IERC20(Ethereum.USDT);
     ISUsds constant susds = ISUsds(Ethereum.SUSDS);
 
-    ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
-    ISSTokenLike constant ustb  = ISSTokenLike(Ethereum.USTB);
-    ISUSDELike   constant susde = ISUSDELike(Ethereum.SUSDE);
+    ISUSDELike constant susde = ISUSDELike(Ethereum.SUSDE);
 
     IPSMLike constant psm = IPSMLike(PSM);
 
@@ -204,7 +189,7 @@ contract ForkTestBase is DssTest {
             maxLine        : 100_000_000 * RAD,
             gap            : 10_000_000 * RAD,
             ttl            : 6 hours,
-            allocatorProxy : Ethereum.SPARK_PROXY,
+            allocatorProxy : Ethereum.GROVE_PROXY,
             ilkRegistry    : IChainlogLike(LOG).getAddress("ILK_REGISTRY")
         });
 
@@ -219,7 +204,7 @@ contract ForkTestBase is DssTest {
         /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
-            admin   : Ethereum.SPARK_PROXY,
+            admin   : Ethereum.GROVE_PROXY,
             vault   : ilkInst.vault,
             psm     : Ethereum.PSM,
             daiUsds : Ethereum.DAI_USDS,
@@ -246,7 +231,7 @@ contract ForkTestBase is DssTest {
 
         Init.CheckAddressParams memory checkAddresses
             = Init.CheckAddressParams({
-                admin      : Ethereum.SPARK_PROXY,
+                admin      : Ethereum.GROVE_PROXY,
                 proxy      : address(almProxy),
                 rateLimits : address(rateLimits),
                 vault      : address(vault),
@@ -257,11 +242,13 @@ contract ForkTestBase is DssTest {
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
 
+        Init.CentrifugeRecipient[] memory centrifugeRecipients = new Init.CentrifugeRecipient[](0);
+
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
 
         mintRecipients[0] = Init.MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
-            mintRecipient : bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
+            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_AVALANCHE,
+            mintRecipient : bytes32(uint256(uint160(makeAddr("avalancheAlmProxy"))))
         });
 
         // Step 4: Initialize through Sky governance (Sky spell payload)
@@ -269,9 +256,9 @@ contract ForkTestBase is DssTest {
         vm.prank(Ethereum.PAUSE_PROXY);
         Init.pauseProxyInitAlmSystem(Ethereum.PSM, controllerInst.almProxy);
 
-        // Step 5: Initialize through Spark governance (Spark spell payload)
+        // Step 5: Initialize through Grove governance (Grove spell payload)
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
 
         Init.initAlmSystem(
             vault,
@@ -280,7 +267,8 @@ contract ForkTestBase is DssTest {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
@@ -290,16 +278,16 @@ contract ForkTestBase is DssTest {
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
-        bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(
+        bytes32 domainKeyAvalanche = RateLimitHelpers.makeDomainKey(
             mainnetController.LIMIT_USDC_TO_DOMAIN(),
-            CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
+            CCTPForwarder.DOMAIN_ID_CIRCLE_AVALANCHE
         );
 
         // NOTE: Using minimal config for test base setup
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    usdsMaxAmount, usdsSlope);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), usdcMaxAmount, usdcSlope);
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(domainKeyBase,                          usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(domainKeyAvalanche,                     usdcMaxAmount, usdcSlope);
 
         vm.stopPrank();
 

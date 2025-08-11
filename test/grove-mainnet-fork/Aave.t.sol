@@ -20,7 +20,7 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
     function setUp() public override {
         super.setUp();
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
 
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
@@ -163,7 +163,7 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
 
     function test_withdrawAave_zeroMaxAmount() external {
         // Longer setup because rate limit revert is at the end of the function
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_AAVE_WITHDRAW(),
@@ -265,7 +265,7 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
             mainnetController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDS
         );
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setUnlimitedRateLimitData(key);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
@@ -345,7 +345,7 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
             mainnetController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setUnlimitedRateLimitData(key);
 
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);

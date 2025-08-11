@@ -308,6 +308,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
 
         ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 
+        ForeignControllerInit.CentrifugeRecipient[] memory centrifugeRecipients = new ForeignControllerInit.CentrifugeRecipient[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
 
         ForeignControllerInit.initAlmSystem(
@@ -315,7 +317,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            centrifugeRecipients
         );
 
         vm.stopPrank();

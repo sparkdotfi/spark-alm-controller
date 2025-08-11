@@ -42,7 +42,7 @@ contract MainnetControllerDepositBUIDLFailureTests is MainnetControllerBUIDLTest
             address(buidlDeposit)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
         deal(address(usdc), address(almProxy), 1_000_000e6);
@@ -65,7 +65,7 @@ contract MainnetControllerDepositBUIDLSuccessTests is MainnetControllerBUIDLTest
             address(buidlDeposit)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
         deal(address(usdc), address(almProxy), 1_000_000e6);

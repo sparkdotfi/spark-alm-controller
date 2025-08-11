@@ -12,7 +12,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
-            admin   : SPARK_PROXY,
+            admin   : GROVE_PROXY,
             vault   : vault,
             psm     : PSM,
             daiUsds : DAI_USDS,
@@ -23,10 +23,10 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         MainnetController newController = MainnetController(controllerInst.controller);
         RateLimits        newRateLimits = RateLimits(controllerInst.rateLimits);
 
-        assertEq(newAlmProxy.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
+        assertEq(newAlmProxy.hasRole(DEFAULT_ADMIN_ROLE, GROVE_PROXY),   true);
         assertEq(newAlmProxy.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);  // Deployer never gets admin
 
-        assertEq(newRateLimits.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
+        assertEq(newRateLimits.hasRole(DEFAULT_ADMIN_ROLE, GROVE_PROXY),   true);
         assertEq(newRateLimits.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);  // Deployer never gets admin
 
         _assertControllerInitState(newController, address(newAlmProxy), address(newRateLimits), vault, buffer);
@@ -36,7 +36,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         MainnetController newController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : SPARK_PROXY,
+            admin      : GROVE_PROXY,
             almProxy   : address(almProxy),
             rateLimits : address(rateLimits),
             vault      : vault,
@@ -49,7 +49,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
     }
 
     function _assertControllerInitState(MainnetController controller, address almProxy, address rateLimits, address vault, address buffer) internal view {
-        assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
+        assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, GROVE_PROXY),   true);
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);
 
         assertEq(address(controller.proxy()),        almProxy);

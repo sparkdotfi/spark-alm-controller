@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
+
+import { ICentrifugeV3VaultLike } from "../../src/interfaces/CentrifugeInterfaces.sol";
+
 import "./ForkTestBase.t.sol";
 
-import {IERC7540} from "forge-std/interfaces/IERC7540.sol";
 
 interface IRestrictionManager {
     function updateMember(address token, address user, uint64 validUntil) external;
@@ -41,22 +44,11 @@ interface IInvestmentManager {
         uint128 assets,
         uint128 shares
     ) external;
-        
+
 }
 
 interface IERC20Mintable is IERC20 {
     function mint(address to, uint256 amount) external;
-}
-
-interface ICentrifugeToken is IERC7540 {
-    function claimableCancelDepositRequest(uint256 requestId, address controller)
-        external view returns (uint256 claimableAssets);
-    function claimableCancelRedeemRequest(uint256 requestId, address controller)
-        external view returns (uint256 claimableShares);
-    function pendingCancelDepositRequest(uint256 requestId, address controller)
-        external view returns (bool isPending);
-    function pendingCancelRedeemRequest(uint256 requestId, address controller)
-        external view returns (bool isPending);
 }
 
 contract CentrifugeTestBase is ForkTestBase {
@@ -78,7 +70,7 @@ contract CentrifugeTestBase is ForkTestBase {
     IInvestmentManager  investmentManager  = IInvestmentManager(INVESTMENT_MANAGER);
     IRestrictionManager restrictionManager = IRestrictionManager(JTREASURY_RESTRICTION_MANAGER);
 
-    ICentrifugeToken jTreasuryVault = ICentrifugeToken(JTREASURY_VAULT_USDC);
+    ICentrifugeV3VaultLike jTreasuryVault = ICentrifugeV3VaultLike(JTREASURY_VAULT_USDC);
     IERC20Mintable   jTreasuryToken = IERC20Mintable(JTREASURY_TOKEN);
 
     function _getBlock() internal pure override returns (uint256) {
@@ -105,7 +97,7 @@ contract MainnetControllerRequestDepositERC7540FailureTests is CentrifugeTestBas
     }
 
     function test_requestDepositERC7540_rateLimitBoundary() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_7540_DEPOSIT(),
@@ -144,7 +136,7 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -211,7 +203,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_500_000e6, uint256(1_500_000e6) / 1 days);
     }
 
@@ -360,7 +352,7 @@ contract MainnetControllerCancelCentrifugeDepositSuccessTests is CentrifugeTestB
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -416,7 +408,7 @@ contract MainnetControllerClaimCentrifugeCancelDepositSuccessTests is Centrifuge
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -490,7 +482,7 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
     }
 
     function test_requestRedeemERC7540_rateLimitsBoundary() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
                 mainnetController.LIMIT_7540_REDEEM(),
@@ -536,7 +528,7 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -605,7 +597,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 2_000_000e6, uint256(2_000_000e6) / 1 days);
     }
 
@@ -770,7 +762,7 @@ contract MainnetControllerCancelCentrifugeRedeemRequestSuccessTests is Centrifug
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
@@ -830,7 +822,7 @@ contract MainnetControllerClaimCentrifugeCancelRedeemRequestSuccessTests is Cent
             address(jTreasuryVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.GROVE_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
