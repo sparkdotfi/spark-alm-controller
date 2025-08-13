@@ -300,6 +300,11 @@ contract MainnetController is AccessControl {
             ),
             (uint256)
         );
+
+        require(
+            IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
+            "MainnetController/slippage-too-high"
+        );
     }
 
     function withdrawERC4626(address token, uint256 amount) external returns (uint256 shares) {
@@ -477,10 +482,19 @@ contract MainnetController is AccessControl {
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
         _approve(address(underlying), address(pool), amount);
 
+        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
+
         // Deposit underlying into Aave pool, proxy receives aTokens
         proxy.doCall(
             address(pool),
             abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
+        );
+
+        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
+
+        require(
+            newATokens >= amount * maxSlippages[aToken] / 1e18,
+            "MainnetController/slippage-too-high"
         );
     }
 
