@@ -4,22 +4,7 @@ import wake.ir as ir
 from rich import print
 from wake.printers import Printer, printer
 
-# Contains programatic checks of rate limiteds in the ForeignController and MainnetController
-# contracts. The script uses `wake`,[0] which can be installed for example with:
-#   > uv tool install eth-wake
-#   > pipx install eth-wake
-#   > pip install eth-wake
-# Printers are scripts that you can run over the AST of the codebase. To execute this script,
-# run:
-#   > wake --config printers/wake.toml print rate-limits
-# A zero exit-code indicates the below spec is satisfied.
-# If the `printers/wake.toml` config file ever goes out of sync, you can regenerate it by running
-#   > wake up config
-# (This will read Foundry remappings and create a new `wake.toml` file which can then be moved to
-# /printers.)
-# [0] https://github.com/Ackee-Blockchain/wake
-
-# --- SPEC ---
+# --- SPEC FOREIGN CONTROLLER ---
 D_FOREIGN_CONTROLLER = {
     "LIMIT_4626_DEPOSIT": {
         "exists": {
@@ -95,6 +80,8 @@ D_FOREIGN_CONTROLLER = {
         "up": set(),
     },
 }
+
+# --- SPEC MAINNET CONTROLLER ---
 D_MAINNET_CONTROLLER = {
     "LIMIT_4626_DEPOSIT": {
         "exists": set(),
@@ -282,32 +269,42 @@ D_MAINNET_CONTROLLER = {
 }
 
 def name(function_definition: ir.FunctionDefinition) -> str:
+    """Takes a FunctionDefinition and returns th last part of its canonical name."""
     return function_definition.canonical_name.split(".")[-1]
 
 class RateLimitsPrinter(Printer):
 
-    d_for = {}
-    d_main = {}
-    d_main_manual = {}
+    d_for = {} # Results for ForeignController
+    d_main = {} # Results for MainnetController
 
     @printer.command(name="rate-limits")
     def cli(self) -> None:
+        # > This function runs at the beginning of the analysis.
+        # >> We don't actually need to do any setup...
         pass
 
     def visit_contract_definition(self, contr: ir.ContractDefinition):
+        # >> We'll assign d_res to the appropriate dictionary (based on which contract we're dealing
+        # with).
         if contr.name == "ForeignController":
             d_res = self.d_for
         elif contr.name == "MainnetController":
             d_res = self.d_main
         else:
+            # >> We're not interested in other contracts.
             return
 
-        print("Handling", contr.name)
+        print(f"📦 Checking {contr.name}...")
 
         for var_decl in contr.declared_variables:
+            # > We are interested in variables that start with "LIMIT"
             if not var_decl.name.startswith("LIMIT"):
                 continue
+            # > For each reference to the variable...
             for ref in var_decl.references:
+                # >> ... We want to find the enclosing function, as well as which function or
+                # modifier was called (this is to determine if the rate limit is being decreased,
+                # increased, or potentially just assserted that it exists).
                 function_enclosing = None; modifier_called = None
                 functions_called = []
                 parent = ref.parent
@@ -321,15 +318,19 @@ class RateLimitsPrinter(Printer):
                         break
                     parent = parent.parent
 
+                # >> We should have the enclosing function
                 assert function_enclosing is not None, "Function enclosing should not be None"
+                # >> We should have either found the variable used in a modifier call (invocation),
+                # or in at least one function call.
                 assert modifier_called is not None or len(functions_called) > 0, \
                     "Either modifier_called or function_called should not be None"
-                # d_res[var_decl.name] = (function_enclosing, modifier_called, function_called)
 
+                # >> Initialization
                 if var_decl.name not in d_res:
                     d_res[var_decl.name] = {"exists": set(), "down": set(), "up": set()}
 
                 if modifier_called is not None:
+                    # >> Modifier call case:
                     # print(var_decl.name, "modifier_called")
                     if modifier_called.modifier_name.name == "rateLimited":
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
@@ -340,6 +341,7 @@ class RateLimitsPrinter(Printer):
                     else:
                         raise ValueError(f"Unknown modifier called: {modifier_called.modifier_name.name}")
                 elif len(functions_called) > 0:
+                    # >> Function call case:
                     # print(var_decl.name, "functions_called")
                     if "triggerRateLimitDecrease" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
@@ -372,16 +374,18 @@ class RateLimitsPrinter(Printer):
                 else:
                     raise ValueError("Either modifier_called or functions_called should not be empty")
 
-
-
+        print(f"✅ Successfully checked {contr.name}...")
 
     def print(self) -> None:
+        # > This function runs after all contracts have been visited.
+        # >> Check that our d_for results match the expected ones specified in D_FOREIGN_CONTROLLER.
         assert set(self.d_for.keys()) == set(D_FOREIGN_CONTROLLER.keys())
         for key in self.d_for:
             for k in ["exists", "down", "up"]:
                 assert self.d_for[key][k] == D_FOREIGN_CONTROLLER[key][k], \
                     f"Mismatch in Foreign {key}.{k}: {self.d_for[key][k]} != {D_FOREIGN_CONTROLLER[key][k]}"
 
+        # >> ...And same for MainnetController...
         assert set(self.d_main.keys()) == set(D_MAINNET_CONTROLLER.keys())
         for key in self.d_main:
             for k in ["exists", "down", "up"]:

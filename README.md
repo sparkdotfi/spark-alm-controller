@@ -60,6 +60,40 @@ The rate limit is calculated as follows:
 
 This is a linear rate limit that increases over time with a maximum limit. This rate limit is derived from these values which can be set by and admin OR updated by the `CONTROLLER` role. The `CONTROLLER` updates these values to increase/decrease the rate limit based on the functionality within the contract (e.g., decrease the rate limit after minting USDS by the minted amount by decrementing `lastAmount` and setting `lastUpdated` to `block.timestamp`).
 
+## Rate Limit Uses
+
+The current uses of rate limits can be seen in [`./printers/rate_limits.py`](./printers/rate_limits.py) (for both the Foreign and Mainnet controllers). The file is also an executable [Wake](https://github.com/Ackee-Blockchain/wake) printer, which can at any time check that the information in the file is correct. Wake can be installed for example with any of these:
+
+```bash
+uv tool install eth-wake
+pipx install eth-wake
+pip install eth-wake
+```
+
+Printers are scripts that you can run over the AST of the codebase. To execute this script, run:
+
+```bash
+❯ wake --config printers/wake.toml print rate-limits
+[14:16:59] Found 16 *.sol files in 0.51 s                                                 print.py:466
+           Loaded previous build in 0.47 s                                             compiler.py:862
+           Compiled 0 files using 0 solc runs in 0.00 s                               compiler.py:1242
+           Processed compilation results in 0.01 s                                    compiler.py:1495
+📦 Checking MainnetController...
+✅ Successfully checked MainnetController...
+📦 Checking ForeignController...
+✅ Successfully checked ForeignController...
+```
+
+(A zero exit-code indicates the spec is satisfied.)
+
+If the `printers/wake.toml` config file ever goes out of sync, you can regenerate it by running
+
+```bash
+wake up config
+```
+
+This will read Foundry remappings and create a new `wake.toml` file (which can then be moved to /printers.)
+
 ## Trust Assumptions and Attack Mitigation
 Below are all stated trust assumptions for using this contract in production:
 - The `DEFAULT_ADMIN_ROLE` is fully trusted, to be run by governance.
