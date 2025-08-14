@@ -103,7 +103,7 @@ Below are all stated trust assumptions for using this contract in production:
   - The `FREEZER` must be able to stop the compromised `RELAYER` from performing more harmful actions within the max rate limits by using the `removeRelayer` function.
 - A compromised `RELAYER` can perform DOS attacks. These attacks along with their respective recovery procedures are outlined in the `Attacks.t.sol` test files.
 - Ethena USDe Mint/Burn is trusted to not honor requests with over 50bps slippage from a delegated signer.
-- When withdrawing by calling `withdrawERC4626`/`redeemERC4626`/`withdrawAave` we are fully aware that a tiny non-zero deposit limit would needed to be set for withdrawals to continue to work.
+- Withdrawals using `withdrawERC4626`/`redeemERC4626`/`withdrawAave` must always have a non-zero deposit rate limit set for their corresponding deposit functions in order to succeed.
 
 ## Operational Requirements
 - All ERC-4626 vaults that are onboarded MUST have an initial burned shares amount that prevents rounding-based frontrunning attacks. These shares have to be unrecoverable so that they cannot be removed at a later date.
