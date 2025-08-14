@@ -363,8 +363,6 @@ class RateLimitsPrinter(Printer):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
                     elif "transferUSDCToCCTP" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
-                    elif "transferswapUSDSToUSDC" in map(lambda x: x.name, functions_called):
-                        d_res[var_decl.name]["down"].add(name(function_enclosing))
                     elif "swapUSDSToUSDC" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
                     elif "swapUSDCToUSDS" in map(lambda x: x.name, functions_called):
