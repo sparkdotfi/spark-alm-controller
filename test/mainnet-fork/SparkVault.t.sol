@@ -10,6 +10,15 @@ import { Vault as SparkVault } from "spark-vaults-v2/src/Vault.sol";
 import "./ForkTestBase.t.sol";
 
 contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
+    struct TestState {
+        uint256 rateLimit;
+        uint256 assetThis;
+        uint256 assetAlm;
+        uint256 assetVault;
+        uint256 vaultThis;
+        uint256 vaultTotalAssets;
+        uint256 vaultTotalSupply;
+    }
 
     bytes32 LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
@@ -50,6 +59,33 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
         vm.stopPrank();
     }
+    function _assertTestState(TestState memory state, uint256 tolerance) internal view {
+        assertApproxEqAbs(
+            rateLimits.getCurrentRateLimit(key), state.rateLimit, tolerance, "rateLimit"
+        );
+        assertApproxEqAbs(
+            asset.balanceOf(address(this)), state.assetThis, tolerance, "assetThis"
+        );
+        assertApproxEqAbs(
+            asset.balanceOf(address(almProxy)), state.assetAlm, tolerance, "assetAlm"
+        );
+        assertApproxEqAbs(
+            asset.balanceOf(address(sparkVault)), state.assetVault, tolerance, "assetVault"
+        );
+        assertApproxEqAbs(
+            sparkVault.balanceOf(address(this)), state.vaultThis, tolerance, "vaultThis"
+        );
+        assertApproxEqAbs(
+            sparkVault.totalAssets(), state.vaultTotalAssets, tolerance, "vaultTotalAssets"
+        );
+        assertApproxEqAbs(
+            sparkVault.totalSupply(), state.vaultTotalSupply,  tolerance, "vaultTotalSupply"
+        );
+    }
+
+    function _assertTestState(TestState memory state) internal view {
+        _assertTestState(state, 0);
+    }
 }
 
 contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestBase {
@@ -60,6 +96,7 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
             address(this),
             RELAYER
         ));
+        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }
 
@@ -68,8 +105,10 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
         rateLimits.setRateLimitData(key, 0, 0);
         vm.stopPrank();
 
+        // >> Prank
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
+        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }
 
@@ -82,8 +121,10 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
         rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
         vm.stopPrank();
 
+        // >> Prank
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
+        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 10_000_000e18 + 1);
 
         vm.prank(relayer);
@@ -99,25 +140,102 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         asset.approve(address(sparkVault), 10_000_000e18);
         sparkVault.mint(10_000_000e18, address(this));
 
+        // > start Prank
         vm.startPrank(relayer);
-        assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e18);
-        assertEq(asset.balanceOf(address(almProxy)), 0);
+
+        _assertTestState(TestState({
+            rateLimit: 1_000_000e18,
+            assetThis: 0,
+            assetAlm: 0,
+            assetVault: 10_000_000e18,
+            vaultThis: 10_000_000e18,
+            vaultTotalAssets: 10_000_000e18,
+            vaultTotalSupply: 10_000_000e18
+        }));
+
+        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
-        assertEq(asset.balanceOf(address(almProxy)), 1_000_000e18);
-        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+
+        _assertTestState(TestState({
+            rateLimit: 0,
+            assetThis: 0,
+            assetAlm: 1_000_000e18,
+            assetVault: 9_000_000e18,
+            vaultThis: 10_000_000e18,
+            vaultTotalAssets: 10_000_000e18,
+            vaultTotalSupply: 10_000_000e18
+        }));
 
         skip(1 hours);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 41666.666666666666666400e18);
-        assertEq(asset.balanceOf(address(almProxy)), 1_000_000e18);
+        _assertTestState(TestState({
+            rateLimit: 41666.666666666666666400e18,
+            assetThis: 0,
+            assetAlm: 1_000_000e18,
+            assetVault: 9_000_000e18,
+            vaultThis: 10_000_000e18,
+            vaultTotalAssets: 10_000_000e18,
+            vaultTotalSupply: 10_000_000e18
+        }));
+
+        // > Action
         mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
-        assertEq(asset.balanceOf(address(almProxy)), 1_041_666.666666666666666400e18);
-        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+
+        _assertTestState(TestState({
+            rateLimit: 0,
+            assetThis: 0,
+            assetAlm: 1_041_666.666666666666666400e18,
+            assetVault: 9_000_000e18,
+            vaultThis: 958_333.333333333333333600e18,
+            vaultTotalAssets: 10_000_000e18,
+            vaultTotalSupply: 10_000_000e18
+        }));
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.takeFromSparkVault(address(sparkVault), 1);
 
         vm.stopPrank();
+    }
+
+    function testFuzz_takeFromSparkVault(uint256 mintAmount, uint256 takeAmount) external {
+        mintAmount = _bound(mintAmount, 1e18, 1_000_000e18);
+        takeAmount = _bound(mintAmount, 1e18, mintAmount);
+
+        deal(address(asset), address(this), mintAmount);
+        asset.approve(address(sparkVault), mintAmount);
+        sparkVault.mint(mintAmount, address(this));
+
+        // >> start Prank
+        vm.startPrank(relayer);
+        _assertTestState(TestState({
+            rateLimit: 1_000_000e18,
+            assetThis: 0,
+            assetAlm: 0,
+            assetVault: mintAmount,
+            vaultThis: mintAmount,
+            vaultTotalAssets: mintAmount,
+            vaultTotalSupply: mintAmount
+        }));
+
+        // >> Action
+        mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
+
+        _assertTestState(TestState({
+            // Rate limit goes down
+            rateLimit: 1_000_000e18 - takeAmount,
+            // LPs' asset balance don't change
+            assetThis: 0,
+            // The almProxy receives the taken amount
+            assetAlm: takeAmount,
+            // The vault's asset balance decreases
+            assetVault: mintAmount - takeAmount,
+            // LPs' balances don't change
+            vaultThis: mintAmount,
+            // totalAssets don't decrease
+            vaultTotalAssets: mintAmount,
+            // totalSupply doesn't decrease
+            vaultTotalSupply: mintAmount
+        }));
     }
 
 }
