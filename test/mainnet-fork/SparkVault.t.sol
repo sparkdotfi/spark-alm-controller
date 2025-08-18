@@ -9,6 +9,7 @@ import { SparkVault } from "spark-vaults-v2/src/SparkVault.sol";
 import "./ForkTestBase.t.sol";
 
 contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
+
     struct TestState {
         uint256 rateLimit;
         uint256 assetThis;
@@ -58,28 +59,15 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
         vm.stopPrank();
     }
+
     function _assertTestState(TestState memory state, uint256 tolerance) internal view {
-        assertApproxEqAbs(
-            rateLimits.getCurrentRateLimit(key), state.rateLimit, tolerance, "rateLimit"
-        );
-        assertApproxEqAbs(
-            asset.balanceOf(address(this)), state.assetThis, tolerance, "assetThis"
-        );
-        assertApproxEqAbs(
-            asset.balanceOf(address(almProxy)), state.assetAlm, tolerance, "assetAlm"
-        );
-        assertApproxEqAbs(
-            asset.balanceOf(address(sparkVault)), state.assetVault, tolerance, "assetVault"
-        );
-        assertApproxEqAbs(
-            sparkVault.balanceOf(address(this)), state.vaultThis, tolerance, "vaultThis"
-        );
-        assertApproxEqAbs(
-            sparkVault.totalAssets(), state.vaultTotalAssets, tolerance, "vaultTotalAssets"
-        );
-        assertApproxEqAbs(
-            sparkVault.totalSupply(), state.vaultTotalSupply,  tolerance, "vaultTotalSupply"
-        );
+        assertApproxEqAbs(rateLimits.getCurrentRateLimit(key),  state.rateLimit,        tolerance, "rateLimit");
+        assertApproxEqAbs(asset.balanceOf(address(this)),       state.assetThis,        tolerance, "assetThis");
+        assertApproxEqAbs(asset.balanceOf(address(almProxy)),   state.assetAlm,         tolerance, "assetAlm");
+        assertApproxEqAbs(asset.balanceOf(address(sparkVault)), state.assetVault,       tolerance, "assetVault");
+        assertApproxEqAbs(sparkVault.balanceOf(address(this)),  state.vaultThis,        tolerance, "vaultThis");
+        assertApproxEqAbs(sparkVault.totalAssets(),             state.vaultTotalAssets, tolerance, "vaultTotalAssets");
+        assertApproxEqAbs(sparkVault.totalSupply(),             state.vaultTotalSupply, tolerance, "vaultTotalSupply");
     }
 
     function _assertTestState(TestState memory state) internal view {
@@ -143,11 +131,11 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         vm.startPrank(relayer);
 
         _assertTestState(TestState({
-            rateLimit: 1_000_000e18,
-            assetThis: 0,
-            assetAlm: 0,
-            assetVault: 10_000_000e18,
-            vaultThis: 10_000_000e18,
+            rateLimit:        1_000_000e18,
+            assetThis:        0,
+            assetAlm:         0,
+            assetVault:       10_000_000e18,
+            vaultThis:        10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         }));
@@ -156,11 +144,11 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
 
         _assertTestState(TestState({
-            rateLimit: 0,
-            assetThis: 0,
-            assetAlm: 1_000_000e18,
-            assetVault: 9_000_000e18,
-            vaultThis: 10_000_000e18,
+            rateLimit:        0,
+            assetThis:        0,
+            assetAlm:         1_000_000e18,
+            assetVault:       9_000_000e18,
+            vaultThis:        10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         }));
@@ -168,11 +156,11 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         skip(1 hours);
 
         _assertTestState(TestState({
-            rateLimit: 41666.666666666666666400e18,
-            assetThis: 0,
-            assetAlm: 1_000_000e18,
-            assetVault: 9_000_000e18,
-            vaultThis: 10_000_000e18,
+            rateLimit:        41666.666666666666666400e18,
+            assetThis:        0,
+            assetAlm:         1_000_000e18,
+            assetVault:       9_000_000e18,
+            vaultThis:        10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         }));
@@ -181,11 +169,11 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
 
         _assertTestState(TestState({
-            rateLimit: 0,
-            assetThis: 0,
-            assetAlm: 1_041_666.666666666666666400e18,
-            assetVault: 8_958_333.333333333333333600e18,
-            vaultThis: 10_000_000e18,
+            rateLimit:        0,
+            assetThis:        0,
+            assetAlm:         1_041_666.666666666666666400e18,
+            assetVault:       8_958_333.333333333333333600e18,
+            vaultThis:        10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         }));
@@ -207,11 +195,11 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         // >> start Prank
         vm.startPrank(relayer);
         _assertTestState(TestState({
-            rateLimit: 1_000_000e18,
-            assetThis: 0,
-            assetAlm: 0,
-            assetVault: mintAmount,
-            vaultThis: mintAmount,
+            rateLimit:        1_000_000e18,
+            assetThis:        0,
+            assetAlm:         0,
+            assetVault:       mintAmount,
+            vaultThis:        mintAmount,
             vaultTotalAssets: mintAmount,
             vaultTotalSupply: mintAmount
         }));
@@ -220,20 +208,13 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
 
         _assertTestState(TestState({
-            // Rate limit goes down
-            rateLimit: 1_000_000e18 - takeAmount,
-            // LPs' asset balance don't change
-            assetThis: 0,
-            // The almProxy receives the taken amount
-            assetAlm: takeAmount,
-            // The vault's asset balance decreases
-            assetVault: mintAmount - takeAmount,
-            // LPs' balances don't change
-            vaultThis: mintAmount,
-            // totalAssets don't decrease
-            vaultTotalAssets: mintAmount,
-            // totalSupply doesn't decrease
-            vaultTotalSupply: mintAmount
+            rateLimit:        1_000_000e18 - takeAmount, // Rate limit goes down
+            assetThis:        0,                         // LPs' asset balance don't change
+            assetAlm:         takeAmount,                // The almProxy receives the taken amount
+            assetVault:       mintAmount - takeAmount,   // The vault's asset balance decreases
+            vaultThis:        mintAmount,                // LPs' balances don't change
+            vaultTotalAssets: mintAmount,                // totalAssets don't decrease
+            vaultTotalSupply: mintAmount                 // totalSupply doesn't decrease
         }));
     }
 
