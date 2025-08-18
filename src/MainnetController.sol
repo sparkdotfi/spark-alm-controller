@@ -286,6 +286,8 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
         _rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount);
 
+        require(maxSlippages[token] != 0, "MainnetController/max-slippage-not-set");
+
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC4626(token).asset());
 
@@ -475,6 +477,8 @@ contract MainnetController is AccessControl {
     function depositAave(address aToken, uint256 amount) external {
         _checkRole(RELAYER);
         _rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount);
+
+        require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
 
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());

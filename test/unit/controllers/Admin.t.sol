@@ -179,6 +179,7 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
 contract ForeignControllerAdminTests is UnitTestBase {
 
     event LayerZeroRecipientSet(uint32 indexed destinationDomain, bytes32 layerZeroRecipient);
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     ForeignController foreignController;
@@ -197,6 +198,43 @@ contract ForeignControllerAdminTests is UnitTestBase {
             makeAddr("usdc"),
             makeAddr("cctp")
         );
+    }
+
+    function test_setMaxSlippage_unauthorizedAccount() public {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        foreignController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+
+        vm.prank(freezer);
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            freezer,
+            DEFAULT_ADMIN_ROLE
+        ));
+        foreignController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+    }
+
+    function test_setMaxSlippage() public {
+        address pool = makeAddr("pool");
+
+        assertEq(foreignController.maxSlippages(pool), 0);
+
+        vm.prank(admin);
+        vm.expectEmit(address(foreignController));
+        emit MaxSlippageSet(pool, 0.01e18);
+        foreignController.setMaxSlippage(pool, 0.01e18);
+
+        assertEq(foreignController.maxSlippages(pool), 0.01e18);
+
+        vm.prank(admin);
+        vm.expectEmit(address(foreignController));
+        emit MaxSlippageSet(pool, 0.02e18);
+        foreignController.setMaxSlippage(pool, 0.02e18);
+
+        assertEq(foreignController.maxSlippages(pool), 0.02e18);
     }
 
     function test_setMintRecipient_unauthorizedAccount() public {
