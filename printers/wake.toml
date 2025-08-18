@@ -1,0 +1,45 @@
+# See https://ackee.xyz/wake/docs/latest/configuration/
+[compiler.solc]
+exclude_paths = ["../.venv", "../node_modules", "../script", "../gitignore", "../test", "../lib", "../venv"]
+remappings = [
+    "@layerzerolabs/oft-evm/=lib/devtools/packages/oft-evm/",
+    "layerzerolabs/oapp-evm/=lib/devtools/packages/oapp-evm/",
+    "@layerzerolabs/lz-evm-protocol-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/protocol/",
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "@layerzerolabs/lz-evm-messagelib-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib/",
+    "solidity-bytes-utils/=lib/solidity-bytes-utils/",
+    "@openzeppelin/contracts-upgradeable/=lib/sdai/lib/openzeppelin-contracts-upgradeable/contracts/",
+    "aave-v3-core/=lib/aave-v3-origin/src/core/",
+    "aave-v3-origin/=lib/aave-v3-origin/",
+    "aave-v3-periphery/=lib/aave-v3-origin/src/periphery/",
+    "devtools/=lib/devtools/packages/toolbox-foundry/src/",
+    "ds-test/=lib/metamorpho/lib/forge-std/lib/ds-test/src/",
+    "dss-allocator/=lib/dss-allocator/",
+    "dss-interfaces/=lib/dss-test/lib/dss-interfaces/src/",
+    "dss-test/=lib/dss-test/src/",
+    "erc20-helpers/=lib/erc20-helpers/src/",
+    "erc4626-tests/=lib/metamorpho/lib/erc4626-tests/",
+    "forge-std/=lib/forge-std/src/",
+    "layerzero-v2/=lib/layerzero-v2/",
+    "metamorpho/=lib/metamorpho/src/",
+    "morpho-blue/=lib/metamorpho/lib/morpho-blue/",
+    "murky/=lib/metamorpho/lib/universal-rewards-distributor/lib/murky/src/",
+    "openzeppelin-contracts-upgradeable/=lib/sdai/lib/openzeppelin-contracts-upgradeable/",
+    "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+    "openzeppelin-foundry-upgrades/=lib/sdai/lib/openzeppelin-foundry-upgrades/src/",
+    "openzeppelin/=lib/metamorpho/lib/universal-rewards-distributor/lib/openzeppelin-contracts/contracts/",
+    "sdai/=lib/sdai/",
+    "solidity-stringutils/=lib/sdai/lib/openzeppelin-foundry-upgrades/lib/solidity-stringutils/",
+    "solidity-utils/=lib/aave-v3-origin/lib/solidity-utils/",
+    "spark-address-registry/=lib/spark-address-registry/src/",
+    "spark-psm/=lib/spark-psm/",
+    "sparklend-address-registry/=lib/spark-psm/lib/xchain-ssr-oracle/lib/sparklend-address-registry/",
+    "token-tests/=lib/sdai/lib/token-tests/src/",
+    "universal-rewards-distributor/=lib/metamorpho/lib/universal-rewards-distributor/src/",
+    "usds/=lib/usds/",
+    "xchain-helpers/=lib/xchain-helpers/src/",
+    "xchain-ssr-oracle/=lib/spark-psm/lib/xchain-ssr-oracle/",
+]
+evm_version = "cancun"
+via_IR = false
+target_version = "0.8.25"
