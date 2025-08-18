@@ -125,7 +125,7 @@ contract MainnetController is AccessControl {
 
     uint256 internal CENTRIFUGE_REQUEST_ID = 0;
 
-    address public immutable buffer;
+    address public buffer;
 
     IALMProxy         public proxy;
     ICCTPLike         public cctp;
