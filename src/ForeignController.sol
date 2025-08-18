@@ -73,6 +73,8 @@ contract ForeignController is AccessControl {
 
     IERC20 public immutable usdc;
 
+    mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
+
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
@@ -250,7 +252,7 @@ contract ForeignController is AccessControl {
         );
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == true. Add integration testing for this case before 
+        //       approvalRequired == true. Add integration testing for this case before
         //       using in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
             _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
@@ -304,6 +306,11 @@ contract ForeignController is AccessControl {
                 abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
             ),
             (uint256)
+        );
+
+        require(
+            IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
+            "MainnetController/slippage-too-high"
         );
     }
 
@@ -367,6 +374,8 @@ contract ForeignController is AccessControl {
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
 
+        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
+
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
         _approve(address(underlying), address(pool), amount);
 
@@ -374,6 +383,13 @@ contract ForeignController is AccessControl {
         proxy.doCall(
             address(pool),
             abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
+        );
+
+        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
+
+        require(
+            newATokens >= amount * maxSlippages[aToken] / 1e18,
+            "MainnetController/slippage-too-high"
         );
     }
 
