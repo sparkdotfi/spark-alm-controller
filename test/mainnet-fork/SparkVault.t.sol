@@ -4,8 +4,7 @@ pragma solidity >=0.8.0;
 import { ERC20Mock as MockERC20 } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import { ERC1967Proxy }           from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-// Todo: Renme to SparkVault upstream:
-import { Vault as SparkVault } from "spark-vaults-v2/src/Vault.sol";
+import { SparkVault } from "spark-vaults-v2/src/SparkVault.sol";
 
 import "./ForkTestBase.t.sol";
 
