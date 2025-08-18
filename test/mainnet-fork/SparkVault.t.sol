@@ -140,7 +140,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         asset.approve(address(sparkVault), 10_000_000e18);
         sparkVault.mint(10_000_000e18, address(this));
 
-        // > start Prank
+        // >> start Prank
         vm.startPrank(relayer);
 
         _assertTestState(TestState({
@@ -178,15 +178,15 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
             vaultTotalSupply: 10_000_000e18
         }));
 
-        // > Action
+        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
 
         _assertTestState(TestState({
             rateLimit: 0,
             assetThis: 0,
             assetAlm: 1_041_666.666666666666666400e18,
-            assetVault: 9_000_000e18,
-            vaultThis: 958_333.333333333333333600e18,
+            assetVault: 8_958_333.333333333333333600e18,
+            vaultThis: 10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         }));
