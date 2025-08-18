@@ -455,9 +455,11 @@ contract ForeignController is AccessControl {
     /*** Spark Vault functions                                                                  ***/
     /**********************************************************************************************/
 
-    function takeFromSparkVault(address sparkVault, uint256 assetAmount) external {
-        _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
+    function takeFromSparkVault(address sparkVault, uint256 assetAmount)
+        external
+        onlyRole(RELAYER)
+        rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
+    {
 
         // Take assets from the vault
         proxy.doCall(

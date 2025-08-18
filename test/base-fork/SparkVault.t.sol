@@ -55,7 +55,7 @@ contract ForeignControllerTakeFromSparkVaultTestBase is ForkTestBase {
             address(sparkVault)
         );
 
-        vm.startPrank(Base.SPARK_PROXY);
+        vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
         vm.stopPrank();
     }
@@ -88,7 +88,7 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
     }
 
     function test_takeFromSparkVault_zeroMaxAmount() external {
-        vm.startPrank(Base.SPARK_PROXY);
+        vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 0, 0);
         vm.stopPrank();
 
@@ -104,7 +104,7 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
         asset.approve(address(sparkVault), 10_000_000e18);
         sparkVault.mint(10_000_000e18, address(this));
 
-        vm.startPrank(Base.SPARK_PROXY);
+        vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
         vm.stopPrank();
 
