@@ -51,6 +51,12 @@ interface IMapleTokenLike is IERC4626 {
     function removeShares(uint256 shares, address receiver) external;
 }
 
+interface IFarmLike {
+    function stake(uint256 amount) external;
+    function withdraw(uint256 amount) external;
+    function getReward() external;
+}
+
 interface ISSRedemptionLike is IERC20 {
     function calculateUsdcOut(uint256 ustbAmount)
         external view returns (uint256 usdcOutAmount, uint256 usdPerUstbChainlinkRaw);
@@ -105,6 +111,8 @@ contract MainnetController is AccessControl {
     bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public constant LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
+    bytes32 public constant LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
     bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -307,6 +315,8 @@ contract MainnetController is AccessControl {
             ),
             (uint256)
         );
+
+        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), amount);
     }
 
     // NOTE: !!! Rate limited at end of function !!!
@@ -327,6 +337,8 @@ contract MainnetController is AccessControl {
             RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
             assets
         );
+
+        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), assets);
     }
 
     /**********************************************************************************************/
@@ -496,6 +508,11 @@ contract MainnetController is AccessControl {
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
+            amountWithdrawn
+        );
+
+        _cancelRateLimit(
+            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
             amountWithdrawn
         );
     }
@@ -837,6 +854,42 @@ contract MainnetController is AccessControl {
             destinationDomain : destinationDomain,
             usdcAmount        : usdcAmount
         }));
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer SPK Farm functions                                                             ***/
+    /**********************************************************************************************/
+
+    function depositToFarm(address farm, uint256 usdsAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(
+            keccak256(abi.encode(LIMIT_FARM_DEPOSIT, farm)),
+            usdsAmount
+        );
+
+        _approve(address(usds), farm, usdsAmount);
+
+        proxy.doCall(
+            farm,
+            abi.encodeCall(IFarmLike.stake, (usdsAmount))
+        );
+    }
+
+    function withdrawFromFarm(address farm, uint256 usdsAmount) external {
+        _checkRole(RELAYER);
+        _rateLimited(
+            keccak256(abi.encode(LIMIT_FARM_WITHDRAW, farm)),
+            usdsAmount
+        );
+
+        proxy.doCall(
+            farm,
+            abi.encodeCall(IFarmLike.withdraw, (usdsAmount))
+        );
+        proxy.doCall(
+            farm,
+            abi.encodeCall(IFarmLike.getReward, ())
+        );
     }
 
     /**********************************************************************************************/

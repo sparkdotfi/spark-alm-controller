@@ -215,7 +215,11 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
 contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
     function test_withdrawAave_usds() public {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            ATOKEN_USDS
+        );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDS
         );
@@ -224,155 +228,196 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
 
-        skip(1 days);
+        skip(1 hours);
 
-        uint256 fullBalance = ausds.balanceOf(address(almProxy));
+        uint256 aTokenBalance = ausds.balanceOf(address(almProxy));
 
-        assertGe(fullBalance, 1_000_000e18);
+        assertEq(aTokenBalance, 1_000_008.690632523560813345e18);
 
-        assertEq(ausds.balanceOf(address(almProxy)), fullBalance);
+        assertEq(ausds.balanceOf(address(almProxy)), aTokenBalance);
         assertEq(usds.balanceOf(address(almProxy)),  0);
         assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 1_000_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
+        uint256 startingDepositRateLimit = rateLimits.getCurrentRateLimit(depositKey);
+
+        assertEq(startingDepositRateLimit, 24_000_000e18 + uint256(5_000_000e18) / 1 days * 1 hours);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
         // Partial withdraw
         vm.prank(relayer);
         assertEq(mainnetController.withdrawAave(ATOKEN_USDS, 400_000e18), 400_000e18);
 
-        assertEq(ausds.balanceOf(address(almProxy)), fullBalance - 400_000e18);
+        assertEq(ausds.balanceOf(address(almProxy)), aTokenBalance - 400_000e18);
         assertEq(usds.balanceOf(address(almProxy)),  400_000e18);
         assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 600_000e18);  // 1m - 400k
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 9_600_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit + 400_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_600_000e18);
 
         // Withdraw all
         vm.prank(relayer);
-        assertEq(mainnetController.withdrawAave(ATOKEN_USDS, type(uint256).max), fullBalance - 400_000e18);
+        assertEq(mainnetController.withdrawAave(ATOKEN_USDS, type(uint256).max), aTokenBalance - 400_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18 - fullBalance);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18 - aTokenBalance);
 
         assertEq(ausds.balanceOf(address(almProxy)), 0);
-        assertEq(usds.balanceOf(address(almProxy)),  fullBalance);
-        assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 1_000_000e18 - fullBalance);
+        assertEq(usds.balanceOf(address(almProxy)),  aTokenBalance);
+        assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 1_000_000e18 - aTokenBalance);
 
         // Interest accrued was withdrawn, reducing cash balance
-        assertLe(usds.balanceOf(address(ausds)), startingAUSDSBalance);
+        assertLt(usds.balanceOf(address(ausds)), startingAUSDSBalance);
     }
 
     function test_withdrawAave_usds_unlimitedRateLimit() public {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            ATOKEN_USDS
+        );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDS
         );
+
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setUnlimitedRateLimitData(key);
+        rateLimits.setUnlimitedRateLimitData(withdrawKey);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
 
-        skip(1 days);
+        skip(1 hours);
 
-        uint256 fullBalance = ausds.balanceOf(address(almProxy));
+        uint256 aTokenBalance = ausds.balanceOf(address(almProxy));
 
-        assertGe(fullBalance, 1_000_000e18);
+        assertEq(aTokenBalance, 1_000_008.690632523560813345e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), type(uint256).max);
+        uint256 startingDepositRateLimit = rateLimits.getCurrentRateLimit(depositKey);
 
-        assertEq(ausds.balanceOf(address(almProxy)), fullBalance);
+        assertEq(startingDepositRateLimit, 24_000_000e18 + uint256(5_000_000e18) / 1 days * 1 hours);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);
+
+        assertEq(ausds.balanceOf(address(almProxy)), aTokenBalance);
         assertEq(usds.balanceOf(address(almProxy)),  0);
         assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 1_000_000e18);
 
-        // Partial withdraw
+        // Full withdraw
         vm.prank(relayer);
-        assertEq(mainnetController.withdrawAave(ATOKEN_USDS, type(uint256).max), fullBalance);
+        assertEq(mainnetController.withdrawAave(ATOKEN_USDS, type(uint256).max), aTokenBalance);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), type(uint256).max);  // No change
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);  // No change
 
         assertEq(ausds.balanceOf(address(almProxy)), 0);
-        assertEq(usds.balanceOf(address(almProxy)),  fullBalance);
-        assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 1_000_000e18 - fullBalance);
+        assertEq(usds.balanceOf(address(almProxy)),  aTokenBalance);
+        assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance + 1_000_000e18 - aTokenBalance);
     }
 
     function test_withdrawAave_usdc() public {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            ATOKEN_USDC
+        );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );
+
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 1_000_000e6);
 
-        skip(1 days);
+        skip(1 hours);
 
-        uint256 fullBalance = ausdc.balanceOf(address(almProxy));
+        uint256 aTokenBalance = ausdc.balanceOf(address(almProxy));
 
-        assertGe(fullBalance, 1_000_000e6);
+        assertEq(aTokenBalance, 1_000_013.630187e6);
 
-        assertEq(ausdc.balanceOf(address(almProxy)), fullBalance);
+        assertEq(ausdc.balanceOf(address(almProxy)), aTokenBalance);
         assertEq(usdc.balanceOf(address(almProxy)),  0);
         assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6);
+        uint256 startingDepositRateLimit = rateLimits.getCurrentRateLimit(depositKey);
+
+        assertEq(startingDepositRateLimit, 24_000_000e6 + uint256(5_000_000e6) / 1 days * 1 hours);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
 
         // Partial withdraw
         vm.prank(relayer);
         assertEq(mainnetController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);
 
-        assertEq(ausdc.balanceOf(address(almProxy)), fullBalance - 400_000e6 + 1);  // Rounding
+        assertEq(ausdc.balanceOf(address(almProxy)), aTokenBalance - 400_000e6);
         assertEq(usdc.balanceOf(address(almProxy)),  400_000e6);
         assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 600_000e6);  // 1m - 400k
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 9_600_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit + 400_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_600_000e6);
 
         // Withdraw all
         vm.prank(relayer);
-        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance - 400_000e6 + 1);  // Rounding
+        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, type(uint256).max), aTokenBalance - 400_000e6);
 
         assertEq(ausdc.balanceOf(address(almProxy)), 0);
-        assertEq(usdc.balanceOf(address(almProxy)),  fullBalance + 1);
-        assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6 - fullBalance - 1);  // Rounding
+        assertEq(usdc.balanceOf(address(almProxy)),  aTokenBalance);
+        assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6 - aTokenBalance);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6 - fullBalance - 1);  // Rounding
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6 - aTokenBalance);
 
         // Interest accrued was withdrawn, reducing cash balance
-        assertLe(usdc.balanceOf(address(ausdc)), startingAUSDCBalance);
+        assertLt(usdc.balanceOf(address(ausdc)), startingAUSDCBalance);
     }
 
     function test_withdrawAave_usdc_unlimitedRateLimit() public {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            ATOKEN_USDC
+        );
+        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
             mainnetController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );
+
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setUnlimitedRateLimitData(key);
+        rateLimits.setUnlimitedRateLimitData(withdrawKey);
 
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 1_000_000e6);
 
-        skip(1 days);
+        skip(1 hours);
 
-        uint256 fullBalance = ausdc.balanceOf(address(almProxy));
+        uint256 aTokenBalance = ausdc.balanceOf(address(almProxy));
 
-        assertGe(fullBalance, 1_000_000e6);
+        assertEq(aTokenBalance, 1_000_013.630187e6);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), type(uint256).max);
+        uint256 startingDepositRateLimit = rateLimits.getCurrentRateLimit(depositKey);
 
-        assertEq(ausdc.balanceOf(address(almProxy)), fullBalance);
+        assertEq(startingDepositRateLimit, 24_000_000e6 + uint256(5_000_000e6) / 1 days * 1 hours);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);
+
+        assertEq(ausdc.balanceOf(address(almProxy)), aTokenBalance);
         assertEq(usdc.balanceOf(address(almProxy)),  0);
         assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6);
 
-        // Partial withdraw
+        // Full withdraw
         vm.prank(relayer);
-        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, type(uint256).max), fullBalance);
+        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, type(uint256).max), aTokenBalance);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), type(uint256).max);  // No change
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), type(uint256).max);  // No change
 
         assertEq(ausdc.balanceOf(address(almProxy)), 0);
-        assertEq(usdc.balanceOf(address(almProxy)),  fullBalance);
-        assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6 - fullBalance);
+        assertEq(usdc.balanceOf(address(almProxy)),  aTokenBalance);
+        assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6 - aTokenBalance);
     }
 
 }
