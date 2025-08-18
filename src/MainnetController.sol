@@ -702,22 +702,6 @@ contract MainnetController is AccessControl {
         );
     }
 
-    // NOTE: Rate limited outside of modifier because of tuple return
-    function redeemSuperstate(uint256 ustbAmount) external {
-        _checkRole(RELAYER);
-
-        ( uint256 usdcAmount, ) = superstateRedemption.calculateUsdcOut(ustbAmount);
-
-        rateLimits.triggerRateLimitDecrease(LIMIT_SUPERSTATE_REDEEM, usdcAmount);
-
-        _approve(address(ustb), address(superstateRedemption), ustbAmount);
-
-        proxy.doCall(
-            address(superstateRedemption),
-            abi.encodeCall(superstateRedemption.redeem, (ustbAmount))
-        );
-    }
-
     /**********************************************************************************************/
     /*** Relayer DaiUsds functions                                                              ***/
     /**********************************************************************************************/
