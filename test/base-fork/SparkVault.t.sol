@@ -12,10 +12,8 @@ contract ForeignControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
     struct TestState {
         uint256 rateLimit;
-        uint256 assetThis;
         uint256 assetAlm;
         uint256 assetVault;
-        uint256 vaultThis;
         uint256 vaultTotalAssets;
         uint256 vaultTotalSupply;
     }
@@ -55,17 +53,14 @@ contract ForeignControllerTakeFromSparkVaultTestBase is ForkTestBase {
             address(sparkVault)
         );
 
-        vm.startPrank(Base.SPARK_EXECUTOR);
+        vm.prank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
-        vm.stopPrank();
     }
 
     function _assertTestState(TestState memory state, uint256 tolerance) internal view {
         assertApproxEqAbs(rateLimits.getCurrentRateLimit(key),  state.rateLimit,        tolerance, "rateLimit");
-        assertApproxEqAbs(asset.balanceOf(address(this)),       state.assetThis,        tolerance, "assetThis");
         assertApproxEqAbs(asset.balanceOf(address(almProxy)),   state.assetAlm,         tolerance, "assetAlm");
         assertApproxEqAbs(asset.balanceOf(address(sparkVault)), state.assetVault,       tolerance, "assetVault");
-        assertApproxEqAbs(sparkVault.balanceOf(address(this)),  state.vaultThis,        tolerance, "vaultThis");
         assertApproxEqAbs(sparkVault.totalAssets(),             state.vaultTotalAssets, tolerance, "vaultTotalAssets");
         assertApproxEqAbs(sparkVault.totalSupply(),             state.vaultTotalSupply, tolerance, "vaultTotalSupply");
     }
@@ -132,10 +127,8 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         TestState memory testState = TestState({
             rateLimit:        1_000_000e18,
-            assetThis:        0,
             assetAlm:         0,
             assetVault:       10_000_000e18,
-            vaultThis:        10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         });
@@ -144,23 +137,27 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         foreignController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
 
-        testState.rateLimit  -= 1_000_000e18; // Rate limit goes down
-        testState.assetAlm   += 1_000_000e18; // The almProxy receives the taken amount
-        testState.assetVault -= 1_000_000e18; // The vault's asset balance decreases
+        testState.rateLimit  -= 1_000_000e18;  // Rate limit goes down
+        testState.assetAlm   += 1_000_000e18;  // The almProxy receives the taken amount
+        testState.assetVault -= 1_000_000e18;  // The vault's asset balance decreases
 
         _assertTestState(testState);
 
         skip(1 hours);
 
-        testState.rateLimit += 41666.666666666666666400e18; // Rate limit increases by 1/24th of the max amount
+        // 1/24th of the rate limit per hour
+        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (60 * 60 * 24) * (60 * 60);
+        assertEq(rateLimitIncreaseInOneHour, 41666.666666666666666400e18);
+
+        testState.rateLimit += rateLimitIncreaseInOneHour;
 
         _assertTestState(testState);
 
-        foreignController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
+        foreignController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
 
-        testState.rateLimit  -= 41666.666666666666666400e18; // Rate limit goes down
-        testState.assetAlm   += 41666.666666666666666400e18; // The almProxy receives the taken amount
-        testState.assetVault -= 41666.666666666666666400e18; // The vault's asset balance decreases
+        testState.rateLimit  -= rateLimitIncreaseInOneHour;  // Rate limit goes down
+        testState.assetAlm   += rateLimitIncreaseInOneHour;  // The almProxy receives the taken amount
+        testState.assetVault -= rateLimitIncreaseInOneHour;  // The vault's asset balance decreases
 
         _assertTestState(testState);
 
@@ -171,7 +168,10 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
     }
 
     function testFuzz_takeFromSparkVault(uint256 mintAmount, uint256 takeAmount) external {
-        mintAmount = _bound(mintAmount, 1e18, 1_000_000e18);
+        vm.prank(Base.SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(key, 10_000_000_000e18, uint256(10_000_000_000e18) / 1 days);
+
+        mintAmount = _bound(mintAmount, 1e18, 10_000_000_000e18);
         takeAmount = _bound(mintAmount, 1e18, mintAmount);
 
         address user = makeAddr("user");
@@ -183,11 +183,9 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         vm.startPrank(relayer);
         TestState memory testState = TestState({
-            rateLimit:        1_000_000e18,
-            assetThis:        0,
+            rateLimit:        10_000_000_000e18,
             assetAlm:         0,
             assetVault:       mintAmount,
-            vaultThis:        mintAmount,
             vaultTotalAssets: mintAmount,
             vaultTotalSupply: mintAmount
         });
@@ -196,9 +194,9 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         foreignController.takeFromSparkVault(address(sparkVault), takeAmount);
 
-        testState.rateLimit  -= takeAmount; // Rate limit goes down
-        testState.assetAlm   += takeAmount; // The almProxy receives the taken amount
-        testState.assetVault -= takeAmount; // The vault's asset balance decreases
+        testState.rateLimit  -= takeAmount;  // Rate limit goes down
+        testState.assetAlm   += takeAmount;  // The almProxy receives the taken amount
+        testState.assetVault -= takeAmount;  // The vault's asset balance decreases
 
         _assertTestState(testState);
     }

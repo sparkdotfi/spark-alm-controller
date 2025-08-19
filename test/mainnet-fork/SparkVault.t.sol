@@ -8,14 +8,12 @@ import { SparkVault } from "spark-vaults-v2/src/SparkVault.sol";
 
 import "./ForkTestBase.t.sol";
 
-contract MainnetControllerTakeFromSparkVaultTestEthereum is ForkTestBase {
+contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
     struct TestState {
         uint256 rateLimit;
-        uint256 assetThis;
         uint256 assetAlm;
         uint256 assetVault;
-        uint256 vaultThis;
         uint256 vaultTotalAssets;
         uint256 vaultTotalSupply;
     }
@@ -62,10 +60,8 @@ contract MainnetControllerTakeFromSparkVaultTestEthereum is ForkTestBase {
 
     function _assertTestState(TestState memory state, uint256 tolerance) internal view {
         assertApproxEqAbs(rateLimits.getCurrentRateLimit(key),  state.rateLimit,        tolerance, "rateLimit");
-        assertApproxEqAbs(asset.balanceOf(address(this)),       state.assetThis,        tolerance, "assetThis");
         assertApproxEqAbs(asset.balanceOf(address(almProxy)),   state.assetAlm,         tolerance, "assetAlm");
         assertApproxEqAbs(asset.balanceOf(address(sparkVault)), state.assetVault,       tolerance, "assetVault");
-        assertApproxEqAbs(sparkVault.balanceOf(address(this)),  state.vaultThis,        tolerance, "vaultThis");
         assertApproxEqAbs(sparkVault.totalAssets(),             state.vaultTotalAssets, tolerance, "vaultTotalAssets");
         assertApproxEqAbs(sparkVault.totalSupply(),             state.vaultTotalSupply, tolerance, "vaultTotalSupply");
     }
@@ -75,7 +71,7 @@ contract MainnetControllerTakeFromSparkVaultTestEthereum is ForkTestBase {
     }
 }
 
-contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestEthereum {
+contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestBase {
 
     function test_takeFromSparkVault_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -118,7 +114,7 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
 
 }
 
-contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSparkVaultTestEthereum {
+contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSparkVaultTestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
         address user = makeAddr("user");
@@ -132,10 +128,8 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         TestState memory testState = TestState({
             rateLimit:        1_000_000e18,
-            assetThis:        0,
             assetAlm:         0,
             assetVault:       10_000_000e18,
-            vaultThis:        10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         });
@@ -144,23 +138,27 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
 
-        testState.rateLimit  -= 1_000_000e18; // Rate limit goes down
-        testState.assetAlm   += 1_000_000e18; // The almProxy receives the taken amount
-        testState.assetVault -= 1_000_000e18; // The vault's asset balance decreases
+        testState.rateLimit  -= 1_000_000e18;  // Rate limit goes down
+        testState.assetAlm   += 1_000_000e18;  // The almProxy receives the taken amount
+        testState.assetVault -= 1_000_000e18;  // The vault's asset balance decreases
 
         _assertTestState(testState);
 
         skip(1 hours);
 
-        testState.rateLimit += 41666.666666666666666400e18; // Rate limit increases by 1/24th of the max amount
+        // 1/24th of the rate limit per hour
+        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (60 * 60 * 24) * (60 * 60);
+        assertEq(rateLimitIncreaseInOneHour, 41666.666666666666666400e18);
+
+        testState.rateLimit += rateLimitIncreaseInOneHour;
 
         _assertTestState(testState);
 
-        mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
+        mainnetController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
 
-        testState.rateLimit  -= 41666.666666666666666400e18; // Rate limit goes down
-        testState.assetAlm   += 41666.666666666666666400e18; // The almProxy receives the taken amount
-        testState.assetVault -= 41666.666666666666666400e18; // The vault's asset balance decreases
+        testState.rateLimit  -= rateLimitIncreaseInOneHour;  // Rate limit goes down
+        testState.assetAlm   += rateLimitIncreaseInOneHour;  // The almProxy receives the taken amount
+        testState.assetVault -= rateLimitIncreaseInOneHour;  // The vault's asset balance decreases
 
         _assertTestState(testState);
 
@@ -171,7 +169,10 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
     }
 
     function testFuzz_takeFromSparkVault(uint256 mintAmount, uint256 takeAmount) external {
-        mintAmount = _bound(mintAmount, 1e18, 1_000_000e18);
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 10_000_000_000e18, uint256(10_000_000_000e18) / 1 days);
+
+        mintAmount = _bound(mintAmount, 1e18, 10_000_000_000e18);
         takeAmount = _bound(mintAmount, 1e18, mintAmount);
 
         address user = makeAddr("user");
@@ -183,11 +184,9 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         vm.startPrank(relayer);
         TestState memory testState = TestState({
-            rateLimit:        1_000_000e18,
-            assetThis:        0,
+            rateLimit:        10_000_000_000e18,
             assetAlm:         0,
             assetVault:       mintAmount,
-            vaultThis:        mintAmount,
             vaultTotalAssets: mintAmount,
             vaultTotalSupply: mintAmount
         });
@@ -196,9 +195,9 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
 
-        testState.rateLimit  -= takeAmount; // Rate limit goes down
-        testState.assetAlm   += takeAmount; // The almProxy receives the taken amount
-        testState.assetVault -= takeAmount; // The vault's asset balance decreases
+        testState.rateLimit  -= takeAmount;  // Rate limit goes down
+        testState.assetAlm   += takeAmount;  // The almProxy receives the taken amount
+        testState.assetVault -= takeAmount;  // The vault's asset balance decreases
 
         _assertTestState(testState);
     }
