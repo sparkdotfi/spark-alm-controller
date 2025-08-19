@@ -146,15 +146,18 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         skip(1 hours);
 
-        testState.rateLimit += 41666.666666666666666400e18; // Rate limit increases by 1/24th of the max amount
+        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (60 * 60 * 24) * (60 * 60); // 1/24 of the rate limit per hour
+        assertEq(rateLimitIncreaseInOneHour, 41666.666666666666666400e18);
+
+        testState.rateLimit += rateLimitIncreaseInOneHour;
 
         _assertTestState(testState);
 
-        mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
+        mainnetController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
 
-        testState.rateLimit  -= 41666.666666666666666400e18; // Rate limit goes down
-        testState.assetAlm   += 41666.666666666666666400e18; // The almProxy receives the taken amount
-        testState.assetVault -= 41666.666666666666666400e18; // The vault's asset balance decreases
+        testState.rateLimit  -= rateLimitIncreaseInOneHour; // Rate limit goes down
+        testState.assetAlm   += rateLimitIncreaseInOneHour; // The almProxy receives the taken amount
+        testState.assetVault -= rateLimitIncreaseInOneHour; // The vault's asset balance decreases
 
         _assertTestState(testState);
 
