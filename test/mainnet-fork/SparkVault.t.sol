@@ -8,7 +8,7 @@ import { SparkVault } from "spark-vaults-v2/src/SparkVault.sol";
 
 import "./ForkTestBase.t.sol";
 
-contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
+contract MainnetControllerTakeFromSparkVaultTestEthereum is ForkTestBase {
 
     struct TestState {
         uint256 rateLimit;
@@ -75,7 +75,7 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
     }
 }
 
-contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestBase {
+contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestEthereum {
 
     function test_takeFromSparkVault_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -97,9 +97,12 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
     }
 
     function test_takeFromSparkVault_rateLimitBoundary() external {
-        deal(address(asset), address(this), 10_000_000e18);
+        address user = makeAddr("user");
+        deal(address(asset), address(user), 10_000_000e18);
+        vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
-        sparkVault.mint(10_000_000e18, address(this));
+        sparkVault.mint(10_000_000e18, address(user));
+        vm.stopPrank();
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
@@ -115,12 +118,15 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
 
 }
 
-contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSparkVaultTestBase {
+contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSparkVaultTestEthereum {
 
     function test_takeFromSparkVault_rateLimited() external {
-        deal(address(asset), address(this), 10_000_000e18);
+        address user = makeAddr("user");
+        deal(address(asset), address(user), 10_000_000e18);
+        vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
         sparkVault.mint(10_000_000e18, address(this));
+        vm.stopPrank();
 
         vm.startPrank(relayer);
 
@@ -146,18 +152,15 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         skip(1 hours);
 
-        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (60 * 60 * 24) * (60 * 60); // 1/24 of the rate limit per hour
-        assertEq(rateLimitIncreaseInOneHour, 41666.666666666666666400e18);
-
-        testState.rateLimit += rateLimitIncreaseInOneHour;
+        testState.rateLimit += 41666.666666666666666400e18; // Rate limit increases by 1/24th of the max amount
 
         _assertTestState(testState);
 
-        mainnetController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
+        mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
 
-        testState.rateLimit  -= rateLimitIncreaseInOneHour; // Rate limit goes down
-        testState.assetAlm   += rateLimitIncreaseInOneHour; // The almProxy receives the taken amount
-        testState.assetVault -= rateLimitIncreaseInOneHour; // The vault's asset balance decreases
+        testState.rateLimit  -= 41666.666666666666666400e18; // Rate limit goes down
+        testState.assetAlm   += 41666.666666666666666400e18; // The almProxy receives the taken amount
+        testState.assetVault -= 41666.666666666666666400e18; // The vault's asset balance decreases
 
         _assertTestState(testState);
 
@@ -171,9 +174,12 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         mintAmount = _bound(mintAmount, 1e18, 1_000_000e18);
         takeAmount = _bound(mintAmount, 1e18, mintAmount);
 
-        deal(address(asset), address(this), mintAmount);
+        address user = makeAddr("user");
+        deal(address(asset), address(user), mintAmount);
+        vm.startPrank(user);
         asset.approve(address(sparkVault), mintAmount);
         sparkVault.mint(mintAmount, address(this));
+        vm.stopPrank();
 
         vm.startPrank(relayer);
         TestState memory testState = TestState({
@@ -198,3 +204,4 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
     }
 
 }
+

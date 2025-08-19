@@ -97,9 +97,12 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
     }
 
     function test_takeFromSparkVault_rateLimitBoundary() external {
-        deal(address(asset), address(this), 10_000_000e18);
+        address user = makeAddr("user");
+        deal(address(asset), address(user), 10_000_000e18);
+        vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
-        sparkVault.mint(10_000_000e18, address(this));
+        sparkVault.mint(10_000_000e18, address(user));
+        vm.stopPrank();
 
         vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
@@ -118,9 +121,12 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
 contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSparkVaultTestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
-        deal(address(asset), address(this), 10_000_000e18);
+        address user = makeAddr("user");
+        deal(address(asset), address(user), 10_000_000e18);
+        vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
         sparkVault.mint(10_000_000e18, address(this));
+        vm.stopPrank();
 
         vm.startPrank(relayer);
 
@@ -168,9 +174,12 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
         mintAmount = _bound(mintAmount, 1e18, 1_000_000e18);
         takeAmount = _bound(mintAmount, 1e18, mintAmount);
 
-        deal(address(asset), address(this), mintAmount);
+        address user = makeAddr("user");
+        deal(address(asset), address(user), mintAmount);
+        vm.startPrank(user);
         asset.approve(address(sparkVault), mintAmount);
         sparkVault.mint(mintAmount, address(this));
+        vm.stopPrank();
 
         vm.startPrank(relayer);
         TestState memory testState = TestState({
