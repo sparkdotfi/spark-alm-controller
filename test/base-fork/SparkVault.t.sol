@@ -27,6 +27,7 @@ contract ForeignControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
     address admin  = makeAddr("admin");
     address setter = makeAddr("setter");
+    address user   = makeAddr("user");
 
     bytes32 key;
 
@@ -92,7 +93,6 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
     }
 
     function test_takeFromSparkVault_rateLimitBoundary() external {
-        address user = makeAddr("user");
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
@@ -144,7 +144,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
         skip(1 hours);
 
         // 1/24th of the rate limit per hour
-        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (60 * 60 * 24) * (60 * 60);
+        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (1 days) * (1 hours);
         assertEq(rateLimitIncreaseInOneHour, 41666.666666666666666400e18);
 
         testState.rateLimit += rateLimitIncreaseInOneHour;
@@ -172,7 +172,6 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
         mintAmount = _bound(mintAmount, 1e18, 10_000_000_000e18);
         takeAmount = _bound(mintAmount, 1e18, mintAmount);
 
-        address user = makeAddr("user");
         deal(address(asset), address(user), mintAmount);
         vm.startPrank(user);
         asset.approve(address(sparkVault), mintAmount);

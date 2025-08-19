@@ -27,6 +27,7 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
     address admin  = makeAddr("admin");
     address setter = makeAddr("setter");
+    address user   = makeAddr("user");
 
     bytes32 key;
 
@@ -93,7 +94,6 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
     }
 
     function test_takeFromSparkVault_rateLimitBoundary() external {
-        address user = makeAddr("user");
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
@@ -116,7 +116,6 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
 contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSparkVaultTestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
-        address user = makeAddr("user");
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
@@ -145,7 +144,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         skip(1 hours);
 
         // 1/24th of the rate limit per hour
-        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (60 * 60 * 24) * (60 * 60);
+        uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e18) / (1 days) * (1 hours);
         assertEq(rateLimitIncreaseInOneHour, 41666.666666666666666400e18);
 
         testState.rateLimit += rateLimitIncreaseInOneHour;
@@ -173,7 +172,6 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         mintAmount = _bound(mintAmount, 1e18, 10_000_000_000e18);
         takeAmount = _bound(mintAmount, 1e18, mintAmount);
 
-        address user = makeAddr("user");
         deal(address(asset), address(user), mintAmount);
         vm.startPrank(user);
         asset.approve(address(sparkVault), mintAmount);
