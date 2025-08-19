@@ -22,8 +22,8 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
     bytes32 LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
-    // Todo: Use a real on-chain contract.
-    // Note: Our mock asset has 18 decimals.
+    // TODO: Use a real on-chain contract.
+    // NOTE: The mock asset has 18 decimals.
     MockERC20  asset;
     SparkVault sparkVault;
 
@@ -83,7 +83,6 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
             address(this),
             RELAYER
         ));
-        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }
 
@@ -92,10 +91,8 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
         rateLimits.setRateLimitData(key, 0, 0);
         vm.stopPrank();
 
-        // >> Prank
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }
 
@@ -108,10 +105,8 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
         rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
         vm.stopPrank();
 
-        // >> Prank
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 10_000_000e18 + 1);
 
         vm.prank(relayer);
@@ -127,7 +122,6 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         asset.approve(address(sparkVault), 10_000_000e18);
         sparkVault.mint(10_000_000e18, address(this));
 
-        // >> start Prank
         vm.startPrank(relayer);
 
         _assertTestState(TestState({
@@ -140,7 +134,6 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
             vaultTotalSupply: 10_000_000e18
         }));
 
-        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
 
         _assertTestState(TestState({
@@ -165,7 +158,6 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
             vaultTotalSupply: 10_000_000e18
         }));
 
-        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
 
         _assertTestState(TestState({
@@ -192,9 +184,8 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         asset.approve(address(sparkVault), mintAmount);
         sparkVault.mint(mintAmount, address(this));
 
-        // >> start Prank
         vm.startPrank(relayer);
-        _assertTestState(TestState({
+        TestState memory testState = TestState({
             rateLimit:        1_000_000e18,
             assetThis:        0,
             assetAlm:         0,
@@ -202,20 +193,16 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
             vaultThis:        mintAmount,
             vaultTotalAssets: mintAmount,
             vaultTotalSupply: mintAmount
-        }));
+        });
+        _assertTestState(testState);
 
-        // >> Action
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
 
-        _assertTestState(TestState({
-            rateLimit:        1_000_000e18 - takeAmount, // Rate limit goes down
-            assetThis:        0,                         // LPs' asset balance don't change
-            assetAlm:         takeAmount,                // The almProxy receives the taken amount
-            assetVault:       mintAmount - takeAmount,   // The vault's asset balance decreases
-            vaultThis:        mintAmount,                // LPs' balances don't change
-            vaultTotalAssets: mintAmount,                // totalAssets don't decrease
-            vaultTotalSupply: mintAmount                 // totalSupply doesn't decrease
-        }));
+        testState.rateLimit  -= takeAmount; // Rate limit goes down
+        testState.assetAlm   += takeAmount; // The almProxy receives the taken amount
+        testState.assetVault -= takeAmount; // The vault's asset balance decreases
+
+        _assertTestState(testState);
     }
 
 }

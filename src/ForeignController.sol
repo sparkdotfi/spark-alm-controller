@@ -460,7 +460,6 @@ contract ForeignController is AccessControl {
         onlyRole(RELAYER)
         rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
     {
-
         // Take assets from the vault
         proxy.doCall(
             sparkVault,
