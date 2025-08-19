@@ -54,9 +54,8 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
             address(sparkVault)
         );
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
-        vm.stopPrank();
     }
 
     function _assertTestState(TestState memory state, uint256 tolerance) internal view {
@@ -101,9 +100,8 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
         sparkVault.mint(10_000_000e18, address(user));
         vm.stopPrank();
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
-        vm.stopPrank();
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -125,8 +123,6 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         sparkVault.mint(10_000_000e18, address(user));
         vm.stopPrank();
 
-        vm.startPrank(relayer);
-
         TestState memory testState = TestState({
             rateLimit:        1_000_000e18,
             assetAlm:         0,
@@ -137,6 +133,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
 
         testState.rateLimit  -= 1_000_000e18;  // Rate limit goes down
@@ -155,6 +152,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
 
         testState.rateLimit  -= rateLimitIncreaseInOneHour;  // Rate limit goes down
@@ -163,10 +161,9 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.takeFromSparkVault(address(sparkVault), 1);
-
-        vm.stopPrank();
     }
 
     function testFuzz_takeFromSparkVault(uint256 mintAmount, uint256 takeAmount) external {
@@ -183,7 +180,6 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         sparkVault.mint(mintAmount, address(user));
         vm.stopPrank();
 
-        vm.startPrank(relayer);
         TestState memory testState = TestState({
             rateLimit:        10_000_000_000e18,
             assetAlm:         0,
@@ -194,6 +190,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
 
         testState.rateLimit  -= takeAmount;  // Rate limit goes down

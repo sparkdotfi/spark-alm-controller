@@ -83,9 +83,8 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
     }
 
     function test_takeFromSparkVault_zeroMaxAmount() external {
-        vm.startPrank(Base.SPARK_EXECUTOR);
+        vm.prank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 0, 0);
-        vm.stopPrank();
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -100,9 +99,8 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
         sparkVault.mint(10_000_000e18, address(user));
         vm.stopPrank();
 
-        vm.startPrank(Base.SPARK_EXECUTOR);
+        vm.prank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
-        vm.stopPrank();
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -124,8 +122,6 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
         sparkVault.mint(10_000_000e18, address(user));
         vm.stopPrank();
 
-        vm.startPrank(relayer);
-
         TestState memory testState = TestState({
             rateLimit:        1_000_000e18,
             assetAlm:         0,
@@ -136,6 +132,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
 
         testState.rateLimit  -= 1_000_000e18;  // Rate limit goes down
@@ -154,6 +151,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
 
         testState.rateLimit  -= rateLimitIncreaseInOneHour;  // Rate limit goes down
@@ -162,10 +160,9 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.takeFromSparkVault(address(sparkVault), 1);
-
-        vm.stopPrank();
     }
 
     function testFuzz_takeFromSparkVault(uint256 mintAmount, uint256 takeAmount) external {
@@ -182,7 +179,6 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
         sparkVault.mint(mintAmount, address(user));
         vm.stopPrank();
 
-        vm.startPrank(relayer);
         TestState memory testState = TestState({
             rateLimit:        10_000_000_000e18,
             assetAlm:         0,
@@ -193,6 +189,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), takeAmount);
 
         testState.rateLimit  -= takeAmount;  // Rate limit goes down
