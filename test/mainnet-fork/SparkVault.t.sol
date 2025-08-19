@@ -133,6 +133,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         });
+
         _assertTestState(testState);
 
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
@@ -140,11 +141,13 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         testState.rateLimit  -= 1_000_000e18; // Rate limit goes down
         testState.assetAlm   += 1_000_000e18; // The almProxy receives the taken amount
         testState.assetVault -= 1_000_000e18; // The vault's asset balance decreases
+
         _assertTestState(testState);
 
         skip(1 hours);
 
         testState.rateLimit += 41666.666666666666666400e18; // Rate limit increases by 1/24th of the max amount
+
         _assertTestState(testState);
 
         mainnetController.takeFromSparkVault(address(sparkVault), 41666.666666666666666400e18);
@@ -152,6 +155,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         testState.rateLimit  -= 41666.666666666666666400e18; // Rate limit goes down
         testState.assetAlm   += 41666.666666666666666400e18; // The almProxy receives the taken amount
         testState.assetVault -= 41666.666666666666666400e18; // The vault's asset balance decreases
+
         _assertTestState(testState);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -178,6 +182,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
             vaultTotalAssets: mintAmount,
             vaultTotalSupply: mintAmount
         });
+
         _assertTestState(testState);
 
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
