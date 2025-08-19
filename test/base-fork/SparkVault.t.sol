@@ -32,6 +32,7 @@ contract ForeignControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
     function setUp() public override {
         super.setUp();
+
         asset = new MockERC20();
 
         sparkVault = SparkVault(
@@ -120,7 +121,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
-        sparkVault.mint(10_000_000e18, address(this));
+        sparkVault.mint(10_000_000e18, address(user));
         vm.stopPrank();
 
         vm.startPrank(relayer);
@@ -178,7 +179,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
         deal(address(asset), address(user), mintAmount);
         vm.startPrank(user);
         asset.approve(address(sparkVault), mintAmount);
-        sparkVault.mint(mintAmount, address(this));
+        sparkVault.mint(mintAmount, address(user));
         vm.stopPrank();
 
         vm.startPrank(relayer);
