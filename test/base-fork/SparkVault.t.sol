@@ -96,7 +96,7 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
-        sparkVault.mint(10_000_000e18, address(user));
+        sparkVault.deposit(10_000_000e18, address(user));
         vm.stopPrank();
 
         vm.prank(Base.SPARK_EXECUTOR);
@@ -115,11 +115,10 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
 contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSparkVaultTestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
-        address user = makeAddr("user");
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
-        sparkVault.mint(10_000_000e18, address(user));
+        sparkVault.deposit(10_000_000e18, address(user));
         vm.stopPrank();
 
         TestState memory testState = TestState({

@@ -96,7 +96,7 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
-        sparkVault.mint(10_000_000e18, address(user));
+        sparkVault.deposit(10_000_000e18, address(user));
         vm.stopPrank();
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -118,7 +118,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         deal(address(asset), address(user), 10_000_000e18);
         vm.startPrank(user);
         asset.approve(address(sparkVault), 10_000_000e18);
-        sparkVault.mint(10_000_000e18, address(user));
+        sparkVault.deposit(10_000_000e18, address(user));
         vm.stopPrank();
 
         TestState memory testState = TestState({
