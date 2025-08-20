@@ -79,6 +79,10 @@ interface IVaultLike {
     function wipe(uint256 usdsAmount) external;
 }
 
+interface ISparkVaultLike {
+    function take(uint256 assetAmount) external;
+}
+
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -113,6 +117,7 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -873,6 +878,21 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             farm,
             abi.encodeCall(IFarmLike.getReward, ())
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Spark Vault functions                                                                  ***/
+    /**********************************************************************************************/
+
+    function takeFromSparkVault(address sparkVault, uint256 assetAmount) external {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
+
+        // Take assets from the vault
+        proxy.doCall(
+            sparkVault,
+            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
         );
     }
 
