@@ -84,9 +84,8 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
     }
 
     function test_takeFromSparkVault_zeroMaxAmount() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 0, 0);
-        vm.stopPrank();
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -165,25 +164,25 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         mainnetController.takeFromSparkVault(address(sparkVault), 1);
     }
 
-    function testFuzz_takeFromSparkVault(uint256 mintAmount, uint256 takeAmount) external {
+    function testFuzz_takeFromSparkVault(uint256 depositAmount, uint256 takeAmount) external {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 10_000_000_000e18, uint256(10_000_000_000e18) / 1 days);
 
-        mintAmount = _bound(mintAmount, 1e18, 10_000_000_000e18);
-        takeAmount = _bound(mintAmount, 1e18, mintAmount);
+        depositAmount = _bound(depositAmount, 1e18, 10_000_000_000e18);
+        takeAmount    = _bound(depositAmount, 1e18, depositAmount);
 
-        deal(address(asset), address(user), mintAmount);
+        deal(address(asset), address(user), depositAmount);
         vm.startPrank(user);
-        asset.approve(address(sparkVault), mintAmount);
-        sparkVault.mint(mintAmount, address(user));
+        asset.approve(address(sparkVault), depositAmount);
+        sparkVault.deposit(depositAmount, address(user));
         vm.stopPrank();
 
         TestState memory testState = TestState({
             rateLimit:        10_000_000_000e18,
             assetAlm:         0,
-            assetVault:       mintAmount,
-            vaultTotalAssets: mintAmount,
-            vaultTotalSupply: mintAmount
+            assetVault:       depositAmount,
+            vaultTotalAssets: depositAmount,
+            vaultTotalSupply: depositAmount
         });
 
         _assertTestState(testState);
