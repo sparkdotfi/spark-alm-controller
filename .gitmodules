@@ -46,3 +46,4 @@
 [submodule "lib/spark-vaults-v2"]
 	path = lib/spark-vaults-v2
 	url = https://github.com/sparkdotfi/spark-vaults-v2
+	branch = dev
