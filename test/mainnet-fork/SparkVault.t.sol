@@ -10,66 +10,96 @@ import "./ForkTestBase.t.sol";
 
 contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
-    struct TestState {
+    struct UnitTestState {
         uint256 rateLimit;
-        uint256 assetAlm;
-        uint256 assetVault;
+        uint256 usdcAlm;
+        uint256 usdcVault;
         uint256 vaultTotalAssets;
         uint256 vaultTotalSupply;
     }
 
+    struct E2ETestState {
+        uint256 takeRateLimit;
+        uint256 transferRateLimit;
+        uint256 usdcAlm;
+        uint256 usdcVault;
+        uint256 vaultTotalAssets;
+        uint256 vaultTotalSupply;
+    }
+
+    bytes32 LIMIT_ASSET_TRANSFER   = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
-    // TODO: Use a real on-chain contract.
-    // NOTE: The mock asset has 18 decimals.
-    MockERC20  asset;
     SparkVault sparkVault;
 
     address admin  = makeAddr("admin");
     address setter = makeAddr("setter");
     address user   = makeAddr("user");
 
-    bytes32 key;
+    bytes32 takeKey;
+    bytes32 transferKey;
 
     function setUp() public override {
         super.setUp();
-
-        asset = new MockERC20();
 
         sparkVault = SparkVault(
             address(new ERC1967Proxy(
                 address(new SparkVault()),
                 abi.encodeCall(
                     SparkVault.initialize,
-                    (address(asset), "Spark Savings USDC V2", "spUSDC", admin)
+                    (address(usdc), "Spark Savings USDC V2", "spUSDC", admin)
                 )
             ))
         );
 
         vm.startPrank(admin);
-        sparkVault.grantRole(sparkVault.TAKER_ROLE(), address(almProxy));
+        sparkVault.grantRole(sparkVault.TAKER_ROLE(),  address(almProxy));
+        sparkVault.grantRole(sparkVault.SETTER_ROLE(), address(setter));
         vm.stopPrank();
 
-        key = RateLimitHelpers.makeAssetKey(
+        takeKey = RateLimitHelpers.makeAssetKey(
             LIMIT_SPARK_VAULT_TAKE,
             address(sparkVault)
         );
 
-        vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
+        transferKey = RateLimitHelpers.makeAssetDestinationKey(
+            LIMIT_ASSET_TRANSFER,
+            address(usdc),
+            address(sparkVault)
+        );
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(takeKey,     1_000_000e18, uint256(1_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(transferKey, 1_000_000e18, uint256(1_000_000e18) / 1 days);
+        vm.stopPrank();
     }
 
-    function _assertTestState(TestState memory state, uint256 tolerance) internal view {
-        assertApproxEqAbs(rateLimits.getCurrentRateLimit(key),  state.rateLimit,        tolerance, "rateLimit");
-        assertApproxEqAbs(asset.balanceOf(address(almProxy)),   state.assetAlm,         tolerance, "assetAlm");
-        assertApproxEqAbs(asset.balanceOf(address(sparkVault)), state.assetVault,       tolerance, "assetVault");
-        assertApproxEqAbs(sparkVault.totalAssets(),             state.vaultTotalAssets, tolerance, "vaultTotalAssets");
-        assertApproxEqAbs(sparkVault.totalSupply(),             state.vaultTotalSupply, tolerance, "vaultTotalSupply");
+    function _assertUnitTestState(UnitTestState memory state, uint256 tolerance) internal view {
+        assertApproxEqAbs(rateLimits.getCurrentRateLimit(takeKey), state.rateLimit,        tolerance, "rateLimit");
+        assertApproxEqAbs(usdc.balanceOf(address(almProxy)),       state.usdcAlm,          tolerance, "usdcAlm");
+        assertApproxEqAbs(usdc.balanceOf(address(sparkVault)),     state.usdcVault,        tolerance, "usdcVault");
+        assertApproxEqAbs(sparkVault.totalAssets(),                state.vaultTotalAssets, tolerance, "vaultTotalAssets");
+        assertApproxEqAbs(sparkVault.totalSupply(),                state.vaultTotalSupply, tolerance, "vaultTotalSupply");
     }
 
-    function _assertTestState(TestState memory state) internal view {
-        _assertTestState(state, 0);
+    function _assertE2EState(E2ETestState memory state, uint256 tolerance) internal view {
+        assertApproxEqAbs(rateLimits.getCurrentRateLimit(takeKey),      state.takeRateLimit,     tolerance, "takeRateLimit");
+        assertApproxEqAbs(rateLimits.getCurrentRateLimit(transferKey), state.transferRateLimit, tolerance, "transferRateLimit");
+
+        assertApproxEqAbs(usdc.balanceOf(address(almProxy)),   state.usdcAlm,          tolerance, "usdcAlm");
+        assertApproxEqAbs(usdc.balanceOf(address(sparkVault)), state.usdcVault,        tolerance, "usdcVault");
+        assertApproxEqAbs(sparkVault.totalAssets(),            state.vaultTotalAssets, tolerance, "vaultTotalAssets");
+        assertApproxEqAbs(sparkVault.totalSupply(),            state.vaultTotalSupply, tolerance, "vaultTotalSupply");
     }
+
+    function _assertUnitTestState(UnitTestState memory state) internal view {
+        _assertUnitTestState(state, 0);
+    }
+
+    function _assertE2EState(E2ETestState memory state) internal view {
+        _assertE2EState(state, 0);
+    }
+
 }
 
 contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestBase {
@@ -85,7 +115,7 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
 
     function test_takeFromSparkVault_zeroMaxAmount() external {
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 0, 0);
+        rateLimits.setRateLimitData(takeKey, 0, 0);
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -93,14 +123,14 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
     }
 
     function test_takeFromSparkVault_rateLimitBoundary() external {
-        deal(address(asset), address(user), 10_000_000e18);
+        deal(address(usdc), address(user), 10_000_000e18);
         vm.startPrank(user);
-        asset.approve(address(sparkVault), 10_000_000e18);
+        usdc.approve(address(sparkVault), 10_000_000e18);
         sparkVault.deposit(10_000_000e18, address(user));
         vm.stopPrank();
 
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(takeKey, 10_000_000e18, uint256(10_000_000e18) / 1 days);
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -115,30 +145,30 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
 contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSparkVaultTestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
-        deal(address(asset), address(user), 10_000_000e18);
+        deal(address(usdc), address(user), 10_000_000e18);
         vm.startPrank(user);
-        asset.approve(address(sparkVault), 10_000_000e18);
+        usdc.approve(address(sparkVault), 10_000_000e18);
         sparkVault.deposit(10_000_000e18, address(user));
         vm.stopPrank();
 
-        TestState memory testState = TestState({
+        UnitTestState memory testState = UnitTestState({
             rateLimit:        1_000_000e18,
-            assetAlm:         0,
-            assetVault:       10_000_000e18,
+            usdcAlm:          0,
+            usdcVault:        10_000_000e18,
             vaultTotalAssets: 10_000_000e18,
             vaultTotalSupply: 10_000_000e18
         });
 
-        _assertTestState(testState);
+        _assertUnitTestState(testState);
 
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e18);
 
-        testState.rateLimit  -= 1_000_000e18;  // Rate limit goes down
-        testState.assetAlm   += 1_000_000e18;  // The almProxy receives the taken amount
-        testState.assetVault -= 1_000_000e18;  // The vault's asset balance decreases
+        testState.rateLimit -= 1_000_000e18;  // Rate limit goes down
+        testState.usdcAlm   += 1_000_000e18;  // The almProxy receives the taken amount
+        testState.usdcVault -= 1_000_000e18;  // The vault's usdc balance decreases
 
-        _assertTestState(testState);
+        _assertUnitTestState(testState);
 
         skip(1 hours);
 
@@ -148,16 +178,16 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         testState.rateLimit += rateLimitIncreaseInOneHour;
 
-        _assertTestState(testState);
+        _assertUnitTestState(testState);
 
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
 
-        testState.rateLimit  -= rateLimitIncreaseInOneHour;  // Rate limit goes down
-        testState.assetAlm   += rateLimitIncreaseInOneHour;  // The almProxy receives the taken amount
-        testState.assetVault -= rateLimitIncreaseInOneHour;  // The vault's asset balance decreases
+        testState.rateLimit -= rateLimitIncreaseInOneHour;  // Rate limit goes down
+        testState.usdcAlm   += rateLimitIncreaseInOneHour;  // The almProxy receives the taken amount
+        testState.usdcVault -= rateLimitIncreaseInOneHour;  // The vault's usdc balance decreases
 
-        _assertTestState(testState);
+        _assertUnitTestState(testState);
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -165,37 +195,50 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
     }
 
     function testFuzz_takeFromSparkVault(uint256 depositAmount, uint256 takeAmount) external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 10_000_000_000e18, uint256(10_000_000_000e18) / 1 days);
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(takeKey,     10_000_000_000e18, uint256(10_000_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(transferKey, 10_000_000_000e18, uint256(10_000_000_000e18) / 1 days);
+        vm.stopPrank();
 
         depositAmount = _bound(depositAmount, 1e18, 10_000_000_000e18);
         takeAmount    = _bound(depositAmount, 1e18, depositAmount);
 
-        deal(address(asset), address(user), depositAmount);
+        deal(address(usdc), address(user), depositAmount);
         vm.startPrank(user);
-        asset.approve(address(sparkVault), depositAmount);
+        usdc.approve(address(sparkVault), depositAmount);
         sparkVault.deposit(depositAmount, address(user));
         vm.stopPrank();
 
-        TestState memory testState = TestState({
+        UnitTestState memory testState = UnitTestState({
             rateLimit:        10_000_000_000e18,
-            assetAlm:         0,
-            assetVault:       depositAmount,
+            usdcAlm:          0,
+            usdcVault:        depositAmount,
             vaultTotalAssets: depositAmount,
             vaultTotalSupply: depositAmount
         });
 
-        _assertTestState(testState);
+        _assertUnitTestState(testState);
 
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
 
-        testState.rateLimit  -= takeAmount;  // Rate limit goes down
-        testState.assetAlm   += takeAmount;  // The almProxy receives the taken amount
-        testState.assetVault -= takeAmount;  // The vault's asset balance decreases
+        testState.rateLimit -= takeAmount;  // Rate limit goes down
+        testState.usdcAlm   += takeAmount;  // The almProxy receives the taken amount
+        testState.usdcVault -= takeAmount;  // The vault's usdc balance decreases
 
-        _assertTestState(testState);
+        _assertUnitTestState(testState);
     }
 
 }
 
+contract MainnetControllerTakeFromSparkVaultE2ETests is MainnetControllerTakeFromSparkVaultTestBase {
+
+    function test_takeFromSparkVault_e2e() external {
+        deal(address(usdc), address(user), 10_000_000e18);
+        vm.startPrank(user);
+        usdc.approve(address(sparkVault), 10_000_000e18);
+        sparkVault.deposit(10_000_000e18, address(user));
+        vm.stopPrank();
+    }
+
+}
