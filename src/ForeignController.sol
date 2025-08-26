@@ -64,6 +64,7 @@ contract ForeignController is AccessControl {
     bytes32 public constant LIMIT_4626_WITHDRAW      = keccak256("LIMIT_4626_WITHDRAW");
     bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_ASSET_TRANSFER     = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
@@ -151,6 +152,25 @@ contract ForeignController is AccessControl {
     function removeRelayer(address relayer) external onlyRole(FREEZER) {
         _revokeRole(RELAYER, relayer);
         emit RelayerRemoved(relayer);
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer ERC20 functions                                                                ***/
+    /**********************************************************************************************/
+
+    function transferAsset(address asset, address destination, uint256 amount)
+        external
+        onlyRole(RELAYER)
+    {
+        _rateLimited(
+            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            amount
+        );
+
+        proxy.doCall(
+            asset,
+            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
+        );
     }
 
     /**********************************************************************************************/
@@ -255,7 +275,7 @@ contract ForeignController is AccessControl {
         );
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == true. Add integration testing for this case before 
+        //       approvalRequired == true. Add integration testing for this case before
         //       using in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
             _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
