@@ -375,37 +375,36 @@ contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
         foreignController.transferAsset(address(usdcBase), address(sparkVault), 9_400_000e6);
         vm.stopPrank();
 
-        assertEq(assets, 9_414_173.844477081922732043e18);  // ~414k in yield
+        assertEq(assets, 9_424_512.250438e6);  // ~414k in yield
 
-        uint256 almProfit = assets - 9_400_000e18;  // 9.4m owed to the vault
+        uint256 almProfit = assets - 9_400_000e6;  // 9.4m owed to the vault
 
-        // testState.transferRateLimit = 600_000e6;  // 10m - 9.4m
-        // testState.daiAlm            = almProfit;
-        // testState.usdcAlm           = 0;
-        // testState.usdcVault         = 10_400_000e6;
-        // testState.vaultAssetsOut    = 0;
+        testState.transferRateLimit = 600_000e6;  // 10m - 9.4m
+        testState.usdcAlm           = almProfit;
+        testState.usdcVault         = 10_400_000e6;
+        testState.vaultAssetsOut    = 0;
 
-        // _assertE2EState(testState);
+        _assertE2EState(testState);
 
-        // // Step 7: User withdraws all assets
+        // Step 7: User withdraws all assets
 
-        // vm.startPrank(user);
-        // sparkVault.withdraw(sparkVault.assetsOf(user), user, user);
-        // vm.stopPrank();
+        vm.startPrank(user);
+        sparkVault.withdraw(sparkVault.assetsOf(user), user, user);
+        vm.stopPrank();
 
-        // // Vault is empty and ALM system has some profit
-        // _assertE2EState(E2ETestState({
-        //     takeRateLimit:     10_000_000e6,
-        //     transferRateLimit: 600_000e6,
-        //     usdcAlm:           0,
-        //     usdcVault:         1,  // Rounding against user
-        //     vaultAssetsOut:    0,
-        //     vaultTotalAssets:  0,
-        //     vaultTotalSupply:  0
-        // }));
+        // Vault is empty and ALM system has some profit
+        _assertE2EState(E2ETestState({
+            takeRateLimit:     10_000_000e6,
+            transferRateLimit: 600_000e6,
+            usdcAlm:           almProfit,
+            usdcVault:         1,  // Rounding against user
+            vaultAssetsOut:    0,
+            vaultTotalAssets:  0,
+            vaultTotalSupply:  0
+        }));
 
-        // // User has all funds, and has earned a 4% APY on their deposit
-        // assertEq(usdcBase.balanceOf(user), 10_400_000e6 - 1);  // Rounding against user
+        // User has all funds, and has earned a 4% APY on their deposit
+        assertEq(usdcBase.balanceOf(user), 10_400_000e6 - 1);  // Rounding against user
     }
 
 }
