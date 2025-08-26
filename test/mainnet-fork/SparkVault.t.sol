@@ -203,8 +203,6 @@ contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
         uint256 vaultTotalSupply;
     }
 
-    address constant ATOKEN_USDS = 0xC02aB1A5eaA8d1B114EF786D9bde108cD4364359;
-
     address morphoDaiVault = Ethereum.MORPHO_VAULT_DAI_1;
 
     bytes32 LIMIT_4626_DEPOSIT     = keccak256("LIMIT_4626_DEPOSIT");
@@ -350,7 +348,7 @@ contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
         vm.startPrank(relayer);
         mainnetController.swapUSDCToUSDS(9_000_000e6);
         mainnetController.swapUSDSToDAI(9_000_000e18);
-        uint256 shares = mainnetController.depositERC4626(Ethereum.MORPHO_VAULT_DAI_1, 9_000_000e18);
+        uint256 shares = mainnetController.depositERC4626(address(morphoDaiVault), 9_000_000e18);
         sparkVault.setVsr(1.000000001243680656318820312e27);  // 4% APY
         vm.stopPrank();
 
@@ -373,7 +371,7 @@ contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
         // Step 6: Redeem assets from Morpho, swap DAI to USDC and transfer outstanding assets to the vault
 
         vm.startPrank(relayer);
-        uint256 assets = mainnetController.redeemERC4626(Ethereum.MORPHO_VAULT_DAI_1, shares);
+        uint256 assets = mainnetController.redeemERC4626(address(morphoDaiVault), shares);
         mainnetController.swapDAIToUSDS(9_400_000e18);
         mainnetController.swapUSDSToUSDC(9_400_000e6);
         mainnetController.transferAsset(address(usdc), address(sparkVault), 9_400_000e6);
