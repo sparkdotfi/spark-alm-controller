@@ -140,7 +140,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
         // 1/24th of the rate limit per hour
         uint256 rateLimitIncreaseInOneHour = uint256(1_000_000e6) / (1 days) * (1 hours);
-        assertEq(rateLimitIncreaseInOneHour, 41666.666666666666666400e18);
+        assertEq(rateLimitIncreaseInOneHour, 41666.666666e6);
 
         testState.rateLimit += rateLimitIncreaseInOneHour;
 
