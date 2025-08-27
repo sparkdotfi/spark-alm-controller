@@ -22,7 +22,7 @@ contract SUSDSTestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        mainnetController.setMaxSlippage(address(susds), 0.9999999e18);
+        mainnetController.setMaxSlippage(address(susds), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
 
         SUSDS_CONVERTED_ASSETS = susds.convertToAssets(1e18);

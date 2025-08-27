@@ -130,8 +130,10 @@ contract ForeignController is AccessControl {
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
 
-    function setMaxSlippage(address pool, uint256 maxSlippage) external {
-        _checkRole(DEFAULT_ADMIN_ROLE);
+    function setMaxSlippage(address pool, uint256 maxSlippage)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
     }

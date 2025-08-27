@@ -54,7 +54,7 @@ contract MapleTestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
         rateLimits.setRateLimitData(redeemKey,  1_000_000e6, uint256(1_000_000e6) / 1 days);
-        mainnetController.setMaxSlippage(address(syrup), 0.999999e18);
+        mainnetController.setMaxSlippage(address(syrup), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
 
         // Maple onboarding process

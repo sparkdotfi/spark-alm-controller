@@ -191,7 +191,7 @@ contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
-        foreignController.setMaxSlippage(address(morphoVault), 0.999999e18);
+        foreignController.setMaxSlippage(address(morphoVault), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
 
         // Refresh markets so calculations don't include interest

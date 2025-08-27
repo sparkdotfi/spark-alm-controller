@@ -55,8 +55,8 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 0.999999e18);
-        mainnetController.setMaxSlippage(ATOKEN_USDC, 0.999999e18);
+        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
 
         vm.stopPrank();
 

@@ -100,8 +100,8 @@ contract MorphoBaseTest is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
-        foreignController.setMaxSlippage(MORPHO_VAULT_USDS, 0.999999e18);
-        foreignController.setMaxSlippage(MORPHO_VAULT_USDC, 0.999999e18);
+        foreignController.setMaxSlippage(MORPHO_VAULT_USDS, 1e18 - 1e4);  // Rounding slippage
+        foreignController.setMaxSlippage(MORPHO_VAULT_USDC, 1e18 - 1e4);  // Rounding slippage
 
         vm.stopPrank();
     }

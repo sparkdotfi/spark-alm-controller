@@ -143,7 +143,7 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+        mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
 
         vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
@@ -151,7 +151,7 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+        mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
     function test_setMaxSlippage() public {
@@ -161,17 +161,17 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
 
         vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MaxSlippageSet(pool, 0.01e18);
-        mainnetController.setMaxSlippage(pool, 0.01e18);
+        emit MaxSlippageSet(pool, 0.98e18);
+        mainnetController.setMaxSlippage(pool, 0.98e18);
 
-        assertEq(mainnetController.maxSlippages(pool), 0.01e18);
+        assertEq(mainnetController.maxSlippages(pool), 0.98e18);
 
         vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MaxSlippageSet(pool, 0.02e18);
-        mainnetController.setMaxSlippage(pool, 0.02e18);
+        emit MaxSlippageSet(pool, 0.99e18);
+        mainnetController.setMaxSlippage(pool, 0.99e18);
 
-        assertEq(mainnetController.maxSlippages(pool), 0.02e18);
+        assertEq(mainnetController.maxSlippages(pool), 0.99e18);
     }
 
 }
@@ -206,7 +206,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        foreignController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+        foreignController.setMaxSlippage(makeAddr("pool"), 0.98e18);
 
         vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
@@ -214,7 +214,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
-        foreignController.setMaxSlippage(makeAddr("pool"), 0.01e18);
+        foreignController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
     function test_setMaxSlippage() public {
@@ -224,17 +224,17 @@ contract ForeignControllerAdminTests is UnitTestBase {
 
         vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit MaxSlippageSet(pool, 0.01e18);
-        foreignController.setMaxSlippage(pool, 0.01e18);
+        emit MaxSlippageSet(pool, 0.98e18);
+        foreignController.setMaxSlippage(pool, 0.98e18);
 
-        assertEq(foreignController.maxSlippages(pool), 0.01e18);
+        assertEq(foreignController.maxSlippages(pool), 0.98e18);
 
         vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit MaxSlippageSet(pool, 0.02e18);
-        foreignController.setMaxSlippage(pool, 0.02e18);
+        emit MaxSlippageSet(pool, 0.99e18);
+        foreignController.setMaxSlippage(pool, 0.99e18);
 
-        assertEq(foreignController.maxSlippages(pool), 0.02e18);
+        assertEq(foreignController.maxSlippages(pool), 0.99e18);
     }
 
     function test_setMintRecipient_unauthorizedAccount() public {

@@ -39,7 +39,7 @@ contract AaveV3BaseMarketTestBase is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
-        foreignController.setMaxSlippage(ATOKEN_USDC, 0.999999e18);  // TODO: Set all to 1e18 - 10
+        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
 
         vm.stopPrank();
 
