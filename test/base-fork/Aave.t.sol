@@ -74,7 +74,7 @@ contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
         foreignController.setMaxSlippage(ATOKEN_USDC, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/max-slippage-not-set");
+        vm.expectRevert("ForeignController/max-slippage-not-set");
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
     }
 
@@ -98,7 +98,7 @@ contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
         foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 + 1e6);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/slippage-too-high");
+        vm.expectRevert("ForeignController/slippage-too-high");
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
 
         vm.prank(Base.SPARK_EXECUTOR);

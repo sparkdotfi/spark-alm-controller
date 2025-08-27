@@ -325,7 +325,7 @@ contract ForeignController is AccessControl {
         rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
-        require(maxSlippages[token] != 0, "MainnetController/max-slippage-not-set");
+        require(maxSlippages[token] != 0, "ForeignController/max-slippage-not-set");
 
         // Note that whitelist is done by rate limits.
         IERC20 asset = IERC20(IERC4626(token).asset());
@@ -344,7 +344,7 @@ contract ForeignController is AccessControl {
 
         require(
             IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
-            "MainnetController/slippage-too-high"
+            "ForeignController/slippage-too-high"
         );
     }
 
@@ -405,7 +405,7 @@ contract ForeignController is AccessControl {
         onlyRole(RELAYER)
         rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
-        require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
+        require(maxSlippages[aToken] != 0, "ForeignController/max-slippage-not-set");
 
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
@@ -425,7 +425,7 @@ contract ForeignController is AccessControl {
 
         require(
             newATokens >= amount * maxSlippages[aToken] / 1e18,
-            "MainnetController/slippage-too-high"
+            "ForeignController/slippage-too-high"
         );
     }
 
