@@ -79,6 +79,10 @@ interface IVaultLike {
     function wipe(uint256 usdsAmount) external;
 }
 
+interface ISparkVaultLike {
+    function take(uint256 assetAmount) external;
+}
+
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -96,54 +100,55 @@ contract MainnetController is AccessControl {
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
 
-    bytes32 public constant FREEZER = keccak256("FREEZER");
-    bytes32 public constant RELAYER = keccak256("RELAYER");
+    bytes32 public FREEZER = keccak256("FREEZER");
+    bytes32 public RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_4626_DEPOSIT         = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public constant LIMIT_4626_WITHDRAW        = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public constant LIMIT_7540_DEPOSIT         = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public constant LIMIT_7540_REDEEM          = keccak256("LIMIT_7540_REDEEM");
-    bytes32 public constant LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public constant LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public constant LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public constant LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
-    bytes32 public constant LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
-    bytes32 public constant LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
-    bytes32 public constant LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
-    bytes32 public constant LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
-    bytes32 public constant LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
-    bytes32 public constant LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
-    bytes32 public constant LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
-    bytes32 public constant LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
-    bytes32 public constant LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
-    bytes32 public constant LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
-    bytes32 public constant LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
-    bytes32 public constant LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
-    bytes32 public constant LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
-    bytes32 public constant LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 public LIMIT_4626_DEPOSIT         = keccak256("LIMIT_4626_DEPOSIT");
+    bytes32 public LIMIT_4626_WITHDRAW        = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public LIMIT_7540_DEPOSIT         = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public LIMIT_7540_REDEEM          = keccak256("LIMIT_7540_REDEEM");
+    bytes32 public LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 public LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
+    bytes32 public LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 public LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 public LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
+    bytes32 public LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 public LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
+    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
+    bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
+    bytes32 public LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
+    bytes32 public LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
+    bytes32 public LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
 
-    uint256 internal constant CENTRIFUGE_REQUEST_ID = 0;
+    uint256 internal CENTRIFUGE_REQUEST_ID = 0;
 
-    address public immutable buffer;
+    address public buffer;
 
-    IALMProxy         public immutable proxy;
-    ICCTPLike         public immutable cctp;
-    IDaiUsdsLike      public immutable daiUsds;
-    IEthenaMinterLike public immutable ethenaMinter;
-    IPSMLike          public immutable psm;
-    IRateLimits       public immutable rateLimits;
-    ISSRedemptionLike public immutable superstateRedemption;
-    IVaultLike        public immutable vault;
+    IALMProxy         public proxy;
+    ICCTPLike         public cctp;
+    IDaiUsdsLike      public daiUsds;
+    IEthenaMinterLike public ethenaMinter;
+    IPSMLike          public psm;
+    IRateLimits       public rateLimits;
+    ISSRedemptionLike public superstateRedemption;
+    IVaultLike        public vault;
 
-    IERC20     public immutable dai;
-    IERC20     public immutable usds;
-    IERC20     public immutable usde;
-    IERC20     public immutable usdc;
-    IUSTBLike  public immutable ustb;
-    ISUSDELike public immutable susde;
+    IERC20     public dai;
+    IERC20     public usds;
+    IERC20     public usde;
+    IERC20     public usdc;
+    IUSTBLike  public ustb;
+    ISUSDELike public susde;
 
-    uint256 public immutable psmTo18ConversionFactor;
+    uint256 public psmTo18ConversionFactor;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -891,6 +896,21 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             farm,
             abi.encodeCall(IFarmLike.getReward, ())
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Spark Vault functions                                                                  ***/
+    /**********************************************************************************************/
+
+    function takeFromSparkVault(address sparkVault, uint256 assetAmount) external {
+        _checkRole(RELAYER);
+        _rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
+
+        // Take assets from the vault
+        proxy.doCall(
+            sparkVault,
+            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
         );
     }
 

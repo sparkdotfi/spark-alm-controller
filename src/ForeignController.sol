@@ -27,6 +27,10 @@ interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
 }
 
+interface ISparkVaultLike {
+    function take(uint256 assetAmount) external;
+}
+
 contract ForeignController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -59,9 +63,11 @@ contract ForeignController is AccessControl {
     bytes32 public constant LIMIT_4626_WITHDRAW      = keccak256("LIMIT_4626_WITHDRAW");
     bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_ASSET_TRANSFER     = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
+    bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
 
@@ -153,6 +159,25 @@ contract ForeignController is AccessControl {
     function removeRelayer(address relayer) external onlyRole(FREEZER) {
         _revokeRole(RELAYER, relayer);
         emit RelayerRemoved(relayer);
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer ERC20 functions                                                                ***/
+    /**********************************************************************************************/
+
+    function transferAsset(address asset, address destination, uint256 amount)
+        external
+        onlyRole(RELAYER)
+    {
+        _rateLimited(
+            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            amount
+        );
+
+        proxy.doCall(
+            asset,
+            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
+        );
     }
 
     /**********************************************************************************************/
@@ -471,6 +496,21 @@ contract ForeignController is AccessControl {
         );
     }
 
+    /**********************************************************************************************/
+    /*** Spark Vault functions                                                                  ***/
+    /**********************************************************************************************/
+
+    function takeFromSparkVault(address sparkVault, uint256 assetAmount)
+        external
+        onlyRole(RELAYER)
+        rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
+    {
+        // Take assets from the vault
+        proxy.doCall(
+            sparkVault,
+            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
+        );
+    }
 
     /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/
