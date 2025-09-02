@@ -57,12 +57,6 @@ interface IFarmLike {
     function getReward() external;
 }
 
-interface ISSRedemptionLike is IERC20 {
-    function calculateUsdcOut(uint256 ustbAmount)
-        external view returns (uint256 usdcOutAmount, uint256 usdPerUstbChainlinkRaw);
-    function redeem(uint256 ustbAmout) external;
-}
-
 interface ISUSDELike is IERC4626 {
     function cooldownAssets(uint256 usdeAmount) external;
     function cooldownShares(uint256 susdeAmount) external;
@@ -118,7 +112,6 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
     bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
-    bytes32 public LIMIT_SUPERSTATE_REDEEM    = keccak256("LIMIT_SUPERSTATE_REDEEM");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
     bytes32 public LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
@@ -138,7 +131,6 @@ contract MainnetController is AccessControl {
     IEthenaMinterLike public ethenaMinter;
     IPSMLike          public psm;
     IRateLimits       public rateLimits;
-    ISSRedemptionLike public superstateRedemption;
     IVaultLike        public vault;
 
     IERC20     public dai;
@@ -178,8 +170,7 @@ contract MainnetController is AccessControl {
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
 
-        ethenaMinter         = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
-        superstateRedemption = ISSRedemptionLike(Ethereum.SUPERSTATE_REDEMPTION);
+        ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
         susde = ISUSDELike(Ethereum.SUSDE);
         ustb  = IUSTBLike(Ethereum.USTB);
