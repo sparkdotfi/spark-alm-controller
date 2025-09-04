@@ -53,3 +53,23 @@ contract ALMProxy is IALMProxy, AccessControl {
     receive() external payable { }
 
 }
+
+contract ALMProxyFreezable is ALMProxy {
+
+    event ControllerRemoved(address indexed relayer);
+
+    bytes32 public constant FREEZER = keccak256("FREEZER");
+
+    constructor(address admin) ALMProxy(admin) {}
+
+    /**********************************************************************************************/
+    /*** Call functions                                                                         ***/
+    /**********************************************************************************************/
+
+    function removeController(address controller) external {
+        _checkRole(FREEZER);
+        _revokeRole(CONTROLLER, controller);
+        emit ControllerRemoved(controller);
+    }
+
+}
