@@ -20,7 +20,8 @@ contract LibraryWrapper {
         Init.ConfigAddressParams  memory configAddresses,
         Init.CheckAddressParams   memory checkAddresses,
         Init.MintRecipient[]      memory mintRecipients,
-        Init.LayerZeroRecipient[] memory layerZeroRecipients
+        Init.LayerZeroRecipient[] memory layerZeroRecipients,
+        Init.MaxSlippageParams[]  memory maxSlippageParams
     )
         external
     {
@@ -31,7 +32,8 @@ contract LibraryWrapper {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -40,7 +42,8 @@ contract LibraryWrapper {
         Init.ConfigAddressParams  memory configAddresses,
         Init.CheckAddressParams   memory checkAddresses,
         Init.MintRecipient[]      memory mintRecipients,
-        Init.LayerZeroRecipient[] memory layerZeroRecipients
+        Init.LayerZeroRecipient[] memory layerZeroRecipients,
+        Init.MaxSlippageParams[]  memory maxSlippageParams
     )
         external
     {
@@ -49,7 +52,8 @@ contract LibraryWrapper {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -125,6 +129,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
     Init.CheckAddressParams   checkAddresses;
     Init.MintRecipient[]      mintRecipients;
     Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.MaxSlippageParams[]  maxSlippageParams;
 
     function setUp() public override {
         super.setUp();
@@ -185,7 +190,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -201,7 +207,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -268,7 +275,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -287,7 +295,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -306,7 +315,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -323,7 +333,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
 
         vm.expectRevert(expectedError);
@@ -332,7 +343,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
     }
 
@@ -350,6 +362,7 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
     Init.CheckAddressParams   checkAddresses;
     Init.MintRecipient[]      mintRecipients;
     Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.MaxSlippageParams[]  maxSlippageParams;
 
     function setUp() public override {
         super.setUp();
@@ -407,7 +420,8 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
 
         assertEq(mainnetController.hasRole(mainnetController.FREEZER(), freezer), true);
@@ -468,6 +482,7 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
     Init.CheckAddressParams   checkAddresses;
     Init.MintRecipient[]      mintRecipients;
     Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.MaxSlippageParams[]  maxSlippageParams;
 
     MainnetController newController;
 
@@ -530,7 +545,8 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
 
         assertEq(newController.hasRole(newController.FREEZER(), freezer), true);

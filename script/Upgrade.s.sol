@@ -11,6 +11,8 @@ import { ControllerInstance }                   from "../deploy/ControllerInstan
 import { ForeignControllerInit as ForeignInit } from "../deploy/ForeignControllerInit.sol";
 import { MainnetControllerInit as MainnetInit } from "../deploy/MainnetControllerInit.sol";
 
+import { MainnetController } from "../src/MainnetController.sol";
+
 contract UpgradeMainnetController is Script {
 
     using stdJson     for string;
@@ -72,7 +74,16 @@ contract UpgradeMainnetController is Script {
             mintRecipient : bytes32(uint256(uint160(baseAlmProxy)))
         });
 
-        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        MainnetInit.MaxSlippageParams[] memory maxSlippageParams = new MainnetInit.MaxSlippageParams[](1);
+
+        address pool = inputConfig.readAddress(".USDT_SUSDS_curvePool");
+
+        maxSlippageParams[0] = MainnetInit.MaxSlippageParams({
+            pool        : pool,
+            maxSlippage : MainnetController(oldController).maxSlippages(pool)
+        });
+
+        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
 
         vm.stopBroadcast();
 

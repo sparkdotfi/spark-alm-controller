@@ -53,6 +53,11 @@ library MainnetControllerInit {
         bytes32 recipient;
     }
 
+    struct MaxSlippageParams {
+        address pool;
+        uint256 maxSlippage;
+    }
+
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
     /**********************************************************************************************/
@@ -66,7 +71,8 @@ library MainnetControllerInit {
         ConfigAddressParams  memory configAddresses,
         CheckAddressParams   memory checkAddresses,
         MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        LayerZeroRecipient[] memory layerZeroRecipients,
+        MaxSlippageParams[]  memory maxSlippageParams
     )
         internal
     {
@@ -77,7 +83,7 @@ library MainnetControllerInit {
 
         // Step 2: Initialize the controller
 
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
 
         // Step 3: Configure almProxy within the allocation system
 
@@ -92,11 +98,12 @@ library MainnetControllerInit {
         ConfigAddressParams  memory configAddresses,
         CheckAddressParams   memory checkAddresses,
         MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        LayerZeroRecipient[] memory layerZeroRecipients,
+        MaxSlippageParams[]  memory maxSlippageParams
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -123,7 +130,8 @@ library MainnetControllerInit {
         ConfigAddressParams  memory configAddresses,
         CheckAddressParams   memory checkAddresses,
         MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        LayerZeroRecipient[] memory layerZeroRecipients,
+        MaxSlippageParams[]  memory maxSlippageParams
     )
         private
     {
@@ -168,6 +176,12 @@ library MainnetControllerInit {
 
         for (uint256 i; i < layerZeroRecipients.length; ++i) {
             newController.setLayerZeroRecipient(layerZeroRecipients[i].destinationEndpointId, layerZeroRecipients[i].recipient);
+        }
+
+        // Step 5: Configure max slippage
+
+        for (uint256 i; i < maxSlippageParams.length; ++i) {
+            newController.setMaxSlippage(maxSlippageParams[i].pool, maxSlippageParams[i].maxSlippage);
         }
     }
 
