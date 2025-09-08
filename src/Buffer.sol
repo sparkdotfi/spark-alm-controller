@@ -5,7 +5,7 @@ import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token
 
 import { AccessControlEnumerable } from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-contract Buffer is AccessControlEnumerable {
+contract OBuffer is AccessControlEnumerable {
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -19,10 +19,10 @@ contract Buffer is AccessControlEnumerable {
     /*** Call functions                                                                         ***/
     /**********************************************************************************************/
 
-    function setAllowance(address asset, address spender, uint256 amountAllowance)
+    function setAllowance(address asset, address spender, uint256 amountToAllow)
         external onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        IERC20(asset).approve(spender, amountAllowance);
+        IERC20(asset).approve(spender, amountToAllow);
     }
 
     /**********************************************************************************************/

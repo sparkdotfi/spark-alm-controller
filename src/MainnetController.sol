@@ -9,8 +9,9 @@ import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
-import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
+import { IERC20 }         from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC20Metadata } from "openzeppelin-contracts/contracts/interfaces/IERC20Metadata.sol";
+import { IERC4626 }       from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
@@ -89,6 +90,7 @@ contract MainnetController is AccessControl {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
+    event OffchainSwapBufferSet(address indexed exchange, address indexed oldOBuffer, address indexed newOBuffer);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -151,8 +153,9 @@ contract MainnetController is AccessControl {
     // Offchain swap (also uses maxSlippages)
     mapping(address exchange => uint256 amountSent)    public offchainSwapLastSentDec36;
     mapping(address exchange => uint256 amountClaimed) public offchainSwapLastClaimedDec36;
+    mapping(address exchange => uint256 ratePerSec)    public offchainSwapRechargeRatesDec36;
     mapping(address exchange => uint256 timestamp)     public offchainSwapLastTimestamp;
-    mapping(address exchange => address buffer)        public offchainSwapExchangeToBuffer;
+    mapping(address exchange => address oBuffer)       public offchainSwapExchangeToOBuffer;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -916,16 +919,17 @@ contract MainnetController is AccessControl {
     /*** Offchain-swap functions                                                                ***/
     /**********************************************************************************************/
 
-    function setOffchainSwapBuffer(address exchange, address buffer) external {
+    function setOffchainSwapBuffer(address exchange, address oBuffer) external {
+        // NOTE: Using `oBuffer` here so we can avoid shadowing state variable `buffer`.
         _checkRole(DEFAULT_ADMIN_ROLE);
-        emit OffchainSwapBufferSet(exchange, offchainSwapExchangeToBuffer[exchange], buffer);
-        offchainSwapExchangeToBuffer[exchange] = buffer;
+        emit OffchainSwapBufferSet(exchange, offchainSwapExchangeToOBuffer[exchange], oBuffer);
+        offchainSwapExchangeToOBuffer[exchange] = oBuffer;
     }
 
     function offchainSwapSend(
         address exchange,
         address send,
-        uint256 amountToSend,
+        uint256 amountToSend
     )
         external payable
     {
@@ -933,51 +937,53 @@ contract MainnetController is AccessControl {
         _rateLimitedAsset(LIMIT_OFFCHAIN_SWAP, exchange, amountToSend);
 
         {
-            // Just to check that buffer exists
-            address buffer = offchainSwapExchangeToBuffer[exchange];
-            require(buffer != address(0), "MainnetController/buffer-not-set");
+            // Just to check that oBuffer exists
+            address oBuffer = offchainSwapExchangeToOBuffer[exchange];
+            require(oBuffer != address(0), "MainnetController/obuffer-not-set");
         }
 
         require(offchainSwapLastReturned(exchange), "MainnetController/last-swap-not-returned");
 
-        // NOTE: Reentrancy relevant here because no state changes have been made in this funciton yet.
-        proxy.doCall(
-            send,
-            abi.encodeCall(IERC20(send).transfer, (exchange, amountToSend))
-        );
-
-        uint256 amountToSendDec36 = amountToSend * (10 ** (36 - IERC20(send).decimals()));
+        uint256 amountToSendDec36 = amountToSend * (10 ** (36 - IERC20Metadata(send).decimals()));
 
         offchainSwapLastSentDec36[exchange]    = amountToSendDec36;
         offchainSwapLastClaimedDec36[exchange] = 0;
         offchainSwapLastTimestamp[exchange]    = block.timestamp;
 
-        emit OffchainSwap(exchange, send, amountToSend, amountToSendDec36, block.timestamp);
+        // NOTE: Reentrancy not relevant here because there are no state changes after this call
+        proxy.doCall(
+            send,
+            abi.encodeCall(IERC20(send).transfer, (exchange, amountToSend))
+        );
+
+        // TODO: Do we want event here?
+        // emit OffchainSwap(exchange, send, amountToSend, amountToSendDec36, block.timestamp);
     }
 
     function offchainSwapClaim(
-        address exchange
+        address exchange,
         address asset,
-        uint256 amountToClaim,
+        uint256 amountToClaim
     )
         external
     {
         _checkRole(RELAYER);
 
-        address buffer = offchainSwapExchangeToBuffer[exchange];
+        address oBuffer = offchainSwapExchangeToOBuffer[exchange];
         {
-            require(buffer != address(0), "MainnetController/invalid-exchange");
+            require(oBuffer != address(0), "MainnetController/invalid-exchange");
         }
 
-        // Transfer assets from the buffer to the proxy
-        // NOTE: Reentrancy not possible here because both are known ("dumb") contracts.
-        IERC20(asset).transferFrom(buffer, address(proxy), amountToClaim);
-
-        uint256 amountToClaimDec36 = amountToClaim* (10 ** (36 - IERC20(asset).decimals()));
+        uint256 amountToClaimDec36 = amountToClaim* (10 ** (36 - IERC20Metadata(asset).decimals()));
 
         offchainSwapLastClaimedDec36[exchange] += amountToClaimDec36;
 
-        emit OffchainSwapClaim(exchange, asset, amountToClaimoffchainSwapLastClaimedDec36[exchange]);
+        // Transfer assets from the oBuffer to the proxy
+        // NOTE: Reentrancy not possible here because both are known ("dumb") contracts.
+        IERC20(asset).transferFrom(oBuffer, address(proxy), amountToClaim);
+
+        // TODO: Do we want event here?
+        // emit OffchainSwapClaim(exchange, asset, amountToClaimDec36, offchainSwapLastClaimedDec36[exchange]);
     }
 
     function offchainSwapLastReturned(address exchange) public view returns (bool) {
@@ -986,7 +992,7 @@ contract MainnetController is AccessControl {
 
         uint256 claimedWithRechargeDec36 = claimedDec36
             + (block.timestamp - offchainSwapLastTimestamp[exchange])
-            * offchainSwapRechargeRatesDec36[exchange]
+            * offchainSwapRechargeRatesDec36[exchange];
 
         // TODO: Do we want to use `maxSlippages` here?
         return claimedWithRechargeDec36 >= sentDec36 * maxSlippages[exchange] / 1e18;
