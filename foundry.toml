@@ -18,6 +18,11 @@ remappings = [
     '@layerzerolabs/lz-evm-messagelib-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib/',
     'solidity-bytes-utils/=lib/solidity-bytes-utils/',
 ]
+libraries = [
+    "src/libraries/CCTPLib.sol:CCTPLib:0x29987eaedab79e1c76f59f7c17c0c4ab50601b0f",
+    "src/libraries/CurveLib.sol:CurveLib:0x12427b4718dca5b76fa2094a7b8c91be0ef068c7",
+    "src/libraries/PSMLib.sol:PSMLib:0xc65ef1f4fe9a78dc891df3e0cbc4625ba6f9f424"
+]
 
 [fuzz]
 runs = 1000
