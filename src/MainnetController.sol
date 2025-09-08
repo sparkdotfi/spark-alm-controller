@@ -981,7 +981,7 @@ contract MainnetController is AccessControl {
             require(oBuffer != address(0), "MainnetController/invalid-exchange");
         }
 
-        uint256 amountToClaimDec36 = amountToClaim* (10 ** (36 - IERC20Metadata(asset).decimals()));
+        uint256 amountToClaimDec36 = amountToClaim * (10 ** (36 - IERC20Metadata(asset).decimals()));
 
         offchainSwapLastClaimedDec36[exchange] += amountToClaimDec36;
 
@@ -1002,7 +1002,7 @@ contract MainnetController is AccessControl {
             * offchainSwapRechargeRatesDec36[exchange];
 
         // TODO: Do we want to use `maxSlippages` here?
-        return claimedWithRechargeDec36 >= sentDec36 * maxSlippages[exchange] / 1e18;
+        return sentDec36 * maxSlippages[exchange] / 1e18 <= claimedWithRechargeDec36;
     }
 
     /**********************************************************************************************/
