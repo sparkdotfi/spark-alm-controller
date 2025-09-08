@@ -107,10 +107,11 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
-    bytes32 public LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
-    bytes32 public LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 public LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public LIMIT_OFFCHAIN_SWAP        = keccak256("LIMIT_OFFCHAIN_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -902,6 +903,36 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             sparkVault,
             abi.encodeCall(ISparkVaultLike.take, (assetAmount))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Offchain-swap functions                                                                ***/
+    /**********************************************************************************************/
+
+    function offchainSwap(
+        address exchange,
+        address sent,
+        address received,
+        uint256 amount
+    )
+        external payable
+    {
+        _checkRole(RELAYER);
+        _rateLimitedAsset()
+
+        // Decode the rate limit key and amount from the data
+        ( bytes32 rateLimitKey, uint256 amount ) = abi.decode(
+            data[4:36 + 32],  // Skip the function selector
+            (bytes32, uint256)
+        );
+
+        _rateLimited(rateLimitKey, amount);
+
+        proxy.doCallWithValue{value: value}(
+            target,
+            data,
+            value
         );
     }
 
