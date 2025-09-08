@@ -420,6 +420,19 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         assertEq(mainnetController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
         assertEq(mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
 
+        assertEq(
+            mainnetController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
+            bytes32(0)
+        );
+
+        assertEq(
+            mainnetController.layerZeroRecipients(destinationEndpointId),
+            bytes32(0)
+        );
+
+        assertEq(mainnetController.maxSlippages(maxSlippageParams[0].pool), 0);
+        assertEq(mainnetController.maxSlippages(makeAddr("pool")),          0);
+
         assertEq(IVaultLike(vault).wards(controllerInst.almProxy), 0);
         assertEq(usds.allowance(buffer, controllerInst.almProxy),  0);
 
@@ -562,6 +575,19 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
         assertEq(newController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
         assertEq(newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
+
+        assertEq(
+            newController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
+            bytes32(0)
+        );
+
+        assertEq(
+            newController.layerZeroRecipients(destinationEndpointId),
+            bytes32(0)
+        );
+
+        assertEq(newController.maxSlippages(maxSlippageParams[0].pool), 0);
+        assertEq(newController.maxSlippages(makeAddr("pool")),          0);
 
         vm.startPrank(SPARK_PROXY);
         wrapper.upgradeController(
