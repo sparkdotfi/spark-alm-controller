@@ -91,6 +91,7 @@ contract MainnetController is AccessControl {
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
     event OffchainSwapBufferSet(address indexed exchange, address indexed oldOBuffer, address indexed newOBuffer);
+    event OffchainSwapRechargeRateSet(address indexed exchange, uint256 oldRatePerSecDec36, uint256 newRatePerSecDec36);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -151,11 +152,11 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // Offchain swap (also uses maxSlippages)
-    mapping(address exchange => uint256 amountSent)    public offchainSwapLastSentDec36;
-    mapping(address exchange => uint256 amountClaimed) public offchainSwapLastClaimedDec36;
-    mapping(address exchange => uint256 ratePerSec)    public offchainSwapRechargeRatesDec36;
-    mapping(address exchange => uint256 timestamp)     public offchainSwapLastTimestamp;
-    mapping(address exchange => address oBuffer)       public offchainSwapExchangeToOBuffer;
+    mapping(address exchange => uint256 amountSentDec36)    public offchainSwapLastSentDec36;
+    mapping(address exchange => uint256 amountClaimedDec36) public offchainSwapLastClaimedDec36;
+    mapping(address exchange => uint256 ratePerSecDec36)    public offchainSwapRechargeRatesDec36;
+    mapping(address exchange => uint256 timestamp)          public offchainSwapLastTimestamp;
+    mapping(address exchange => address oBuffer)            public offchainSwapExchangeToOBuffer;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -924,6 +925,12 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         emit OffchainSwapBufferSet(exchange, offchainSwapExchangeToOBuffer[exchange], oBuffer);
         offchainSwapExchangeToOBuffer[exchange] = oBuffer;
+    }
+
+    function setOffchainSwapRechargeRate(address exchange, uint256 ratePerSecDec36) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        emit OffchainSwapRechargeRateSet(exchange, offchainSwapRechargeRatesDec36[exchange], ratePerSecDec36);
+        offchainSwapRechargeRatesDec36[exchange] = ratePerSecDec36;
     }
 
     function offchainSwapSend(
