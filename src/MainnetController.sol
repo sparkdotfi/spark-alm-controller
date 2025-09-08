@@ -148,6 +148,12 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
+    // Offchain swap (also uses maxSlippages)
+    mapping(address exchange => uint256 amountSent)    public offchainSwapLastSentDec36;
+    mapping(address exchange => uint256 amountClaimed) public offchainSwapLastClaimedDec36;
+    mapping(address exchange => uint256 timestamp)     public offchainSwapLastTimestamp;
+    mapping(address exchange => address buffer)        public offchainSwapExchangeToBuffer;
+
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
@@ -910,7 +916,13 @@ contract MainnetController is AccessControl {
     /*** Offchain-swap functions                                                                ***/
     /**********************************************************************************************/
 
-    function offchainSwap(
+    function setOffchainSwapBuffer(address exchange, address buffer) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        emit OffchainSwapBufferSet(exchange, offchainSwapExchangeToBuffer[exchange], buffer);
+        offchainSwapExchangeToBuffer[exchange] = buffer;
+    }
+
+    function offchainSwapSend(
         address exchange,
         address send,
         uint256 amountToSend,
@@ -926,49 +938,58 @@ contract MainnetController is AccessControl {
             require(buffer != address(0), "MainnetController/buffer-not-set");
         }
 
-        require(lastOffchainSwapReturned(exchange), "MainnetController/last-swap-not-returned");
+        require(offchainSwapLastReturned(exchange), "MainnetController/last-swap-not-returned");
 
+        // NOTE: Reentrancy relevant here because no state changes have been made in this funciton yet.
         proxy.doCall(
             send,
             abi.encodeCall(IERC20(send).transfer, (exchange, amountToSend))
         );
 
-        lastOffchainSwapSent[exchange]      = amountToSend;
-        lastOffchainSwapReceived[exchange]  = 0;
-        lastOffchainSwapTimestamp[exchange] = block.timestamp;
+        uint256 amountToSendDec36 = amountToSend * (10 ** (36 - IERC20(send).decimals()));
 
-        // emit
+        offchainSwapLastSentDec36[exchange]    = amountToSendDec36;
+        offchainSwapLastClaimedDec36[exchange] = 0;
+        offchainSwapLastTimestamp[exchange]    = block.timestamp;
+
+        emit OffchainSwap(exchange, send, amountToSend, amountToSendDec36, block.timestamp);
     }
 
-    function claimOffchainSwapResult(
+    function offchainSwapClaim(
         address exchange
         address asset,
-        uint256 amountToReceive,
+        uint256 amountToClaim,
     )
         external
     {
         _checkRole(RELAYER);
 
         address buffer = offchainSwapExchangeToBuffer[exchange];
-        require(buffer != address(0), "MainnetController/invalid-exchange");
+        {
+            require(buffer != address(0), "MainnetController/invalid-exchange");
+        }
 
         // Transfer assets from the buffer to the proxy
-        IERC20(asset).transferFrom(buffer, address(proxy), amountToReceive);
+        // NOTE: Reentrancy not possible here because both are known ("dumb") contracts.
+        IERC20(asset).transferFrom(buffer, address(proxy), amountToClaim);
 
-        lastOffchainSwapReceived[exchange] += amountToReceive;
+        uint256 amountToClaimDec36 = amountToClaim* (10 ** (36 - IERC20(asset).decimals()));
 
-        // emit
+        offchainSwapLastClaimedDec36[exchange] += amountToClaimDec36;
+
+        emit OffchainSwapClaim(exchange, asset, amountToClaimoffchainSwapLastClaimedDec36[exchange]);
     }
 
-    function lastOffchainSwapReturned(address exchange) public view returns (bool) {
-        uint256 sent     = lastOffchainSwapSent[exchange];
-        uint256 received = lastOffchainSwapReceived[exchange];
+    function offchainSwapLastReturned(address exchange) public view returns (bool) {
+        uint256 sentDec36    = offchainSwapLastSentDec36[exchange];
+        uint256 claimedDec36 = offchainSwapLastClaimedDec36[exchange];
 
-        uint256 receivedWithRecharge = recived
-            + (block.timestamp - lastOffchainSwapTimestamp) * offchainSwapRechargeRates[exchange] / 1e18;
+        uint256 claimedWithRechargeDec36 = claimedDec36
+            + (block.timestamp - offchainSwapLastTimestamp[exchange])
+            * offchainSwapRechargeRatesDec36[exchange]
 
         // TODO: Do we want to use `maxSlippages` here?
-        return receivedWithRecharge >= sent * maxSlippages[exchange] / 1e18;
+        return claimedWithRechargeDec36 >= sentDec36 * maxSlippages[exchange] / 1e18;
     }
 
     /**********************************************************************************************/
