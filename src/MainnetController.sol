@@ -978,7 +978,7 @@ contract MainnetController is AccessControl {
 
         address oBuffer = offchainSwapExchangeToOBuffer[exchange];
         {
-            require(oBuffer != address(0), "MainnetController/invalid-exchange");
+            require(oBuffer != address(0), "MainnetController/obuffer-not-set");
         }
 
         uint256 amountToClaimDec36 = amountToClaim * (10 ** (36 - IERC20Metadata(asset).decimals()));
