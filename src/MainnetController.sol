@@ -114,6 +114,7 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public LIMIT_UNI_V4_DEPOSIT       = keccak256("LIMIT_UNI_V4_DEPOSIT");
     bytes32 public LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
