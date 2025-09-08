@@ -72,7 +72,8 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
             Init.ConfigAddressParams  memory configAddresses,
             Init.CheckAddressParams   memory checkAddresses,
             Init.MintRecipient[]      memory mintRecipients,
-            Init.LayerZeroRecipient[] memory layerZeroRecipients
+            Init.LayerZeroRecipient[] memory layerZeroRecipients,
+            Init.MaxSlippageParams[]  memory maxSlippageParams
         )
     {
         address[] memory relayers = new address[](1);
@@ -106,6 +107,13 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
         layerZeroRecipients[0] = Init.LayerZeroRecipient({
             destinationEndpointId : destinationEndpointId,
             recipient             : bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
+        });
+
+        maxSlippageParams = new Init.MaxSlippageParams[](1);
+
+        maxSlippageParams[0] = Init.MaxSlippageParams({
+            pool        : makeAddr("pool"),
+            maxSlippage : 0.99e18
         });
     }
 
@@ -153,7 +161,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, ) = _getDefaultParams();
+        ( configAddresses, checkAddresses, mintRecipients_,, ) = _getDefaultParams();
 
         // NOTE: This would need to be refactored to a for loop if more than one recipient
         mintRecipients.push(mintRecipients_[0]);
@@ -384,10 +392,13 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients_ = new Init.LayerZeroRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_ ) = _getDefaultParams();
+        Init.MaxSlippageParams[] memory maxSlippageParams_ = new Init.MaxSlippageParams[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_, maxSlippageParams_ ) = _getDefaultParams();
 
         mintRecipients.push(mintRecipients_[0]);
         layerZeroRecipients.push(layerZeroRecipients_[0]);
+        maxSlippageParams.push(maxSlippageParams_[0]);
 
         // Admin will be calling the library from its own address
         vm.etch(SPARK_PROXY, address(new LibraryWrapper()).code);
@@ -452,6 +463,16 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             mainnetController.layerZeroRecipients(destinationEndpointId),
             bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
         );
+
+        assertEq(
+            mainnetController.maxSlippages(maxSlippageParams[0].pool),
+            maxSlippageParams[0].maxSlippage
+        );
+
+        assertEq(
+            mainnetController.maxSlippages(makeAddr("pool")),
+            0.99e18
+        );
     }
 
     function test_pauseProxyInitAlmSystem() public {
@@ -493,10 +514,13 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients_ = new Init.LayerZeroRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_ ) = _getDefaultParams();
+        Init.MaxSlippageParams[] memory maxSlippageParams_ = new Init.MaxSlippageParams[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_, maxSlippageParams_ ) = _getDefaultParams();
 
         mintRecipients.push(mintRecipients_[0]);
         layerZeroRecipients.push(layerZeroRecipients_[0]);
+        maxSlippageParams.push(maxSlippageParams_[0]);
 
         newController = MainnetController(MainnetControllerDeploy.deployController({
             admin      : Ethereum.SPARK_PROXY,
@@ -576,6 +600,16 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(
             newController.layerZeroRecipients(destinationEndpointId),
             bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
+        );
+
+        assertEq(
+            newController.maxSlippages(maxSlippageParams[0].pool),
+            maxSlippageParams[0].maxSlippage
+        );
+
+        assertEq(
+            newController.maxSlippages(makeAddr("pool")),
+            0.99e18
         );
     }
 
