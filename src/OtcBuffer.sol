@@ -5,7 +5,7 @@ import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token
 
 import { AccessControlEnumerable } from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-contract OBuffer is AccessControlEnumerable {
+contract OtcBuffer is AccessControlEnumerable {
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/

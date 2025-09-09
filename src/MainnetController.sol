@@ -78,6 +78,17 @@ interface ISparkVaultLike {
     function take(uint256 assetAmount) external;
 }
 
+struct OtcSwap {
+    uint256 timestamp;
+    uint256 sent18;
+    uint256 claimed18;
+}
+
+struct OtcConfig {
+    address otcBuffer;
+    uint256 rechargeRatePerSec18;
+}
+
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -90,8 +101,8 @@ contract MainnetController is AccessControl {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
-    event OffchainSwapBufferSet(address indexed exchange, address indexed oldOBuffer, address indexed newOBuffer);
-    event OffchainSwapRechargeRateSet(address indexed exchange, uint256 oldRatePerSecDec36, uint256 newRatePerSecDec36);
+    event OtcBufferSet(address indexed exchange, address indexed oldOtcBuffer, address indexed newOtcBuffer);
+    event OtcRechargeRateSet(address indexed exchange, uint256 oldRatePerSec18, uint256 newRatePerSec18);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -152,11 +163,9 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // Offchain swap (also uses maxSlippages)
-    mapping(address exchange => uint256 amountSentDec36)    public offchainSwapLastSentDec36;
-    mapping(address exchange => uint256 amountClaimedDec36) public offchainSwapLastClaimedDec36;
-    mapping(address exchange => uint256 ratePerSecDec36)    public offchainSwapRechargeRatesDec36;
-    mapping(address exchange => uint256 timestamp)          public offchainSwapLastTimestamp;
-    mapping(address exchange => address oBuffer)            public offchainSwapExchangeToOBuffer;
+    mapping(address exchange  => OtcSwap   otcSwap)   public exchange2otcSwap;
+    mapping(address exchange  => OtcConfig otcConfig) public exchange2otcConfig;
+    mapping(address otcBuffer => address exchange)    public otcBuffer2exchange;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -920,17 +929,18 @@ contract MainnetController is AccessControl {
     /*** Offchain-swap functions                                                                ***/
     /**********************************************************************************************/
 
-    function setOffchainSwapBuffer(address exchange, address oBuffer) external {
-        // NOTE: Using `oBuffer` here so we can avoid shadowing state variable `buffer`.
+    function setOtcBuffer(address exchange, address otcBuffer) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
-        emit OffchainSwapBufferSet(exchange, offchainSwapExchangeToOBuffer[exchange], oBuffer);
-        offchainSwapExchangeToOBuffer[exchange] = oBuffer;
+        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
+        emit OtcBufferSet(exchange, otcConfig.otcBuffer, otcBuffer);
+        otcConfig.otcBuffer = otcBuffer;
     }
 
-    function setOffchainSwapRechargeRate(address exchange, uint256 ratePerSecDec36) external {
+    function setOtcRechargeRatePerSec(address exchange, uint256 rechargeRatePerSec18) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
-        emit OffchainSwapRechargeRateSet(exchange, offchainSwapRechargeRatesDec36[exchange], ratePerSecDec36);
-        offchainSwapRechargeRatesDec36[exchange] = ratePerSecDec36;
+        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
+        emit OtcRechargeRateSet(exchange, otcConfig.rechargeRatePerSec18, rechargeRatePerSec18);
+        otcConfig.rechargeRatePerSec18 = rechargeRatePerSec18;
     }
 
     function offchainSwapSend(
@@ -943,19 +953,23 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
         _rateLimitedAsset(LIMIT_OFFCHAIN_SWAP, exchange, amountToSend);
 
-        {
-            // Just to check that oBuffer exists
-            address oBuffer = offchainSwapExchangeToOBuffer[exchange];
-            require(oBuffer != address(0), "MainnetController/obuffer-not-set");
-        }
+        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
 
-        require(offchainSwapLastReturned(exchange), "MainnetController/last-swap-not-returned");
+        // Just to check that otcBuffer exists
+        require(otcConfig.otcBuffer != address(0), "MainnetController/otcBuffer-not-set");
 
-        uint256 amountToSendDec36 = amountToSend * (10 ** (36 - IERC20Metadata(send).decimals()));
+        require(otcLastReturned(exchange), "MainnetController/last-swap-not-returned");
 
-        offchainSwapLastSentDec36[exchange]    = amountToSendDec36;
-        offchainSwapLastClaimedDec36[exchange] = 0;
-        offchainSwapLastTimestamp[exchange]    = block.timestamp;
+        uint256 sent18 = amountToSend * 1e18 / IERC20Metadata(send).decimals();
+
+        exchange2otcSwap[exchange] = OtcSwap({
+            timestamp : block.timestamp,
+            sent18    : sent18,
+            claimed18 : 0
+        });
+
+
+
 
         // NOTE: Reentrancy not relevant here because there are no state changes after this call
         proxy.doCall(
@@ -964,7 +978,7 @@ contract MainnetController is AccessControl {
         );
 
         // TODO: Do we want event here?
-        // emit OffchainSwap(exchange, send, amountToSend, amountToSendDec36, block.timestamp);
+        // emit OtcSwap(exchange, send, amountToSend, amountToSend18, block.timestamp);
     }
 
     function offchainSwapClaim(
@@ -976,33 +990,37 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
-        address oBuffer = offchainSwapExchangeToOBuffer[exchange];
-        {
-            require(oBuffer != address(0), "MainnetController/obuffer-not-set");
-        }
+        OtcSwap   storage otcSwap   = exchange2otcSwap[exchange];
+        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
 
-        uint256 amountToClaimDec36 = amountToClaim * (10 ** (36 - IERC20Metadata(asset).decimals()));
+        address otcBuffer = otcConfig.otcBuffer;
+        require(otcBuffer != address(0), "MainnetController/otcBuffer-not-set");
 
-        offchainSwapLastClaimedDec36[exchange] += amountToClaimDec36;
+        // NOTE: This will lose precision for tokens with >18 decimals.
+        uint256 amountToClaim18 = amountToClaim * 1e18 / IERC20Metadata(asset).decimals();
 
-        // Transfer assets from the oBuffer to the proxy
-        // NOTE: Reentrancy not possible here because both are known ("dumb") contracts.
-        IERC20(asset).transferFrom(oBuffer, address(proxy), amountToClaim);
+        otcSwap.claimed18 += amountToClaim18;
+
+        // Transfer assets from the otcBuffer to the proxy
+        // NOTE: Reentrancy not possible here because both are known contracts.
+        // NOTE: We are not using SafeERC20 here; tokens that do not revert will fail silently.
+        IERC20(asset).transferFrom(otcBuffer, address(proxy), amountToClaim);
 
         // TODO: Do we want event here?
-        // emit OffchainSwapClaim(exchange, asset, amountToClaimDec36, offchainSwapLastClaimedDec36[exchange]);
+        // emit OtcClaim(exchange, asset, amountToClaim18, otcSwap.claimed18);
     }
 
-    function offchainSwapLastReturned(address exchange) public view returns (bool) {
-        uint256 sentDec36    = offchainSwapLastSentDec36[exchange];
-        uint256 claimedDec36 = offchainSwapLastClaimedDec36[exchange];
+    function otcLastReturned(address exchange) public view returns (bool) {
+        OtcSwap   storage otcSwap   = exchange2otcSwap[exchange];
+        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
 
-        uint256 claimedWithRechargeDec36 = claimedDec36
-            + (block.timestamp - offchainSwapLastTimestamp[exchange])
-            * offchainSwapRechargeRatesDec36[exchange];
+
+        uint256 claimedWithRecharge18 = otcSwap.claimed18
+            + (block.timestamp - otcSwap.timestamp)
+            * otcConfig.rechargeRatePerSec18;
 
         // TODO: Do we want to use `maxSlippages` here?
-        return sentDec36 * maxSlippages[exchange] / 1e18 <= claimedWithRechargeDec36;
+        return otcSwap.sent18 * maxSlippages[exchange] / 1e18 <= otcSwap.claimed18;
     }
 
     /**********************************************************************************************/
