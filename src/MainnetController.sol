@@ -101,7 +101,7 @@ contract MainnetController is AccessControl {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
-    event OtcBufferSet(address indexed exchange, address indexed oldOtcBuffer, address indexed newOtcBuffer);
+    event OtcBufferSet(address indexed exchange, address indexed newOtcBuffer, address indexed oldOtcBuffer, address oldOtcExchange);
     event OtcRechargeRateSet(address indexed exchange, uint256 oldRatePerSec18, uint256 newRatePerSec18);
 
     /**********************************************************************************************/
@@ -165,7 +165,7 @@ contract MainnetController is AccessControl {
     // OTC swap (also uses maxSlippages)
     mapping(address exchange  => OtcSwap   otcSwap)   public exchange2otcSwap;
     mapping(address exchange  => OtcConfig otcConfig) public exchange2otcConfig;
-    mapping(address otcBuffer => address exchange)    public otcBuffer2exchange;
+    mapping(address otcBuffer => address   exchange)  public otcBuffer2exchange;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -931,9 +931,21 @@ contract MainnetController is AccessControl {
 
     function setOtcBuffer(address exchange, address otcBuffer) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
+        require(exchange  != address(0), "MainnetController/exchange-zero-address");
+        require(otcBuffer != address(0), "MainnetController/otcBuffer-zero-address");
+        require(exchange  != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
         OtcConfig storage otcConfig = exchange2otcConfig[exchange];
-        emit OtcBufferSet(exchange, otcConfig.otcBuffer, otcBuffer);
+
+        address oldOtcBuffer = otcConfig.otcBuffer; // This one can stay
+        address oldExchange  = otcBuffer2exchange[otcBuffer]; // This one should be 0x0
+
+        // No exchange should be pointing to the new otcBuffer
+        require(oldExchange == address(0), "MainnetController/otcBuffer-already-used");
+
         otcConfig.otcBuffer = otcBuffer;
+        otcBuffer2exchange[oldOtcBuffer] = address(0); // Clear old mapping
+        otcBuffer2exchange[otcBuffer] = exchange;
+        emit OtcBufferSet(exchange, otcBuffer, oldOtcBuffer, oldExchange);
     }
 
     function setOtcRechargeRatePerSec(address exchange, uint256 rechargeRatePerSec18) external {
@@ -952,6 +964,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, amountToSend);
+        require(amountToSend > 0, "MainnetController/amount-to-send-zero");
 
         OtcConfig storage otcConfig = exchange2otcConfig[exchange];
 
@@ -989,6 +1002,7 @@ contract MainnetController is AccessControl {
         external
     {
         _checkRole(RELAYER);
+        require(amountToClaim > 0, "MainnetController/amount-to-claim-zero");
 
         OtcSwap   storage otcSwap   = exchange2otcSwap[exchange];
         OtcConfig storage otcConfig = exchange2otcConfig[exchange];
