@@ -125,7 +125,7 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
     bytes32 public LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
-    bytes32 public LIMIT_OFFCHAIN_SWAP        = keccak256("LIMIT_OFFCHAIN_SWAP");
+    bytes32 public LIMIT_OTC_SWAP             = keccak256("LIMIT_OTC_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -162,7 +162,7 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
-    // Offchain swap (also uses maxSlippages)
+    // OTC swap (also uses maxSlippages)
     mapping(address exchange  => OtcSwap   otcSwap)   public exchange2otcSwap;
     mapping(address exchange  => OtcConfig otcConfig) public exchange2otcConfig;
     mapping(address otcBuffer => address exchange)    public otcBuffer2exchange;
@@ -926,7 +926,7 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Offchain-swap functions                                                                ***/
+    /*** OTC swap functions                                                                     ***/
     /**********************************************************************************************/
 
     function setOtcBuffer(address exchange, address otcBuffer) external {
@@ -943,7 +943,7 @@ contract MainnetController is AccessControl {
         otcConfig.rechargeRatePerSec18 = rechargeRatePerSec18;
     }
 
-    function offchainSwapSend(
+    function otcSwapSend(
         address exchange,
         address send,
         uint256 amountToSend
@@ -951,7 +951,7 @@ contract MainnetController is AccessControl {
         external payable
     {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_OFFCHAIN_SWAP, exchange, amountToSend);
+        _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, amountToSend);
 
         OtcConfig storage otcConfig = exchange2otcConfig[exchange];
 
@@ -981,7 +981,7 @@ contract MainnetController is AccessControl {
         // emit OtcSwap(exchange, send, amountToSend, amountToSend18, block.timestamp);
     }
 
-    function offchainSwapClaim(
+    function otcClaim(
         address exchange,
         address asset,
         uint256 amountToClaim
