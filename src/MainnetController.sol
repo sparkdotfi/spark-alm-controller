@@ -1020,7 +1020,7 @@ contract MainnetController is AccessControl {
             * otcConfig.rechargeRatePerSec18;
 
         // TODO: Do we want to use `maxSlippages` here?
-        return otcSwap.sent18 * maxSlippages[exchange] / 1e18 <= otcSwap.claimed18;
+        return otcSwap.sent18 * maxSlippages[exchange] / 1e18 <= claimedWithRecharge18;
     }
 
     /**********************************************************************************************/
