@@ -31,8 +31,6 @@ contract UpgradeMainnetController is Script {
         address newController = vm.envAddress("NEW_CONTROLLER");
         address oldController = vm.envAddress("OLD_CONTROLLER");
 
-        vm.startBroadcast();
-
         string memory inputConfig = ScriptTools.readInput(fileSlug);
 
         ControllerInstance memory controllerInst = ControllerInstance({
@@ -83,8 +81,8 @@ contract UpgradeMainnetController is Script {
             maxSlippage : MainnetController(oldController).maxSlippages(pool)
         });
 
+        vm.startBroadcast();
         MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
-
         vm.stopBroadcast();
 
         console.log("ALMProxy updated at         ", controllerInst.almProxy);
