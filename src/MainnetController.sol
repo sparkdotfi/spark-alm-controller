@@ -14,6 +14,13 @@ import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.s
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
+import {Actions}          from "v4-periphery/src/libraries/Actions.sol";
+import {Currency}         from "v4-core/src/libraries/Currency.sol";
+import {IHooks}           from "v4-periphery/src/interfaces/IHooks.sol";
+import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
+import {PoolId}           from "v4-core/src/libraries/PoolId.sol";
+import {PoolKey}          from "v4-core/src/libraries/PoolKey.sol";
+
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
@@ -132,6 +139,7 @@ contract MainnetController is AccessControl {
     IEthenaMinterLike public ethenaMinter;
     IPSMLike          public psm;
     IRateLimits       public rateLimits;
+    IPositionManager  public uniV4posm;
     IVaultLike        public vault;
 
     IERC20     public dai;
@@ -142,6 +150,8 @@ contract MainnetController is AccessControl {
     ISUSDELike public susde;
 
     uint256 public psmTo18ConversionFactor;
+
+    mapping(address hooks => bool allowed) public uniV4allowedHooks;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -159,7 +169,8 @@ contract MainnetController is AccessControl {
         address vault_,
         address psm_,
         address daiUsds_,
-        address cctp_
+        address cctp_,
+        address uniV4posm_
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
@@ -170,6 +181,7 @@ contract MainnetController is AccessControl {
         psm        = IPSMLike(psm_);
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
+        uniV4posm  = IPositionManager(uniV4posm_);
 
         ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
@@ -584,15 +596,66 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Uniswap V4 functions                                                               ***/
+    /*** Uniswap V4 functions                                                                   ***/
     /**********************************************************************************************/
 
     function addLiquidityUniV4(
-        
-
+        // region PoolKey
+        address token0,
+        address token1,
+        uint24  fee,
+        int24   tickSpacing,
+        address hooks,
+        // endregion
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity,   // amount of liquidity units to mint
+        uint256 amount0Max,  // maximum amount of currency0 caller is willing to pay
+        uint256 amount1Max,  // maximum amount of currency1 caller is willing to pay
     ) external {
         _checkRole(RELAYER);
-        revert("Not implemented");
+        // NOTE: Rate-limited at end of function after computing actual amounts used
+
+        // Encode actions and params
+        bytes   memory actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
+        bytes[] memory params  = new bytes[](2);
+
+        Currency currency0 = Currency.wrap(token0);
+        Currency currency1 = Currency.wrap(token1);
+        PoolKey  key       = PoolKey(currency0, currency1, fee, tickSpacing, IHooks(hook));
+        PoolId   id        = key.toId();
+
+        params[0] = abi.encode(key, tickLower, tickUpper, liquidity, amount0Max, amount1Max, almProxy, "");
+        params[1] = abi.encode(currency0, currency1);
+
+        // Submit Calls
+        // First, approve token0 and token1
+        proxy.doCall(
+            token0,
+            abi.encodeCall(IERC20(token0).approve, (address(uniV4posm), amount0Max))
+        );
+        proxy.doCall(
+            token1,
+            abi.encodeCall(IERC20(token1).approve, (address(uniV4posm), amount1Max))
+        );
+
+        proxy.doCall(
+            address(uniV4posm),
+            abi.encodeCall(IPositionManager.modifyLiquidities, abi.encode(actions, params), block.timestamp)
+        );
+
+        // Reset approval
+        proxy.doCall(
+            token0,
+            abi.encodeCall(IERC20(token0).approve, (address(uniV4posm), 0))
+        );
+        proxy.doCall(
+            token1,
+            abi.encodeCall(IERC20(token1).approve, (address(uniV4posm), 0))
+        );
+
+        bytes32 rateLimitKey = keccak256(abi.encode(LIMIT_UNI_V4_DEPOSIT, id));
+        _rateLimited(rateLimitKey, liquidity);
     }
 
     /**********************************************************************************************/
