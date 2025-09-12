@@ -43,3 +43,4 @@ remappings = [
 evm_version = "cancun"
 via_IR = false
 target_version = "0.8.25"
+optimizer = { enabled = true, runs = 1 }
