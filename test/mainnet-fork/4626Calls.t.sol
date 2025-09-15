@@ -22,6 +22,7 @@ contract SUSDSTestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
+        mainnetController.setMaxSlippage(address(susds), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
 
         SUSDS_CONVERTED_ASSETS = susds.convertToAssets(1e18);
@@ -60,6 +61,15 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(makeAddr("fake-token"), 1e18);
     }
 
+    function test_depositERC4626_zeroMaxSlippage() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(susds), 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/max-slippage-not-set");
+        mainnetController.depositERC4626(address(susds), 1e18);
+    }
+
     function test_depositERC4626_rateLimitBoundary() external {
         vm.startPrank(relayer);
         mainnetController.mintUSDS(5_000_000e18);
@@ -71,6 +81,24 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.depositERC4626(address(susds), 5_000_000e18 + 1);
 
+        mainnetController.depositERC4626(address(susds), 5_000_000e18);
+    }
+
+    function test_depositERC4626_slippageBoundary() external {
+        vm.prank(relayer);
+        mainnetController.mintUSDS(5_000_000e18);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(susds), 1e18);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/slippage-too-high");
+        mainnetController.depositERC4626(address(susds), 5_000_000e18);  // Rounding causes error
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(susds), 1e18 - 1);
+
+        vm.prank(relayer);
         mainnetController.depositERC4626(address(susds), 5_000_000e18);
     }
 
@@ -270,7 +298,7 @@ contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
             mainnetController.LIMIT_4626_WITHDRAW(),
             Ethereum.SUSDS
         );
-        
+
         vm.startPrank(relayer);
         mainnetController.mintUSDS(1e18);
         mainnetController.depositERC4626(address(susds), 1e18);

@@ -55,6 +55,9 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
+        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
+
         vm.stopPrank();
 
         startingAUSDCBalance = usdc.balanceOf(address(ausdc));
@@ -86,6 +89,15 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.depositAave(makeAddr("fake-token"), 1e18);
     }
 
+    function test_depositAave_zeroMaxSlippage() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(ATOKEN_USDS, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/max-slippage-not-set");
+        mainnetController.depositAave(ATOKEN_USDS, 1e18);
+    }
+
     function test_depositAave_usdsRateLimitedBoundary() external {
         deal(Ethereum.USDS, address(almProxy), 25_000_000e18 + 1);
 
@@ -104,6 +116,44 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.depositAave(ATOKEN_USDC, 25_000_000e6 + 1);
 
         mainnetController.depositAave(ATOKEN_USDC, 25_000_000e6);
+    }
+
+    function test_depositAave_usdsSlippageBoundary() external {
+        deal(Ethereum.USDS, address(almProxy), 5_000_000e18);
+
+        // Positive slippage because of no rounding error
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 + 1);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/slippage-too-high");
+        mainnetController.depositAave(ATOKEN_USDS, 5_000_000e18);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18);
+
+        vm.prank(relayer);
+        mainnetController.depositAave(ATOKEN_USDS, 5_000_000e18);
+    }
+
+    function test_depositAave_usdcSlippageBoundary() external {
+        deal(Ethereum.USDC, address(almProxy), 5_000_000e6);
+
+        // Positive slippage because of no rounding error
+        // 0.2e6 * 5_000_000e6 / 1e18 = 1
+        // (0.2e6 - 1) * 5_000_000e6 / 1e18 = 0
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/slippage-too-high");
+        mainnetController.depositAave(ATOKEN_USDC, 5_000_000e6);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6 - 1);
+
+        vm.prank(relayer);
+        mainnetController.depositAave(ATOKEN_USDC, 5_000_000e6);
     }
 
 }

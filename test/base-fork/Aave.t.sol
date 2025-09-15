@@ -39,6 +39,8 @@ contract AaveV3BaseMarketTestBase is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
+        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
+
         vm.stopPrank();
 
         startingAUSDCBalance = usdcBase.balanceOf(address(ausdc));
@@ -67,6 +69,15 @@ contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
         foreignController.depositAave(makeAddr("fake-token"), 1e18);
     }
 
+    function test_depositAave_zeroMaxSlippage() external {
+        vm.prank(Base.SPARK_EXECUTOR);
+        foreignController.setMaxSlippage(ATOKEN_USDC, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("ForeignController/max-slippage-not-set");
+        foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
+    }
+
     function test_depositAave_usdcRateLimitedBoundary() external {
         deal(Base.USDC, address(almProxy), 1_000_000e6 + 1);
 
@@ -74,6 +85,26 @@ contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
         vm.startPrank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6 + 1);
 
+        foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
+    }
+
+    function test_depositAave_usdcSlippageBoundary() external {
+        deal(Base.USDC, address(almProxy), 1_000_000e6);
+
+        // Positive slippage because of no rounding error
+        // 1e6 * 1_000_000e6 / 1e18 = 1
+        // (1e6 - 1) * 1_000_000e6 / 1e18 = 0
+        vm.prank(Base.SPARK_EXECUTOR);
+        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 + 1e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("ForeignController/slippage-too-high");
+        foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
+
+        vm.prank(Base.SPARK_EXECUTOR);
+        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 + 1e6 - 1);
+
+        vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
     }
 
