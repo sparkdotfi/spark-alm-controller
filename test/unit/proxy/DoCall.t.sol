@@ -195,6 +195,9 @@ contract ALMProxyFreezableTests is
         super.setUp();
 
         almProxy = new ALMProxyFreezable(admin);
+        // NOTE: The only issue is almProxy is still of type ALMProxy. I don't believe there is a
+        // way to solve this, so it will have to be type-cast whenever additional ALMProxyFreezable
+        // functionality is required
 
         vm.startPrank(admin);
         almProxy.grantRole(ALMProxyFreezable(payable(almProxy)).FREEZER(), freezer);

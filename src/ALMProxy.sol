@@ -56,7 +56,7 @@ contract ALMProxy is IALMProxy, AccessControl {
 
 contract ALMProxyFreezable is ALMProxy {
 
-    event ControllerRemoved(address indexed relayer);
+    event ControllerRemoved(address indexed controller);
 
     bytes32 public constant FREEZER = keccak256("FREEZER");
 
