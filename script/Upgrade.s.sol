@@ -49,12 +49,14 @@ contract UpgradeMainnetController is Script {
             oldController : oldController
         });
 
+        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging")) ? inputConfig.readAddress(".psmWrapper") : inputConfig.readAddress(".psm");
+
         MainnetInit.CheckAddressParams memory checkAddresses = MainnetInit.CheckAddressParams({
             admin      : inputConfig.readAddress(".admin"),
             proxy      : inputConfig.readAddress(".almProxy"),
             rateLimits : inputConfig.readAddress(".rateLimits"),
             vault      : inputConfig.readAddress(".allocatorVault"),
-            psm        : inputConfig.readAddress(".psm"),
+            psm        : psm,
             daiUsds    : inputConfig.readAddress(".daiUsds"),
             cctp       : inputConfig.readAddress(".cctpTokenMessenger")
         });
