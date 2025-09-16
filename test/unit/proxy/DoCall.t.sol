@@ -200,7 +200,7 @@ contract ALMProxyFreezableTests is
         // functionality is required
 
         vm.startPrank(admin);
-        almProxy.grantRole(ALMProxyFreezable(payable(almProxy)).FREEZER(), freezer);
+        almProxy.grantRole(FREEZER, freezer);
         almProxy.grantRole(CONTROLLER, controller);
         vm.stopPrank();
     }
