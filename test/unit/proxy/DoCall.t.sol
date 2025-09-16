@@ -196,8 +196,10 @@ contract ALMProxyFreezableTests is
 
         almProxy = new ALMProxyFreezable(admin);
 
-        vm.prank(admin);
-        almProxy.grantRole(ALMProxyFreezable.FREEZER, admin);
+        vm.startPrank(admin);
+        almProxy.grantRole(ALMProxyFreezable(payable(almProxy)).FREEZER(), freezer);
+        almProxy.grantRole(CONTROLLER, controller);
+        vm.stopPrank();
     }
 
 }
