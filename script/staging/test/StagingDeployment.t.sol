@@ -75,16 +75,13 @@ contract StagingDeploymentTestBase is Test {
     address admin;
 
     // Configuration data
-    string inputArbitrum;
     string inputBase;
     string inputMainnet;
 
     // Bridging
     Domain mainnet;
-    Domain arbitrum;
     Domain base;
 
-    Bridge cctpBridgeArbitrum;
     Bridge cctpBridgeBase;
 
     // Mainnet contracts
@@ -101,20 +98,6 @@ contract StagingDeploymentTestBase is Test {
     ALMProxy          almProxy;
     MainnetController mainnetController;
     RateLimits        rateLimits;
-
-    // Arbitrum contracts
-
-    address relayerSafeArbitrum;
-
-    PSM3 psmArbitrum;
-
-    IERC20 usdsArbitrum;
-    IERC20 susdsArbitrum;
-    IERC20 usdcArbitrum;
-
-    ALMProxy          arbitrumAlmProxy;
-    ForeignController arbitrumController;
-    RateLimits        arbitrumRateLimits;
 
     // Base contracts
 
@@ -138,15 +121,12 @@ contract StagingDeploymentTestBase is Test {
         vm.setEnv("FOUNDRY_ROOT_CHAINID", "1");
 
         // Domains and bridge
-        mainnet    = getChain("mainnet").createSelectFork(22233941);  // April 9, 2025
-        base       = getChain("base").createFork(28721799);           // April 9, 2025
-        arbitrum   = getChain("arbitrum_one").createFork(324683441);  // April 9, 2025
+        mainnet    = getChain("mainnet").createSelectFork(23376311);  // September 16, 2025
+        base       = getChain("base").createFork(35619788);           // September 16, 2025
 
-        cctpBridgeArbitrum = CCTPBridgeTesting.createCircleBridge(mainnet, arbitrum);
         cctpBridgeBase     = CCTPBridgeTesting.createCircleBridge(mainnet, base);
 
         // JSON data
-        inputArbitrum = ScriptTools.readInput("arbitrum_one-staging");
         inputBase     = ScriptTools.readInput("base-staging");
         inputMainnet  = ScriptTools.readInput("mainnet-staging");
 
@@ -170,24 +150,6 @@ contract StagingDeploymentTestBase is Test {
         almProxy          = ALMProxy(payable(inputMainnet.readAddress(".almProxy")));
         rateLimits        = RateLimits(inputMainnet.readAddress(".rateLimits"));
         mainnetController = MainnetController(inputMainnet.readAddress(".controller"));
-
-        // --- Arbitrum ---
-
-        // Roles
-        relayerSafeArbitrum = inputArbitrum.readAddress(".relayer");
-
-        // Tokens
-        usdsArbitrum  = IERC20(inputArbitrum.readAddress(".usds"));
-        susdsArbitrum = IERC20(inputArbitrum.readAddress(".susds"));
-        usdcArbitrum  = IERC20(inputArbitrum.readAddress(".usdc"));
-
-        // ALM system
-        arbitrumAlmProxy   = ALMProxy(payable(inputArbitrum.readAddress(".almProxy")));
-        arbitrumController = ForeignController(inputArbitrum.readAddress(".controller"));
-        arbitrumRateLimits = RateLimits(inputArbitrum.readAddress(".rateLimits"));
-
-        // PSM3
-        psmArbitrum = PSM3(inputArbitrum.readAddress(".psm"));
 
         // --- Base ---
 
@@ -586,85 +548,3 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
 
 }
 
-contract ArbitrumStagingDeploymentTests is StagingDeploymentTestBase {
-
-    using DomainHelpers     for *;
-    using CCTPBridgeTesting for *;
-
-    function setUp() public override {
-        super.setUp();
-
-        arbitrum.selectFork();
-    }
-
-    function test_transferCCTP() public {
-        arbitrum.selectFork();
-
-        uint256 startingBalance = usdcArbitrum.balanceOf(address(arbitrumAlmProxy));
-
-        mainnet.selectFork();
-
-        vm.startPrank(relayerSafe);
-        mainnetController.mintUSDS(10e18);
-        mainnetController.swapUSDSToUSDC(10e6);
-        mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
-        vm.stopPrank();
-
-        cctpBridgeArbitrum.relayMessagesToDestination(true);
-
-        assertEq(usdcArbitrum.balanceOf(address(arbitrumAlmProxy)), startingBalance + 10e6);
-    }
-
-    function test_transferToPSM() public {
-        arbitrum.selectFork();
-
-        uint256 startingBalance = usdcArbitrum.balanceOf(address(psmArbitrum));
-
-        mainnet.selectFork();
-
-        vm.startPrank(relayerSafe);
-        mainnetController.mintUSDS(10e18);
-        mainnetController.swapUSDSToUSDC(10e6);
-        mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
-        vm.stopPrank();
-
-        cctpBridgeArbitrum.relayMessagesToDestination(true);
-
-        uint256 startingShares = psmArbitrum.shares(address(arbitrumAlmProxy));
-
-        vm.startPrank(relayerSafeArbitrum);
-        arbitrumController.depositPSM(address(usdcArbitrum), 10e6);
-        vm.stopPrank();
-
-        assertEq(usdcArbitrum.balanceOf(address(psmArbitrum)), startingBalance + 10e6);
-
-        assertEq(psmArbitrum.shares(address(arbitrumAlmProxy)), startingShares + psmArbitrum.convertToShares(10e18));
-    }
-
-    function test_addAndRemoveFundsFromArbitrumPSM() public {
-        mainnet.selectFork();
-
-        vm.startPrank(relayerSafe);
-        mainnetController.mintUSDS(10e18);
-        mainnetController.swapUSDSToUSDC(10e6);
-        mainnetController.transferUSDCToCCTP(10e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
-        vm.stopPrank();
-
-        cctpBridgeArbitrum.relayMessagesToDestination(true);
-
-        vm.startPrank(relayerSafeArbitrum);
-        arbitrumController.depositPSM(address(usdcArbitrum), 10e6);
-        skip(1 days);
-        arbitrumController.withdrawPSM(address(usdcArbitrum), 10e6);
-        arbitrumController.transferUSDCToCCTP(10e6 - 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);  // Account for potential rounding
-        vm.stopPrank();
-
-        cctpBridgeArbitrum.relayMessagesToSource(true);
-
-        vm.startPrank(relayerSafe);
-        mainnetController.swapUSDCToUSDS(10e6 - 1);
-        mainnetController.burnUSDS((10e6 - 1) * 1e12);
-        vm.stopPrank();
-    }
-
-}

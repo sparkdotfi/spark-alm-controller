@@ -276,6 +276,8 @@ contract FullStagingDeploy is Script {
 
         MainnetControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new MainnetControllerInit.LayerZeroRecipient[](0);
 
+        MainnetControllerInit.MaxSlippageParams[] memory maxSlippageParams = new MainnetControllerInit.MaxSlippageParams[](0);
+
         MainnetControllerInit.initAlmSystem(
             vault,
             address(usds),
@@ -283,7 +285,8 @@ contract FullStagingDeploy is Script {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            maxSlippageParams
         );
 
         // Step 5: Transfer ownership of mock usdsJoin to the vault (able to mint usds)

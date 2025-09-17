@@ -11,6 +11,8 @@ import { ControllerInstance }                   from "../deploy/ControllerInstan
 import { ForeignControllerInit as ForeignInit } from "../deploy/ForeignControllerInit.sol";
 import { MainnetControllerInit as MainnetInit } from "../deploy/MainnetControllerInit.sol";
 
+import { MainnetController } from "../src/MainnetController.sol";
+
 contract UpgradeMainnetController is Script {
 
     using stdJson     for string;
@@ -28,8 +30,6 @@ contract UpgradeMainnetController is Script {
 
         address newController = vm.envAddress("NEW_CONTROLLER");
         address oldController = vm.envAddress("OLD_CONTROLLER");
-
-        vm.startBroadcast();
 
         string memory inputConfig = ScriptTools.readInput(fileSlug);
 
@@ -49,12 +49,16 @@ contract UpgradeMainnetController is Script {
             oldController : oldController
         });
 
+        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"))
+            ? inputConfig.readAddress(".psmWrapper")
+            : inputConfig.readAddress(".psm");
+
         MainnetInit.CheckAddressParams memory checkAddresses = MainnetInit.CheckAddressParams({
             admin      : inputConfig.readAddress(".admin"),
             proxy      : inputConfig.readAddress(".almProxy"),
             rateLimits : inputConfig.readAddress(".rateLimits"),
             vault      : inputConfig.readAddress(".allocatorVault"),
-            psm        : inputConfig.readAddress(".psm"),
+            psm        : psm,
             daiUsds    : inputConfig.readAddress(".daiUsds"),
             cctp       : inputConfig.readAddress(".cctpTokenMessenger")
         });
@@ -72,8 +76,17 @@ contract UpgradeMainnetController is Script {
             mintRecipient : bytes32(uint256(uint160(baseAlmProxy)))
         });
 
-        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        MainnetInit.MaxSlippageParams[] memory maxSlippageParams = new MainnetInit.MaxSlippageParams[](1);
 
+        address pool = inputConfig.readAddress(".USDT_SUSDS_curvePool");
+
+        maxSlippageParams[0] = MainnetInit.MaxSlippageParams({
+            pool        : pool,
+            maxSlippage : MainnetController(oldController).maxSlippages(pool)
+        });
+
+        vm.startBroadcast();
+        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
         vm.stopBroadcast();
 
         console.log("ALMProxy updated at         ", controllerInst.almProxy);
