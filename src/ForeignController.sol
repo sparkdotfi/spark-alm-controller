@@ -4,6 +4,8 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
+import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
@@ -18,8 +20,6 @@ import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import  "./interfaces/ILayerZero.sol";
-
-import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -48,9 +48,8 @@ contract ForeignController is AccessControl {
     );
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
-
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
-
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
@@ -78,6 +77,8 @@ contract ForeignController is AccessControl {
     IRateLimits public immutable rateLimits;
 
     IERC20 public immutable usdc;
+
+    mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
@@ -128,6 +129,14 @@ contract ForeignController is AccessControl {
     /**********************************************************************************************/
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
+
+    function setMaxSlippage(address pool, uint256 maxSlippage)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        maxSlippages[pool] = maxSlippage;
+        emit MaxSlippageSet(pool, maxSlippage);
+    }
 
     function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
         external
@@ -316,6 +325,8 @@ contract ForeignController is AccessControl {
         rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
+        require(maxSlippages[token] != 0, "ForeignController/max-slippage-not-set");
+
         // Note that whitelist is done by rate limits.
         IERC20 asset = IERC20(IERC4626(token).asset());
 
@@ -329,6 +340,11 @@ contract ForeignController is AccessControl {
                 abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
             ),
             (uint256)
+        );
+
+        require(
+            IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
+            "ForeignController/slippage-too-high"
         );
     }
 
@@ -389,8 +405,12 @@ contract ForeignController is AccessControl {
         onlyRole(RELAYER)
         rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
+        require(maxSlippages[aToken] != 0, "ForeignController/max-slippage-not-set");
+
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
+
+        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
         _approve(address(underlying), address(pool), amount);
@@ -399,6 +419,13 @@ contract ForeignController is AccessControl {
         proxy.doCall(
             address(pool),
             abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
+        );
+
+        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
+
+        require(
+            newATokens >= amount * maxSlippages[aToken] / 1e18,
+            "ForeignController/slippage-too-high"
         );
     }
 

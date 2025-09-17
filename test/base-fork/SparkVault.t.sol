@@ -276,6 +276,10 @@ contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
 
         rateLimits.setUnlimitedRateLimitData(morphoWithdrawKey);
 
+        // Step 4 (spell): Set maxSlippage for ERC4626 deposit
+
+        foreignController.setMaxSlippage(morphoUsdcVault, 1e18 - 1e4);  // Rounding slippage
+
         vm.stopPrank();
     }
 

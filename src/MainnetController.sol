@@ -282,6 +282,8 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
         _rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount);
 
+        require(maxSlippages[token] != 0, "MainnetController/max-slippage-not-set");
+
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC4626(token).asset());
 
@@ -295,6 +297,11 @@ contract MainnetController is AccessControl {
                 abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
             ),
             (uint256)
+        );
+
+        require(
+            IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
+            "MainnetController/slippage-too-high"
         );
     }
 
@@ -467,16 +474,27 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
         _rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount);
 
+        require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
+
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
         _approve(address(underlying), address(pool), amount);
 
+        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
+
         // Deposit underlying into Aave pool, proxy receives aTokens
         proxy.doCall(
             address(pool),
             abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
+        );
+
+        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
+
+        require(
+            newATokens >= amount * maxSlippages[aToken] / 1e18,
+            "MainnetController/slippage-too-high"
         );
     }
 
