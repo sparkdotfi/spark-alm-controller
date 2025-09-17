@@ -28,7 +28,9 @@ contract DeployMainnetFull is Script {
 
         string memory config = ScriptTools.loadConfig(fileSlug);
 
-        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging")) ? config.readAddress(".psmWrapper") : config.readAddress(".psm");
+        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"))
+            ? config.readAddress(".psmWrapper")
+            : config.readAddress(".psm");
 
         ControllerInstance memory instance = MainnetControllerDeploy.deployFull({
             admin   : config.readAddress(".admin"),
@@ -70,7 +72,9 @@ contract DeployMainnetController is Script {
 
         string memory config = ScriptTools.loadConfig(fileSlug);
 
-        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging")) ? config.readAddress(".psmWrapper") : config.readAddress(".psm");
+        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"))
+            ? config.readAddress(".psmWrapper")
+            : config.readAddress(".psm");
 
         address controller = MainnetControllerDeploy.deployController({
             admin      : config.readAddress(".admin"),
