@@ -187,21 +187,13 @@ contract ALMProxyFreezableTests is
 {
 
     function setUp() public override {
-        // At this point, `super.setUp()` just does three things:
-        //  ✻ Deploy ALMProxy
-        //  ✻ Grant CONTROLLER role to `controller`
-        //  ✻ Deploy MockTarget
-        // We are fine with all of these as long as we replace ALMProxy with ALMProxyFreezable (and
-        // perform the grantRole).
         super.setUp();
 
+        // Overwrite almProxy with ALMProxyFreezable to deomstrate equivalent functionality
         almProxy = new ALMProxyFreezable(admin);
-        // NOTE: The only issue is almProxy is still of type ALMProxy. I don't believe there is a
-        // way to solve this, so it will have to be type-cast whenever additional ALMProxyFreezable
-        // functionality is required
 
         vm.startPrank(admin);
-        almProxy.grantRole(FREEZER, freezer);
+        almProxy.grantRole(FREEZER,    freezer);
         almProxy.grantRole(CONTROLLER, controller);
         vm.stopPrank();
     }
