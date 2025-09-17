@@ -15,8 +15,7 @@ contract ALMProxyFreezable is ALMProxy {
     /*** Call functions                                                                         ***/
     /**********************************************************************************************/
 
-    function removeController(address controller) external {
-        _checkRole(FREEZER);
+    function removeController(address controller) external onlyRole(FREEZER) {
         _revokeRole(CONTROLLER, controller);
         emit ControllerRemoved(controller);
     }

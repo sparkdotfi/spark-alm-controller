@@ -98,10 +98,7 @@ contract ALMProxyFreezableRemoveControllerSuccessTests is ALMProxyFreezableRemov
             controller,
             CONTROLLER
         ));
-        almProxyFreezable.doCall(
-            address(almProxyFreezable),
-            abi.encodeCall(AccessControl.hasRole, (FREEZER, address(1)))
-        );
+        almProxyFreezable.doCall(target, data);
     }
 
 }
