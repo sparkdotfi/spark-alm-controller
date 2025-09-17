@@ -5,23 +5,44 @@ import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessCon
 
 import { ALMProxyFreezable } from "../../../src/ALMProxyFreezable.sol";
 
+import { MockTarget } from "../mocks/MockTarget.sol";
+
 import "../UnitTestBase.t.sol";
 
 contract ALMProxyFreezableRemoveControllerTestBase is UnitTestBase {
+
+    event ExampleEvent(
+        address indexed exampleAddress,
+        uint256 exampleValue,
+        uint256 exampleReturn,
+        address caller,
+        uint256 value
+    );
 
     event ControllerRemoved(address indexed relayer);
 
     ALMProxyFreezable almProxyFreezable;
 
-    address controller = makeAddr("controller");
+    address target;
+
+    address controller     = makeAddr("controller");
+    address exampleAddress = makeAddr("exampleAddress");
+
+    bytes data = abi.encodeWithSignature(
+        "exampleCall(address,uint256)",
+        exampleAddress,
+        42
+    );
 
     function setUp() public virtual {
         almProxyFreezable = new ALMProxyFreezable(admin);
 
         vm.startPrank(admin);
-        almProxyFreezable.grantRole(FREEZER, freezer);
+        almProxyFreezable.grantRole(FREEZER,    freezer);
         almProxyFreezable.grantRole(CONTROLLER, controller);
         vm.stopPrank();
+
+        target = address(new MockTarget());
     }
 
 }
@@ -50,13 +71,13 @@ contract ALMProxyFreezableRemoveControllerFailureTests is ALMProxyFreezableRemov
 contract ALMProxyFreezableRemoveControllerSuccessTests is ALMProxyFreezableRemoveControllerTestBase {
 
     function test_removeController() public {
-        // Before can call as controller
+        // ALM Proxy Freezable is msg.sender, target emits the event
+        vm.expectEmit(target);
+        emit ExampleEvent(exampleAddress, 42, 84, address(almProxyFreezable), 0);
         vm.prank(controller);
-        // We need to call a contract here. Calling a view function will still demonstrate the role check.
-        almProxyFreezable.doCall(
-            address(almProxyFreezable),
-            abi.encodeCall(AccessControl.hasRole, (FREEZER, address(1)))
-        );
+        bytes memory returnData = almProxyFreezable.doCall(target, data);
+
+        assertEq(abi.decode(returnData, (uint256)), 84);
 
         // Before has controller role
         assertTrue(almProxyFreezable.hasRole(CONTROLLER, controller));
