@@ -189,7 +189,7 @@ contract ALMProxyFreezableTests is
     function setUp() public override {
         super.setUp();
 
-        // Overwrite almProxy with ALMProxyFreezable to deomstrate equivalent functionality
+        // Overwrite almProxy with ALMProxyFreezable to demonstrate equivalent functionality
         almProxy = new ALMProxyFreezable(admin);
 
         vm.startPrank(admin);
