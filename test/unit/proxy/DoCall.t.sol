@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { ALMProxy, ALMProxyFreezable } from "../../../src/ALMProxy.sol";
+import { ALMProxy }          from "../../../src/ALMProxy.sol";
+import { ALMProxyFreezable } from "../../../src/ALMProxyFreezable.sol";
 
 import { MockTarget } from "../mocks/MockTarget.sol";
 

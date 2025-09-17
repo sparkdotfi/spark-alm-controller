@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-import { ALMProxyFreezable } from "../../../src/ALMProxy.sol";
+import { ALMProxyFreezable } from "../../../src/ALMProxyFreezable.sol";
 
 import "../UnitTestBase.t.sol";
 
