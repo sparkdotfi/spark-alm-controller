@@ -84,7 +84,7 @@ contract ALMProxyFreezableRemoveControllerSuccessTests is ALMProxyFreezableRemov
 
         // Freezer comes in and removes controller.
         vm.prank(freezer);
-        vm.expectEmit();
+        vm.expectEmit(address(almProxyFreezable));
         emit ControllerRemoved(controller);
         almProxyFreezable.removeController(controller);
 
