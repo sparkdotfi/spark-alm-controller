@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { ALMProxy } from "../../../src/ALMProxy.sol";
+import { ALMProxy }          from "../../../src/ALMProxy.sol";
+import { ALMProxyFreezable } from "../../../src/ALMProxyFreezable.sol";
 
 import { MockTarget } from "../mocks/MockTarget.sol";
 
@@ -30,7 +31,7 @@ contract ALMProxyCallTestBase is UnitTestBase {
         42
     );
 
-    function setUp() public {
+    function setUp() public virtual {
         almProxy = new ALMProxy(admin);
 
         vm.prank(admin);
@@ -172,6 +173,29 @@ contract ALMProxyDoDelegateCallTests is ALMProxyCallTestBase {
         bytes memory returnData = almProxy.doDelegateCall(target, data);
 
         assertEq(abi.decode(returnData, (uint256)), 84);
+    }
+
+}
+
+contract ALMProxyFreezableTests is
+    ALMProxyDoCallFailureTests,
+    ALMProxyDoCallTests,
+    ALMProxyDoCallWithValueFailureTests,
+    ALMProxyDoCallWithValueTests,
+    ALMProxyDoDelegateCallFailureTests,
+    ALMProxyDoDelegateCallTests
+{
+
+    function setUp() public override {
+        super.setUp();
+
+        // Overwrite almProxy with ALMProxyFreezable to demonstrate equivalent functionality
+        almProxy = new ALMProxyFreezable(admin);
+
+        vm.startPrank(admin);
+        almProxy.grantRole(FREEZER,    freezer);
+        almProxy.grantRole(CONTROLLER, controller);
+        vm.stopPrank();
     }
 
 }
