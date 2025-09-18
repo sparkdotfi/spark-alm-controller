@@ -78,15 +78,15 @@ interface ISparkVaultLike {
     function take(uint256 assetAmount) external;
 }
 
-struct OtcSwap {
-    uint256 timestamp;
+struct OTCSwap {
+    uint256 swapTimestamp;
     uint256 sent18;
     uint256 claimed18;
 }
 
-struct OtcConfig {
-    address otcBuffer;
-    uint256 rechargeRatePerSec18;
+struct OTCConfig {
+    address buffer;
+    uint256 rechargeRate18;
 }
 
 contract MainnetController is AccessControl {
@@ -101,8 +101,12 @@ contract MainnetController is AccessControl {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
-    event OtcBufferSet(address indexed exchange, address indexed newOtcBuffer, address indexed oldOtcBuffer);
-    event OtcRechargeRateSet(address indexed exchange, uint256 oldRatePerSec18, uint256 newRatePerSec18);
+    event OTCBufferSet(
+        address indexed exchange,
+        address indexed newOTCBuffer,
+        address indexed oldOTCBuffer
+    );
+    event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -163,8 +167,8 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // OTC swap (also uses maxSlippages)
-    mapping(address exchange  => OtcSwap   otcSwap)   public exchange2otcSwap;
-    mapping(address exchange  => OtcConfig otcConfig) public exchange2otcConfig;
+    mapping(address exchange => OTCSwap   otcSwap)   public otcSwaps;
+    mapping(address exchange => OTCConfig otcConfig) public otcConfigs;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -928,21 +932,21 @@ contract MainnetController is AccessControl {
     /*** OTC swap functions                                                                     ***/
     /**********************************************************************************************/
 
-    function setOtcBuffer(address exchange, address otcBuffer) external {
+    function setOTCBuffer(address exchange, address otcBuffer) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
         require(exchange  != address(0), "MainnetController/exchange-zero-address");
         require(exchange  != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
-        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
+        OTCConfig storage otcConfig = otcConfigs[exchange];
 
-        emit OtcBufferSet(exchange, otcBuffer, otcConfig.otcBuffer);
-        otcConfig.otcBuffer = otcBuffer;
+        emit OTCBufferSet(exchange, otcBuffer, otcConfig.buffer);
+        otcConfig.buffer = otcBuffer;
     }
 
-    function setOtcRechargeRatePerSec(address exchange, uint256 rechargeRatePerSec18) external {
+    function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
-        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
-        emit OtcRechargeRateSet(exchange, otcConfig.rechargeRatePerSec18, rechargeRatePerSec18);
-        otcConfig.rechargeRatePerSec18 = rechargeRatePerSec18;
+        OTCConfig storage otcConfig = otcConfigs[exchange];
+        emit OTCRechargeRateSet(exchange, otcConfig.rechargeRate18, rechargeRate18);
+        otcConfig.rechargeRate18 = rechargeRate18;
     }
 
     function otcSwapSend(
@@ -956,23 +960,20 @@ contract MainnetController is AccessControl {
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, amountToSend);
         require(amountToSend > 0, "MainnetController/amount-to-send-zero");
 
-        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
+        OTCConfig storage otcConfig = otcConfigs[exchange];
 
-        // Just to check that otcBuffer exists
-        require(otcConfig.otcBuffer != address(0), "MainnetController/otcBuffer-not-set");
+        // Just to check that OTC buffer exists
+        require(otcConfig.buffer != address(0), "MainnetController/otc-buffer-not-set");
 
         require(otcLastReturned(exchange), "MainnetController/last-swap-not-returned");
 
         uint256 sent18 = amountToSend * 1e18 / IERC20Metadata(send).decimals();
 
-        exchange2otcSwap[exchange] = OtcSwap({
-            timestamp : block.timestamp,
-            sent18    : sent18,
-            claimed18 : 0
+        otcSwaps[exchange] = OTCSwap({
+            swapTimestamp : block.timestamp,
+            sent18        : sent18,
+            claimed18     : 0
         });
-
-
-
 
         // NOTE: Reentrancy not relevant here because there are no state changes after this call
         proxy.doCall(
@@ -981,7 +982,7 @@ contract MainnetController is AccessControl {
         );
 
         // TODO: Do we want event here?
-        // emit OtcSwap(exchange, send, amountToSend, amountToSend18, block.timestamp);
+        // emit OTCSwap(exchange, send, amountToSend, amountToSend18, block.timestamp);
     }
 
     function otcClaim(
@@ -994,11 +995,11 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
         require(amountToClaim > 0, "MainnetController/amount-to-claim-zero");
 
-        OtcSwap   storage otcSwap   = exchange2otcSwap[exchange];
-        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
+        OTCSwap   storage otcSwap   = otcSwaps[exchange];
+        OTCConfig storage otcConfig = otcConfigs[exchange];
 
-        address otcBuffer = otcConfig.otcBuffer;
-        require(otcBuffer != address(0), "MainnetController/otcBuffer-not-set");
+        address otcBuffer = otcConfig.buffer;
+        require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
 
         // NOTE: This will lose precision for tokens with >18 decimals.
         uint256 amountToClaim18 = amountToClaim * 1e18 / IERC20Metadata(asset).decimals();
@@ -1011,20 +1012,19 @@ contract MainnetController is AccessControl {
         IERC20(asset).transferFrom(otcBuffer, address(proxy), amountToClaim);
 
         // TODO: Do we want event here?
-        // emit OtcClaim(exchange, asset, amountToClaim18, otcSwap.claimed18);
+        // emit OTCClaim(exchange, asset, amountToClaim18, otcSwap.claimed18);
     }
 
     function otcLastReturned(address exchange) public view returns (bool) {
-        OtcSwap   storage otcSwap   = exchange2otcSwap[exchange];
-        OtcConfig storage otcConfig = exchange2otcConfig[exchange];
+        OTCSwap   storage otcSwap   = otcSwaps[exchange];
+        OTCConfig storage otcConfig = otcConfigs[exchange];
 
 
         uint256 claimedWithRecharge18 = otcSwap.claimed18
-            + (block.timestamp - otcSwap.timestamp)
-            * otcConfig.rechargeRatePerSec18;
+            + (block.timestamp - otcSwap.swapTimestamp)
+            * otcConfig.rechargeRate18;
 
-        // TODO: Do we want to use `maxSlippages` here?
-        return otcSwap.sent18 * maxSlippages[exchange] / 1e18 <= claimedWithRecharge18;
+        return claimedWithRecharge18 >= otcSwap.sent18 * maxSlippages[exchange] / 1e18;
     }
 
     /**********************************************************************************************/
