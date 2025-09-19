@@ -43,10 +43,6 @@ interface IVatLike {
     function can(address, address) external view returns (uint256);
 }
 
-interface IMapleTokenExtended is IERC4626 {
-    function manager() external view returns (address);
-}
-
 interface IWithdrawalManagerLike {
     function processRedemptions(uint256 maxSharesToProcess) external;
 }
@@ -369,33 +365,6 @@ contract FullMainnetStagingDeploymentTests is StagingDeploymentTestBase {
 
         assertEq(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);
     }
-
-    // TODO: Get Maple team to whitelist staging almProxy for testing when needed
-    // function test_mintDepositWithdrawSyrupUsdc() public {
-    //     vm.startPrank(relayerSafe);
-    //     mainnetController.mintUSDS(10e18);
-    //     mainnetController.swapUSDSToUSDC(10e6);
-    //     vm.stopPrank();
-
-    //     uint256 startingBalance = usdc.balanceOf(address(almProxy));
-
-    //     vm.startPrank(relayerSafe);
-    //     uint256 shares = mainnetController.depositERC4626(Ethereum.SYRUP_USDC, 10e6);
-
-    //     skip(1 days);
-
-    //     mainnetController.requestMapleRedemption(Ethereum.SYRUP_USDC, shares);
-
-    //     IMapleTokenExtended syrup = IMapleTokenExtended(Ethereum.SYRUP_USDC);
-
-    //     IWithdrawalManagerLike withdrawManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
-    //     vm.startPrank(IPoolManagerLike(syrup.manager()).poolDelegate());
-    //     withdrawManager.processRedemptions(shares);
-    //     vm.stopPrank();
-
-    //     assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
-    // }
-
 
     /**********************************************************************************************/
     /**** Helper functions                                                                      ***/
