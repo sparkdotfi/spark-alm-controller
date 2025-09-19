@@ -167,8 +167,8 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // OTC swap (also uses maxSlippages)
-    mapping(address exchange => OTCSwapState otcSwap)   public otcSwaps;
-    mapping(address exchange => OTCConfig    otcConfig) public otcConfigs;
+    mapping(address exchange => OTCSwapState otcSwapState) public otcSwapStates;
+    mapping(address exchange => OTCConfig    otcConfig)    public otcConfigs;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -963,7 +963,7 @@ contract MainnetController is AccessControl {
 
         uint256 sent18 = amountToSend * 1e18 / IERC20Metadata(send).decimals();
 
-        otcSwaps[exchange] = OTCSwapState({
+        otcSwapStates[exchange] = OTCSwapState({
             swapTimestamp : block.timestamp,
             sent18        : sent18,
             claimed18     : 0
@@ -974,17 +974,14 @@ contract MainnetController is AccessControl {
             send,
             abi.encodeCall(IERC20(send).transfer, (exchange, amountToSend))
         );
-
-        // TODO: Do we want event here?
-        // emit OTCSwap(exchange, send, amountToSend, amountToSend18, block.timestamp);
     }
 
     function otcClaim(address exchange, address asset, uint256 amountToClaim) external {
         _checkRole(RELAYER);
         require(amountToClaim > 0, "MainnetController/amount-to-claim-zero");
 
-        OTCSwapState storage otcSwap   = otcSwaps[exchange];
-        OTCConfig    storage otcConfig = otcConfigs[exchange];
+        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
+        OTCConfig    storage otcConfig    = otcConfigs[exchange];
 
         address otcBuffer = otcConfig.buffer;
         require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
@@ -992,27 +989,23 @@ contract MainnetController is AccessControl {
         // NOTE: This will lose precision for tokens with >18 decimals.
         uint256 amountToClaim18 = amountToClaim * 1e18 / IERC20Metadata(asset).decimals();
 
-        otcSwap.claimed18 += amountToClaim18;
+        otcSwapState.claimed18 += amountToClaim18;
 
-        // Transfer assets from the otcBuffer to the proxy
+        // Transfer assets from the OTC buffer to the proxy
         // NOTE: Reentrancy not possible here because both are known contracts.
         // NOTE: We are not using SafeERC20 here; tokens that do not revert will fail silently.
         IERC20(asset).transferFrom(otcBuffer, address(proxy), amountToClaim);
-
-        // TODO: Do we want event here?
-        // emit OTCClaim(exchange, asset, amountToClaim18, otcSwap.claimed18);
     }
 
     function otcLastReturned(address exchange) public view returns (bool) {
-        OTCSwapState storage otcSwap   = otcSwaps[exchange];
-        OTCConfig    storage otcConfig = otcConfigs[exchange];
+        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
+        OTCConfig    storage otcConfig    = otcConfigs[exchange];
 
-
-        uint256 claimedWithRecharge18 = otcSwap.claimed18
-            + (block.timestamp - otcSwap.swapTimestamp)
+        uint256 claimedWithRecharge18 = otcSwapState.claimed18
+            + (block.timestamp - otcSwapState.swapTimestamp)
             * otcConfig.rechargeRate18;
 
-        return claimedWithRecharge18 >= otcSwap.sent18 * maxSlippages[exchange] / 1e18;
+        return claimedWithRecharge18 >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;
     }
 
     /**********************************************************************************************/
