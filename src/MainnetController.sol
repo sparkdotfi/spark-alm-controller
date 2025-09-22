@@ -951,7 +951,11 @@ contract MainnetController is AccessControl {
 
     function otcSwapSend(address exchange, address send, uint256 amountToSend) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, amountToSend);
+
+        uint256 sent18 = amountToSend * 1e18 / IERC20Metadata(send).decimals();
+
+        _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
+
         require(amountToSend > 0, "MainnetController/amount-to-send-zero");
 
         OTCConfig storage otcConfig = otcConfigs[exchange];
@@ -960,8 +964,6 @@ contract MainnetController is AccessControl {
         require(otcConfig.buffer != address(0), "MainnetController/otc-buffer-not-set");
 
         require(otcLastReturned(exchange), "MainnetController/last-swap-not-returned");
-
-        uint256 sent18 = amountToSend * 1e18 / IERC20Metadata(send).decimals();
 
         otcSwapStates[exchange] = OTCSwapState({
             swapTimestamp : block.timestamp,
