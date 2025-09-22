@@ -232,6 +232,23 @@ contract MainnetController is AccessControl {
         emit MaxSlippageSet(pool, maxSlippage);
     }
 
+    function setOTCBuffer(address exchange, address otcBuffer) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        require(exchange  != address(0), "MainnetController/exchange-zero-address");
+        require(exchange  != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
+        OTCConfig storage otcConfig = otcConfigs[exchange];
+
+        emit OTCBufferSet(exchange, otcBuffer, otcConfig.buffer);
+        otcConfig.buffer = otcBuffer;
+    }
+
+    function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        OTCConfig storage otcConfig = otcConfigs[exchange];
+        emit OTCRechargeRateSet(exchange, otcConfig.rechargeRate18, rechargeRate18);
+        otcConfig.rechargeRate18 = rechargeRate18;
+    }
+
     /**********************************************************************************************/
     /*** Freezer functions                                                                      ***/
     /**********************************************************************************************/
@@ -931,23 +948,6 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
     /*** OTC swap functions                                                                     ***/
     /**********************************************************************************************/
-
-    function setOTCBuffer(address exchange, address otcBuffer) external {
-        _checkRole(DEFAULT_ADMIN_ROLE);
-        require(exchange  != address(0), "MainnetController/exchange-zero-address");
-        require(exchange  != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
-        OTCConfig storage otcConfig = otcConfigs[exchange];
-
-        emit OTCBufferSet(exchange, otcBuffer, otcConfig.buffer);
-        otcConfig.buffer = otcBuffer;
-    }
-
-    function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external {
-        _checkRole(DEFAULT_ADMIN_ROLE);
-        OTCConfig storage otcConfig = otcConfigs[exchange];
-        emit OTCRechargeRateSet(exchange, otcConfig.rechargeRate18, rechargeRate18);
-        otcConfig.rechargeRate18 = rechargeRate18;
-    }
 
     function otcSwapSend(address exchange, address send, uint256 amountToSend) external {
         _checkRole(RELAYER);
