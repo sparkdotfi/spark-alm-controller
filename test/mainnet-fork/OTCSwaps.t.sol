@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+
 import "./ForkTestBase.t.sol";
 
 contract MainnetControllerOTCSwapBase is ForkTestBase {
@@ -29,9 +31,40 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
     // otcSwapClaim: 
 }
 
+// Mock ERC20 with variable decimals
+contract ERC20 is ERC20Mock {
+
+    uint8 immutable internal _decimals;
+
+    constructor(uint8 decimals_) {
+        _decimals = decimals_;
+    }
+
+    function decimals() public view override returns (uint8) {
+        return _decimals;
+    }
+
+}
+
 contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
 
-    function test_otcSwap() external {
+    function _otcSwapSend_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn) internal {
+        ERC20 usdsMock = new ERC20(decimalsSend);
+        ERC20 usdcMock = new ERC20(decimalsReturn);
+
+        // Mint some tokens to the controller
+        deal(address(usdsMock), address(mainnetController), 10000 * 10 ** decimalsSend);
+
+        // Replace real tokens with mocks in the controller (assuming setter functions exist)
+        vm.prank(mainnetController.owner());
+        mainnetController.setTokenAddress("USDS", address(usdsMock));
+        vm.prank(mainnetController.owner());
+        mainnetController.setTokenAddress("USDC", address(usdcMock));
+
+        _otcSwapSend(decimalsSend, decimalsReturn, 0);
+    }
+
+    function _otcSwapSend_returnTwoAssets(uint8 decimalsSend, uint8 decimalsReturn, uint8 decimalsReturn2) internal {
         uint256 usdsBalContr = usds.balanceOf(address(mainnetController));
         uint256 usdcBalContr = usdc.balanceOf(address(mainnetController));
 
@@ -54,5 +87,16 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         // Add rate limit checks here
     }
 
+    function test_otcSwapSend() external {
+        // Try {6, 12, 18}³:
+        for (uint8 decimalsSend = 6; decimalsSend <= 18; decimalsSend += 6) {
+            for (uint8 decimalsReturn = 6; decimalsReturn <= 18; decimalsReturn += 6) {
+                _otcSwapSend_returnOneAsset(decimalsSend, decimalsReturn);
+                for (uint8 decimalsReturn2 = 6; decimalsReturn2 <= 18; decimalsReturn2 += 6) {
+                    _otcSwapSend_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2);
+                }
+            }
+        }
+    }
 }
 
