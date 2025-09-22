@@ -36,11 +36,16 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
         // 2. Set rate limits
         // We can do that because it doesn't depend on the asset
-        key 
-        vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), 0, 0);
-        
-        // 3. Set maxSliipage
+        key = RateLimitHelpers.makeAssetKey(
+            LIMIT_OTC_SWAP,
+            exchange
+        );
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e) / 1 days);
+
+        // 3. Set maxSlippages
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(exchange, 1 - 0.005e18); // 100% - 0.5% == 99.5%
     }
 }
 
@@ -77,8 +82,8 @@ contract ERC20 is ERC20Mock {
 contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
 
     function _otcSwapSend_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn) internal {
-        // ERC20 tokenSend = new ERC20(decimalsSend);
-        // ERC20 tokenReturn = new ERC20(decimalsReturn);
+        ERC20 tokenSend   = new ERC20(decimalsSend);
+        ERC20 tokenReturn = new ERC20(decimalsReturn);
         //
         // // Mint some tokens to the controller
         // deal(address(tokenSend), address(almProxy), 1e6 * 10 ** decimalsSend);
