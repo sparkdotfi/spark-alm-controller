@@ -53,13 +53,35 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
 contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
 
-    // set otc buffer: admin @ exchange 0 @ exchange == otcbuffer
-    // set otcConfigs[ex].buffer @ emit
+    function test_setOTCBuffer_auth() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+    }
 
-    // set otc recharge rate: admin @ 
-    // set otcConfigs[ex].rechargeRate18 @ emit
+    function test_setOTCBuffer_exchangeZero() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        vm.expectRevert("MainnetController/exchange-zero-address");
+        mainnetController.setOTCBuffer(address(0), address(otcBuffer));
+    }
 
-    // 3f + 1s + 1f + 1s = 4f + 2s
+    function test_setOTCBuffer_exchangeEqualsOTCBuffer() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        vm.expectRevert("MainnetController/exchange-equals-otcBuffer");
+        mainnetController.setOTCBuffer(address(otcBuffer), address(otcBuffer));
+    }
+
+    function test_setOTCRechargeRate_auth() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setOTCRechargeRate(exchange, 1_000_000e18 / 1 days);
+    }
 
     // otcSwapSend: non-relayer @ rate-limited
 
@@ -82,6 +104,20 @@ contract ERC20 is ERC20Mock {
 }
 
 contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
+
+    function test_setOTCBuffer() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        vm.expectEmit(address(mainnetController));
+        emit OTCBufferSet(exchange, address(otcBuffer), address(0));
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+    }
+
+    function test_setOTCRechargeRate() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        vm.expectEmit(address(mainnetController));
+        emit OTCRechargeRateSet(exchange, 0, 1_000_000e18 / 1 days);
+        mainnetController.setOTCRechargeRate(exchange, 1_000_000e18 / 1 days);
+    }
 
     function _otcSwapSend_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn, bool recharge) internal {
         ERC20 tokenSend   = new ERC20(decimalsSend);
