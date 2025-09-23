@@ -9,6 +9,21 @@ import { OTCBuffer } from "src/OTCBuffer.sol";
 
 import "./ForkTestBase.t.sol";
 
+// Mock ERC20 with variable decimals
+contract ERC20 is ERC20Mock {
+
+    uint8 immutable internal _decimals;
+
+    constructor(uint8 decimals_) {
+        _decimals = decimals_;
+    }
+
+    function decimals() public view override returns (uint8) {
+        return _decimals;
+    }
+
+}
+
 contract MainnetControllerOTCSwapBase is ForkTestBase {
 
     bytes32 LIMIT_OTC_SWAP = keccak256("LIMIT_OTC_SWAP");
@@ -80,27 +95,50 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setOTCRechargeRate(exchange, 1_000_000e18 / 1 days);
+        mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
+    }
+
+    function test_otcSwapSend_auth() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER
+        ));
+        mainnetController.otcSwapSend(exchange, address(1), 1e18);
+    }
+
+    function test_otcSwapSend_rateLimitedBoundary() external {
+        ERC20 tokenSend = new ERC20(18);
+        // Set allowance
+        vm.prank(Ethereum.SPARK_PROXY);
+        otcBuffer.approve(address(tokenSend), address(mainnetController), type(uint256).max);
+
+        // Set OTC buffer
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+
+        skip(1 days);
+        uint256 expRateLimit = 1 days * (10_000_000e18 / 1 days);
+
+        deal(address(tokenSend), address(almProxy), expRateLimit + 1);
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.otcSwapSend(exchange, address(tokenSend), expRateLimit + 1);
+
+        vm.prank(relayer);
+        mainnetController.otcSwapSend(exchange, address(tokenSend), expRateLimit);
+    }
+
+    function test_otcSwapSend_amountToSendZero() external {
+        ERC20 tokenSend = new ERC20(18);
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/amount-to-send-zero");
+        mainnetController.otcSwapSend(exchange, address(tokenSend), 0);
     }
 
     // otcSwapSend: non-relayer @ rate-limited
 
     // otcSwapClaim: 
-}
-
-// Mock ERC20 with variable decimals
-contract ERC20 is ERC20Mock {
-
-    uint8 immutable internal _decimals;
-
-    constructor(uint8 decimals_) {
-        _decimals = decimals_;
-    }
-
-    function decimals() public view override returns (uint8) {
-        return _decimals;
-    }
-
 }
 
 contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
@@ -115,8 +153,8 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
     function test_setOTCRechargeRate() external {
         vm.prank(Ethereum.SPARK_PROXY);
         vm.expectEmit(address(mainnetController));
-        emit OTCRechargeRateSet(exchange, 0, 1_000_000e18 / 1 days);
-        mainnetController.setOTCRechargeRate(exchange, 1_000_000e18 / 1 days);
+        emit OTCRechargeRateSet(exchange, 0, uint256(1_000_000e18) / 1 days);
+        mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
     }
 
     function _otcSwapSend_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn, bool recharge) internal {
