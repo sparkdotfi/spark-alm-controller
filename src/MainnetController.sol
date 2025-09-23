@@ -952,7 +952,7 @@ contract MainnetController is AccessControl {
     function otcSwapSend(address exchange, address send, uint256 amountToSend) external {
         _checkRole(RELAYER);
 
-        uint256 sent18 = amountToSend * 1e18 / IERC20Metadata(send).decimals();
+        uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(send).decimals();
 
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
 
@@ -989,7 +989,7 @@ contract MainnetController is AccessControl {
         require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
 
         // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 amountToClaim18 = amountToClaim * 1e18 / IERC20Metadata(asset).decimals();
+        uint256 amountToClaim18 = amountToClaim * 1e18 / 10 ** IERC20Metadata(asset).decimals();
 
         otcSwapState.claimed18 += amountToClaim18;
 
@@ -1006,6 +1006,8 @@ contract MainnetController is AccessControl {
         uint256 claimedWithRecharge18 = otcSwapState.claimed18
             + (block.timestamp - otcSwapState.swapTimestamp)
             * otcConfig.rechargeRate18;
+
+        require(maxSlippages[exchange] != 0, "MainnetController/max-slippage-not-set");
 
         return claimedWithRecharge18 >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;
     }
