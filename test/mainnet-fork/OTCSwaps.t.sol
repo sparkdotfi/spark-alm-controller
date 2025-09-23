@@ -136,9 +136,37 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcSwapSend(exchange, address(tokenSend), 0);
     }
 
-    // otcSwapSend: non-relayer @ rate-limited
+    function test_otcSwapSend_otcBufferNotSet() external {
+        ERC20 tokenSend = new ERC20(18);
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/otc-buffer-not-set");
+        mainnetController.otcSwapSend(exchange, address(tokenSend), 1e18);
+    }
 
-    // otcSwapClaim: 
+    function test_otcSwapSend_lastSwapNotReturned() external {
+        ERC20 tokenSend = new ERC20(18);
+        // Set allowance
+        vm.prank(Ethereum.SPARK_PROXY);
+        otcBuffer.approve(address(tokenSend), address(mainnetController), type(uint256).max);
+
+        // Set OTC buffer
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+
+        // Mint tokens
+        deal(address(tokenSend), address(almProxy), 10_000_000e18);
+
+        // Execute OTC swap
+        vm.prank(relayer);
+        mainnetController.otcSwapSend(exchange, address(tokenSend), 10_000_000e18);
+
+        // Try to do another one
+        skip(1 seconds);
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/last-swap-not-returned");
+        mainnetController.otcSwapSend(exchange, address(tokenSend), 1e18);
+    }
+
 }
 
 contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
