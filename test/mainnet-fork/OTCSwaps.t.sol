@@ -29,7 +29,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         super.setUp();
 
         // 1. Deploy OTCBuffer
-        otcBuffer = new OTCBuffer(admin);
+        otcBuffer = new OTCBuffer(Ethereum.SPARK_PROXY);
 
         // We cannot set allowance now because we will be using different assets, so it will have to
         // be done separately in each test.
@@ -41,7 +41,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
             exchange
         );
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e) / 1 days);
+        rateLimits.setRateLimitData(key, 10_000_000e18, uint256(10_000_000e18) / 1 days);
 
         // 3. Set maxSlippages
         vm.prank(Ethereum.SPARK_PROXY);
@@ -81,11 +81,48 @@ contract ERC20 is ERC20Mock {
 
 contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
 
-    function _otcSwapSend_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn) internal {
+    function _otcSwapSend_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn, bool recharge) internal {
         ERC20 tokenSend   = new ERC20(decimalsSend);
         ERC20 tokenReturn = new ERC20(decimalsReturn);
-        //
-        // // Mint some tokens to the controller
+
+        // Set allowance
+        vm.prank(Ethereum.SPARK_PROXY);
+        tokenReturn.approve(address(mainnetController), type(uint256).max);
+
+        // Set OTC buffer
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+
+        // Set recharge rate
+        uint256 rechargeRate;
+        uint256 returnAmount;
+
+        if (recharge) {
+            // 1M normalized token per day
+            rechargeRate = uint256(1_000_000e18) / 1 days;
+            // The maxSlippage is 99.5%, hence we need at least 9_950_000 back. Recharge rate will
+            // give us 1M, hence we need at least 8_950_000 back.
+            returnAmount = 8_950_000 * 10 ** decimalsReturn;
+        } else {
+            rechargeRate = 0;
+            // No recharge rate, we need full amount.
+            returnAmount = 9_950_000 * 10 ** decimalsReturn;
+        }
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCRechargeRate(exchange, rechargeRate);
+
+        // Mint tokens
+        deal(address(tokenSend), address(almProxy), 10e6 * 10 ** decimalsSend);
+        deal(address(tokenReturn), address(exchange), returnAmount);
+
+        // Execute OTC swap
+        mainnetController.otcSwapSend(
+            exchange,
+            address(tokenSend),
+            10e6 * 10 ** decimalsSend,
+        );
+
         // deal(address(tokenSend), address(almProxy), 1e6 * 10 ** decimalsSend);
         // deal(address(tokenReturn), address(exchange), 1e6 * 10 ** decimalsReturn);
         //
@@ -98,7 +135,7 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         // _otcSwapSend(decimalsSend, decimalsReturn, 0);
     }
 
-    function _otcSwapSend_returnTwoAssets(uint8 decimalsSend, uint8 decimalsReturn, uint8 decimalsReturn2) internal {
+    function _otcSwapSend_returnTwoAssets(uint8 decimalsSend, uint8 decimalsReturn, uint8 decimalsReturn2, bool recharge) internal {
         // uint256 usdsBalContr = usds.balanceOf(address(mainnetController));
         // uint256 usdcBalContr = usdc.balanceOf(address(mainnetController));
         //
@@ -122,12 +159,21 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
     }
 
     function test_otcSwapSend() external {
+        uint256 id = vm.snapshot();
         // Try {6, 12, 18}³:
         for (uint8 decimalsSend = 6; decimalsSend <= 18; decimalsSend += 6) {
             for (uint8 decimalsReturn = 6; decimalsReturn <= 18; decimalsReturn += 6) {
-                _otcSwapSend_returnOneAsset(decimalsSend, decimalsReturn);
+                _otcSwapSend_returnOneAsset(decimalsSend, decimalsReturn, false);
+                vm.revertTo(id);
+                _otcSwapSend_returnOneAsset(decimalsSend, decimalsReturn, true);
+
+                vm.revertTo(id);
                 for (uint8 decimalsReturn2 = 6; decimalsReturn2 <= 18; decimalsReturn2 += 6) {
-                    _otcSwapSend_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2);
+                    _otcSwapSend_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2, false);
+                    vm.revertTo(id);
+
+                    _otcSwapSend_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2, true);
+                    vm.revertTo(id);
                 }
             }
         }
