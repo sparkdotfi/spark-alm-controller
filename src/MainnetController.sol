@@ -1007,7 +1007,12 @@ contract MainnetController is AccessControl {
             + (block.timestamp - otcSwapState.swapTimestamp)
             * otcConfig.rechargeRate18;
 
-        require(maxSlippages[exchange] != 0, "MainnetController/max-slippage-not-set");
+        if (maxSlippages[exchange] == 0) {
+            // maxSlippages should be set. We don't revert here because it is not necessary
+            // (returning `false` correctly answers the question of whether the last swap has been
+            // returned).
+            return false;
+        }
 
         return claimedWithRecharge18 >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;
     }

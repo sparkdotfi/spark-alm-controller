@@ -167,6 +167,27 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcSwapSend(exchange, address(tokenSend), 1e18);
     }
 
+    function test_otcClaim_auth() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER
+        ));
+        mainnetController.otcClaim(exchange, address(1), 1e18);
+    }
+
+    function test_otcClaim_amountToClaimZero() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/amount-to-claim-zero");
+        mainnetController.otcClaim(exchange, address(1), 0);
+    }
+
+    function test_otcClaim_otcBufferNotSet() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/otc-buffer-not-set");
+        mainnetController.otcClaim(exchange, address(1), 1e18);
+    }
+
 }
 
 contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
@@ -185,7 +206,27 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
     }
 
-    function _otcSwapSend_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn, bool recharge) internal {
+    function test_otcSwapSend() external {
+        ERC20 tokenSend = new ERC20(18);
+        // Set allowance
+        vm.prank(Ethereum.SPARK_PROXY);
+        otcBuffer.approve(address(tokenSend), address(mainnetController), type(uint256).max);
+
+        // Set OTC buffer
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+
+        // Mint tokens
+        deal(address(tokenSend), address(almProxy), 10_000_000e18);
+
+        // Execute OTC swap
+        vm.prank(relayer);
+        mainnetController.otcSwapSend(exchange, address(tokenSend), 10_000_000e18);
+
+        assertFalse(mainnetController.otcLastReturned(address(exchange)));
+    }
+
+    function _otcClaim_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn, bool recharge) internal {
         ERC20 tokenSend   = new ERC20(decimalsSend);
         ERC20 tokenReturn = new ERC20(decimalsReturn);
 
@@ -250,7 +291,7 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         assertTrue(mainnetController.otcLastReturned(address(exchange)));
     }
 
-    function _otcSwapSend_returnTwoAssets(uint8 decimalsSend, uint8 decimalsReturn, uint8 decimalsReturn2, bool recharge) internal {
+    function _otcClaim_returnTwoAssets(uint8 decimalsSend, uint8 decimalsReturn, uint8 decimalsReturn2, bool recharge) internal {
         ERC20 tokenSend    = new ERC20(decimalsSend);
         ERC20 tokenReturn  = new ERC20(decimalsReturn);
         ERC20 tokenReturn2 = new ERC20(decimalsReturn2);
@@ -308,12 +349,13 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
 
         vm.prank(exchange);
         tokenReturn2.transfer(address(otcBuffer), returnAmount2);
-        
+
         // Claim
         uint256 tokRetBalAlm  = tokenReturn.balanceOf(address(almProxy));
         uint256 tokRetBalBuf  = tokenReturn.balanceOf(address(otcBuffer));
         uint256 tokRet2BalAlm = tokenReturn2.balanceOf(address(almProxy));
         uint256 tokRet2BalBuf = tokenReturn2.balanceOf(address(otcBuffer));
+
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, address(tokenReturn), returnAmount - 1);
         assertEq(tokenReturn.balanceOf(address(almProxy)),  tokRetBalAlm + returnAmount - 1);
@@ -325,6 +367,7 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         assertEq(tokenReturn2.balanceOf(address(almProxy)),  tokRet2BalAlm + returnAmount2 - 1);
         assertEq(tokenReturn2.balanceOf(address(otcBuffer)), tokRet2BalBuf - (returnAmount2 - 1));
         assertFalse(mainnetController.otcLastReturned(address(exchange)));
+
         // There is a rounding error so we skip an additional second
         if (recharge) skip(1 seconds);
         vm.prank(relayer);
@@ -334,25 +377,31 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         assertTrue(mainnetController.otcLastReturned(address(exchange)));
     }
 
-    function test_otcSwapSend() external {
+    function test_otcClaim() external {
         uint256 id = vm.snapshotState();
         // Try {6, 12, 18}³:
         for (uint8 decimalsSend = 6; decimalsSend <= 18; decimalsSend += 6) {
             for (uint8 decimalsReturn = 6; decimalsReturn <= 18; decimalsReturn += 6) {
-                _otcSwapSend_returnOneAsset(decimalsSend, decimalsReturn, false);
+                _otcClaim_returnOneAsset(decimalsSend, decimalsReturn, false);
                 vm.revertToState(id);
-                _otcSwapSend_returnOneAsset(decimalsSend, decimalsReturn, true);
+                _otcClaim_returnOneAsset(decimalsSend, decimalsReturn, true);
 
                 vm.revertToState(id);
                 for (uint8 decimalsReturn2 = 6; decimalsReturn2 <= 18; decimalsReturn2 += 6) {
-                    _otcSwapSend_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2, false);
+                    _otcClaim_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2, false);
                     vm.revertToState(id);
 
-                    _otcSwapSend_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2, true);
+                    _otcClaim_returnTwoAssets(decimalsSend, decimalsReturn, decimalsReturn2, true);
                     vm.revertToState(id);
                 }
             }
         }
+    }
+
+    function test_otcLastReturned() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(exchange, 0);
+        assertFalse(mainnetController.otcLastReturned(address(exchange)));
     }
 }
 
