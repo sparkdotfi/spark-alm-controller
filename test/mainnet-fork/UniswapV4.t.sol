@@ -1,19 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import {IHooks}   from "v4-core/interfaces/IHooks.sol";
-import {IPoolManager} from "v4-core/interfaces/IPoolManager.sol";
-import {Currency} from "v4-core/types/Currency.sol";
-import {PoolId}   from "v4-core/types/PoolId.sol";
-import {PoolKey}  from "v4-core/types/PoolKey.sol";
+import { Currency }     from "v4-core/types/Currency.sol";
+import { IHooks }       from "v4-core/interfaces/IHooks.sol";
+import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
+import { PoolId }       from "v4-core/types/PoolId.sol";
+import { PoolKey }      from "v4-core/types/PoolKey.sol";
+import { TickMath }     from "v4-core/libraries/TickMath.sol";
 
-import {Actions}          from "v4-periphery/src/libraries/Actions.sol";
-import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
+import { Actions }          from "v4-periphery/src/libraries/Actions.sol";
+import { IPositionManager } from "v4-periphery/src/interfaces/IPositionManager.sol";
+import { IStateView }      from "v4-periphery/src/interfaces/IStateView.sol";
+
+import { LiquidityAmounts } from "../../src/vendor/LiquidityAmounts.sol";
 
 import { ICurvePoolLike } from "../../src/libraries/CurveLib.sol";
 import "./ForkTestBase.t.sol";
 
-import { AddLiquidityUniV4Params } from "src/MainnetController.sol";
+import { UniV4AddLiquidityParams } from "src/MainnetController.sol";
 
 contract UniV4TestBase is ForkTestBase {
 
@@ -36,7 +40,7 @@ contract UniV4TestBase is ForkTestBase {
         vm.stopPrank();
 
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        // vm.prank(SPARK_PROXY);
         // mainnetController.setMaxSlippage(CURVE_POOL, 0.98e18);
     }
 
@@ -73,6 +77,18 @@ contract MainnetControllerAddLiquidityUniV4FailureTests is UniV4TestBase {
 contract MainnetControllerAddLiquidityUniV4SuccessTests is UniV4TestBase {
 
     function test_addLiquidityUniV4() public {
+        PoolKey memory key = PoolKey({
+            currency0      : Currency.wrap(address(usdc)),
+            currency1      : Currency.wrap(address(usdt)),
+            fee         : 10,
+            tickSpacing : 1,
+            hooks       : IHooks(address(0))
+        });
+        PoolId id = key.toId();
+        address addr_id = address(uint160(uint256(PoolId.unwrap(id))));
+        vm.prank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(addr_id, 0.98e18);
+
         deal(address(usdc), address(almProxy), 1_000_000e6);
         deal(address(usdt), address(almProxy), 1_000_000e6);
 
@@ -94,8 +110,15 @@ contract MainnetControllerAddLiquidityUniV4SuccessTests is UniV4TestBase {
         assertEq(usdt.balanceOf(address(poolm)),        startingUsdtBalance);
 
         assertEq(rateLimits.getCurrentRateLimit(depositRateLimitKey), 2_000_000e18);
+        (uint160 sqrtPriceX96,,,) = mainnetController.uniV4stateView().getSlot0(id);
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = LiquidityAmounts.getAmountsForLiquidity(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(-10),
+            TickMath.getSqrtPriceAtTick(0),
+            1e6
+        );
         vm.prank(relayer);
-        mainnetController.addLiquidityUniV4(AddLiquidityUniV4Params({
+        mainnetController.addLiquidityUniV4(UniV4AddLiquidityParams({
             token0      : address(usdc),
             token1      : address(usdt),
             fee         : 10,
@@ -103,9 +126,9 @@ contract MainnetControllerAddLiquidityUniV4SuccessTests is UniV4TestBase {
             hooks       : address(0),
             tickLower   : -10,
             tickUpper   : 0,
-            liquidity   : 1,
-            amount0Max  : type(uint256).max,  //TODO: change
-            amount1Max  : type(uint256).max
+            liquidity   : 1e6,
+            amount0Max  : amount0Forecasted + 1,
+            amount1Max  : amount1Forecasted + 1
         }));
 
         // assertEq(lpTokensReceived, 1_987_199.361495730708108741e18);
