@@ -653,7 +653,7 @@ contract MainnetController is AccessControl {
         );
         proxy.doCall(
             permit2,
-            abi.encodeWithSignature("permit(address,address,uint160,uint48)", ps.token0, address(uniV4posm), uint160(ps.amount0Max), block.timestamp)
+            abi.encodeWithSignature("approve(address,address,uint160,uint48)", ps.token0, address(uniV4posm), uint160(ps.amount0Max), block.timestamp)
         );
         proxy.doCall(
             ps.token1,
@@ -661,7 +661,7 @@ contract MainnetController is AccessControl {
         );
         proxy.doCall(
             permit2,
-            abi.encodeWithSignature("permit(address,address,uint160,uint48)", ps.token1, address(uniV4posm), uint160(ps.amount1Max), block.timestamp)
+            abi.encodeWithSignature("approve(address,address,uint160,uint48)", ps.token1, address(uniV4posm), uint160(ps.amount1Max), block.timestamp)
         );
 
         proxy.doCall(
