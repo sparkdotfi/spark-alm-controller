@@ -12,6 +12,8 @@ import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessCon
 import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
+import { IPermit2 } from "permit2/src/interfaces/IPermit2.sol";
+
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
 import { Currency }     from "v4-core/types/Currency.sol";
@@ -105,6 +107,13 @@ struct UniV4AddLiquidityParams {
     uint256 amount1Max;  // maximum amount of currency1 caller is willing to pay
 }
 
+struct UniV4AddLiquidityLocals {
+    Currency currency0;
+    Currency currency1;
+    PoolKey  key;
+    PoolId   id;
+}
+
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -167,7 +176,7 @@ contract MainnetController is AccessControl {
     // https://etherscan.io/address/0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e
     // - address is labeled "Uniswap V4: Position Manager"
     IPositionManager public uniV4posm       = IPositionManager(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e);
-    address          public permit2         = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    IPermit2         public permit2         = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
     IStateView       public uniV4stateView  = IStateView(0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227);
     // IPoolManager     public uniV4poolm      = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
 
@@ -628,23 +637,7 @@ contract MainnetController is AccessControl {
     /*** Uniswap V4 functions                                                                   ***/
     /**********************************************************************************************/
 
-    // TODO: Move to interface or at beginning
-    // (Necessary otherwise we get )
-    struct UniV4AddLiquidityLocals {
-        Currency currency0;
-        Currency currency1;
-        PoolKey  key;
-        PoolId   id;
-        bytes32  rateLimitKey;
-        uint160  sqrtPriceX96;
-        uint256  amount0;
-        uint256  amount1;
-        address  addr_id;
-    }
-
-    function addLiquidityUniV4(
-        UniV4AddLiquidityParams memory ps // params
-    ) external {
+    function addLiquidityUniV4(UniV4AddLiquidityParams memory ps /* params */) external {
         _checkRole(RELAYER);
         // NOTE: Rate-limited in a few lines after computing the pool `id`
 
@@ -656,8 +649,8 @@ contract MainnetController is AccessControl {
 
         locals.currency0 = Currency.wrap(ps.token0);
         locals.currency1 = Currency.wrap(ps.token1);
-        locals.key = PoolKey(locals.currency0, locals.currency1, ps.fee, ps.tickSpacing, IHooks(ps.hooks));
-        locals.id          = locals.key.toId();
+        locals.key       = PoolKey(locals.currency0, locals.currency1, ps.fee, ps.tickSpacing, IHooks(ps.hooks));
+        locals.id        = locals.key.toId();
 
         // Perform rate limit
         bytes32 rateLimitKey = keccak256(abi.encode(LIMIT_UNI_V4_DEPOSIT, locals.id));
@@ -672,11 +665,15 @@ contract MainnetController is AccessControl {
             ps.liquidity
         );
         // NOTE: maxSlippages is a mapping from address to uint256, so we have to take the lower 160
-        // bits of the id
+        // bits of the id. It is still intractable for there to be a collision (on purpose or
+        // accidentally).
         address addr_id = address(uint160(uint256(PoolId.unwrap(locals.id))));
         require(maxSlippages[addr_id] != 0, "MainnetController: maxSlippage not set");
 
-        // NOTE: The - 1 is to avoid rounding issues
+        // NOTE: The - 1 is to avoid rounding issues: If the entire tick range lies outside of the
+        // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
+        // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
+        // errors. To allow for that behavior, we subtract 1 here.
         require(
             ps.amount0Max - 1 <= amount0 * 1e18 / maxSlippages[addr_id],
             "MainnetController: amount0Max too high"
@@ -720,30 +717,28 @@ contract MainnetController is AccessControl {
 
         // Reset approval of Permit2 in token0 and token1
         proxy.doCall(
-            ps.token0,
-            abi.encodeCall(IERC20(ps.token0).approve, (address(permit2), 0))
-        );
-        proxy.doCall(
             ps.token1,
             abi.encodeCall(IERC20(ps.token1).approve, (address(permit2), 0))
         );
 
-        // NOTE: It should not be necessary to reset the Position Manager approval in Permit2 (as it
-        // doesn't have allowance in the token at this point (and also, fwiw, the Permit2 approval
-        // is time-limited (though it could still be utilized by the Position Manager in
-        // transactions after this one in this block))), but let's do it anyway.
-        proxy.doCall(
-            permit2,
-            abi.encodeWithSignature("approve(address,address,uint160,uint48)", ps.token0, address(uniV4posm), 0, block.timestamp)
-        );
+        // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it doesn't
+        // have allowance in the token at this point), but for let's do it anyway so we don't have
+        // an unusable approval.
         proxy.doCall(
             permit2,
             abi.encodeWithSignature("approve(address,address,uint160,uint48)", ps.token1, address(uniV4posm), 0, block.timestamp)
         );
+    }
 
-        // NOTE: amount0Max and amount1Max are handled by the approvals (both in the tokens and in Permit2).
-
-        // TODO: Check maxSlippage
+    function _approvePermit2andUniV4posm(address token, uint256 amount) internal {
+        proxy.doCall(
+            token,
+            abi.encodeCall(IERC20(token).approve, (address(permit2), 0))
+        );
+        proxy.doCall(
+            permit2,
+            abi.encodeCall(permit2.approve, ps.token0, address(uniV4posm), 0, block.timestamp)
+        );
     }
 
     /**********************************************************************************************/
