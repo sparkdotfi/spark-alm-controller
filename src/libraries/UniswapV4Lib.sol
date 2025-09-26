@@ -7,7 +7,7 @@ import { IPermit2 } from "permit2/src/interfaces/IPermit2.sol";
 
 import { Currency }     from "v4-core/types/Currency.sol";
 import { IHooks }       from "v4-core/interfaces/IHooks.sol";
-// import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
+import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
 import { PoolId }       from "v4-core/types/PoolId.sol";
 import { PoolKey }      from "v4-core/types/PoolKey.sol";
 import { TickMath }     from "v4-core/libraries/TickMath.sol";
@@ -32,51 +32,12 @@ interface HasPoolKeys {
 /*** Structs                                                                                ***/
 /**********************************************************************************************/
 
-struct UniV4MintPositionParams {
+struct UniV4Params {
     IALMProxy   proxy;
     IRateLimits rateLimits;
     bytes32     rateLimitId;
     uint256     maxSlippage;
     bytes32     poolId;  // the PoolId of the Uniswap V4 pool
-    int24       tickLower;
-    int24       tickUpper;
-    uint128     liquidityInitial;  // amount of liquidity units to mint
-    uint256     amount0Max;  // maximum amount of currency0 caller is willing to pay
-    uint256     amount1Max;  // maximum amount of currency1 caller is willing to pay
-}
-
-struct UniV4AddLiquidityParams {
-    IALMProxy   proxy;
-    IRateLimits rateLimits;
-    bytes32     rateLimitId;
-    uint256     maxSlippage;
-    bytes32     poolId;
-    uint256     tokenId;  // the NFT tokenId of the position to add liquidity to
-    uint128     liquidityIncrease;
-    uint256     amount0Max;
-    uint256     amount1Max;
-}
-struct UniV4BurnPositionParams {
-    IALMProxy   proxy;
-    IRateLimits rateLimits;
-    bytes32     rateLimitId;
-    uint256     maxSlippage;
-    bytes32     poolId;
-    uint256     tokenId;
-    uint256     amount0Min;
-    uint256     amount1Min;
-}
-
-struct UniV4DecreseLiquidityParams {
-    IALMProxy   proxy;
-    IRateLimits rateLimits;
-    bytes32     rateLimitId;
-    uint256     maxSlippage;
-    bytes32     poolId;
-    uint256     tokenId;
-    uint128     liquidityDecrease;
-    uint256     amount0Min;
-    uint256     amount1Min;
 }
 
 library UniswapV4Lib {
@@ -95,7 +56,7 @@ library UniswapV4Lib {
     // StateView	0x7ffe42c4a5deea5b0fec41c94c136cf115597227
     // Universal Router	0x66a9893cc07d91d95644aedd05d03f95e1dba8af
     // Permit2	0x000000000022D473030F116dDEE9F6B43aC78BA3
-    // IPoolManager     public poolm      = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
+    // IPoolManager     public constant poolm      = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
     IPositionManager public constant posm       = IPositionManager(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e);
     IStateView       public constant stateView  = IStateView(0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227);
     IPermit2         public constant permit2    = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
@@ -104,7 +65,14 @@ library UniswapV4Lib {
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function mintPosition(UniV4MintPositionParams memory ps /* params */) external {
+    function mintPosition(
+        UniV4Params calldata ps /* params */,
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidityInitial,
+        uint256 amount0Max,
+        uint256 amount1Max
+    ) external {
         // NOTE: Returning values is not possible because PositionManager.modifyLiquidities does not
         // return anything. Callers that want to know eg how much was used can read balances before
         // and after.
@@ -127,8 +95,10 @@ library UniswapV4Lib {
         //         ""           // No hook data needed
         //     );
         // ```
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
+
         params[0] = abi.encode(
-            poolKey, ps.tickLower, ps.tickUpper, ps.liquidity, ps.amount0Max, ps.amount1Max, ps.proxy, ""
+            poolKey, tickLower, tickUpper, liquidityInitial, amount0Max, amount1Max, ps.proxy, ""
         );
 
         // ```
@@ -141,23 +111,25 @@ library UniswapV4Lib {
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
 
         _mintOrIncrease(
-            ps.proxy
-            ps.rateLimits
-            ps.rateLimitId
-            ps.maxSlippage
-            ps.poolId
-            ps.tickLower
-            ps.tickUpper
-            ps.liquidityInitial
-            ps.amount0Max
-            ps.amount1Max
-            actions
+            ps,
+            tickLower,
+            tickUpper,
+            liquidityInitial,
+            amount0Max,
+            amount1Max,
+            actions,
             params
         );
     }
 
-    function addLiquidity(UniV4AddLiquidityParams memory ps /* params */) external {
-        _ensureTokenIdForPoolId(ps.tokenId, ps.poolId);
+    function addLiquidity(
+        UniV4Params memory ps /* params */,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint256 amount0Max,
+        uint256 amount1Max
+    ) external {
+        _ensureTokenIdForPoolId(tokenId, ps.poolId);
 
         // When adding liquidity, accrued fees are automatically accounted. Thus it is
         // technically possible that the delta will be in favor of the liquidity provider. Since
@@ -181,23 +153,34 @@ library UniswapV4Lib {
         //        ""                // No hook data needed
         //    );
         // ```
-        params[0] = abi.encode(ps.tokenId, ps.liquidityIncrease, ps.amount0Max, ps.amount1Max, "");
+        params[0] = abi.encode(tokenId, liquidityIncrease, amount0Max, amount1Max, "");
 
         // ```
         //    // CLOSE_CURRENCY only needs the currency
         //    params[1] = abi.encode(currency0);
         // ```
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
+
         params[1] = abi.encode(poolKey.currency0);
         params[2] = abi.encode(poolKey.currency1);
     }
 
-    function burnPosition(UniV4BurnPositionParams memory ps /* params */) external {
-        _ensureTokenIdForPoolId(ps.tokenId, ps.poolId);
+    function burnPosition(
+        UniV4Params memory ps /* params */,
+        uint256 tokenId,
+        uint256 amount0Min,
+        uint256 amount1Min
+    ) external {
+        uint128 liquidityCurrent = stateView.getPositionLiquidity(
+            { poolId: PoolId.wrap(ps.poolId), positionId: bytes32(tokenId) }
+        );
+
+        _ensureTokenIdForPoolId(tokenId, ps.poolId);
 
         // Perform rate limit
         ps.rateLimits.triggerRateLimitIncrease(
             keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
-            ps.liquidityDecrease
+            liquidityCurrent
         );
 
         bytes memory actions = abi.encodePacked(
@@ -215,7 +198,7 @@ library UniswapV4Lib {
         //        ""           // No hook data needed
         //    );
         // ```
-        params[0] = abi.encode(ps.tokenId, ps.amount0Min, ps.amount1Min, "");
+        params[0] = abi.encode(tokenId, amount0Min, amount1Min, "");
 
         // ```
         //    // Parameters for SETTLE_PAIR - specify tokens to provide
@@ -224,18 +207,23 @@ library UniswapV4Lib {
         //        poolKey.currency1   // Second token to settle
         //    );
         // ```
-        params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
-
-        _mintOrIncrease(ps.proxy, poolKey.currency0, ps.amount0Max);
+        // params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+        //
     }
 
-    function decreaseLiquidity(UniV4DecreseLiquidityParams memory ps /* params */) external {
-        _ensureTokenIdForPoolId(ps.tokenId, ps.poolId);
+    function decreaseLiquidity(
+        UniV4Params memory ps /* params */,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint256 amount0Min,
+        uint256 amount1Min
+    ) external {
+        _ensureTokenIdForPoolId(tokenId, ps.poolId);
 
         // Perform rate limit
         ps.rateLimits.triggerRateLimitIncrease(
             keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
-            ps.liquidityDecrease
+            liquidityDecrease
         );
 
         bytes memory actions = abi.encodePacked(
@@ -254,7 +242,7 @@ library UniswapV4Lib {
         //        ""                // No hook data needed
         //    );
         // ```
-        params[0] = abi.encode(ps.tokenId, ps.liquidityDecrease, ps.amount0Min, ps.amount1Min, "");
+        params[0] = abi.encode(tokenId, liquidityDecrease, amount0Min, amount1Min, "");
 
         // ```
         //    // Parameters for SETTLE_PAIR - specify tokens to provide
@@ -263,13 +251,13 @@ library UniswapV4Lib {
         //        poolKey.currency1   // Second token to settle
         //    );
         // ```
-        params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
-
-        // Submit Calls
-        ps.proxy.doCall(
-            address(posm),
-            abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
-        );
+        // params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+        //
+        // // Submit Calls
+        // ps.proxy.doCall(
+        //     address(posm),
+        //     abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
+        // );
     }
 
     /**********************************************************************************************/
@@ -278,18 +266,28 @@ library UniswapV4Lib {
 
     function _ensureTokenIdForPoolId(uint256 tokenId, bytes32 poolId) internal view {
         // Ensure tokenId is for this pool
-        (PoolKey memory poolKey,) = posm.getPoolAndPositionInfo(ps.tokenId);
-        require(poolKey.id() == PoolId.wrap(ps.poolId), "UniswapV4Lib: tokenId poolId mismatch");
+        // Yes, this generally available in the outer scope but code is clearer this way
+        (PoolKey memory poolKey,) = posm.getPoolAndPositionInfo(tokenId);
+        require(keccak256(abi.encode(poolKey)) == poolId, "UniswapV4Lib: tokenId poolId mismatch");
     }
 
-    function _mintOrIncrease(UniV4AddLiquidityParams memory ps /* params */, bool mint) internal {
+    function _mintOrIncrease(
+        UniV4Params memory ps /* params */,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 liquidity,
+        uint256 amount0Max,
+        uint256 amount1Max,
+        bytes memory actions,
+        bytes[] memory params
+    ) internal {
         // PositionManager stores poolKeys as bytes25
         PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
 
         // Perform rate limit
         ps.rateLimits.triggerRateLimitDecrease(
             keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
-            ps.liquidity
+            liquidity
         );
 
         // Perform maxSlippages / amount0Max & amount1Max checks
@@ -298,9 +296,9 @@ library UniswapV4Lib {
         (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(ps.poolId));
         (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
             sqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(ps.tickLower),
-            TickMath.getSqrtPriceAtTick(ps.tickUpper),
-            ps.liquidity
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
+            liquidity
         );
 
         // NOTE: The - 1 is to avoid rounding issues: If the entire tick range lies outside of the
@@ -308,17 +306,17 @@ library UniswapV4Lib {
         // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
         // errors. To allow for that behavior, we subtract 1 here.
         require(
-            ps.amount0Max - 1 <= amount0 * 1e18 / ps.maxSlippage,
+            amount0Max - 1 <= amount0 * 1e18 / ps.maxSlippage,
             "UniswapV4Lib: amount0Max too high"
         );
         require(
-            ps.amount1Max - 1 <= amount1 * 1e18 / ps.maxSlippage,
+            amount1Max - 1 <= amount1 * 1e18 / ps.maxSlippage,
             "UniswapV4Lib: amount1Max too high"
         );
 
         // Submit Calls
-        _approvePermit2andPosm(ps.proxy, poolKey.currency0, ps.amount0Max);
-        _approvePermit2andPosm(ps.proxy, poolKey.currency1, ps.amount1Max);
+        _approvePermit2andPosm(ps.proxy, poolKey.currency0, amount0Max);
+        _approvePermit2andPosm(ps.proxy, poolKey.currency1, amount1Max);
 
         // Perform action
         ps.proxy.doCall(

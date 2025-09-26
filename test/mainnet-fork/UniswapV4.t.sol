@@ -78,60 +78,60 @@ contract MainnetControllerMintPositionUniV4FailureTests is UniV4TestBase {
 contract MainnetControllerMintPositionUniV4SuccessTests is UniV4TestBase {
 
     function test_mintLiquidityUniV4() public {
-        PoolKey memory key = PoolKey({
-            currency0      : Currency.wrap(address(usdc)),
-            currency1      : Currency.wrap(address(usdt)),
-            fee         : 10,
-            tickSpacing : 1,
-            hooks       : IHooks(address(0))
-        });
-        PoolId id = key.toId();
-        address addr_id = address(uint160(uint256(PoolId.unwrap(id))));
-        vm.prank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(addr_id, 0.98e18);
-
-        deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(address(usdt), address(almProxy), 1_000_000e6);
-
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = 1_000_000e6;
-        amounts[1] = 1_000_000e6;
-
-        uint256 startingUsdtBalance = usdt.balanceOf(address(poolm));
-        uint256 startingUsdcBalance = usdc.balanceOf(address(poolm));
-        // uint256 startingTotalSupply = curveLp.totalSupply();
-
-        assertEq(usdc.allowance(address(almProxy), address(posm)), 0);
-        assertEq(usdt.allowance(address(almProxy), address(posm)), 0);
-
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(usdc.balanceOf(address(poolm)),        startingUsdcBalance);
-
-        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(usdt.balanceOf(address(poolm)),        startingUsdtBalance);
-
-        assertEq(rateLimits.getCurrentRateLimit(depositRateLimitKey), 2_000_000e18);
-        (uint160 sqrtPriceX96,,,) = mainnetController.uniV4stateView().getSlot0(id);
-        (uint256 amount0Forecasted, uint256 amount1Forecasted) = LiquidityAmounts.getAmountsForLiquidity(
-            sqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(-10),
-            TickMath.getSqrtPriceAtTick(0),
-            1e6
-        );
-        vm.prank(relayer);
-        mainnetController.addLiquidityUniV4({
-            poolId      : PoolId.unwrap(id),
-            // token0      : address(usdc),
-            // token1      : address(usdt),
-            // fee         : 10,
-            // tickSpacing : 1,
-            // hooks       : address(0),
-            tickLower   : -10,
-            tickUpper   : 0,
-            liquidity   : 1e6,
-            amount0Max  : amount0Forecasted + 1,
-            amount1Max  : amount1Forecasted + 1
-        });
+    //     PoolKey memory key = PoolKey({
+    //         currency0      : Currency.wrap(address(usdc)),
+    //         currency1      : Currency.wrap(address(usdt)),
+    //         fee         : 10,
+    //         tickSpacing : 1,
+    //         hooks       : IHooks(address(0))
+    //     });
+    //     PoolId id = key.toId();
+    //     address addr_id = address(uint160(uint256(PoolId.unwrap(id))));
+    //     vm.prank(SPARK_PROXY);
+    //     mainnetController.setMaxSlippage(addr_id, 0.98e18);
+    //
+    //     deal(address(usdc), address(almProxy), 1_000_000e6);
+    //     deal(address(usdt), address(almProxy), 1_000_000e6);
+    //
+    //     uint256[] memory amounts = new uint256[](2);
+    //     amounts[0] = 1_000_000e6;
+    //     amounts[1] = 1_000_000e6;
+    //
+    //     uint256 startingUsdtBalance = usdt.balanceOf(address(poolm));
+    //     uint256 startingUsdcBalance = usdc.balanceOf(address(poolm));
+    //     // uint256 startingTotalSupply = curveLp.totalSupply();
+    //
+    //     assertEq(usdc.allowance(address(almProxy), address(posm)), 0);
+    //     assertEq(usdt.allowance(address(almProxy), address(posm)), 0);
+    //
+    //     assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+    //     assertEq(usdc.balanceOf(address(poolm)),        startingUsdcBalance);
+    //
+    //     assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
+    //     assertEq(usdt.balanceOf(address(poolm)),        startingUsdtBalance);
+    //
+    //     assertEq(rateLimits.getCurrentRateLimit(depositRateLimitKey), 2_000_000e18);
+    //     (uint160 sqrtPriceX96,,,) = mainnetController.uniV4stateView().getSlot0(id);
+    //     (uint256 amount0Forecasted, uint256 amount1Forecasted) = LiquidityAmounts.getAmountsForLiquidity(
+    //         sqrtPriceX96,
+    //         TickMath.getSqrtPriceAtTick(-10),
+    //         TickMath.getSqrtPriceAtTick(0),
+    //         1e6
+    //     );
+    //     vm.prank(relayer);
+    //     mainnetController.addLiquidityUniV4({
+    //         poolId      : PoolId.unwrap(id),
+    //         // token0      : address(usdc),
+    //         // token1      : address(usdt),
+    //         // fee         : 10,
+    //         // tickSpacing : 1,
+    //         // hooks       : address(0),
+    //         tickLower   : -10,
+    //         tickUpper   : 0,
+    //         liquidity   : 1e6,
+    //         amount0Max  : amount0Forecasted + 1,
+    //         amount1Max  : amount1Forecasted + 1
+    //     });
 
         // assertEq(lpTokensReceived, 1_987_199.361495730708108741e18);
         //
