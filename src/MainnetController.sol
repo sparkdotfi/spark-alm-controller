@@ -637,6 +637,8 @@ contract MainnetController is AccessControl {
     )
         external
     {
+        // NOTE: called functions must validate tokenId is for this poolId.
+
         _checkRole(RELAYER);
 
         address addr_id = address(uint160(uint256(poolId)));
@@ -662,6 +664,8 @@ contract MainnetController is AccessControl {
     )
         external
     {
+        // NOTE: called functions must validate tokenId is for this poolId.
+
         _checkRole(RELAYER);
 
         address addr_id = address(uint160(uint256(poolId)));
@@ -687,6 +691,8 @@ contract MainnetController is AccessControl {
     )
         external
     {
+        // NOTE: called functions must validate tokenId is for this poolId.
+
         _checkRole(RELAYER);
 
         address addr_id = address(uint160(uint256(poolId)));
