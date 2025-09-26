@@ -12,22 +12,7 @@ import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessCon
 import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
-import { IPermit2 } from "permit2/src/interfaces/IPermit2.sol";
-
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
-
-import { Currency }     from "v4-core/types/Currency.sol";
-import { IHooks }       from "v4-core/interfaces/IHooks.sol";
-// import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
-import { PoolId }       from "v4-core/types/PoolId.sol";
-import { PoolKey }      from "v4-core/types/PoolKey.sol";
-import { TickMath }     from "v4-core/libraries/TickMath.sol";
-
-import { Actions }          from "v4-periphery/src/libraries/Actions.sol";
-import { IPositionManager } from "v4-periphery/src/interfaces/IPositionManager.sol";
-import { IStateView }       from "v4-periphery/src/interfaces/IStateView.sol";
-
-import { LiquidityAmounts } from "./vendor/LiquidityAmounts.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
@@ -38,6 +23,10 @@ import  "./interfaces/ILayerZero.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import {
+    UniswapV4Lib,
+    UniV4AddLiquidityParams
+} from "./libraries/UniswapV4Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -92,28 +81,6 @@ interface ISparkVaultLike {
     function take(uint256 assetAmount) external;
 }
 
-struct UniV4AddLiquidityParams {
-    // region PoolKey
-    address token0;
-    address token1;
-    uint24  fee;
-    int24   tickSpacing;
-    address hooks;
-    // endregion
-    int24   tickLower;
-    int24   tickUpper;
-    uint128 liquidity;   // amount of liquidity units to mint
-    uint256 amount0Max;  // maximum amount of currency0 caller is willing to pay
-    uint256 amount1Max;  // maximum amount of currency1 caller is willing to pay
-}
-
-struct UniV4AddLiquidityLocals {
-    Currency currency0;
-    Currency currency1;
-    PoolKey  key;
-    PoolId   id;
-}
-
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -152,6 +119,7 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
     bytes32 public LIMIT_UNI_V4_DEPOSIT       = keccak256("LIMIT_UNI_V4_DEPOSIT");
+    bytes32 public LIMIT_UNI_V4_WITHDRAW      = keccak256("LIMIT_UNI_V4_WITHDRAW");
     bytes32 public LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
@@ -169,16 +137,6 @@ contract MainnetController is AccessControl {
     IEthenaMinterLike public ethenaMinter;
     IPSMLike          public psm;
     IRateLimits       public rateLimits;
-
-    // TODO: Move this into constructor
-    // Two sources for this:
-    // https://docs.uniswap.org/contracts/v4/deployments
-    // https://etherscan.io/address/0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e
-    // - address is labeled "Uniswap V4: Position Manager"
-    IPositionManager public uniV4posm       = IPositionManager(0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e);
-    IPermit2         public permit2         = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
-    IStateView       public uniV4stateView  = IStateView(0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227);
-    // IPoolManager     public uniV4poolm      = IPoolManager(0x000000000004444c5dc75cB358380D2e3dE08A90);
 
     IVaultLike        public vault;
 
@@ -219,7 +177,6 @@ contract MainnetController is AccessControl {
         psm        = IPSMLike(psm_);
         daiUsds    = IDaiUsdsLike(daiUsds_);
         cctp       = ICCTPLike(cctp_);
-        // uniV4posm  = IPositionManager(uniV4posm_);
 
         ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
@@ -637,108 +594,35 @@ contract MainnetController is AccessControl {
     /*** Uniswap V4 functions                                                                   ***/
     /**********************************************************************************************/
 
-    function addLiquidityUniV4(UniV4AddLiquidityParams memory ps /* params */) external {
+    function mintPositionUniV4(
+        bytes32 poolId,
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external
+    {
         _checkRole(RELAYER);
-        // NOTE: Rate-limited in a few lines after computing the pool `id`
 
-        // Encode actions and params
-        bytes   memory actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
-        bytes[] memory params  = new bytes[](2);
-
-        UniV4AddLiquidityLocals memory locals;
-
-        locals.currency0 = Currency.wrap(ps.token0);
-        locals.currency1 = Currency.wrap(ps.token1);
-        locals.key       = PoolKey(locals.currency0, locals.currency1, ps.fee, ps.tickSpacing, IHooks(ps.hooks));
-        locals.id        = locals.key.toId();
-
-        // Perform rate limit
-        bytes32 rateLimitKey = keccak256(abi.encode(LIMIT_UNI_V4_DEPOSIT, locals.id));
-        _rateLimited(rateLimitKey, ps.liquidity);
-
-        // Perform maxSlippages / amount0Max & amount1Max checks
-        (uint160 sqrtPriceX96,,,) = uniV4stateView.getSlot0(locals.id);
-        (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
-            sqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(ps.tickLower),
-            TickMath.getSqrtPriceAtTick(ps.tickUpper),
-            ps.liquidity
-        );
         // NOTE: maxSlippages is a mapping from address to uint256, so we have to take the lower 160
         // bits of the id. It is still intractable for there to be a collision (on purpose or
         // accidentally).
-        address addr_id = address(uint160(uint256(PoolId.unwrap(locals.id))));
-        require(maxSlippages[addr_id] != 0, "MainnetController: maxSlippage not set");
+        address addr_id = address(uint160(uint256(poolId)));
 
-        // NOTE: The - 1 is to avoid rounding issues: If the entire tick range lies outside of the
-        // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
-        // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
-        // errors. To allow for that behavior, we subtract 1 here.
-        require(
-            ps.amount0Max - 1 <= amount0 * 1e18 / maxSlippages[addr_id],
-            "MainnetController: amount0Max too high"
-        );
-        require(
-            ps.amount1Max - 1 <= amount1 * 1e18 / maxSlippages[addr_id],
-            "MainnetController: amount1Max too high"
-        );
-
-        params[0] = abi.encode(
-            locals.key, ps.tickLower, ps.tickUpper, ps.liquidity, ps.amount0Max, ps.amount1Max, proxy, ""
-        );
-        params[1] = abi.encode(locals.currency0, locals.currency1);
-
-        // Submit Calls
-        // First, approve Permit2 in token0 and token1
-        proxy.doCall(
-            ps.token0,
-            abi.encodeCall(IERC20(ps.token0).approve, (address(permit2), ps.amount0Max))
-        );
-        proxy.doCall(
-            ps.token1,
-            abi.encodeCall(IERC20(ps.token1).approve, (address(permit2), ps.amount1Max))
-        );
-
-        // Then approve the Position Manager in Permit2
-        proxy.doCall(
-            permit2,
-            abi.encodeWithSignature("approve(address,address,uint160,uint48)", ps.token0, address(uniV4posm), uint160(ps.amount0Max), block.timestamp)
-        );
-        proxy.doCall(
-            permit2,
-            abi.encodeWithSignature("approve(address,address,uint160,uint48)", ps.token1, address(uniV4posm), uint160(ps.amount1Max), block.timestamp)
-        );
-
-        // Perform action
-        proxy.doCall(
-            address(uniV4posm),
-            abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
-        );
-
-        // Reset approval of Permit2 in token0 and token1
-        proxy.doCall(
-            ps.token1,
-            abi.encodeCall(IERC20(ps.token1).approve, (address(permit2), 0))
-        );
-
-        // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it doesn't
-        // have allowance in the token at this point), but for let's do it anyway so we don't have
-        // an unusable approval.
-        proxy.doCall(
-            permit2,
-            abi.encodeWithSignature("approve(address,address,uint160,uint48)", ps.token1, address(uniV4posm), 0, block.timestamp)
-        );
-    }
-
-    function _approvePermit2andUniV4posm(address token, uint256 amount) internal {
-        proxy.doCall(
-            token,
-            abi.encodeCall(IERC20(token).approve, (address(permit2), 0))
-        );
-        proxy.doCall(
-            permit2,
-            abi.encodeCall(permit2.approve, ps.token0, address(uniV4posm), 0, block.timestamp)
-        );
+        UniswapV4Lib.mintPositionUniV4(UniV4AddLiquidityParams({
+            proxy       : proxy,
+            rateLimits  : rateLimits,
+            rateLimitId : LIMIT_UNI_V4_DEPOSIT,
+            maxSlippage : maxSlippages[addr_id],
+            poolId      : poolId,
+            tickLower   : tickLower,
+            tickUpper   : tickUpper,
+            liquidity   : liquidity,
+            amount0Max  : amount0Max,
+            amount1Max  : amount1Max
+        }));
     }
 
     /**********************************************************************************************/

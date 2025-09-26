@@ -17,8 +17,6 @@ import { LiquidityAmounts } from "../../src/vendor/LiquidityAmounts.sol";
 import { ICurvePoolLike } from "../../src/libraries/CurveLib.sol";
 import "./ForkTestBase.t.sol";
 
-import { UniV4AddLiquidityParams } from "src/MainnetController.sol";
-
 contract UniV4TestBase is ForkTestBase {
 
     bytes32 public LIMIT_UNI_V4_DEPOSIT       = keccak256("LIMIT_UNI_V4_DEPOSIT");
@@ -118,18 +116,19 @@ contract MainnetControllerAddLiquidityUniV4SuccessTests is UniV4TestBase {
             1e6
         );
         vm.prank(relayer);
-        mainnetController.addLiquidityUniV4(UniV4AddLiquidityParams({
-            token0      : address(usdc),
-            token1      : address(usdt),
-            fee         : 10,
-            tickSpacing : 1,
-            hooks       : address(0),
+        mainnetController.addLiquidityUniV4({
+            poolId      : PoolId.unwrap(id),
+            // token0      : address(usdc),
+            // token1      : address(usdt),
+            // fee         : 10,
+            // tickSpacing : 1,
+            // hooks       : address(0),
             tickLower   : -10,
             tickUpper   : 0,
             liquidity   : 1e6,
             amount0Max  : amount0Forecasted + 1,
             amount1Max  : amount1Forecasted + 1
-        }));
+        });
 
         // assertEq(lpTokensReceived, 1_987_199.361495730708108741e18);
         //
