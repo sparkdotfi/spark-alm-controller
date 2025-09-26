@@ -12,9 +12,10 @@ import { PoolId }       from "v4-core/types/PoolId.sol";
 import { PoolKey }      from "v4-core/types/PoolKey.sol";
 import { TickMath }     from "v4-core/libraries/TickMath.sol";
 
-import { Actions }          from "v4-periphery/src/libraries/Actions.sol";
-import { IPositionManager } from "v4-periphery/src/interfaces/IPositionManager.sol";
-import { IStateView }       from "v4-periphery/src/interfaces/IStateView.sol";
+import { Actions }                         from "v4-periphery/src/libraries/Actions.sol";
+import {PositionInfo, PositionInfoLibrary} from "v4-periphery/src/libraries/PositionInfoLibrary.sol";
+import { IPositionManager }                from "v4-periphery/src/interfaces/IPositionManager.sol";
+import { IStateView }                      from "v4-periphery/src/interfaces/IStateView.sol";
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
@@ -26,7 +27,6 @@ import { LiquidityAmounts } from "../vendor/LiquidityAmounts.sol";
 interface HasPoolKeys {
     function poolKeys(bytes25 poolId) external view returns (PoolKey memory);
 }
-
 
 /**********************************************************************************************/
 /*** Structs                                                                                ***/
@@ -155,14 +155,24 @@ library UniswapV4Lib {
         // ```
         params[0] = abi.encode(tokenId, liquidityIncrease, amount0Max, amount1Max, "");
 
+        (PoolKey memory poolKey, PositionInfo info) = posm.getPoolAndPositionInfo(tokenId);
         // ```
         //    // CLOSE_CURRENCY only needs the currency
         //    params[1] = abi.encode(currency0);
         // ```
-        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
-
         params[1] = abi.encode(poolKey.currency0);
         params[2] = abi.encode(poolKey.currency1);
+
+        _mintOrIncrease(
+            ps,
+            info.tickLower(),
+            info.tickUpper(),
+            liquidityIncrease,
+            amount0Max,
+            amount1Max,
+            actions,
+            params
+        );
     }
 
     function burnPosition(
@@ -185,7 +195,7 @@ library UniswapV4Lib {
 
         bytes memory actions = abi.encodePacked(
             uint8(Actions.BURN_POSITION),
-            uint8(Actions.SETTLE_PAIR)
+            uint8(Actions.TAKE_PAIR)
         );
         bytes[] memory params = new bytes[](2);
 
@@ -200,15 +210,18 @@ library UniswapV4Lib {
         // ```
         params[0] = abi.encode(tokenId, amount0Min, amount1Min, "");
 
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
         // ```
-        //    // Parameters for SETTLE_PAIR - specify tokens to provide
+        //    // Parameters for TAKE_PAIR - where tokens will go
         //    params[1] = abi.encode(
-        //        poolKey.currency0,  // First token to settle
-        //        poolKey.currency1   // Second token to settle
+        //        currency0,   // First token
+        //        currency1,   // Second token
+        //        recipient    // Who receives the tokens
         //    );
         // ```
-        // params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
-        //
+        params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+
+        // TODO: finish
     }
 
     function decreaseLiquidity(
@@ -244,14 +257,18 @@ library UniswapV4Lib {
         // ```
         params[0] = abi.encode(tokenId, liquidityDecrease, amount0Min, amount1Min, "");
 
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
         // ```
-        //    // Parameters for SETTLE_PAIR - specify tokens to provide
+        //    // Parameters for TAKE_PAIR - where tokens will go
         //    params[1] = abi.encode(
-        //        poolKey.currency0,  // First token to settle
-        //        poolKey.currency1   // Second token to settle
+        //        currency0,   // First token
+        //        currency1,   // Second token
+        //        recipient    // Who receives the tokens
         //    );
         // ```
-        // params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+        params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+
+        // TODO: finish
         //
         // // Submit Calls
         // ps.proxy.doCall(
