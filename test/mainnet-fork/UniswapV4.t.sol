@@ -68,13 +68,16 @@ contract UniV4TestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerAddLiquidityUniV4FailureTests is UniV4TestBase {
+contract MainnetControllerMintPositionUniV4FailureTests is UniV4TestBase {
+
+    // function test_mintPositionUniV4_notRelayer() public {
+    // function test_mintPositionUniV4
 
 }
 
-contract MainnetControllerAddLiquidityUniV4SuccessTests is UniV4TestBase {
+contract MainnetControllerMintPositionUniV4SuccessTests is UniV4TestBase {
 
-    function test_addLiquidityUniV4() public {
+    function test_mintLiquidityUniV4() public {
         PoolKey memory key = PoolKey({
             currency0      : Currency.wrap(address(usdc)),
             currency1      : Currency.wrap(address(usdt)),

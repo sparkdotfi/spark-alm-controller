@@ -32,7 +32,32 @@ interface HasPoolKeys {
 /*** Structs                                                                                ***/
 /**********************************************************************************************/
 
+struct UniV4MintPositionParams {
+    IALMProxy   proxy;
+    IRateLimits rateLimits;
+    bytes32     rateLimitId;
+    uint256     maxSlippage;
+    bytes32     poolId;  // the PoolId of the Uniswap V4 pool
+    int24       tickLower;
+    int24       tickUpper;
+    uint128     liquidityInitial;  // amount of liquidity units to mint
+    uint256     amount0Max;  // maximum amount of currency0 caller is willing to pay
+    uint256     amount1Max;  // maximum amount of currency1 caller is willing to pay
+}
+
 struct UniV4AddLiquidityParams {
+    IALMProxy   proxy;
+    IRateLimits rateLimits;
+    bytes32     rateLimitId;
+    uint256     maxSlippage;
+    bytes32     poolId;  // the PoolId of the Uniswap V4 pool
+    int24       tickLower;
+    int24       tickUpper;
+    uint128     liquidity;  // amount of liquidity units to mint
+    uint256     amount0Max;  // maximum amount of currency0 caller is willing to pay
+    uint256     amount1Max;  // maximum amount of currency1 caller is willing to pay
+}
+struct UniV4BurnPositionParams {
     IALMProxy proxy;
     IRateLimits rateLimits;
     bytes32 rateLimitId;
@@ -40,7 +65,20 @@ struct UniV4AddLiquidityParams {
     bytes32 poolId;    // the PoolId of the Uniswap V4 pool
     int24   tickLower;
     int24   tickUpper;
-    uint128 liquidity;   // amount of liquidity units to mint
+    uint128 liquidity;  // amount of liquidity units to mint
+    uint256 amount0Max;  // maximum amount of currency0 caller is willing to pay
+    uint256 amount1Max;  // maximum amount of currency1 caller is willing to pay
+}
+
+struct UniV4DecreseLiquidityParams {
+    IALMProxy proxy;
+    IRateLimits rateLimits;
+    bytes32 rateLimitId;
+    uint256 maxSlippage;
+    bytes32 poolId;    // the PoolId of the Uniswap V4 pool
+    int24   tickLower;
+    int24   tickUpper;
+    uint128 liquidity;  // amount of liquidity units to mint
     uint256 amount0Max;  // maximum amount of currency0 caller is willing to pay
     uint256 amount1Max;  // maximum amount of currency1 caller is willing to pay
 }
@@ -70,18 +108,18 @@ library UniswapV4Lib {
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function mintPositionUniV4(UniV4AddLiquidityParams memory ps /* params */) external {
+    function mintPosition(UniV4AddLiquidityParams memory ps /* params */) external {
         // NOTE: Returning values is not possible because PositionManager.modifyLiquidities does not
         // return anything. Callers that want to know eg how much was used can read balances before
         // and after.
-        _addLiquidityUniV4(ps, true);
+        _addLiquidity(ps, true);
     }
 
     /**********************************************************************************************/
     /*** Helper functions                                                                       ***/
     /**********************************************************************************************/
 
-    function _addLiquidityUniV4(UniV4AddLiquidityParams memory ps /* params */, bool mint) internal {
+    function _addLiquidity(UniV4AddLiquidityParams memory ps /* params */, bool mint) internal {
         // PositionManager stores poolKeys as bytes25
         PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
 
@@ -116,13 +154,69 @@ library UniswapV4Lib {
         );
 
         // Encode actions and params
-        bytes   memory actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
-        bytes[] memory params  = new bytes[](2);
+        bytes   memory actions;
+        bytes[] memory params;
+        if (mint) {
+            actions   = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
+            params    = new bytes[](2);
 
-        params[0] = abi.encode(
-            poolKey, ps.tickLower, ps.tickUpper, ps.liquidity, ps.amount0Max, ps.amount1Max, ps.proxy, ""
-        );
-        params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+            // From the documentation:
+            // ```
+            //     // Parameters for MINT_POSITION
+            //     params[0] = abi.encode(
+            //         poolKey,     // Which pool to mint in
+            //         tickLower,   // Position's lower price bound
+            //         tickUpper,   // Position's upper price bound
+            //         liquidity,   // Amount of liquidity to mint
+            //         amount0Max,  // Maximum amount of token0 to use
+            //         amount1Max,  // Maximum amount of token1 to use
+            //         recipient,   // Who receives the NFT
+            //         ""           // No hook data needed
+            //     );
+            // ```
+            params[0] = abi.encode(
+                poolKey, ps.tickLower, ps.tickUpper, ps.liquidity, ps.amount0Max, ps.amount1Max, ps.proxy, ""
+            );
+
+            // ```
+            //    // Parameters for SETTLE_PAIR - specify tokens to provide
+            //    params[1] = abi.encode(
+            //        poolKey.currency0,  // First token to settle
+            //        poolKey.currency1   // Second token to settle
+            //    );
+            // ```
+            params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+        } else {
+            // When adding liquidity, accrued fees are automatically accounted. Thus it is
+            // technically possible that the delta will be in favor of the liquidity provider. Since
+            // settle pair always assumes an obligation from the provider to the pool, we use close
+            // currency instead, which doesn't have this requirement (btw, take pair does the exact
+            // opposite (it assumes the obligation is from the pool to the provider)).
+            actions = abi.encodePacked(
+                uint8(Actions.INCREASE_LIQUIDITY),
+                uint8(Actions.CLOSE_CURRENCY),
+                uint8(Actions.CLOSE_CURRENCY)
+            );
+            params = new bytes[](3);
+
+            // ```
+            //    // Parameters for INCREASE_LIQUIDITY
+            //    params[0] = abi.encode(
+            //        tokenId,           // Position to increase
+            //        liquidityIncrease, // Amount to add
+            //        amount0Max,        // Maximum token0 to spend
+            //        amount1Max,        // Maximum token1 to spend
+            //        ""                // No hook data needed
+            //    );
+            // ```
+            params[0] = abi.encode(ps.tokenId, ps.liquidity, ps.amount0Max, ps.amount1Max, "");
+
+            // ```
+            //    // CLOSE_CURRENCY only needs the currency
+            //    params[1] = abi.encode(currency0);
+            // ```
+        }
+
 
         // Submit Calls
         _approvePermit2andPosm(ps.proxy, poolKey.currency0, ps.amount0Max);

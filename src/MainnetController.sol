@@ -25,7 +25,10 @@ import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import {
     UniswapV4Lib,
-    UniV4AddLiquidityParams
+    UniV4MintPositionParams,
+    UniV4AddLiquidityParams,
+    UniV4BurnPositionParams,
+    UniV4DecreseLiquidityParams
 } from "./libraries/UniswapV4Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -598,7 +601,7 @@ contract MainnetController is AccessControl {
         bytes32 poolId,
         int24   tickLower,
         int24   tickUpper,
-        uint128 liquidity,
+        uint128 liquidityInitial,
         uint256 amount0Max,
         uint256 amount1Max
     )
@@ -611,17 +614,93 @@ contract MainnetController is AccessControl {
         // accidentally).
         address addr_id = address(uint160(uint256(poolId)));
 
-        UniswapV4Lib.mintPositionUniV4(UniV4AddLiquidityParams({
+        UniswapV4Lib.mintPosition(UniV4MintPositionParams({
+            proxy            : proxy,
+            rateLimits       : rateLimits,
+            rateLimitId      : LIMIT_UNI_V4_DEPOSIT,
+            maxSlippage      : maxSlippages[addr_id],
+            poolId           : poolId,
+            tickLower        : tickLower,
+            tickUpper        : tickUpper,
+            liquidityInitial : liquidityInitial,
+            amount0Max       : amount0Max,
+            amount1Max       : amount1Max
+        }));
+    }
+
+    function addLiquidityUniV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        address addr_id = address(uint160(uint256(poolId)));
+
+        UniswapV4Lib.addLiquidity(UniV4AddLiquidityParams({
+            proxy             : proxy,
+            rateLimits        : rateLimits,
+            rateLimitId       : LIMIT_UNI_V4_DEPOSIT,
+            maxSlippage       : maxSlippages[addr_id],
+            poolId            : poolId,
+            tokenId           : tokenId,
+            liquidityIncrease : liquidityIncrease,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max
+        }));
+    }
+
+    function burnPositionUniV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint256 amount0Min,
+        uint256 amount1Min
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        address addr_id = address(uint160(uint256(poolId)));
+
+        UniswapV4Lib.burnPosition(UniV4BurnPositionParams({
             proxy       : proxy,
             rateLimits  : rateLimits,
-            rateLimitId : LIMIT_UNI_V4_DEPOSIT,
+            rateLimitId : LIMIT_UNI_V4_WITHDRAW,
             maxSlippage : maxSlippages[addr_id],
             poolId      : poolId,
-            tickLower   : tickLower,
-            tickUpper   : tickUpper,
-            liquidity   : liquidity,
-            amount0Max  : amount0Max,
-            amount1Max  : amount1Max
+            tokenId     : tokenId,
+            amount0Min  : amount0Min,
+            amount1Min  : amount1Min
+        }));
+    }
+
+    function decreaseLiquidityUniV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        address addr_id = address(uint160(uint256(poolId)));
+
+        UniswapV4Lib.decreaseLiquidity(UniV4DecreseLiquidityParams({
+            proxy             : proxy,
+            rateLimits        : rateLimits,
+            rateLimitId       : LIMIT_UNI_V4_DEPOSIT,
+            maxSlippage       : maxSlippages[addr_id],
+            poolId            : poolId,
+            tokenId           : tokenId,
+            liquidityDecrease : liquidityDecrease,
+            amount0Min        : amount0Min,
+            amount1Min        : amount1Min
         }));
     }
 
