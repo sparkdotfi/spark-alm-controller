@@ -108,7 +108,6 @@ library UniswapV4Lib {
         // NOTE: Returning values is not possible because PositionManager.modifyLiquidities does not
         // return anything. Callers that want to know eg how much was used can read balances before
         // and after.
-        _mintOrIncreaseCommon();
 
         // Encode actions and params
         bytes   memory actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
@@ -140,12 +139,25 @@ library UniswapV4Lib {
         //    );
         // ```
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+
+        _mintOrIncrease(
+            ps.proxy
+            ps.rateLimits
+            ps.rateLimitId
+            ps.maxSlippage
+            ps.poolId
+            ps.tickLower
+            ps.tickUpper
+            ps.liquidityInitial
+            ps.amount0Max
+            ps.amount1Max
+            actions
+            params
+        );
     }
 
     function addLiquidity(UniV4AddLiquidityParams memory ps /* params */) external {
         _ensureTokenIdForPoolId(ps.tokenId, ps.poolId);
-
-        _mintOrIncreaseCommon();
 
         // When adding liquidity, accrued fees are automatically accounted. Thus it is
         // technically possible that the delta will be in favor of the liquidity provider. Since
@@ -214,11 +226,7 @@ library UniswapV4Lib {
         // ```
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
 
-        // Submit Calls
-        ps.proxy.doCall(
-            address(posm),
-            abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
-        );
+        _mintOrIncrease(ps.proxy, poolKey.currency0, ps.amount0Max);
     }
 
     function decreaseLiquidity(UniV4DecreseLiquidityParams memory ps /* params */) external {
@@ -274,7 +282,7 @@ library UniswapV4Lib {
         require(poolKey.id() == PoolId.wrap(ps.poolId), "UniswapV4Lib: tokenId poolId mismatch");
     }
 
-    function _mintOrIncreaseCommon(UniV4AddLiquidityParams memory ps /* params */, bool mint) internal {
+    function _mintOrIncrease(UniV4AddLiquidityParams memory ps /* params */, bool mint) internal {
         // PositionManager stores poolKeys as bytes25
         PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
 
@@ -307,7 +315,6 @@ library UniswapV4Lib {
             ps.amount1Max - 1 <= amount1 * 1e18 / ps.maxSlippage,
             "UniswapV4Lib: amount1Max too high"
         );
-
 
         // Submit Calls
         _approvePermit2andPosm(ps.proxy, poolKey.currency0, ps.amount0Max);
