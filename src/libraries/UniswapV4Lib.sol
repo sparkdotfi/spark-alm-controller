@@ -210,7 +210,7 @@ library UniswapV4Lib {
         // ```
         params[0] = abi.encode(tokenId, amount0Min, amount1Min, "");
 
-        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
+        (PoolKey memory poolKey, PositionInfo info) = posm.getPoolAndPositionInfo(tokenId);
         // ```
         //    // Parameters for TAKE_PAIR - where tokens will go
         //    params[1] = abi.encode(
@@ -221,7 +221,16 @@ library UniswapV4Lib {
         // ```
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
 
-        // TODO: finish
+        _burnOrDecrease(
+            ps,
+            info.tickLower(),
+            info.tickUpper(),
+            liquidityCurrent,
+            amount0Min,
+            amount1Min,
+            actions,
+            params
+        );
     }
 
     function decreaseLiquidity(
@@ -241,7 +250,7 @@ library UniswapV4Lib {
 
         bytes memory actions = abi.encodePacked(
             uint8(Actions.DECREASE_LIQUIDITY),
-            uint8(Actions.SETTLE_PAIR)
+            uint8(Actions.TAKE_PAIR)
         );
         bytes[] memory params = new bytes[](2);
 
@@ -257,7 +266,7 @@ library UniswapV4Lib {
         // ```
         params[0] = abi.encode(tokenId, liquidityDecrease, amount0Min, amount1Min, "");
 
-        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
+        (PoolKey memory poolKey, PositionInfo info) = posm.getPoolAndPositionInfo(tokenId);
         // ```
         //    // Parameters for TAKE_PAIR - where tokens will go
         //    params[1] = abi.encode(
@@ -268,13 +277,16 @@ library UniswapV4Lib {
         // ```
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
 
-        // TODO: finish
-        //
-        // // Submit Calls
-        // ps.proxy.doCall(
-        //     address(posm),
-        //     abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
-        // );
+        _burnOrDecrease(
+            ps,
+            info.tickLower(),
+            info.tickUpper(),
+            liquidityDecrease,
+            amount0Min,
+            amount1Min,
+            actions,
+            params
+        );
     }
 
     /**********************************************************************************************/
@@ -318,7 +330,7 @@ library UniswapV4Lib {
             liquidity
         );
 
-        // NOTE: The - 1 is to avoid rounding issues: If the entire tick range lies outside of the
+        // NOTE: The -1 is to avoid rounding issues: If the entire tick range lies outside of the
         // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
         // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
         // errors. To allow for that behavior, we subtract 1 here.
@@ -347,6 +359,53 @@ library UniswapV4Lib {
         // a hanging unusable approval.
         _approvePermit2andPosm(ps.proxy, poolKey.currency0, 0);
         _approvePermit2andPosm(ps.proxy, poolKey.currency1, 0);
+    }
+
+    function _burnOrDecrease(
+        UniV4Params memory ps /* params */,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 liquidity,
+        uint256 amount0Min,
+        uint256 amount1Min,
+        bytes memory actions,
+        bytes[] memory params
+    ) internal {
+        // PositionManager stores poolKeys as bytes25
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
+
+        // Perform rate limit
+        ps.rateLimits.triggerRateLimitDecrease(
+            keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
+            liquidity
+        );
+
+        // Perform maxSlippages / amount0Max & amount1Max checks
+        require(ps.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
+
+        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(ps.poolId));
+        (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
+            liquidity
+        );
+
+        // NOTE: +1 is to avoid rounding issues. See comment in _mintOrIncrease.
+        require(
+            amount0Min + 1 >= amount0 * 1e18 / ps.maxSlippage,
+            "UniswapV4Lib: amount0Min too small"
+        );
+        require(
+            amount1Min + 1 >= amount1 * 1e18 / ps.maxSlippage,
+            "UniswapV4Lib: amount1Min too small"
+        );
+
+        // Submit Calls
+        ps.proxy.doCall(
+            address(posm),
+            abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
+        );
     }
 
     function _approvePermit2andPosm(IALMProxy proxy, Currency currency, uint256 amount) internal {
