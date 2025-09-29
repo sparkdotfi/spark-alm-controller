@@ -12,10 +12,10 @@ import { PoolId }       from "v4-core/types/PoolId.sol";
 import { PoolKey }      from "v4-core/types/PoolKey.sol";
 import { TickMath }     from "v4-core/libraries/TickMath.sol";
 
-import { Actions }                         from "v4-periphery/src/libraries/Actions.sol";
-import {PositionInfo, PositionInfoLibrary} from "v4-periphery/src/libraries/PositionInfoLibrary.sol";
-import { IPositionManager }                from "v4-periphery/src/interfaces/IPositionManager.sol";
-import { IStateView }                      from "v4-periphery/src/interfaces/IStateView.sol";
+import { Actions }          from "v4-periphery/src/libraries/Actions.sol";
+import { PositionInfo }     from "v4-periphery/src/libraries/PositionInfoLibrary.sol";
+import { IPositionManager } from "v4-periphery/src/interfaces/IPositionManager.sol";
+import { IStateView }       from "v4-periphery/src/interfaces/IStateView.sol";
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
@@ -122,7 +122,7 @@ library UniswapV4Lib {
         );
     }
 
-    function addLiquidity(
+    function increaseLiquidity(
         UniV4Params memory ps /* params */,
         uint256 tokenId,
         uint128 liquidityIncrease,
@@ -310,9 +310,6 @@ library UniswapV4Lib {
         bytes memory actions,
         bytes[] memory params
     ) internal {
-        // PositionManager stores poolKeys as bytes25
-        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
-
         // Perform rate limit
         ps.rateLimits.triggerRateLimitDecrease(
             keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
@@ -344,6 +341,8 @@ library UniswapV4Lib {
         );
 
         // Submit Calls
+        // PositionManager stores poolKeys as bytes25
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
         _approvePermit2andPosm(ps.proxy, poolKey.currency0, amount0Max);
         _approvePermit2andPosm(ps.proxy, poolKey.currency1, amount1Max);
 
@@ -371,9 +370,6 @@ library UniswapV4Lib {
         bytes memory actions,
         bytes[] memory params
     ) internal {
-        // PositionManager stores poolKeys as bytes25
-        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
-
         // Perform rate limit
         ps.rateLimits.triggerRateLimitDecrease(
             keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
@@ -412,7 +408,7 @@ library UniswapV4Lib {
         address token = Currency.unwrap(currency);
 
         // First, approve Permit2 in the token
-        _approve(proxy, token, address(posm), amount);
+        _approve(proxy, token, address(permit2), amount);
 
         // Then approve the Position Manager in Permit2
         proxy.doCall(

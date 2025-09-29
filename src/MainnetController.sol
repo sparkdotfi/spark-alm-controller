@@ -26,10 +26,6 @@ import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import {
     UniswapV4Lib,
     UniV4Params
-    // UniV4MintPositionParams,
-    // UniV4AddLiquidityParams,
-    // UniV4BurnPositionParams,
-    // UniV4DecreseLiquidityParams
 } from "./libraries/UniswapV4Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -170,7 +166,6 @@ contract MainnetController is AccessControl {
         address psm_,
         address daiUsds_,
         address cctp_
-        // address uniV4posm_
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
@@ -631,7 +626,7 @@ contract MainnetController is AccessControl {
         });
     }
 
-    function addLiquidityUniV4(
+    function increaseLiquidityUniV4(
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityIncrease,
@@ -646,7 +641,7 @@ contract MainnetController is AccessControl {
 
         address addr_id = address(uint160(uint256(poolId)));
 
-        UniswapV4Lib.addLiquidity({
+        UniswapV4Lib.increaseLiquidity({
             ps: UniV4Params({
                 proxy       : proxy,
                 rateLimits  : rateLimits,
