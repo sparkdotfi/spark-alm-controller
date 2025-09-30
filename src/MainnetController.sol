@@ -22,6 +22,7 @@ import  "./interfaces/ILayerZero.sol";
 
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
+import { LimitsLib }                      from "./libraries/LimitsLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -93,33 +94,6 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
-
-    bytes32 public FREEZER = keccak256("FREEZER");
-    bytes32 public RELAYER = keccak256("RELAYER");
-
-    bytes32 public LIMIT_4626_DEPOSIT         = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public LIMIT_4626_WITHDRAW        = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public LIMIT_7540_DEPOSIT         = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public LIMIT_7540_REDEEM          = keccak256("LIMIT_7540_REDEEM");
-    bytes32 public LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
-    bytes32 public LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
-    bytes32 public LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
-    bytes32 public LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
-    bytes32 public LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
-    bytes32 public LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
-    bytes32 public LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
-    bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
-    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
-    bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
-    bytes32 public LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
-    bytes32 public LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
-    bytes32 public LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
-    bytes32 public LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
-    bytes32 public LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
 
     uint256 internal CENTRIFUGE_REQUEST_ID = 0;
 
@@ -214,8 +188,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function removeRelayer(address relayer) external {
-        _checkRole(FREEZER);
-        _revokeRole(RELAYER, relayer);
+        _checkRole(LimitsLib.FREEZER);
+        _revokeRole(LimitsLib.RELAYER, relayer);
         emit RelayerRemoved(relayer);
     }
 
@@ -224,8 +198,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function mintUSDS(uint256 usdsAmount) external {
-        _checkRole(RELAYER);
-        _rateLimited(LIMIT_USDS_MINT, usdsAmount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimited(LimitsLib.LIMIT_USDS_MINT, usdsAmount);
 
         // Mint USDS into the buffer
         proxy.doCall(
@@ -241,8 +215,8 @@ contract MainnetController is AccessControl {
     }
 
     function burnUSDS(uint256 usdsAmount) external {
-        _checkRole(RELAYER);
-        _cancelRateLimit(LIMIT_USDS_MINT, usdsAmount);
+        _checkRole(LimitsLib.RELAYER);
+        _cancelRateLimit(LimitsLib.LIMIT_USDS_MINT, usdsAmount);
 
         // Transfer USDS from the proxy to the buffer
         proxy.doCall(
@@ -262,9 +236,13 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function transferAsset(address asset, address destination, uint256 amount) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
         _rateLimited(
-            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            RateLimitHelpers.makeAssetDestinationKey(
+                LimitsLib.LIMIT_ASSET_TRANSFER,
+                asset,
+                destination
+            ),
             amount
         );
 
@@ -279,8 +257,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function depositERC4626(address token, uint256 amount) external returns (uint256 shares) {
-        _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitedAsset(LimitsLib.LIMIT_4626_DEPOSIT, token, amount);
 
         require(maxSlippages[token] != 0, "MainnetController/max-slippage-not-set");
 
@@ -306,8 +284,8 @@ contract MainnetController is AccessControl {
     }
 
     function withdrawERC4626(address token, uint256 amount) external returns (uint256 shares) {
-        _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitedAsset(LimitsLib.LIMIT_4626_WITHDRAW, token, amount);
 
         // Withdraw asset from a token, decode resulting shares.
         // Assumes proxy has adequate token shares.
@@ -319,12 +297,15 @@ contract MainnetController is AccessControl {
             (uint256)
         );
 
-        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), amount);
+        _cancelRateLimit(
+            RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_4626_DEPOSIT, token),
+            amount
+        );
     }
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares) external returns (uint256 assets) {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
@@ -337,11 +318,14 @@ contract MainnetController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
+            RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_4626_WITHDRAW, token),
             assets
         );
 
-        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), assets);
+        _cancelRateLimit(
+            RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_4626_DEPOSIT, token),
+            assets
+        );
     }
 
     /**********************************************************************************************/
@@ -349,8 +333,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function requestDepositERC7540(address token, uint256 amount) external {
-        _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_7540_DEPOSIT, token, amount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitedAsset(LimitsLib.LIMIT_7540_DEPOSIT, token, amount);
 
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC7540(token).asset());
@@ -361,13 +345,16 @@ contract MainnetController is AccessControl {
         // Submit deposit request by transferring assets
         proxy.doCall(
             token,
-            abi.encodeCall(IERC7540(token).requestDeposit, (amount, address(proxy), address(proxy)))
+            abi.encodeCall(
+                IERC7540(token).requestDeposit,
+                (amount, address(proxy), address(proxy))
+            )
         );
     }
 
     function claimDepositERC7540(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_7540_DEPOSIT, token));
 
         uint256 shares = IERC7540(token).maxMint(address(proxy));
 
@@ -379,9 +366,9 @@ contract MainnetController is AccessControl {
     }
 
     function requestRedeemERC7540(address token, uint256 shares) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
         _rateLimitedAsset(
-            LIMIT_7540_REDEEM,
+            LimitsLib.LIMIT_7540_REDEEM,
             token,
             IERC7540(token).convertToAssets(shares)
         );
@@ -389,13 +376,16 @@ contract MainnetController is AccessControl {
         // Submit redeem request by transferring shares
         proxy.doCall(
             token,
-            abi.encodeCall(IERC7540(token).requestRedeem, (shares, address(proxy), address(proxy)))
+            abi.encodeCall(
+                IERC7540(token).requestRedeem,
+                (shares, address(proxy), address(proxy))
+            )
         );
     }
 
     function claimRedeemERC7540(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_7540_REDEEM, token));
 
         uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
 
@@ -413,8 +403,8 @@ contract MainnetController is AccessControl {
     // NOTE: These cancelation methods are compatible with ERC-7887
 
     function cancelCentrifugeDepositRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_7540_DEPOSIT, token));
 
         // NOTE: While the cancelation is pending, no new deposit request can be submitted
         proxy.doCall(
@@ -427,8 +417,8 @@ contract MainnetController is AccessControl {
     }
 
     function claimCentrifugeCancelDepositRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_7540_DEPOSIT, token));
 
         proxy.doCall(
             token,
@@ -440,8 +430,8 @@ contract MainnetController is AccessControl {
     }
 
     function cancelCentrifugeRedeemRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_7540_REDEEM, token));
 
         // NOTE: While the cancelation is pending, no new redeem request can be submitted
         proxy.doCall(
@@ -454,8 +444,8 @@ contract MainnetController is AccessControl {
     }
 
     function claimCentrifugeCancelRedeemRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_7540_REDEEM, token));
 
         proxy.doCall(
             token,
@@ -471,8 +461,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function depositAave(address aToken, uint256 amount) external {
-        _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitedAsset(LimitsLib.LIMIT_AAVE_DEPOSIT, aToken, amount);
 
         require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
 
@@ -503,7 +493,7 @@ contract MainnetController is AccessControl {
         external
         returns (uint256 amountWithdrawn)
     {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 
@@ -521,12 +511,12 @@ contract MainnetController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
+            RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_AAVE_WITHDRAW, aToken),
             amountWithdrawn
         );
 
         _cancelRateLimit(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
+            RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_AAVE_DEPOSIT, aToken),
             amountWithdrawn
         );
     }
@@ -544,13 +534,13 @@ contract MainnetController is AccessControl {
     )
         external returns (uint256 amountOut)
     {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         amountOut = CurveLib.swap(CurveLib.SwapCurveParams({
             proxy        : proxy,
             rateLimits   : rateLimits,
             pool         : pool,
-            rateLimitId  : LIMIT_CURVE_SWAP,
+            rateLimitId  : LimitsLib.LIMIT_CURVE_SWAP,
             inputIndex   : inputIndex,
             outputIndex  : outputIndex,
             amountIn     : amountIn,
@@ -566,14 +556,14 @@ contract MainnetController is AccessControl {
     )
         external returns (uint256 shares)
     {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         shares = CurveLib.addLiquidity(CurveLib.AddLiquidityParams({
             proxy                   : proxy,
             rateLimits              : rateLimits,
             pool                    : pool,
-            addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
-            swapRateLimitId         : LIMIT_CURVE_SWAP,
+            addLiquidityRateLimitId : LimitsLib.LIMIT_CURVE_DEPOSIT,
+            swapRateLimitId         : LimitsLib.LIMIT_CURVE_SWAP,
             minLpAmount             : minLpAmount,
             maxSlippage             : maxSlippages[pool],
             depositAmounts          : depositAmounts
@@ -587,13 +577,13 @@ contract MainnetController is AccessControl {
     )
         external returns (uint256[] memory withdrawnTokens)
     {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         withdrawnTokens = CurveLib.removeLiquidity(CurveLib.RemoveLiquidityParams({
             proxy              : proxy,
             rateLimits         : rateLimits,
             pool               : pool,
-            rateLimitId        : LIMIT_CURVE_WITHDRAW,
+            rateLimitId        : LimitsLib.LIMIT_CURVE_WITHDRAW,
             lpBurnAmount       : lpBurnAmount,
             minWithdrawAmounts : minWithdrawAmounts,
             maxSlippage        : maxSlippages[pool]
@@ -605,7 +595,7 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function setDelegatedSigner(address delegatedSigner) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         proxy.doCall(
             address(ethenaMinter),
@@ -614,7 +604,7 @@ contract MainnetController is AccessControl {
     }
 
     function removeDelegatedSigner(address delegatedSigner) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         proxy.doCall(
             address(ethenaMinter),
@@ -624,20 +614,20 @@ contract MainnetController is AccessControl {
 
     // Note that Ethena's mint/redeem per-block limits include other users
     function prepareUSDeMint(uint256 usdcAmount) external {
-        _checkRole(RELAYER);
-        _rateLimited(LIMIT_USDE_MINT, usdcAmount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimited(LimitsLib.LIMIT_USDE_MINT, usdcAmount);
         _approve(address(usdc), address(ethenaMinter), usdcAmount);
     }
 
     function prepareUSDeBurn(uint256 usdeAmount) external {
-        _checkRole(RELAYER);
-        _rateLimited(LIMIT_USDE_BURN, usdeAmount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimited(LimitsLib.LIMIT_USDE_BURN, usdeAmount);
         _approve(address(usde), address(ethenaMinter), usdeAmount);
     }
 
     function cooldownAssetsSUSDe(uint256 usdeAmount) external {
-        _checkRole(RELAYER);
-        _rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimited(LimitsLib.LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
         proxy.doCall(
             address(susde),
@@ -650,7 +640,7 @@ contract MainnetController is AccessControl {
         external
         returns (uint256 cooldownAmount)
     {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         cooldownAmount = abi.decode(
             proxy.doCall(
@@ -660,11 +650,11 @@ contract MainnetController is AccessControl {
             (uint256)
         );
 
-        rateLimits.triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
+        rateLimits.triggerRateLimitDecrease(LimitsLib.LIMIT_SUSDE_COOLDOWN, cooldownAmount);
     }
 
     function unstakeSUSDe() external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         proxy.doCall(
             address(susde),
@@ -677,9 +667,9 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function requestMapleRedemption(address mapleToken, uint256 shares) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
         _rateLimitedAsset(
-            LIMIT_MAPLE_REDEEM,
+            LimitsLib.LIMIT_MAPLE_REDEEM,
             mapleToken,
             IMapleTokenLike(mapleToken).convertToAssets(shares)
         );
@@ -691,8 +681,8 @@ contract MainnetController is AccessControl {
     }
 
     function cancelMapleRedemption(address mapleToken, uint256 shares) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_MAPLE_REDEEM, mapleToken));
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitExists(RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_MAPLE_REDEEM, mapleToken));
 
         proxy.doCall(
             mapleToken,
@@ -705,8 +695,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function subscribeSuperstate(uint256 usdcAmount) external {
-        _checkRole(RELAYER);
-        _rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimited(LimitsLib.LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount);
 
         _approve(address(usdc), address(ustb), usdcAmount);
 
@@ -722,7 +712,7 @@ contract MainnetController is AccessControl {
 
     function swapUSDSToDAI(uint256 usdsAmount)
         external
-        onlyRole(RELAYER)
+        onlyRole(LimitsLib.RELAYER)
     {
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
         _approve(address(usds), address(daiUsds), usdsAmount);
@@ -736,7 +726,7 @@ contract MainnetController is AccessControl {
 
     function swapDAIToUSDS(uint256 daiAmount)
         external
-        onlyRole(RELAYER)
+        onlyRole(LimitsLib.RELAYER)
     {
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
         _approve(address(dai), address(daiUsds), daiAmount);
@@ -755,7 +745,7 @@ contract MainnetController is AccessControl {
     // NOTE: The param `usdcAmount` is denominated in 1e6 precision to match how PSM uses
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
     function swapUSDSToUSDC(uint256 usdcAmount) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         PSMLib.swapUSDSToUSDC(PSMLib.SwapUSDSToUSDCParams({
             proxy                   : proxy,
@@ -764,14 +754,14 @@ contract MainnetController is AccessControl {
             psm                     : psm,
             usds                    : usds,
             dai                     : dai,
-            rateLimitId             : LIMIT_USDS_TO_USDC,
+            rateLimitId             : LimitsLib.LIMIT_USDS_TO_USDC,
             usdcAmount              : usdcAmount,
             psmTo18ConversionFactor : psmTo18ConversionFactor
         }));
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         PSMLib.swapUSDCToUSDS(PSMLib.SwapUSDCToUSDSParams({
             proxy                   : proxy,
@@ -780,7 +770,7 @@ contract MainnetController is AccessControl {
             psm                     : psm,
             dai                     : dai,
             usdc                    : usdc,
-            rateLimitId             : LIMIT_USDS_TO_USDC,
+            rateLimitId             : LimitsLib.LIMIT_USDS_TO_USDC,
             usdcAmount              : usdcAmount,
             psmTo18ConversionFactor : psmTo18ConversionFactor
         }));
@@ -796,9 +786,9 @@ contract MainnetController is AccessControl {
     )
         external payable
     {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
         _rateLimited(
-            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
+            keccak256(abi.encode(LimitsLib.LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
             amount
         );
 
@@ -839,15 +829,15 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
 
         CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
             proxy             : proxy,
             rateLimits        : rateLimits,
             cctp              : cctp,
             usdc              : usdc,
-            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
-            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
+            domainRateLimitId : LimitsLib.LIMIT_USDC_TO_DOMAIN,
+            cctpRateLimitId   : LimitsLib.LIMIT_USDC_TO_CCTP,
             mintRecipient     : mintRecipients[destinationDomain],
             destinationDomain : destinationDomain,
             usdcAmount        : usdcAmount
@@ -859,9 +849,9 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function depositToFarm(address farm, uint256 usdsAmount) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
         _rateLimited(
-            keccak256(abi.encode(LIMIT_FARM_DEPOSIT, farm)),
+            keccak256(abi.encode(LimitsLib.LIMIT_FARM_DEPOSIT, farm)),
             usdsAmount
         );
 
@@ -874,9 +864,9 @@ contract MainnetController is AccessControl {
     }
 
     function withdrawFromFarm(address farm, uint256 usdsAmount) external {
-        _checkRole(RELAYER);
+        _checkRole(LimitsLib.RELAYER);
         _rateLimited(
-            keccak256(abi.encode(LIMIT_FARM_WITHDRAW, farm)),
+            keccak256(abi.encode(LimitsLib.LIMIT_FARM_WITHDRAW, farm)),
             usdsAmount
         );
 
@@ -895,8 +885,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
 
     function takeFromSparkVault(address sparkVault, uint256 assetAmount) external {
-        _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
+        _checkRole(LimitsLib.RELAYER);
+        _rateLimitedAsset(LimitsLib.LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
 
         // Take assets from the vault
         proxy.doCall(
