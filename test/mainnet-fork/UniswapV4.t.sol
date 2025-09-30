@@ -59,14 +59,12 @@ contract UniV4TestBase is ForkTestBase {
         uint128 liquidityInitial
     ) internal returns (uint256 positionId) {
         (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(POOL_ID));
-        console2.log("Current sqrtPriceX96: %s", sqrtPriceX96);
         (uint256 amount0Forecasted, uint256 amount1Forecasted) = LiquidityAmounts.getAmountsForLiquidity(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickLower),
             TickMath.getSqrtPriceAtTick(tickUpper),
             liquidityInitial
         );
-        console2.log("Amount0 Forecasted: %s", amount0Forecasted);
 
         deal(address(usdc), address(almProxy), amount0Forecasted + 1);
         deal(address(usdt), address(almProxy), amount1Forecasted + 1);

@@ -66,7 +66,7 @@ library UniswapV4Lib {
     /**********************************************************************************************/
 
     function mintPosition(
-        UniV4Params calldata ps /* params */,
+        UniV4Params calldata p /* params */,
         int24   tickLower,
         int24   tickUpper,
         uint128 liquidityInitial,
@@ -95,10 +95,10 @@ library UniswapV4Lib {
         //         ""           // No hook data needed
         //     );
         // ```
-        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(p.poolId));
 
         params[0] = abi.encode(
-            poolKey, tickLower, tickUpper, liquidityInitial, amount0Max, amount1Max, ps.proxy, ""
+            poolKey, tickLower, tickUpper, liquidityInitial, amount0Max, amount1Max, p.proxy, ""
         );
 
         // ```
@@ -111,7 +111,7 @@ library UniswapV4Lib {
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
 
         _mintOrIncrease(
-            ps,
+            p,
             tickLower,
             tickUpper,
             liquidityInitial,
@@ -123,13 +123,13 @@ library UniswapV4Lib {
     }
 
     function increaseLiquidity(
-        UniV4Params memory ps /* params */,
+        UniV4Params memory p /* params */,
         uint256 tokenId,
         uint128 liquidityIncrease,
         uint256 amount0Max,
         uint256 amount1Max
     ) external {
-        _ensureTokenIdForPoolId(tokenId, ps.poolId);
+        _ensureTokenIdForPoolId(tokenId, p.poolId);
 
         // When adding liquidity, accrued fees are automatically accounted. Thus it is
         // technically possible that the delta will be in favor of the liquidity provider. Since
@@ -164,7 +164,7 @@ library UniswapV4Lib {
         params[2] = abi.encode(poolKey.currency1);
 
         _mintOrIncrease(
-            ps,
+            p,
             info.tickLower(),
             info.tickUpper(),
             liquidityIncrease,
@@ -176,20 +176,20 @@ library UniswapV4Lib {
     }
 
     function burnPosition(
-        UniV4Params memory ps /* params */,
+        UniV4Params memory p /* params */,
         uint256 tokenId,
         uint256 amount0Min,
         uint256 amount1Min
     ) external {
         uint128 liquidityCurrent = stateView.getPositionLiquidity(
-            { poolId: PoolId.wrap(ps.poolId), positionId: bytes32(tokenId) }
+            { poolId: PoolId.wrap(p.poolId), positionId: bytes32(tokenId) }
         );
 
-        _ensureTokenIdForPoolId(tokenId, ps.poolId);
+        _ensureTokenIdForPoolId(tokenId, p.poolId);
 
         // Perform rate limit
-        ps.rateLimits.triggerRateLimitIncrease(
-            keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
+        p.rateLimits.triggerRateLimitIncrease(
+            keccak256(abi.encode(p.rateLimitId, p.poolId)),
             liquidityCurrent
         );
 
@@ -222,7 +222,7 @@ library UniswapV4Lib {
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
 
         _burnOrDecrease(
-            ps,
+            p,
             info.tickLower(),
             info.tickUpper(),
             liquidityCurrent,
@@ -234,17 +234,17 @@ library UniswapV4Lib {
     }
 
     function decreaseLiquidity(
-        UniV4Params memory ps /* params */,
+        UniV4Params memory p /* params */,
         uint256 tokenId,
         uint128 liquidityDecrease,
         uint256 amount0Min,
         uint256 amount1Min
     ) external {
-        _ensureTokenIdForPoolId(tokenId, ps.poolId);
+        _ensureTokenIdForPoolId(tokenId, p.poolId);
 
         // Perform rate limit
-        ps.rateLimits.triggerRateLimitIncrease(
-            keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
+        p.rateLimits.triggerRateLimitIncrease(
+            keccak256(abi.encode(p.rateLimitId, p.poolId)),
             liquidityDecrease
         );
 
@@ -278,7 +278,7 @@ library UniswapV4Lib {
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
 
         _burnOrDecrease(
-            ps,
+            p,
             info.tickLower(),
             info.tickUpper(),
             liquidityDecrease,
@@ -301,7 +301,7 @@ library UniswapV4Lib {
     }
 
     function _mintOrIncrease(
-        UniV4Params memory ps /* params */,
+        UniV4Params memory p /* params */,
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidity,
@@ -311,15 +311,15 @@ library UniswapV4Lib {
         bytes[] memory params
     ) internal {
         // Perform rate limit
-        ps.rateLimits.triggerRateLimitDecrease(
-            keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
+        p.rateLimits.triggerRateLimitDecrease(
+            keccak256(abi.encode(p.rateLimitId, p.poolId)),
             liquidity
         );
 
         // Perform maxSlippages / amount0Max & amount1Max checks
-        require(ps.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
+        require(p.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
 
-        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(ps.poolId));
+        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(p.poolId));
         (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickLower),
@@ -332,22 +332,22 @@ library UniswapV4Lib {
         // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
         // errors. To allow for that behavior, we subtract 1 here.
         require(
-            amount0Max - 1 <= amount0 * 1e18 / ps.maxSlippage,
+            amount0Max - 1 <= amount0 * 1e18 / p.maxSlippage,
             "UniswapV4Lib: amount0Max too high"
         );
         require(
-            amount1Max - 1 <= amount1 * 1e18 / ps.maxSlippage,
+            amount1Max - 1 <= amount1 * 1e18 / p.maxSlippage,
             "UniswapV4Lib: amount1Max too high"
         );
 
         // Submit Calls
         // PositionManager stores poolKeys as bytes25
-        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(ps.poolId));
-        _approvePermit2andPosm(ps.proxy, poolKey.currency0, amount0Max);
-        _approvePermit2andPosm(ps.proxy, poolKey.currency1, amount1Max);
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(p.poolId));
+        _approvePermit2andPosm(p.proxy, poolKey.currency0, amount0Max);
+        _approvePermit2andPosm(p.proxy, poolKey.currency1, amount1Max);
 
         // Perform action
-        ps.proxy.doCall(
+        p.proxy.doCall(
             address(posm),
             abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
         );
@@ -356,12 +356,12 @@ library UniswapV4Lib {
         // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it doesn't
         // have allowance in the token at this point), but for let's do it anyway so we don't have
         // a hanging unusable approval.
-        _approvePermit2andPosm(ps.proxy, poolKey.currency0, 0);
-        _approvePermit2andPosm(ps.proxy, poolKey.currency1, 0);
+        _approvePermit2andPosm(p.proxy, poolKey.currency0, 0);
+        _approvePermit2andPosm(p.proxy, poolKey.currency1, 0);
     }
 
     function _burnOrDecrease(
-        UniV4Params memory ps /* params */,
+        UniV4Params memory p /* params */,
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidity,
@@ -371,15 +371,15 @@ library UniswapV4Lib {
         bytes[] memory params
     ) internal {
         // Perform rate limit
-        ps.rateLimits.triggerRateLimitDecrease(
-            keccak256(abi.encode(ps.rateLimitId, ps.poolId)),
+        p.rateLimits.triggerRateLimitDecrease(
+            keccak256(abi.encode(p.rateLimitId, p.poolId)),
             liquidity
         );
 
         // Perform maxSlippages / amount0Max & amount1Max checks
-        require(ps.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
+        require(p.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
 
-        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(ps.poolId));
+        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(p.poolId));
         (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickLower),
@@ -389,16 +389,16 @@ library UniswapV4Lib {
 
         // NOTE: +1 is to avoid rounding issues. See comment in _mintOrIncrease.
         require(
-            amount0Min + 1 >= amount0 * 1e18 / ps.maxSlippage,
+            amount0Min + 1 >= amount0 * 1e18 / p.maxSlippage,
             "UniswapV4Lib: amount0Min too small"
         );
         require(
-            amount1Min + 1 >= amount1 * 1e18 / ps.maxSlippage,
+            amount1Min + 1 >= amount1 * 1e18 / p.maxSlippage,
             "UniswapV4Lib: amount1Min too small"
         );
 
         // Submit Calls
-        ps.proxy.doCall(
+        p.proxy.doCall(
             address(posm),
             abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
         );

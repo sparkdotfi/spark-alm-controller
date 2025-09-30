@@ -611,7 +611,7 @@ contract MainnetController is AccessControl {
         address addr_id = address(uint160(uint256(poolId)));
 
         UniswapV4Lib.mintPosition({
-            ps: UniV4Params({
+            p: UniV4Params({
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_DEPOSIT,
@@ -642,7 +642,7 @@ contract MainnetController is AccessControl {
         address addr_id = address(uint160(uint256(poolId)));
 
         UniswapV4Lib.increaseLiquidity({
-            ps: UniV4Params({
+            p: UniV4Params({
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_DEPOSIT,
@@ -671,7 +671,7 @@ contract MainnetController is AccessControl {
         address addr_id = address(uint160(uint256(poolId)));
 
         UniswapV4Lib.burnPosition({
-            ps: UniV4Params({
+            p: UniV4Params({
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_WITHDRAW,
@@ -700,7 +700,7 @@ contract MainnetController is AccessControl {
         address addr_id = address(uint160(uint256(poolId)));
 
         UniswapV4Lib.decreaseLiquidity({
-            ps: UniV4Params({
+            p: UniV4Params({
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_DEPOSIT,
