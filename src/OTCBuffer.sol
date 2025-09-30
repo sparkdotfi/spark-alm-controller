@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { AccessControlEnumerable }  from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
-import { AccessControlEnumerable } from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
 contract OTCBuffer is AccessControlEnumerable {
 

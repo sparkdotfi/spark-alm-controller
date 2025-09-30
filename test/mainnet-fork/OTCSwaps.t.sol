@@ -5,6 +5,8 @@ import { console2 } from "forge-std/console2.sol";
 
 import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
+import { OTCSwapState } from "src/MainnetController.sol";
+
 import { OTCBuffer } from "src/OTCBuffer.sol";
 
 import "./ForkTestBase.t.sol";
@@ -223,7 +225,7 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         vm.prank(relayer);
         mainnetController.otcSwapSend(exchange, address(tokenSend), 10_000_000e18);
 
-        assertFalse(mainnetController.otcLastReturned(address(exchange)));
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
     }
 
     function _otcClaim_returnOneAsset(uint8 decimalsSend, uint8 decimalsReturn, bool recharge) internal {
@@ -263,6 +265,7 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
 
         // Execute OTC swap
         vm.prank(relayer);
+        uint48 time_swap = uint48(block.timestamp);
         mainnetController.otcSwapSend(
             exchange,
             address(tokenSend),
@@ -280,15 +283,22 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         uint256 tokRetBalBuf = tokenReturn.balanceOf(address(otcBuffer));
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, address(tokenReturn), returnAmount - 1);
+
+        // assertEq(mainnetController.otcSwapStates(exchange), OTCSwapState({
+        //     swapTimestamp: time_swap,
+        //     sent18: 10e6 * 10 ** 18 / 10 ** decimalsSend * 10 ** 18,
+        //     claimed18: (returnAmount - 1) / 10 ** decimalsReturn * 10 ** 18
+        // }));
+
         assertEq(tokenReturn.balanceOf(address(almProxy)),  tokRetBalAlm + returnAmount - 1);
         assertEq(tokenReturn.balanceOf(address(otcBuffer)), tokRetBalBuf - (returnAmount - 1));
-        assertFalse(mainnetController.otcLastReturned(address(exchange)));
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
 
         // There is a rounding error so we skip an additional second
         if (recharge) skip(1 seconds);
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, address(tokenReturn), 1);
-        assertTrue(mainnetController.otcLastReturned(address(exchange)));
+        assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
     }
 
     function _otcClaim_returnTwoAssets(uint8 decimalsSend, uint8 decimalsReturn, uint8 decimalsReturn2, bool recharge) internal {
@@ -360,13 +370,13 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         mainnetController.otcClaim(exchange, address(tokenReturn), returnAmount - 1);
         assertEq(tokenReturn.balanceOf(address(almProxy)),  tokRetBalAlm + returnAmount - 1);
         assertEq(tokenReturn.balanceOf(address(otcBuffer)), tokRetBalBuf - (returnAmount - 1));
-        assertFalse(mainnetController.otcLastReturned(address(exchange)));
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, address(tokenReturn2), returnAmount2 - 1);
         assertEq(tokenReturn2.balanceOf(address(almProxy)),  tokRet2BalAlm + returnAmount2 - 1);
         assertEq(tokenReturn2.balanceOf(address(otcBuffer)), tokRet2BalBuf - (returnAmount2 - 1));
-        assertFalse(mainnetController.otcLastReturned(address(exchange)));
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
 
         // There is a rounding error so we skip an additional second
         if (recharge) skip(1 seconds);
@@ -374,7 +384,7 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         mainnetController.otcClaim(exchange, address(tokenReturn), 1);
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, address(tokenReturn2), 1);
-        assertTrue(mainnetController.otcLastReturned(address(exchange)));
+        assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
     }
 
     function test_otcClaim() external {
@@ -398,10 +408,11 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         }
     }
 
-    function test_otcLastReturned() external {
+    function test_isOtcSwapReady() external {
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setMaxSlippage(exchange, 0);
-        assertFalse(mainnetController.otcLastReturned(address(exchange)));
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
     }
+
 }
 

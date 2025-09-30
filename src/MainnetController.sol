@@ -100,13 +100,27 @@ contract MainnetController is AccessControl {
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
-    event RelayerRemoved(address indexed relayer);
     event OTCBufferSet(
         address indexed exchange,
         address indexed newOTCBuffer,
         address indexed oldOTCBuffer
     );
     event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
+    event OTCSwapSent(
+        address indexed exchange,
+        address indexed buffer,
+        address indexed tokenSent,
+        uint256 amountSent,
+        uint256 amountSent18
+    );
+    event OTCClaimed(
+        address indexed exchange,
+        address indexed buffer,
+        address indexed assetClaimed,
+        uint256 amountClaimed,
+        uint256 amountClaimed18
+    );
+    event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -234,8 +248,10 @@ contract MainnetController is AccessControl {
 
     function setOTCBuffer(address exchange, address otcBuffer) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
+
         require(exchange  != address(0), "MainnetController/exchange-zero-address");
         require(exchange  != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
+
         OTCConfig storage otcConfig = otcConfigs[exchange];
 
         emit OTCBufferSet(exchange, otcBuffer, otcConfig.buffer);
@@ -949,21 +965,19 @@ contract MainnetController is AccessControl {
     /*** OTC swap functions                                                                     ***/
     /**********************************************************************************************/
 
-    function otcSwapSend(address exchange, address send, uint256 amountToSend) external {
+    function otcSwapSend(address exchange, address assetToSend, uint256 amountToSend) external {
         _checkRole(RELAYER);
+        require(amountToSend > 0, "MainnetController/amount-to-send-zero");
 
-        uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(send).decimals();
+        uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
 
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
-
-        require(amountToSend > 0, "MainnetController/amount-to-send-zero");
 
         OTCConfig storage otcConfig = otcConfigs[exchange];
 
         // Just to check that OTC buffer exists
         require(otcConfig.buffer != address(0), "MainnetController/otc-buffer-not-set");
-
-        require(otcLastReturned(exchange), "MainnetController/last-swap-not-returned");
+        require(isOtcSwapReady(exchange),       "MainnetController/last-swap-not-returned");
 
         otcSwapStates[exchange] = OTCSwapState({
             swapTimestamp : block.timestamp,
@@ -973,12 +987,14 @@ contract MainnetController is AccessControl {
 
         // NOTE: Reentrancy not relevant here because there are no state changes after this call
         proxy.doCall(
-            send,
-            abi.encodeCall(IERC20(send).transfer, (exchange, amountToSend))
+            assetToSend,
+            abi.encodeCall(IERC20(assetToSend).transfer, (exchange, amountToSend))
         );
+
+        emit OTCSwapSent(exchange, otcConfig.buffer, assetToSend, amountToSend, sent18);
     }
 
-    function otcClaim(address exchange, address asset, uint256 amountToClaim) external {
+    function otcClaim(address exchange, address assetToClaim, uint256 amountToClaim) external {
         _checkRole(RELAYER);
         require(amountToClaim > 0, "MainnetController/amount-to-claim-zero");
 
@@ -989,17 +1005,19 @@ contract MainnetController is AccessControl {
         require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
 
         // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 amountToClaim18 = amountToClaim * 1e18 / 10 ** IERC20Metadata(asset).decimals();
+        uint256 amountToClaim18 = amountToClaim * 1e18 / 10 ** IERC20Metadata(assetToClaim).decimals();
 
         otcSwapState.claimed18 += amountToClaim18;
 
         // Transfer assets from the OTC buffer to the proxy
         // NOTE: Reentrancy not possible here because both are known contracts.
         // NOTE: We are not using SafeERC20 here; tokens that do not revert will fail silently.
-        IERC20(asset).transferFrom(otcBuffer, address(proxy), amountToClaim);
+        IERC20(assetToClaim).transferFrom(otcBuffer, address(proxy), amountToClaim);
+
+        emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
     }
 
-    function otcLastReturned(address exchange) public view returns (bool) {
+    function isOtcSwapReady(address exchange) public view returns (bool) {
         OTCSwapState storage otcSwapState = otcSwapStates[exchange];
         OTCConfig    storage otcConfig    = otcConfigs[exchange];
 
