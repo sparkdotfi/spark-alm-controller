@@ -615,6 +615,7 @@ contract MainnetController is AccessControl {
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_DEPOSIT,
+                // TODO: Use central state contract
                 maxSlippage : maxSlippages[addr_id],
                 poolId      : poolId
             }),
@@ -646,6 +647,7 @@ contract MainnetController is AccessControl {
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_DEPOSIT,
+                // TODO: Use central state contract
                 maxSlippage : maxSlippages[addr_id],
                 poolId      : poolId
             }),
@@ -675,6 +677,7 @@ contract MainnetController is AccessControl {
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_WITHDRAW,
+                // TODO: Use central state contract
                 maxSlippage : maxSlippages[addr_id],
                 poolId      : poolId
             }),
@@ -704,6 +707,7 @@ contract MainnetController is AccessControl {
                 proxy       : proxy,
                 rateLimits  : rateLimits,
                 rateLimitId : LIMIT_UNI_V4_DEPOSIT,
+                // TODO: Use central state contract
                 maxSlippage : maxSlippages[addr_id],
                 poolId      : poolId
             }),

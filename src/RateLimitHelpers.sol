@@ -7,6 +7,10 @@ library RateLimitHelpers {
         return keccak256(abi.encode(key, asset));
     }
 
+    function makePoolKey(bytes32 key, bytes32 poolId) internal pure returns (bytes32) {
+        return keccak256(abi.encode(key, poolId));
+    }
+
     function makeAssetDestinationKey(bytes32 key, address asset, address destination) internal pure returns (bytes32) {
         return keccak256(abi.encode(key, asset, destination));
     }

@@ -57,7 +57,7 @@ contract UniV4TestBase is ForkTestBase {
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidityInitial
-    ) internal returns (uint256 positionId) {
+    ) internal {
         (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(POOL_ID));
         (uint256 amount0Forecasted, uint256 amount1Forecasted) = LiquidityAmounts.getAmountsForLiquidity(
             sqrtPriceX96,
@@ -81,14 +81,14 @@ contract UniV4TestBase is ForkTestBase {
     }
 
     function _addLiquidity(uint256 usdcAmount, uint256 usdtAmount) internal {
-        deal(address(usdc), address(almProxy), usdcAmount);
-        deal(address(usdt), address(almProxy), usdtAmount);
-
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = usdcAmount;
-        amounts[1] = usdtAmount;
-
-        uint256 minLpAmount = (usdcAmount + usdtAmount) * 1e12 * 98/100;
+        // deal(address(usdc), address(almProxy), usdcAmount);
+        // deal(address(usdt), address(almProxy), usdtAmount);
+        //
+        // uint256[] memory amounts = new uint256[](2);
+        // amounts[0] = usdcAmount;
+        // amounts[1] = usdtAmount;
+        //
+        // uint256 minLpAmount = (usdcAmount + usdtAmount) * 1e12 * 98/100;
 
         // vm.prank(relayer);
         // return mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);

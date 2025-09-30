@@ -312,7 +312,7 @@ library UniswapV4Lib {
     ) internal {
         // Perform rate limit
         p.rateLimits.triggerRateLimitDecrease(
-            keccak256(abi.encode(p.rateLimitId, p.poolId)),
+            RateLimitHelpers.makePoolKey(p.rateLimitId, p.poolId),
             liquidity
         );
 
