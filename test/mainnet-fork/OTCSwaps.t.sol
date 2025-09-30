@@ -39,6 +39,20 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         address indexed newOTCBuffer,
         address indexed oldOTCBuffer
     );
+    event OTCSwapSent(
+        address indexed exchange,
+        address indexed buffer,
+        address indexed tokenSent,
+        uint256 amountSent,
+        uint256 amountSent18
+    );
+    event OTCClaimed(
+        address indexed exchange,
+        address indexed buffer,
+        address indexed assetClaimed,
+        uint256 amountClaimed,
+        uint256 amountClaimed18
+    );
 
     event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
 
@@ -50,8 +64,8 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         // 1. Deploy OTCBuffer
         otcBuffer = new OTCBuffer(Ethereum.SPARK_PROXY);
 
-        // We cannot set allowance now because we will be using different assets, so it will have to
-        // be done separately in each test.
+        // Allowance cannot be set now because different assets will be used, so it will have to be
+        // done separately in each test.
 
         // 2. Set rate limits
         // We can do that because it doesn't depend on the asset
@@ -128,6 +142,8 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcSwapSend(exchange, address(tokenSend), expRateLimit + 1);
 
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(exchange, address(otcBuffer), address(tokenSend), expRateLimit, expRateLimit);
         mainnetController.otcSwapSend(exchange, address(tokenSend), expRateLimit);
     }
 
@@ -160,6 +176,8 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
 
         // Execute OTC swap
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(exchange, address(otcBuffer), address(tokenSend), 10_000_000e18, 10_000_000e18);
         mainnetController.otcSwapSend(exchange, address(tokenSend), 10_000_000e18);
 
         // Try to do another one
@@ -223,6 +241,8 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
 
         // Execute OTC swap
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(exchange, address(otcBuffer), address(tokenSend), 10_000_000e18, 10_000_000e18);
         mainnetController.otcSwapSend(exchange, address(tokenSend), 10_000_000e18);
 
         assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
@@ -266,6 +286,12 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         // Execute OTC swap
         vm.prank(relayer);
         uint48 time_swap = uint48(block.timestamp);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(
+            exchange, address(otcBuffer), address(tokenSend), 10e6 * 10 ** decimalsSend, (
+                10e6 * 1e18
+            )
+        );
         mainnetController.otcSwapSend(
             exchange,
             address(tokenSend),
@@ -282,6 +308,12 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         uint256 tokRetBalAlm = tokenReturn.balanceOf(address(almProxy));
         uint256 tokRetBalBuf = tokenReturn.balanceOf(address(otcBuffer));
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(
+            exchange, address(otcBuffer), address(tokenReturn), returnAmount - 1, (
+                (returnAmount - 1) * 1e18 / 10 ** decimalsReturn
+            )
+        );
         mainnetController.otcClaim(exchange, address(tokenReturn), returnAmount - 1);
 
         // assertEq(mainnetController.otcSwapStates(exchange), OTCSwapState({
@@ -297,6 +329,12 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         // There is a rounding error so we skip an additional second
         if (recharge) skip(1 seconds);
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(
+            exchange, address(otcBuffer), address(tokenReturn), 1, (
+                1 * 1e18 / 10 ** decimalsReturn
+            )
+        );
         mainnetController.otcClaim(exchange, address(tokenReturn), 1);
         assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
     }
@@ -345,6 +383,12 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
 
         // Execute OTC swap
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(
+            exchange, address(otcBuffer), address(tokenSend), 10e6 * 10 ** decimalsSend, (
+                10e6 * 1e18
+            )
+        );
         mainnetController.otcSwapSend(
             exchange,
             address(tokenSend),
@@ -354,6 +398,26 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         // Skip time by 1 day to (potentially) recharge
         if (recharge) skip(1 days);
 
+        _otcClaim_returnTwoAssets2(
+            tokenReturn,
+            tokenReturn2,
+            decimalsReturn,
+            decimalsReturn2,
+            returnAmount,
+            returnAmount2,
+            recharge
+        );
+    }
+
+    function _otcClaim_returnTwoAssets2(
+        ERC20   tokenReturn,
+        ERC20   tokenReturn2,
+        uint8   decimalsReturn,
+        uint8   decimalsReturn2,
+        uint256 returnAmount,
+        uint256 returnAmount2,
+        bool    recharge
+    ) internal {
         vm.prank(exchange);
         tokenReturn.transfer(address(otcBuffer), returnAmount);
 
@@ -367,12 +431,24 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         uint256 tokRet2BalBuf = tokenReturn2.balanceOf(address(otcBuffer));
 
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(
+            exchange, address(otcBuffer), address(tokenReturn),  returnAmount - 1, (
+                (returnAmount - 1) * 1e18 / 10 ** decimalsReturn
+            )
+        );
         mainnetController.otcClaim(exchange, address(tokenReturn), returnAmount - 1);
         assertEq(tokenReturn.balanceOf(address(almProxy)),  tokRetBalAlm + returnAmount - 1);
         assertEq(tokenReturn.balanceOf(address(otcBuffer)), tokRetBalBuf - (returnAmount - 1));
         assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
 
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(
+            exchange, address(otcBuffer), address(tokenReturn2), returnAmount2 - 1, (
+                (returnAmount2 - 1) * 1e18 / 10 ** decimalsReturn2
+            )
+        );
         mainnetController.otcClaim(exchange, address(tokenReturn2), returnAmount2 - 1);
         assertEq(tokenReturn2.balanceOf(address(almProxy)),  tokRet2BalAlm + returnAmount2 - 1);
         assertEq(tokenReturn2.balanceOf(address(otcBuffer)), tokRet2BalBuf - (returnAmount2 - 1));
@@ -381,8 +457,20 @@ contract MainnetControllerOTCSwapSuccessTests is MainnetControllerOTCSwapBase {
         // There is a rounding error so we skip an additional second
         if (recharge) skip(1 seconds);
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(
+            exchange, address(otcBuffer), address(tokenReturn), 1, (
+                1 * 1e18 / 10 ** decimalsReturn
+            )
+        );
         mainnetController.otcClaim(exchange, address(tokenReturn), 1);
         vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(
+            exchange, address(otcBuffer), address(tokenReturn2), 1, (
+                1 * 1e18 / 10 ** decimalsReturn2
+            )
+        );
         mainnetController.otcClaim(exchange, address(tokenReturn2), 1);
         assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
     }
