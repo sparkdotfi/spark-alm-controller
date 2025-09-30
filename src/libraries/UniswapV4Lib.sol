@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC20         }  from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC20Metadata } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC721        } from "openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 
 import { IPermit2 } from "permit2/src/interfaces/IPermit2.sol";
 
@@ -130,6 +132,11 @@ library UniswapV4Lib {
         uint256 amount1Max
     ) external {
         _ensureTokenIdForPoolId(tokenId, p.poolId);
+        // Require that the caller is the owner of the position. NOTE: Only this flow has this
+        // check. `mintPosition` does not refer to an existing tokenId, `decreaseLiquidity` and
+        // `burnPosition` can technically be called on someone else's position (as long as the
+        // controller is authorized in the downstream calls).
+        require(IERC721(address(posm)).ownerOf(tokenId) == address(p.proxy), "UniswapV4Lib: not position owner");
 
         // When adding liquidity, accrued fees are automatically accounted. Thus it is
         // technically possible that the delta will be in favor of the liquidity provider. Since
@@ -187,12 +194,6 @@ library UniswapV4Lib {
 
         _ensureTokenIdForPoolId(tokenId, p.poolId);
 
-        // Perform rate limit
-        p.rateLimits.triggerRateLimitIncrease(
-            keccak256(abi.encode(p.rateLimitId, p.poolId)),
-            liquidityCurrent
-        );
-
         bytes memory actions = abi.encodePacked(
             uint8(Actions.BURN_POSITION),
             uint8(Actions.TAKE_PAIR)
@@ -241,12 +242,6 @@ library UniswapV4Lib {
         uint256 amount1Min
     ) external {
         _ensureTokenIdForPoolId(tokenId, p.poolId);
-
-        // Perform rate limit
-        p.rateLimits.triggerRateLimitIncrease(
-            keccak256(abi.encode(p.rateLimitId, p.poolId)),
-            liquidityDecrease
-        );
 
         bytes memory actions = abi.encodePacked(
             uint8(Actions.DECREASE_LIQUIDITY),
@@ -313,38 +308,50 @@ library UniswapV4Lib {
         // Perform maxSlippages / amount0Max & amount1Max checks
         require(p.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
 
-        {
-            // Block for sqrtPriceX96, amount0, amount1
-            (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(p.poolId));
-            (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
-                sqrtPriceX96,
-                TickMath.getSqrtPriceAtTick(tickLower),
-                TickMath.getSqrtPriceAtTick(tickUpper),
-                liquidity
-            );
+        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(p.poolId));
+        (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
+            liquidity
+        );
 
-            // NOTE: The -1 is to avoid rounding issues: If the entire tick range lies outside of the
-            // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
-            // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
-            // errors. To allow for that behavior, we subtract 1 here.
-            require(
-                amount0Max - 1 <= amount0 * 1e18 / p.maxSlippage,
-                "UniswapV4Lib: amount0Max too high"
-            );
-            require(
-                amount1Max - 1 <= amount1 * 1e18 / p.maxSlippage,
-                "UniswapV4Lib: amount1Max too high"
-            );
-        }
+        // NOTE: The -1 is to avoid rounding issues: If the entire tick range lies outside of the
+        // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
+        // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
+        // errors. To allow for that behavior, we subtract 1 here.
+        require(
+            amount0Max - 1 <= amount0 * 1e18 / p.maxSlippage,
+            "UniswapV4Lib: amount0Max too high"
+        );
+        require(
+            amount1Max - 1 <= amount1 * 1e18 / p.maxSlippage,
+            "UniswapV4Lib: amount1Max too high"
+        );
 
-        // Submit Calls
+        _mintOrIncrease2(p, amount0Max, amount1Max, actions, params);
+    }
+
+    function _mintOrIncrease2(
+        UniV4Params memory p /* params */,
+        uint256 amount0Max,
+        uint256 amount1Max,
+        bytes memory actions,
+        bytes[] memory params
+    ) internal {
         // PositionManager stores poolKeys as bytes25
         PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(p.poolId));
         _approvePermit2andPosm(p.proxy, poolKey.currency0, amount0Max);
         _approvePermit2andPosm(p.proxy, poolKey.currency1, amount1Max);
 
-        uint256 token0balAlm = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
-        uint256 token1balAlm = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+        // Get token balances before mint / increase
+        uint256 token0balAlm1_18; uint256 token1balAlm1_18;
+        {
+            uint256 token0balAlm1 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
+            token0balAlm1_18 = token0balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
+            uint256 token1balAlm1 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+            token1balAlm1_18 = token1balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
+        }
 
         // Perform action
         p.proxy.doCall(
@@ -352,10 +359,21 @@ library UniswapV4Lib {
             abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
         );
 
-        uint256 token0balAlm2 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
-        uint256 token1balAlm2 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+        uint256 token0balAlm2_18; uint256 token1balAlm2_18;
+        {
+            uint256 token0balAlm2 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
+            token0balAlm2_18 = token0balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
+            uint256 token1balAlm2 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+            token1balAlm2_18 = token1balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
+        }
 
-
+        // Perform rate limit
+        p.rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makePoolKey(p.rateLimitId, p.poolId),
+            // Technically one can receive tokens when adding liquidity (if there are fees to be
+            // accumulated, so we need safe / clamped / non-negative subtraction here).
+            _nonNegSub(token0balAlm1_18 + token1balAlm1_18, token0balAlm2_18 + token1balAlm2_18)
+        );
 
         // Reset approval of Permit2 in token0 and token1
         // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it doesn't
@@ -375,12 +393,6 @@ library UniswapV4Lib {
         bytes memory actions,
         bytes[] memory params
     ) internal {
-        // Perform rate limit
-        p.rateLimits.triggerRateLimitDecrease(
-            keccak256(abi.encode(p.rateLimitId, p.poolId)),
-            liquidity
-        );
-
         // Perform maxSlippages / amount0Max & amount1Max checks
         require(p.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
 
@@ -402,11 +414,49 @@ library UniswapV4Lib {
             "UniswapV4Lib: amount1Min too small"
         );
 
+        _burnOrDecrease2(p, actions, params);
+    }
+
+    function _burnOrDecrease2(
+        UniV4Params memory p /* params */,
+        bytes memory actions,
+        bytes[] memory params
+    ) internal {
+        PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(p.poolId));
+
+        // Get token balances before mint / increase
+        uint256 token0balAlm1_18; uint256 token1balAlm1_18;
+        {
+            uint256 token0balAlm1 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
+            token0balAlm1_18 = token0balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
+            uint256 token1balAlm1 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+            token1balAlm1_18 = token1balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
+        }
+
         // Submit Calls
         p.proxy.doCall(
             address(posm),
             abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
         );
+
+        uint256 token0balAlm2_18; uint256 token1balAlm2_18;
+        {
+            uint256 token0balAlm2 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
+            token0balAlm2_18 = token0balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
+            uint256 token1balAlm2 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+            token1balAlm2_18 = token1balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
+        }
+
+        // This is a burn / decrease, so each of token0balAlm2 and token1balAlm2 should be >=
+        require(token0balAlm2_18 >= token0balAlm1_18, "UniswapV4Lib: token0 balance decreased");
+        require(token1balAlm2_18 >= token1balAlm1_18, "UniswapV4Lib: token1 balance decreased");
+
+        // Perform rate limit
+        p.rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makePoolKey(p.rateLimitId, p.poolId),
+            token0balAlm2_18 + token1balAlm2_18 - (token0balAlm1_18 + token1balAlm1_18)
+        );
+
     }
 
     function _approvePermit2andPosm(IALMProxy proxy, Currency currency, uint256 amount) internal {
@@ -458,6 +508,10 @@ library UniswapV4Lib {
             approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
             "UniswapV4Lib/approve-failed"
         );
+    }
+
+    function _nonNegSub(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a >= b ? a - b : 0;
     }
 
 }
