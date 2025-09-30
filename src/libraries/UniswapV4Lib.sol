@@ -321,11 +321,11 @@ library UniswapV4Lib {
         // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
         // errors. To allow for that behavior, we subtract 1 here.
         require(
-            amount0Max - 1 <= amount0 * 1e18 / p.maxSlippage,
+            (amount0Max - 1) * p.maxSlippage <= amount0 * 1e18,
             "UniswapV4Lib: amount0Max too high"
         );
         require(
-            amount1Max - 1 <= amount1 * 1e18 / p.maxSlippage,
+            (amount1Max - 1) * p.maxSlippage <= amount1 * 1e18,
             "UniswapV4Lib: amount1Max too high"
         );
 
@@ -406,11 +406,11 @@ library UniswapV4Lib {
 
         // NOTE: +1 is to avoid rounding issues. See comment in _mintOrIncrease.
         require(
-            amount0Min + 1 >= amount0 * 1e18 / p.maxSlippage,
+            (amount0Min + 1) * p.maxSlippage >= amount0 * 1e18,
             "UniswapV4Lib: amount0Min too small"
         );
         require(
-            amount1Min + 1 >= amount1 * 1e18 / p.maxSlippage,
+            (amount1Min + 1) * p.maxSlippage >= amount1 * 1e18,
             "UniswapV4Lib: amount1Min too small"
         );
 
