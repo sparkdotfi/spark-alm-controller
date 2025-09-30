@@ -180,7 +180,7 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
 
         assertEq(requestIds.length, 1);
 
-        WithdrawalRequestStatus[] memory statuses = IWithdrawalQueue(Ethereum.unstETH).getWithdrawalStatus(requestIds);
+        WithdrawalRequestStatus[] memory statuses = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).getWithdrawalStatus(requestIds);
 
         assertApproxEqAbs(statuses[0].amountOfShares, 500e18, 1);
 
@@ -250,7 +250,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
         assertEq(requestIds.length, 1);
 
-        WithdrawalRequestStatus[] memory statuses = IWithdrawalQueue(Ethereum.unstETH).getWithdrawalStatus(requestIds);
+        WithdrawalRequestStatus[] memory statuses = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).getWithdrawalStatus(requestIds);
 
         assertApproxEqAbs(statuses[0].amountOfShares, 5e18, 1);
 
@@ -261,20 +261,20 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
         assertEq(statuses[0].isClaimed,     false);
         
         vm.prank(finalizer);
-        IWithdrawalQueue(Ethereum.unstETH).finalize(requestIds[0], 300e27);
+        IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).finalize(requestIds[0], 300e27);
 
-        statuses = IWithdrawalQueue(Ethereum.unstETH).getWithdrawalStatus(requestIds);
+        statuses = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).getWithdrawalStatus(requestIds);
 
-        assertEq(statuses[0].isFinalized,   true);
-        assertEq(statuses[0].isClaimed,     false);
+        assertEq(statuses[0].isFinalized, true);
+        assertEq(statuses[0].isClaimed,   false);
 
         vm.prank(relayer);
         mainnetController.claimWithdrawalFromWstETH(requestIds[0]);
 
-        statuses = IWithdrawalQueue(Ethereum.unstETH).getWithdrawalStatus(requestIds);
+        statuses = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).getWithdrawalStatus(requestIds);
 
-        assertEq(statuses[0].isFinalized,   true);
-        assertEq(statuses[0].isClaimed,     true);
+        assertEq(statuses[0].isFinalized, true);
+        assertEq(statuses[0].isClaimed,   true);
 
         assertEq(IERC20(Ethereum.WETH).balanceOf(address(almProxy)),   6.075117156205896631e18);
         assertEq(IERC20(Ethereum.WSTETH).balanceOf(address(almProxy)), 3.230293953907316252e18);

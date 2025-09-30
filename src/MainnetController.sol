@@ -292,7 +292,7 @@ contract MainnetController is AccessControl {
 
     function depositToWstETH(uint256 amount) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_WSTETH_DEPOSIT, Ethereum.WETH, amount);
+        _rateLimited(LIMIT_WSTETH_DEPOSIT, amount);
 
         proxy.doCall(
             Ethereum.WETH,
@@ -312,7 +312,10 @@ contract MainnetController is AccessControl {
 
         proxy.doCall(
             Ethereum.WSTETH,
-            abi.encodeCall(IERC20(Ethereum.WSTETH).approve, (Ethereum.unstETH, amount))
+            abi.encodeCall(
+                IERC20(Ethereum.WSTETH).approve,
+                (Ethereum.WSTETH_WITHDRAW_QUEUE, amount)
+            )
         );
 
         uint256[] memory amounts = new uint256[](1);
@@ -320,9 +323,9 @@ contract MainnetController is AccessControl {
 
         (uint256[] memory requestIds) = abi.decode(
             proxy.doCall(
-                Ethereum.unstETH,
+                Ethereum.WSTETH_WITHDRAW_QUEUE,
                 abi.encodeCall(
-                    IWithdrawalQueue(Ethereum.unstETH).requestWithdrawalsWstETH,
+                    IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).requestWithdrawalsWstETH,
                     (amounts, address(proxy))
                 )
             ),
@@ -338,8 +341,11 @@ contract MainnetController is AccessControl {
         uint256 initialEthBalance = address(proxy).balance;
 
         proxy.doCall(
-            Ethereum.unstETH,
-            abi.encodeCall(IWithdrawalQueue(Ethereum.unstETH).claimWithdrawal, (requestId))
+            Ethereum.WSTETH_WITHDRAW_QUEUE,
+            abi.encodeCall(
+                IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).claimWithdrawal,
+                (requestId)
+            )
         );
 
         uint256 ethReceived = address(proxy).balance - initialEthBalance;
