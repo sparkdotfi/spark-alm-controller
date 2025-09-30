@@ -154,6 +154,9 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
+    mapping(bytes32 poolId => int24 tickLowerMin) public uniV4tickLowerMin;
+    mapping(bytes32 poolId => int24 tickUpperMax) public uniV4tickUpperMax;
+
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
@@ -214,6 +217,19 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
+    }
+
+    function setUniV4tickLimits(
+        bytes32 poolId,
+        int24   tickLowerMin,
+        int24   tickUpperMax
+    )
+        external
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        require(tickLowerMin < tickUpperMax, "Invalid ticks");
+        uniV4tickLowerMin[poolId] = tickLowerMin;
+        uniV4tickUpperMax[poolId] = tickUpperMax;
     }
 
     /**********************************************************************************************/
@@ -604,6 +620,11 @@ contract MainnetController is AccessControl {
         external
     {
         _checkRole(RELAYER);
+
+        require(tickLower < tickUpper, "Invalid ticks");
+        // TODO: Use central state contract
+        require(tickLower >= uniV4tickLowerMin[poolId], "tickLower too low");
+        require(tickUpper <= uniV4tickUpperMax[poolId], "tickUpper too high");
 
         // NOTE: maxSlippages is a mapping from address to uint256, so we have to take the lower 160
         // bits of the id. It is still intractable for there to be a collision (on purpose or

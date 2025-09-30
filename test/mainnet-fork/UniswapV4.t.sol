@@ -49,8 +49,10 @@ contract UniV4TestBase is ForkTestBase {
         vm.stopPrank();
 
         // Set a higher slippage to allow for successes
-        vm.prank(SPARK_PROXY);
+        vm.startPrank(SPARK_PROXY);
         mainnetController.setMaxSlippage(ADDR_ID, 0.98e18);
+        mainnetController.setUniV4tickLimits(POOL_ID, -60, 60);
+        vm.stopPrank();
     }
 
     function _mintPosition(

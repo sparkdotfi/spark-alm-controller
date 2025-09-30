@@ -310,35 +310,32 @@ library UniswapV4Lib {
         bytes memory actions,
         bytes[] memory params
     ) internal {
-        // Perform rate limit
-        p.rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makePoolKey(p.rateLimitId, p.poolId),
-            liquidity
-        );
-
         // Perform maxSlippages / amount0Max & amount1Max checks
         require(p.maxSlippage != 0, "UniswapV4Lib: maxSlippage not set");
 
-        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(p.poolId));
-        (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
-            sqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(tickLower),
-            TickMath.getSqrtPriceAtTick(tickUpper),
-            liquidity
-        );
+        {
+            // Block for sqrtPriceX96, amount0, amount1
+            (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolId.wrap(p.poolId));
+            (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
+                sqrtPriceX96,
+                TickMath.getSqrtPriceAtTick(tickLower),
+                TickMath.getSqrtPriceAtTick(tickUpper),
+                liquidity
+            );
 
-        // NOTE: The -1 is to avoid rounding issues: If the entire tick range lies outside of the
-        // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
-        // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
-        // errors. To allow for that behavior, we subtract 1 here.
-        require(
-            amount0Max - 1 <= amount0 * 1e18 / p.maxSlippage,
-            "UniswapV4Lib: amount0Max too high"
-        );
-        require(
-            amount1Max - 1 <= amount1 * 1e18 / p.maxSlippage,
-            "UniswapV4Lib: amount1Max too high"
-        );
+            // NOTE: The -1 is to avoid rounding issues: If the entire tick range lies outside of the
+            // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
+            // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
+            // errors. To allow for that behavior, we subtract 1 here.
+            require(
+                amount0Max - 1 <= amount0 * 1e18 / p.maxSlippage,
+                "UniswapV4Lib: amount0Max too high"
+            );
+            require(
+                amount1Max - 1 <= amount1 * 1e18 / p.maxSlippage,
+                "UniswapV4Lib: amount1Max too high"
+            );
+        }
 
         // Submit Calls
         // PositionManager stores poolKeys as bytes25
@@ -346,11 +343,19 @@ library UniswapV4Lib {
         _approvePermit2andPosm(p.proxy, poolKey.currency0, amount0Max);
         _approvePermit2andPosm(p.proxy, poolKey.currency1, amount1Max);
 
+        uint256 token0balAlm = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
+        uint256 token1balAlm = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+
         // Perform action
         p.proxy.doCall(
             address(posm),
             abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
         );
+
+        uint256 token0balAlm2 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
+        uint256 token1balAlm2 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
+
+
 
         // Reset approval of Permit2 in token0 and token1
         // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it doesn't
