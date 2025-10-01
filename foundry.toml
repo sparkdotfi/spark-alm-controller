@@ -19,6 +19,10 @@ remappings = [
     'solidity-bytes-utils/=lib/solidity-bytes-utils/',
 ]
 
+[ci]
+optimizer = true
+optimizer_runs = 1
+
 [fuzz]
 runs = 1000
 
