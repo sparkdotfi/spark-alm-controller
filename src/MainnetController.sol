@@ -308,7 +308,7 @@ contract MainnetController is AccessControl {
 
     function requestWithdrawFromWstETH(uint256 amount) external returns (uint256[] memory) {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_WSTETH_REQUEST_WITHDRAW, Ethereum.WSTETH, amount);
+        _rateLimited(LIMIT_WSTETH_REQUEST_WITHDRAW, amount);
 
         proxy.doCall(
             Ethereum.WSTETH,
