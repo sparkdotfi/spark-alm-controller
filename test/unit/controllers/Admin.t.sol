@@ -15,6 +15,12 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
     event LayerZeroRecipientSet(uint32 indexed destinationDomain, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
+    event OTCBufferSet(
+        address indexed exchange,
+        address indexed newOTCBuffer,
+        address indexed oldOTCBuffer
+    );
+    event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
 
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
@@ -172,6 +178,63 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
         mainnetController.setMaxSlippage(pool, 0.99e18);
 
         assertEq(mainnetController.maxSlippages(pool), 0.99e18);
+    }
+
+}
+
+contract MainnetControllerSetOTCBufferTests is MainnetControllerAdminTestBase {
+
+    address exchange  = makeAddr("exchange");
+    address otcBuffer = makeAddr("otcBuffer");
+
+    function test_setOTCBuffer_unauthorizedAccount() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+    }
+
+    function test_setOTCBuffer_exchangeZero() external {
+        vm.prank(admin);
+        vm.expectRevert("MainnetController/exchange-zero-address");
+        mainnetController.setOTCBuffer(address(0), address(otcBuffer));
+    }
+
+    function test_setOTCBuffer_exchangeEqualsOTCBuffer() external {
+        vm.prank(admin);
+        vm.expectRevert("MainnetController/exchange-equals-otcBuffer");
+        mainnetController.setOTCBuffer(address(otcBuffer), address(otcBuffer));
+    }
+
+    function test_setOTCBuffer() external {
+        vm.prank(admin);
+        vm.expectEmit(address(mainnetController));
+        emit OTCBufferSet(exchange, address(otcBuffer), address(0));
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+    }
+
+}
+
+contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestBase {
+
+    address exchange = makeAddr("exchange");
+
+    function test_setOTCRechargeRate_unauthorizedAccount() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
+    }
+
+    function test_setOTCRechargeRate() external {
+        vm.prank(admin);
+        vm.expectEmit(address(mainnetController));
+        emit OTCRechargeRateSet(exchange, 0, uint256(1_000_000e18) / 1 days);
+        mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
     }
 
 }
