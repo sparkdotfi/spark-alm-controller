@@ -81,7 +81,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
 contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
 
-    function test_otcSwapSend_auth() external {
+    function test_otcSwapSend_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -195,7 +195,7 @@ contract MainnetControllerOTCSwapSendSuccessTests is MainnetControllerOTCSwapBas
 
 contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
 
-    function test_otcClaim_auth() external {
+    function test_otcClaim_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -266,7 +266,6 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         // Execute OTC swap
         vm.prank(relayer);
-        uint48 time_swap = uint48(block.timestamp);
         vm.expectEmit(address(mainnetController));
         emit OTCSwapSent(
             exchange, address(otcBuffer), address(assetToSend), 10e6 * 10 ** decimalsSend, (

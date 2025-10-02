@@ -1021,19 +1021,15 @@ contract MainnetController is AccessControl {
     }
 
     function isOtcSwapReady(address exchange) public view returns (bool) {
+        // If maxSlippages is not set, the exchange is not onboarded.
+        if (maxSlippages[exchange] == 0) return false;
+
         OTCSwapState storage otcSwapState = otcSwapStates[exchange];
         OTCConfig    storage otcConfig    = otcConfigs[exchange];
 
         uint256 claimedWithRecharge18 = otcSwapState.claimed18
             + (block.timestamp - otcSwapState.swapTimestamp)
             * otcConfig.rechargeRate18;
-
-        if (maxSlippages[exchange] == 0) {
-            // maxSlippages should be set. There is no revert here because it is not necessary
-            // (returning `false` correctly answers the question of whether the last swap has been
-            // returned).
-            return false;
-        }
 
         return claimedWithRecharge18 >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;
     }
