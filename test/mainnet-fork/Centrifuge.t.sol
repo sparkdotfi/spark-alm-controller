@@ -108,7 +108,7 @@ contract MainnetControllerRequestDepositERC7540FailureTests is CentrifugeTestBas
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_7540_DEPOSIT(),
+                LimitsLib.LIMIT_7540_DEPOSIT,
                 address(jTreasuryVault)
             ),
             1_000_000e6,
@@ -140,7 +140,7 @@ contract MainnetControllerRequestDepositERC7540SuccessTests is CentrifugeTestBas
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_DEPOSIT(),
+            LimitsLib.LIMIT_7540_DEPOSIT,
             address(jTreasuryVault)
         );
 
@@ -207,7 +207,7 @@ contract MainnetControllerClaimDepositERC7540SuccessTests is CentrifugeTestBase 
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_DEPOSIT(),
+            LimitsLib.LIMIT_7540_DEPOSIT,
             address(jTreasuryVault)
         );
 
@@ -356,7 +356,7 @@ contract MainnetControllerCancelCentrifugeDepositSuccessTests is CentrifugeTestB
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_DEPOSIT(),
+            LimitsLib.LIMIT_7540_DEPOSIT,
             address(jTreasuryVault)
         );
 
@@ -412,7 +412,7 @@ contract MainnetControllerClaimCentrifugeCancelDepositSuccessTests is Centrifuge
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_DEPOSIT(),
+            LimitsLib.LIMIT_7540_DEPOSIT,
             address(jTreasuryVault)
         );
 
@@ -493,7 +493,7 @@ contract MainnetControllerRequestRedeemERC7540FailureTests is CentrifugeTestBase
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_7540_REDEEM(),
+                LimitsLib.LIMIT_7540_REDEEM,
                 address(jTreasuryVault)
             ),
             1_000_000e6,
@@ -532,7 +532,7 @@ contract MainnetControllerRequestRedeemERC7540SuccessTests is CentrifugeTestBase
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_REDEEM(),
+            LimitsLib.LIMIT_7540_REDEEM,
             address(jTreasuryVault)
         );
 
@@ -601,7 +601,7 @@ contract MainnetControllerClaimRedeemERC7540SuccessTests is CentrifugeTestBase {
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_REDEEM(),
+            LimitsLib.LIMIT_7540_REDEEM,
             address(jTreasuryVault)
         );
 
@@ -766,7 +766,7 @@ contract MainnetControllerCancelCentrifugeRedeemRequestSuccessTests is Centrifug
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_REDEEM(),
+            LimitsLib.LIMIT_7540_REDEEM,
             address(jTreasuryVault)
         );
 
@@ -826,7 +826,7 @@ contract MainnetControllerClaimCentrifugeCancelRedeemRequestSuccessTests is Cent
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_7540_REDEEM(),
+            LimitsLib.LIMIT_7540_REDEEM,
             address(jTreasuryVault)
         );
 

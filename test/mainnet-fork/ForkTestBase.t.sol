@@ -28,9 +28,12 @@ import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 
 import { MainnetControllerInit as Init } from "../../deploy/MainnetControllerInit.sol";
 
-import { ALMProxy }          from "../../src/ALMProxy.sol";
-import { RateLimits }        from "../../src/RateLimits.sol";
-import { MainnetController } from "../../src/MainnetController.sol";
+import { LimitsLib } from "../../src/libraries/LimitsLib.sol";
+
+import { ALMProxy }               from "../../src/ALMProxy.sol";
+import { RateLimits }             from "../../src/RateLimits.sol";
+import { MainnetController }      from "../../src/MainnetController.sol";
+import { MainnetControllerState } from "../../src/MainnetControllerState.sol";
 
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 
@@ -135,9 +138,10 @@ contract ForkTestBase is DssTest {
     /*** ALM system and allocation system deployments                                           ***/
     /**********************************************************************************************/
 
-    ALMProxy          almProxy;
-    RateLimits        rateLimits;
-    MainnetController mainnetController;
+    ALMProxy               almProxy;
+    RateLimits             rateLimits;
+    MainnetController      mainnetController;
+    MainnetControllerState mainnetControllerState;
 
     address buffer;
     address vault;
@@ -226,13 +230,14 @@ contract ForkTestBase is DssTest {
             cctp    : Ethereum.CCTP_TOKEN_MESSENGER
         });
 
-        almProxy          = ALMProxy(payable(controllerInst.almProxy));
-        rateLimits        = RateLimits(controllerInst.rateLimits);
-        mainnetController = MainnetController(controllerInst.controller);
+        almProxy               = ALMProxy(payable(controllerInst.almProxy));
+        rateLimits             = RateLimits(controllerInst.rateLimits);
+        mainnetController      = MainnetController(controllerInst.controller);
+        mainnetControllerState = MainnetControllerState(controllerInst.controllerState);
 
         CONTROLLER = almProxy.CONTROLLER();
-        FREEZER    = mainnetController.FREEZER();
-        RELAYER    = mainnetController.RELAYER();
+        FREEZER    = LimitsLib.FREEZER;
+        RELAYER    = LimitsLib.RELAYER;
 
         address[] memory relayers = new address[](1);
         relayers[0] = relayer;
@@ -286,7 +291,7 @@ contract ForkTestBase is DssTest {
             maxSlippageParams
         );
 
-        mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
+        mainnetController.grantRole(LimitsLib.RELAYER, backstopRelayer);
 
         uint256 usdsMaxAmount = 5_000_000e18;
         uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
@@ -294,15 +299,15 @@ contract ForkTestBase is DssTest {
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
         bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(
-            mainnetController.LIMIT_USDC_TO_DOMAIN(),
+            LimitsLib.LIMIT_USDC_TO_DOMAIN,
             CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
         );
 
         // NOTE: Using minimal config for test base setup
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(),    usdsMaxAmount, usdsSlope);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(domainKeyBase,                          usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_USDS_MINT,    usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_USDS_TO_USDC, usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_USDC_TO_CCTP, usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(domainKeyBase,                usdcMaxAmount, usdcSlope);
 
         vm.stopPrank();
 

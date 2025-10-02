@@ -51,13 +51,8 @@ contract MainnetControllerHarness is MainnetController {
 
     constructor(
         address admin_,
-        address proxy_,
-        address rateLimits_,
-        address vault_,
-        address psm_,
-        address daiUsds_,
-        address cctp_
-    ) MainnetController(admin_, proxy_, rateLimits_, vault_, psm_, daiUsds_, cctp_) {}
+        address state_
+    ) MainnetController(admin_, state_) {}
 
     function approve(address token, address spender, uint256 amount) external {
         _approve(token, spender, amount);
@@ -127,12 +122,7 @@ contract MainnetControllerApproveSuccessTests is ApproveTestBase {
 
         MainnetControllerHarness harnessCode = new MainnetControllerHarness(
             SPARK_PROXY,
-            address(mainnetController.proxy()),
-            address(mainnetController.rateLimits()),
-            address(mainnetController.vault()),
-            address(mainnetController.psm()),
-            address(mainnetController.daiUsds()),
-            address(mainnetController.cctp())
+            address(mainnetControllerState)
         );
 
         vm.etch(address(mainnetController), address(harnessCode).code);

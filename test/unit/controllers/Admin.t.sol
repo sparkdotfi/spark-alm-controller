@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { ForeignController } from "../../../src/ForeignController.sol";
-import { MainnetController } from "../../../src/MainnetController.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+import { ForeignController }      from "../../../src/ForeignController.sol";
+import { MainnetController }      from "../../../src/MainnetController.sol";
+import { MainnetControllerState } from "../../../src/MainnetControllerState.sol";
 
 import { MockDaiUsds } from "../mocks/MockDaiUsds.sol";
 import { MockPSM }     from "../mocks/MockPSM.sol";
@@ -21,14 +24,20 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
     bytes32 mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
     bytes32 mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
 
-    MainnetController mainnetController;
+    MainnetController      mainnetController;
+    MainnetControllerState mainnetControllerState;
 
     function setUp() public {
         MockDaiUsds daiUsds = new MockDaiUsds(makeAddr("dai"));
         MockPSM     psm     = new MockPSM(makeAddr("usdc"));
         MockVault   vault   = new MockVault(makeAddr("buffer"));
 
-        mainnetController = new MainnetController(
+        // Deploy the state implementation
+        address stateImpl = address(new MainnetControllerState());
+
+        // Deploy TransparentUpgradeableProxy for the state
+        bytes memory initData = abi.encodeWithSelector(
+            MainnetControllerState.initialize.selector,
             admin,
             makeAddr("almProxy"),
             makeAddr("rateLimits"),
@@ -37,11 +46,22 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
             address(daiUsds),
             makeAddr("cctp")
         );
+
+        mainnetControllerState = MainnetControllerState(address(new TransparentUpgradeableProxy(
+            stateImpl,
+            admin,
+            initData
+        )));
+
+        mainnetController = new MainnetController(
+            admin,
+            address(mainnetControllerState)
+        );
     }
 
 }
 
-contract MainnetControllerSetMintRecipientTests is MainnetControllerAdminTestBase {
+contract MainnetControllerStateSetMintRecipientTests is MainnetControllerAdminTestBase {
 
     function test_setMintRecipient_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -49,7 +69,7 @@ contract MainnetControllerSetMintRecipientTests is MainnetControllerAdminTestBas
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMintRecipient(1, mintRecipient1);
+        mainnetControllerState.setMintRecipient(1, mintRecipient1);
 
         vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
@@ -57,38 +77,38 @@ contract MainnetControllerSetMintRecipientTests is MainnetControllerAdminTestBas
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMintRecipient(1, mintRecipient1);
+        mainnetControllerState.setMintRecipient(1, mintRecipient1);
     }
 
     function test_setMintRecipient() public {
-        assertEq(mainnetController.mintRecipients(1), bytes32(0));
-        assertEq(mainnetController.mintRecipients(2), bytes32(0));
+        assertEq(mainnetControllerState.mintRecipients(1), bytes32(0));
+        assertEq(mainnetControllerState.mintRecipients(2), bytes32(0));
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit MintRecipientSet(1, mintRecipient1);
-        mainnetController.setMintRecipient(1, mintRecipient1);
+        mainnetControllerState.setMintRecipient(1, mintRecipient1);
 
-        assertEq(mainnetController.mintRecipients(1), mintRecipient1);
+        assertEq(mainnetControllerState.mintRecipients(1), mintRecipient1);
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit MintRecipientSet(2, mintRecipient2);
-        mainnetController.setMintRecipient(2, mintRecipient2);
+        mainnetControllerState.setMintRecipient(2, mintRecipient2);
 
-        assertEq(mainnetController.mintRecipients(2), mintRecipient2);
+        assertEq(mainnetControllerState.mintRecipients(2), mintRecipient2);
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit MintRecipientSet(1, mintRecipient2);
-        mainnetController.setMintRecipient(1, mintRecipient2);
+        mainnetControllerState.setMintRecipient(1, mintRecipient2);
 
-        assertEq(mainnetController.mintRecipients(1), mintRecipient2);
+        assertEq(mainnetControllerState.mintRecipients(1), mintRecipient2);
     }
 
 }
 
-contract MainnetControllerSetLayerZeroRecipientTests is MainnetControllerAdminTestBase {
+contract MainnetControllerStateSetLayerZeroRecipientTests is MainnetControllerAdminTestBase {
 
     function test_setLayerZeroRecipient_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -96,7 +116,7 @@ contract MainnetControllerSetLayerZeroRecipientTests is MainnetControllerAdminTe
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
+        mainnetControllerState.setLayerZeroRecipient(1, layerZeroRecipient1);
 
         vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
@@ -104,38 +124,38 @@ contract MainnetControllerSetLayerZeroRecipientTests is MainnetControllerAdminTe
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMintRecipient(1, mintRecipient1);
+        mainnetControllerState.setMintRecipient(1, mintRecipient1);
     }
 
     function test_setLayerZeroRecipient() public {
-        assertEq(mainnetController.layerZeroRecipients(1), bytes32(0));
-        assertEq(mainnetController.layerZeroRecipients(2), bytes32(0));
+        assertEq(mainnetControllerState.layerZeroRecipients(1), bytes32(0));
+        assertEq(mainnetControllerState.layerZeroRecipients(2), bytes32(0));
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit LayerZeroRecipientSet(1, layerZeroRecipient1);
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
+        mainnetControllerState.setLayerZeroRecipient(1, layerZeroRecipient1);
 
-        assertEq(mainnetController.layerZeroRecipients(1), layerZeroRecipient1);
+        assertEq(mainnetControllerState.layerZeroRecipients(1), layerZeroRecipient1);
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit LayerZeroRecipientSet(2, layerZeroRecipient2);
-        mainnetController.setLayerZeroRecipient(2, layerZeroRecipient2);
+        mainnetControllerState.setLayerZeroRecipient(2, layerZeroRecipient2);
 
-        assertEq(mainnetController.layerZeroRecipients(2), layerZeroRecipient2);
+        assertEq(mainnetControllerState.layerZeroRecipients(2), layerZeroRecipient2);
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit LayerZeroRecipientSet(1, layerZeroRecipient2);
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient2);
+        mainnetControllerState.setLayerZeroRecipient(1, layerZeroRecipient2);
 
-        assertEq(mainnetController.layerZeroRecipients(1), layerZeroRecipient2);
+        assertEq(mainnetControllerState.layerZeroRecipients(1), layerZeroRecipient2);
     }
 
 }
 
-contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase {
+contract MainnetControllerStateSetMaxSlippageTests is MainnetControllerAdminTestBase {
 
     function test_setMaxSlippage_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -143,7 +163,7 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
+        mainnetControllerState.setMaxSlippage(makeAddr("pool"), 0.98e18);
 
         vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
@@ -151,27 +171,27 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
+        mainnetControllerState.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
     function test_setMaxSlippage() public {
         address pool = makeAddr("pool");
 
-        assertEq(mainnetController.maxSlippages(pool), 0);
+        assertEq(mainnetControllerState.maxSlippages(pool), 0);
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit MaxSlippageSet(pool, 0.98e18);
-        mainnetController.setMaxSlippage(pool, 0.98e18);
+        mainnetControllerState.setMaxSlippage(pool, 0.98e18);
 
-        assertEq(mainnetController.maxSlippages(pool), 0.98e18);
+        assertEq(mainnetControllerState.maxSlippages(pool), 0.98e18);
 
         vm.prank(admin);
-        vm.expectEmit(address(mainnetController));
+        vm.expectEmit(address(mainnetControllerState));
         emit MaxSlippageSet(pool, 0.99e18);
-        mainnetController.setMaxSlippage(pool, 0.99e18);
+        mainnetControllerState.setMaxSlippage(pool, 0.99e18);
 
-        assertEq(mainnetController.maxSlippages(pool), 0.99e18);
+        assertEq(mainnetControllerState.maxSlippages(pool), 0.99e18);
     }
 
 }

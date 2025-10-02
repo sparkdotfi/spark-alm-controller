@@ -34,9 +34,10 @@ contract UpgradeMainnetController is Script {
         string memory inputConfig = ScriptTools.readInput(fileSlug);
 
         ControllerInstance memory controllerInst = ControllerInstance({
-            almProxy   : inputConfig.readAddress(".almProxy"),
-            controller : newController,
-            rateLimits : inputConfig.readAddress(".rateLimits")
+            almProxy        : inputConfig.readAddress(".almProxy"),
+            controllerState : inputConfig.readAddress(".controllerState"),
+            controller      : newController,
+            rateLimits      : inputConfig.readAddress(".rateLimits")
         });
 
         address[] memory relayers = new address[](2);
@@ -63,30 +64,8 @@ contract UpgradeMainnetController is Script {
             cctp       : inputConfig.readAddress(".cctpTokenMessenger")
         });
 
-        MainnetInit.MintRecipient[] memory mintRecipients = new MainnetInit.MintRecipient[](1);
-
-        MainnetInit.LayerZeroRecipient[] memory layerZeroRecipients = new MainnetInit.LayerZeroRecipient[](0);
-
-        string memory baseInputConfig = ScriptTools.readInput(string(abi.encodePacked("base-", vm.envString("ENV"))));
-
-        address baseAlmProxy = baseInputConfig.readAddress(".almProxy");
-
-        mintRecipients[0] = MainnetInit.MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
-            mintRecipient : bytes32(uint256(uint160(baseAlmProxy)))
-        });
-
-        MainnetInit.MaxSlippageParams[] memory maxSlippageParams = new MainnetInit.MaxSlippageParams[](1);
-
-        address pool = inputConfig.readAddress(".USDT_SUSDS_curvePool");
-
-        maxSlippageParams[0] = MainnetInit.MaxSlippageParams({
-            pool        : pool,
-            maxSlippage : MainnetController(oldController).maxSlippages(pool)
-        });
-
         vm.startBroadcast();
-        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
+        MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses);
         vm.stopBroadcast();
 
         console.log("ALMProxy updated at         ", controllerInst.almProxy);
@@ -121,9 +100,10 @@ contract UpgradeForeignController is Script {
         string memory inputConfig = ScriptTools.readInput(fileSlug);
 
         ControllerInstance memory controllerInst = ControllerInstance({
-            almProxy   : inputConfig.readAddress(".almProxy"),
-            controller : newController,
-            rateLimits : inputConfig.readAddress(".rateLimits")
+            almProxy        : inputConfig.readAddress(".almProxy"),
+            controllerState : address(0),
+            controller      : newController,
+            rateLimits      : inputConfig.readAddress(".rateLimits")
         });
 
         address[] memory relayers = new address[](2);

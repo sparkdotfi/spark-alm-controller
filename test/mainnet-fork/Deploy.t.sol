@@ -36,13 +36,8 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         MainnetController newController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : SPARK_PROXY,
-            almProxy   : address(almProxy),
-            rateLimits : address(rateLimits),
-            vault      : vault,
-            psm        : PSM,
-            daiUsds    : DAI_USDS,
-            cctp       : CCTP_MESSENGER
+            admin           : SPARK_PROXY,
+            controllerState : address(mainnetControllerState)
         }));
 
         _assertControllerInitState(newController, address(almProxy), address(rateLimits), vault, buffer);
@@ -52,21 +47,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);
 
-        assertEq(address(controller.proxy()),        almProxy);
-        assertEq(address(controller.rateLimits()),   rateLimits);
-        assertEq(address(controller.vault()),        vault);
-        assertEq(address(controller.buffer()),       buffer);
-        assertEq(address(controller.psm()),          Ethereum.PSM);
-        assertEq(address(controller.daiUsds()),      Ethereum.DAI_USDS);
-        assertEq(address(controller.cctp()),         Ethereum.CCTP_TOKEN_MESSENGER);
-        assertEq(address(controller.ethenaMinter()), Ethereum.ETHENA_MINTER);
-        assertEq(address(controller.susde()),        Ethereum.SUSDE);
-        assertEq(address(controller.dai()),          Ethereum.DAI);
-        assertEq(address(controller.usdc()),         Ethereum.USDC);
-        assertEq(address(controller.usds()),         Ethereum.USDS);
-        assertEq(address(controller.usde()),         Ethereum.USDE);
-
-        assertEq(controller.psmTo18ConversionFactor(), 1e12);
+        assertEq(address(controller.state()),        address(mainnetControllerState));
     }
 
 }

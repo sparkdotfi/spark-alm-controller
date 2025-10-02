@@ -130,9 +130,10 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
         mintRecipients.push(mintRecipients_[0]);
 
         controllerInst = ControllerInstance({
-            almProxy   : address(almProxy),
-            controller : address(foreignController),
-            rateLimits : address(rateLimits)
+            almProxy        : address(almProxy),
+            controller      : address(foreignController),
+            controllerState : address(0),
+            rateLimits      : address(rateLimits)
         });
 
         // Admin will be calling the library from its own address
@@ -570,9 +571,10 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
         }));
 
         controllerInst = ControllerInstance({
-            almProxy   : address(almProxy),
-            controller : address(newController),
-            rateLimits : address(rateLimits)
+            almProxy        : address(almProxy),
+            controller      : address(newController),
+            controllerState : address(0),
+            rateLimits      : address(rateLimits)
         });
 
         configAddresses.oldController = address(foreignController);  // Revoke from old controller

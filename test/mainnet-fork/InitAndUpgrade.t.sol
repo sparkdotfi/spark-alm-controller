@@ -40,20 +40,14 @@ contract LibraryWrapper {
     function upgradeController(
         ControllerInstance        memory controllerInst,
         Init.ConfigAddressParams  memory configAddresses,
-        Init.CheckAddressParams   memory checkAddresses,
-        Init.MintRecipient[]      memory mintRecipients,
-        Init.LayerZeroRecipient[] memory layerZeroRecipients,
-        Init.MaxSlippageParams[]  memory maxSlippageParams
+        Init.CheckAddressParams   memory checkAddresses
     )
         external
     {
         Init.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams
+            checkAddresses
         );
     }
 
@@ -150,13 +144,8 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         //       are already deployed. This is technically possible to do and works in the same way, it was
         //       done also for make testing easier.
         mainnetController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : Ethereum.SPARK_PROXY,
-            almProxy   : address(almProxy),
-            rateLimits : address(rateLimits),
-            vault      : address(vault),
-            psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS,
-            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
+            admin           : Ethereum.SPARK_PROXY,
+            controllerState : address(mainnetControllerState)
         }));
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
@@ -167,9 +156,10 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         mintRecipients.push(mintRecipients_[0]);
 
         controllerInst = ControllerInstance({
-            almProxy   : address(almProxy),
-            controller : address(mainnetController),
-            rateLimits : address(rateLimits)
+            almProxy        : address(almProxy),
+            controller      : address(mainnetController),
+            controllerState : address(mainnetControllerState),
+            rateLimits      : address(rateLimits)
         });
 
         // Admin will be calling the library from its own address
@@ -281,10 +271,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams
+            checkAddresses
         );
     }
 
@@ -301,10 +288,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams
+            checkAddresses
         );
     }
 
@@ -321,10 +305,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams
+            checkAddresses
         );
     }
 
@@ -349,10 +330,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams
+            checkAddresses
         );
     }
 
@@ -411,27 +389,27 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
     }
 
     function test_initAlmSystem() public {
-        assertEq(mainnetController.hasRole(mainnetController.FREEZER(), freezer), false);
-        assertEq(mainnetController.hasRole(mainnetController.RELAYER(), relayer), false);
+        assertEq(mainnetController.hasRole(LimitsLib.FREEZER, freezer), false);
+        assertEq(mainnetController.hasRole(LimitsLib.RELAYER, relayer), false);
 
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(mainnetController)),     false);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), false);
 
-        assertEq(mainnetController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
-        assertEq(mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
+        assertEq(mainnetControllerState.mintRecipients(mintRecipients[0].domain),            bytes32(0));
+        assertEq(mainnetControllerState.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
 
         assertEq(
-            mainnetController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
+            mainnetControllerState.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
             bytes32(0)
         );
 
         assertEq(
-            mainnetController.layerZeroRecipients(destinationEndpointId),
+            mainnetControllerState.layerZeroRecipients(destinationEndpointId),
             bytes32(0)
         );
 
-        assertEq(mainnetController.maxSlippages(maxSlippageParams[0].pool), 0);
-        assertEq(mainnetController.maxSlippages(makeAddr("pool")),          0);
+        assertEq(mainnetControllerState.maxSlippages(maxSlippageParams[0].pool), 0);
+        assertEq(mainnetControllerState.maxSlippages(makeAddr("pool")),          0);
 
         assertEq(IVaultLike(vault).wards(controllerInst.almProxy), 0);
         assertEq(usds.allowance(buffer, controllerInst.almProxy),  0);
@@ -448,19 +426,19 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             maxSlippageParams
         );
 
-        assertEq(mainnetController.hasRole(mainnetController.FREEZER(), freezer), true);
-        assertEq(mainnetController.hasRole(mainnetController.RELAYER(), relayer), true);
+        assertEq(mainnetController.hasRole(LimitsLib.FREEZER, freezer), true);
+        assertEq(mainnetController.hasRole(LimitsLib.RELAYER, relayer), true);
 
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(mainnetController)),     true);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), true);
 
         assertEq(
-            mainnetController.mintRecipients(mintRecipients[0].domain),
+            mainnetControllerState.mintRecipients(mintRecipients[0].domain),
             mintRecipients[0].mintRecipient
         );
 
         assertEq(
-            mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
+            mainnetControllerState.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
             bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         );
 
@@ -468,22 +446,22 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         assertEq(usds.allowance(buffer, controllerInst.almProxy),  type(uint256).max);
 
         assertEq(
-            mainnetController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
+            mainnetControllerState.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
             layerZeroRecipients[0].recipient
         );
 
         assertEq(
-            mainnetController.layerZeroRecipients(destinationEndpointId),
+            mainnetControllerState.layerZeroRecipients(destinationEndpointId),
             bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
         );
 
         assertEq(
-            mainnetController.maxSlippages(maxSlippageParams[0].pool),
+            mainnetControllerState.maxSlippages(maxSlippageParams[0].pool),
             maxSlippageParams[0].maxSlippage
         );
 
         assertEq(
-            mainnetController.maxSlippages(makeAddr("pool")),
+            mainnetControllerState.maxSlippages(makeAddr("pool")),
             0.99e18
         );
     }
@@ -536,19 +514,15 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         maxSlippageParams.push(maxSlippageParams_[0]);
 
         newController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : Ethereum.SPARK_PROXY,
-            almProxy   : address(almProxy),
-            rateLimits : address(rateLimits),
-            vault      : address(vault),
-            psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS,
-            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
+            admin           : Ethereum.SPARK_PROXY,
+            controllerState : address(mainnetControllerState)
         }));
 
         controllerInst = ControllerInstance({
-            almProxy   : address(almProxy),
-            controller : address(newController),
-            rateLimits : address(rateLimits)
+            almProxy        : address(almProxy),
+            controllerState : address(mainnetControllerState),
+            controller      : address(newController),
+            rateLimits      : address(rateLimits)
         });
 
         configAddresses.oldController = address(mainnetController);  // Revoke from old controller
@@ -564,8 +538,8 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
     }
 
     function test_upgradeController() public {
-        assertEq(newController.hasRole(newController.FREEZER(), freezer), false);
-        assertEq(newController.hasRole(newController.RELAYER(), relayer), false);
+        assertEq(newController.hasRole(LimitsLib.FREEZER, freezer), false);
+        assertEq(newController.hasRole(LimitsLib.RELAYER, relayer), false);
 
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(mainnetController)),     true);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), true);
@@ -573,34 +547,45 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(newController)),     false);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(newController)), false);
 
-        assertEq(newController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
-        assertEq(newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
-
         assertEq(
-            newController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
-            bytes32(0)
+            mainnetControllerState.mintRecipients(mintRecipients[0].domain),
+            mintRecipients[0].mintRecipient
         );
 
         assertEq(
-            newController.layerZeroRecipients(destinationEndpointId),
-            bytes32(0)
+            mainnetControllerState.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
+            bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         );
 
-        assertEq(newController.maxSlippages(maxSlippageParams[0].pool), 0);
-        assertEq(newController.maxSlippages(makeAddr("pool")),          0);
+        assertEq(
+            mainnetControllerState.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
+            layerZeroRecipients[0].recipient
+        );
+
+        assertEq(
+            mainnetControllerState.layerZeroRecipients(destinationEndpointId),
+            bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
+        );
+
+        assertEq(
+            mainnetControllerState.maxSlippages(maxSlippageParams[0].pool),
+            maxSlippageParams[0].maxSlippage
+        );
+
+        assertEq(
+            mainnetControllerState.maxSlippages(makeAddr("pool")),
+            0.99e18
+        );
 
         vm.startPrank(SPARK_PROXY);
         wrapper.upgradeController(
             controllerInst,
             configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams
+            checkAddresses
         );
 
-        assertEq(newController.hasRole(newController.FREEZER(), freezer), true);
-        assertEq(newController.hasRole(newController.RELAYER(), relayer), true);
+        assertEq(newController.hasRole(LimitsLib.FREEZER, freezer), true);
+        assertEq(newController.hasRole(LimitsLib.RELAYER, relayer), true);
 
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(mainnetController)),     false);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), false);
@@ -609,32 +594,32 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(newController)), true);
 
         assertEq(
-            newController.mintRecipients(mintRecipients[0].domain),
+            mainnetControllerState.mintRecipients(mintRecipients[0].domain),
             mintRecipients[0].mintRecipient
         );
 
         assertEq(
-            newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
+            mainnetControllerState.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
             bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         );
 
         assertEq(
-            newController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
+            mainnetControllerState.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
             layerZeroRecipients[0].recipient
         );
 
         assertEq(
-            newController.layerZeroRecipients(destinationEndpointId),
+            mainnetControllerState.layerZeroRecipients(destinationEndpointId),
             bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
         );
 
         assertEq(
-            newController.maxSlippages(maxSlippageParams[0].pool),
+            mainnetControllerState.maxSlippages(maxSlippageParams[0].pool),
             maxSlippageParams[0].maxSlippage
         );
 
         assertEq(
-            newController.maxSlippages(makeAddr("pool")),
+            mainnetControllerState.maxSlippages(makeAddr("pool")),
             0.99e18
         );
     }

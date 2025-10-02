@@ -24,7 +24,7 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
 
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_AAVE_DEPOSIT(),
+                LimitsLib.LIMIT_AAVE_DEPOSIT,
                 ATOKEN_USDS
             ),
             25_000_000e18,
@@ -32,7 +32,7 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
         );
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_AAVE_DEPOSIT(),
+                LimitsLib.LIMIT_AAVE_DEPOSIT,
                 ATOKEN_USDC
             ),
             25_000_000e6,
@@ -40,7 +40,7 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
         );
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_AAVE_WITHDRAW(),
+                LimitsLib.LIMIT_AAVE_WITHDRAW,
                 ATOKEN_USDS
             ),
             10_000_000e18,
@@ -48,15 +48,15 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
         );
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_AAVE_WITHDRAW(),
+                LimitsLib.LIMIT_AAVE_WITHDRAW,
                 ATOKEN_USDC
             ),
             10_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
 
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 - 1e4);  // Rounding slippage
-        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
+        mainnetControllerState.setMaxSlippage(ATOKEN_USDS, 1e18 - 1e4);  // Rounding slippage
+        mainnetControllerState.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
 
         vm.stopPrank();
 
@@ -91,7 +91,7 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
 
     function test_depositAave_zeroMaxSlippage() external {
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 0);
+        mainnetControllerState.setMaxSlippage(ATOKEN_USDS, 0);
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/max-slippage-not-set");
@@ -123,14 +123,14 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
 
         // Positive slippage because of no rounding error
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 + 1);
+        mainnetControllerState.setMaxSlippage(ATOKEN_USDS, 1e18 + 1);
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/slippage-too-high");
         mainnetController.depositAave(ATOKEN_USDS, 5_000_000e18);
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18);
+        mainnetControllerState.setMaxSlippage(ATOKEN_USDS, 1e18);
 
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 5_000_000e18);
@@ -143,14 +143,14 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
         // 0.2e6 * 5_000_000e6 / 1e18 = 1
         // (0.2e6 - 1) * 5_000_000e6 / 1e18 = 0
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6);
+        mainnetControllerState.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6);
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/slippage-too-high");
         mainnetController.depositAave(ATOKEN_USDC, 5_000_000e6);
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6 - 1);
+        mainnetControllerState.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6 - 1);
 
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 5_000_000e6);
@@ -216,7 +216,7 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_AAVE_WITHDRAW(),
+                LimitsLib.LIMIT_AAVE_WITHDRAW,
                 ATOKEN_USDC
             ),
             0,
@@ -266,11 +266,11 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
     function test_withdrawAave_usds() public {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            LimitsLib.LIMIT_AAVE_DEPOSIT,
             ATOKEN_USDS
         );
         bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_WITHDRAW(),
+            LimitsLib.LIMIT_AAVE_WITHDRAW,
             ATOKEN_USDS
         );
 
@@ -323,11 +323,11 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
     function test_withdrawAave_usds_unlimitedRateLimit() public {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            LimitsLib.LIMIT_AAVE_DEPOSIT,
             ATOKEN_USDS
         );
         bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_WITHDRAW(),
+            LimitsLib.LIMIT_AAVE_WITHDRAW,
             ATOKEN_USDS
         );
 
@@ -369,11 +369,11 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
     function test_withdrawAave_usdc() public {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            LimitsLib.LIMIT_AAVE_DEPOSIT,
             ATOKEN_USDC
         );
         bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_WITHDRAW(),
+            LimitsLib.LIMIT_AAVE_WITHDRAW,
             ATOKEN_USDC
         );
 
@@ -426,11 +426,11 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
     function test_withdrawAave_usdc_unlimitedRateLimit() public {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_DEPOSIT(),
+            LimitsLib.LIMIT_AAVE_DEPOSIT,
             ATOKEN_USDC
         );
         bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_AAVE_WITHDRAW(),
+            LimitsLib.LIMIT_AAVE_WITHDRAW,
             ATOKEN_USDC
         );
 

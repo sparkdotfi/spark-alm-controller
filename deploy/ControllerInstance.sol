@@ -4,5 +4,6 @@ pragma solidity >=0.8.0;
 struct ControllerInstance {
     address almProxy;
     address controller;
+    address controllerState;
     address rateLimits;
 }

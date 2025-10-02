@@ -37,7 +37,7 @@ contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase 
 
     function test_subscribeSuperstate_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE(), 0, 0);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_SUPERSTATE_SUBSCRIBE, 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -48,7 +48,7 @@ contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase 
     function test_subscribeSuperstate_rateLimitBoundary() external {
         deal(address(usdc), address(almProxy), 5_000_000e6);
 
-        bytes32 key = mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE();
+        bytes32 key = LimitsLib.LIMIT_SUPERSTATE_SUBSCRIBE;
 
         vm.startPrank(allowlist.owner());
         allowlist.setEntityIdForAddress(1, address(almProxy));
@@ -83,7 +83,7 @@ contract MainnetControllerSubscribeSuperstateSuccessTests is SuperstateTestBase 
         allowlist.setEntityAllowedForFund(1, "USTB", true);
         vm.stopPrank();
 
-        key = mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE();
+        key = LimitsLib.LIMIT_SUPERSTATE_SUBSCRIBE;
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
@@ -142,7 +142,7 @@ contract MainnetControllerSuperstateE2ETests is SuperstateTestBase {
         // Rate limit to transfer USDC to USCC deposit addressx to mint USCC
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetDestinationKey(
-                mainnetController.LIMIT_ASSET_TRANSFER(),
+                LimitsLib.LIMIT_ASSET_TRANSFER,
                 address(usdc),
                 address(usccDepositAddress)
             ),
@@ -153,7 +153,7 @@ contract MainnetControllerSuperstateE2ETests is SuperstateTestBase {
         // Rate limit to transfer USCC to USCC to burn USCC for USDC
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetDestinationKey(
-                mainnetController.LIMIT_ASSET_TRANSFER(),
+                LimitsLib.LIMIT_ASSET_TRANSFER,
                 address(uscc),
                 address(uscc)
             ),

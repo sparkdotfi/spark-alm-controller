@@ -48,13 +48,13 @@ contract MapleTestBase is ForkTestBase {
     function setUp() override public {
         super.setUp();
 
-        depositKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_DEPOSIT(), address(syrup));
-        redeemKey  = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_MAPLE_REDEEM(), address(syrup));
+        depositKey = RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_4626_DEPOSIT, address(syrup));
+        redeemKey  = RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_MAPLE_REDEEM, address(syrup));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
         rateLimits.setRateLimitData(redeemKey,  1_000_000e6, uint256(1_000_000e6) / 1 days);
-        mainnetController.setMaxSlippage(address(syrup), 1e18 - 1e4);  // Rounding slippage
+        mainnetControllerState.setMaxSlippage(address(syrup), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
 
         // Maple onboarding process

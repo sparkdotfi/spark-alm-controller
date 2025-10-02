@@ -16,7 +16,7 @@ contract MainnetControllerMintUSDSFailureTests is ForkTestBase {
 
     function test_mintUSDS_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_USDS_MINT, 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -67,7 +67,7 @@ contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
     }
 
     function test_mintUSDS_rateLimited() external {
-        bytes32 key = mainnetController.LIMIT_USDS_MINT();
+        bytes32 key = LimitsLib.LIMIT_USDS_MINT;
         vm.startPrank(relayer);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e18);
@@ -109,7 +109,7 @@ contract MainnetControllerBurnUSDSFailureTests is ForkTestBase {
 
     function test_burnUSDS_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_USDS_MINT, 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -155,7 +155,7 @@ contract MainnetControllerBurnUSDSSuccessTests is ForkTestBase {
     }
 
     function test_burnUSDS_rateLimited() external {
-        bytes32 key = mainnetController.LIMIT_USDS_MINT();
+        bytes32 key = LimitsLib.LIMIT_USDS_MINT;
         vm.startPrank(relayer);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e18);

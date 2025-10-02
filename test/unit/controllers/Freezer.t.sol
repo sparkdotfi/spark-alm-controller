@@ -21,18 +21,9 @@ contract MainnetControllerRemoveRelayerTests is UnitTestBase {
     event RelayerRemoved(address indexed relayer);
 
     function setUp() public virtual {
-        MockDaiUsds daiUsds = new MockDaiUsds(makeAddr("dai"));
-        MockPSM     psm     = new MockPSM(makeAddr("usdc"));
-        MockVault   vault   = new MockVault(makeAddr("buffer"));
-
         controller = new MainnetController(
             admin,
-            makeAddr("almProxy"),
-            makeAddr("rateLimits"),
-            address(vault),
-            address(psm),
-            address(daiUsds),
-            makeAddr("cctp")
+            makeAddr("state")
         );
 
         vm.startPrank(admin);

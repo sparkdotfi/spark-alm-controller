@@ -57,7 +57,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
             keccak256(abi.encode(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+                LimitsLib.LIMIT_LAYERZERO_TRANSFER,
                 USDT_OFT,
                 destinationEndpointId
             )),
@@ -78,7 +78,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
         rateLimits.setRateLimitData(
             keccak256(abi.encode(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+                LimitsLib.LIMIT_LAYERZERO_TRANSFER,
                 USDT_OFT,
                 destinationEndpointId
             )),
@@ -86,7 +86,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
             0
         );
 
-        mainnetController.setLayerZeroRecipient(destinationEndpointId, target);
+        mainnetControllerState.setLayerZeroRecipient(destinationEndpointId, target);
 
         vm.stopPrank();
 
@@ -141,7 +141,7 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
         vm.startPrank(SPARK_PROXY);
 
         bytes32 key = keccak256(abi.encode(
-            mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+            LimitsLib.LIMIT_LAYERZERO_TRANSFER,
             USDT_OFT,
             destinationEndpointId
         ));
@@ -150,7 +150,7 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
 
         rateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
-        mainnetController.setLayerZeroRecipient(destinationEndpointId, target);
+        mainnetControllerState.setLayerZeroRecipient(destinationEndpointId, target);
 
         vm.stopPrank();
 

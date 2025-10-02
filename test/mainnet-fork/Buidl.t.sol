@@ -37,7 +37,7 @@ contract MainnetControllerDepositBUIDLFailureTests is MainnetControllerBUIDLTest
 
     function test_transferAsset_rateLimitsBoundary() external {
         bytes32 key = RateLimitHelpers.makeAssetDestinationKey(
-            mainnetController.LIMIT_ASSET_TRANSFER(),
+            LimitsLib.LIMIT_ASSET_TRANSFER,
             address(usdc),
             address(buidlDeposit)
         );
@@ -60,7 +60,7 @@ contract MainnetControllerDepositBUIDLSuccessTests is MainnetControllerBUIDLTest
 
     function test_transferAsset() external {
         bytes32 key = RateLimitHelpers.makeAssetDestinationKey(
-            mainnetController.LIMIT_ASSET_TRANSFER(),
+            LimitsLib.LIMIT_ASSET_TRANSFER,
             address(usdc),
             address(buidlDeposit)
         );

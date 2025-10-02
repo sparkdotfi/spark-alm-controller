@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 import { IERC20 }        from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import { IERC4626 }      from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
+import { Initializable } from "openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+
+import { AccessControlUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
@@ -24,7 +26,7 @@ interface IVaultLike {
     function wipe(uint256 usdsAmount) external;
 }
 
-contract MainnetControllerState is AccessControl {
+contract MainnetControllerState is AccessControlUpgradeable {
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
@@ -47,7 +49,11 @@ contract MainnetControllerState is AccessControl {
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
-    constructor(
+    constructor() {
+      _disableInitializers();
+    }
+ 
+    function initialize(
         address admin_,
         address proxy_,
         address rateLimits_,
@@ -55,7 +61,9 @@ contract MainnetControllerState is AccessControl {
         address psm_,
         address daiUsds_,
         address cctp_
-    ) {
+    ) external initializer {
+        __AccessControl_init();
+
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
         proxy      = IALMProxy(proxy_);

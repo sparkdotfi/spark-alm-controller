@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { ForeignController } from "../../../src/ForeignController.sol";
-import { MainnetController } from "../../../src/MainnetController.sol";
+import { TransparentUpgradeableProxy } from "lib/openzeppelin-contracts/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
+import { ForeignController }      from "../../../src/ForeignController.sol";
+import { MainnetController }      from "../../../src/MainnetController.sol";
+import { MainnetControllerState } from "../../../src/MainnetControllerState.sol";
 
 import { MockDaiUsds } from "../mocks/MockDaiUsds.sol";
 import { MockPSM }     from "../mocks/MockPSM.sol";
@@ -14,11 +17,31 @@ import "../UnitTestBase.t.sol";
 contract MainnetControllerConstructorTests is UnitTestBase {
 
     function test_constructor() public {
+        MainnetController mainnetController = new MainnetController(
+            admin,
+            makeAddr("state")
+        );
+
+        assertEq(mainnetController.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+
+        assertEq(address(mainnetController.state()),      makeAddr("state"));
+    }
+
+}
+
+contract MainnetControllerStateInitializeTests is UnitTestBase {
+
+    function test_constructor() public {
         MockDaiUsds daiUsds = new MockDaiUsds(makeAddr("dai"));
         MockPSM     psm     = new MockPSM(makeAddr("usdc"));
         MockVault   vault   = new MockVault(makeAddr("buffer"));
 
-        MainnetController mainnetController = new MainnetController(
+        // Deploy the state implementation
+        address stateImpl = address(new MainnetControllerState());
+
+        // Deploy TransparentUpgradeableProxy for the state
+        bytes memory initData = abi.encodeWithSelector(
+            MainnetControllerState.initialize.selector,
             admin,
             makeAddr("almProxy"),
             makeAddr("rateLimits"),
@@ -28,20 +51,24 @@ contract MainnetControllerConstructorTests is UnitTestBase {
             makeAddr("cctp")
         );
 
-        assertEq(mainnetController.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+        MainnetControllerState mainnetControllerState = MainnetControllerState(address(new TransparentUpgradeableProxy(
+            stateImpl,
+            admin,
+            initData
+        )));
 
-        assertEq(address(mainnetController.proxy()),      makeAddr("almProxy"));
-        assertEq(address(mainnetController.rateLimits()), makeAddr("rateLimits"));
-        assertEq(address(mainnetController.vault()),      address(vault));
-        assertEq(address(mainnetController.buffer()),     makeAddr("buffer"));  // Buffer param in MockVault
-        assertEq(address(mainnetController.psm()),        address(psm));
-        assertEq(address(mainnetController.daiUsds()),    address(daiUsds));
-        assertEq(address(mainnetController.cctp()),       makeAddr("cctp"));
-        assertEq(address(mainnetController.dai()),        makeAddr("dai"));   // Dai param in MockDaiUsds
-        assertEq(address(mainnetController.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
+        assertEq(mainnetControllerState.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
 
-        assertEq(mainnetController.psmTo18ConversionFactor(), psm.to18ConversionFactor());
-        assertEq(mainnetController.psmTo18ConversionFactor(), 1e12);
+        assertEq(address(mainnetControllerState.proxy()),      makeAddr("almProxy"));
+        assertEq(address(mainnetControllerState.rateLimits()), makeAddr("rateLimits"));
+        assertEq(address(mainnetControllerState.vault()),      address(vault));
+        assertEq(address(mainnetControllerState.buffer()),     makeAddr("buffer"));  // Buffer param in MockVault
+        assertEq(address(mainnetControllerState.psm()),        address(psm));
+        assertEq(address(mainnetControllerState.daiUsds()),    address(daiUsds));
+        assertEq(address(mainnetControllerState.cctp()),       makeAddr("cctp"));
+
+        assertEq(mainnetControllerState.psmTo18ConversionFactor(), psm.to18ConversionFactor());
+        assertEq(mainnetControllerState.psmTo18ConversionFactor(), 1e12);
     }
 
 }

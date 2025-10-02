@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { MainnetController } from "../src/MainnetController.sol";
+import { LimitsLib } from "../src/libraries/LimitsLib.sol";
+
+import { MainnetController }      from "../src/MainnetController.sol";
+import { MainnetControllerState } from "../src/MainnetControllerState.sol";
 
 import { IALMProxy }   from "../src/interfaces/IALMProxy.sol";
 import { IRateLimits } from "../src/interfaces/IRateLimits.sol";
@@ -83,7 +86,7 @@ library MainnetControllerInit {
 
         // Step 2: Initialize the controller
 
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
+        _initControllerFull(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
 
         // Step 3: Configure almProxy within the allocation system
 
@@ -96,14 +99,11 @@ library MainnetControllerInit {
     function upgradeController(
         ControllerInstance   memory controllerInst,
         ConfigAddressParams  memory configAddresses,
-        CheckAddressParams   memory checkAddresses,
-        MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients,
-        MaxSlippageParams[]  memory maxSlippageParams
+        CheckAddressParams   memory checkAddresses
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
+        _initController(controllerInst, configAddresses, checkAddresses);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -125,7 +125,7 @@ library MainnetControllerInit {
     /*** Private helper functions                                                               ***/
     /**********************************************************************************************/
 
-    function _initController(
+    function _initControllerFull(
         ControllerInstance   memory controllerInst,
         ConfigAddressParams  memory configAddresses,
         CheckAddressParams   memory checkAddresses,
@@ -138,18 +138,21 @@ library MainnetControllerInit {
         // Step 1: Perform controller sanity checks
 
         MainnetController newController = MainnetController(controllerInst.controller);
+        MainnetControllerState state    = MainnetControllerState(controllerInst.controllerState);
 
         require(newController.hasRole(DEFAULT_ADMIN_ROLE, checkAddresses.admin), "MainnetControllerInit/incorrect-admin-controller");
+        require(state.hasRole(DEFAULT_ADMIN_ROLE, checkAddresses.admin),         "MainnetControllerInit/incorrect-admin-controllerState");
 
-        require(address(newController.proxy())      == controllerInst.almProxy,   "MainnetControllerInit/incorrect-almProxy");
-        require(address(newController.rateLimits()) == controllerInst.rateLimits, "MainnetControllerInit/incorrect-rateLimits");
+        require(address(newController.state()) == controllerInst.controllerState, "MainnetControllerInit/incorrect-controllerState");
+        require(address(state.proxy())         == controllerInst.almProxy,        "MainnetControllerInit/incorrect-almProxy");
+        require(address(state.rateLimits())    == controllerInst.rateLimits,      "MainnetControllerInit/incorrect-rateLimits");
 
-        require(address(newController.vault())   == checkAddresses.vault,   "MainnetControllerInit/incorrect-vault");
-        require(address(newController.psm())     == checkAddresses.psm,     "MainnetControllerInit/incorrect-psm");
-        require(address(newController.daiUsds()) == checkAddresses.daiUsds, "MainnetControllerInit/incorrect-daiUsds");
-        require(address(newController.cctp())    == checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
+        require(address(state.vault())   == checkAddresses.vault,   "MainnetControllerInit/incorrect-vault");
+        require(address(state.psm())     == checkAddresses.psm,     "MainnetControllerInit/incorrect-psm");
+        require(address(state.daiUsds()) == checkAddresses.daiUsds, "MainnetControllerInit/incorrect-daiUsds");
+        require(address(state.cctp())    == checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
 
-        require(newController.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
+        require(state.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
 
         require(configAddresses.oldController != address(newController), "MainnetControllerInit/old-controller-is-new-controller");
 
@@ -158,30 +161,72 @@ library MainnetControllerInit {
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        almProxy.grantRole(almProxy.CONTROLLER(),        address(newController));
-        newController.grantRole(newController.FREEZER(), configAddresses.freezer);
-        rateLimits.grantRole(rateLimits.CONTROLLER(),    address(newController));
+        almProxy.grantRole(almProxy.CONTROLLER(),     address(newController));
+        newController.grantRole(LimitsLib.FREEZER,    configAddresses.freezer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(), address(newController));
 
         for (uint256 i; i < configAddresses.relayers.length; ++i) {
-            newController.grantRole(newController.RELAYER(), configAddresses.relayers[i]);
+            newController.grantRole(LimitsLib.RELAYER, configAddresses.relayers[i]);
         }
 
         // Step 3: Configure the mint recipients on other domains
 
         for (uint256 i; i < mintRecipients.length; ++i) {
-            newController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+            state.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
 
         // Step 4: Configure LayerZero recipients
 
         for (uint256 i; i < layerZeroRecipients.length; ++i) {
-            newController.setLayerZeroRecipient(layerZeroRecipients[i].destinationEndpointId, layerZeroRecipients[i].recipient);
+            state.setLayerZeroRecipient(layerZeroRecipients[i].destinationEndpointId, layerZeroRecipients[i].recipient);
         }
 
         // Step 5: Configure max slippage
 
         for (uint256 i; i < maxSlippageParams.length; ++i) {
-            newController.setMaxSlippage(maxSlippageParams[i].pool, maxSlippageParams[i].maxSlippage);
+            state.setMaxSlippage(maxSlippageParams[i].pool, maxSlippageParams[i].maxSlippage);
+        }
+    }
+
+    function _initController(
+        ControllerInstance   memory controllerInst,
+        ConfigAddressParams  memory configAddresses,
+        CheckAddressParams   memory checkAddresses
+    )
+        private
+    {
+        // Step 1: Perform controller sanity checks
+
+        MainnetController newController = MainnetController(controllerInst.controller);
+        MainnetControllerState state    = MainnetControllerState(controllerInst.controllerState);
+
+        require(newController.hasRole(DEFAULT_ADMIN_ROLE, checkAddresses.admin), "MainnetControllerInit/incorrect-admin-controller");
+        require(state.hasRole(DEFAULT_ADMIN_ROLE, checkAddresses.admin),         "MainnetControllerInit/incorrect-admin-controllerState");
+
+        require(address(newController.state()) == controllerInst.controllerState, "MainnetControllerInit/incorrect-controllerState");
+        require(address(state.proxy())         == controllerInst.almProxy,        "MainnetControllerInit/incorrect-almProxy");
+        require(address(state.rateLimits())    == controllerInst.rateLimits,      "MainnetControllerInit/incorrect-rateLimits");
+
+        require(address(state.vault())   == checkAddresses.vault,   "MainnetControllerInit/incorrect-vault");
+        require(address(state.psm())     == checkAddresses.psm,     "MainnetControllerInit/incorrect-psm");
+        require(address(state.daiUsds()) == checkAddresses.daiUsds, "MainnetControllerInit/incorrect-daiUsds");
+        require(address(state.cctp())    == checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
+
+        require(state.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
+
+        require(configAddresses.oldController != address(newController), "MainnetControllerInit/old-controller-is-new-controller");
+
+        // Step 2: Configure ACL permissions controller, almProxy, and rateLimits
+
+        IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
+        IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
+
+        almProxy.grantRole(almProxy.CONTROLLER(),     address(newController));
+        newController.grantRole(LimitsLib.FREEZER,    configAddresses.freezer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(), address(newController));
+
+        for (uint256 i; i < configAddresses.relayers.length; ++i) {
+            newController.grantRole(LimitsLib.RELAYER, configAddresses.relayers[i]);
         }
     }
 

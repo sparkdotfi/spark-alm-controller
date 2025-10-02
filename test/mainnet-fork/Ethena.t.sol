@@ -98,7 +98,7 @@ contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
 
     function test_prepareUSDeMint_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_MINT(), 0, 0);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_USDE_MINT, 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -109,7 +109,7 @@ contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
     function test_prepareUSDeMint_rateLimitBoundary() external {
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.LIMIT_USDE_MINT(),
+            LimitsLib.LIMIT_USDE_MINT,
             100e6,
             uint256(100e6) / 1 hours
         );
@@ -132,7 +132,7 @@ contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
     function setUp() public override {
         super.setUp();
 
-        key = mainnetController.LIMIT_USDE_MINT();
+        key = LimitsLib.LIMIT_USDE_MINT;
 
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e6, uint256(1_000_000e6) / 4 hours);
@@ -180,7 +180,7 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
 
     function test_prepareUSDeBurn_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDE_BURN(), 0, 0);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_USDE_BURN, 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -191,7 +191,7 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
     function test_prepareUSDeBurn_rateLimitBoundary() external {
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.LIMIT_USDE_BURN(),
+            LimitsLib.LIMIT_USDE_BURN,
             100e18,
             uint256(100e18) / 1 hours
         );
@@ -214,7 +214,7 @@ contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
     function setUp() public override {
         super.setUp();
 
-        key = mainnetController.LIMIT_USDE_BURN();
+        key = LimitsLib.LIMIT_USDE_BURN;
 
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
@@ -262,7 +262,7 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
 
     function test_cooldownAssetsSUSDe_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_SUSDE_COOLDOWN, 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -276,7 +276,7 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
 
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.LIMIT_SUSDE_COOLDOWN(),
+            LimitsLib.LIMIT_SUSDE_COOLDOWN,
             100e18,
             uint256(100e18) / 1 hours
         );
@@ -307,7 +307,7 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
     function setUp() public override {
         super.setUp();
 
-        key = mainnetController.LIMIT_SUSDE_COOLDOWN();
+        key = LimitsLib.LIMIT_SUSDE_COOLDOWN;
 
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
@@ -373,7 +373,7 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
         deal(address(susde), address(almProxy), 100e18);  // To get past call
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_SUSDE_COOLDOWN(), 0, 0);
+        rateLimits.setRateLimitData(LimitsLib.LIMIT_SUSDE_COOLDOWN, 0, 0);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -386,7 +386,7 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
 
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.LIMIT_SUSDE_COOLDOWN(),
+            LimitsLib.LIMIT_SUSDE_COOLDOWN,
             100e18,
             uint256(100e18) / 1 hours
         );
@@ -424,7 +424,7 @@ contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
     function setUp() public override {
         super.setUp();
 
-        key = mainnetController.LIMIT_SUSDE_COOLDOWN();
+        key = LimitsLib.LIMIT_SUSDE_COOLDOWN;
 
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(key, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
@@ -505,7 +505,7 @@ contract MainnetControllerUnstakeSUSDeFailureTests is EthenaTestBase {
 
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.LIMIT_SUSDE_COOLDOWN(),
+            LimitsLib.LIMIT_SUSDE_COOLDOWN,
             100e18,
             uint256(100e18) / 1 hours
         );
@@ -534,7 +534,7 @@ contract MainnetControllerUnstakeSUSDeSuccessTests is EthenaTestBase {
         // Setting higher rate limit so shares can be used for cooldown
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.LIMIT_SUSDE_COOLDOWN(),
+            LimitsLib.LIMIT_SUSDE_COOLDOWN,
             1000e18,
             uint256(1000e18) / 1 hours
         );
@@ -579,17 +579,17 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
 
         vm.startPrank(SPARK_PROXY);
 
-        burnKey     = mainnetController.LIMIT_USDE_BURN();
-        cooldownKey = mainnetController.LIMIT_SUSDE_COOLDOWN();
-        depositKey  = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_DEPOSIT(), address(susde));
-        mintKey     = mainnetController.LIMIT_USDE_MINT();
+        burnKey     = LimitsLib.LIMIT_USDE_BURN;
+        cooldownKey = LimitsLib.LIMIT_SUSDE_COOLDOWN;
+        depositKey  = RateLimitHelpers.makeAssetKey(LimitsLib.LIMIT_4626_DEPOSIT, address(susde));
+        mintKey     = LimitsLib.LIMIT_USDE_MINT;
 
         rateLimits.setRateLimitData(burnKey,     5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(cooldownKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(mintKey,     5_000_000e6,  uint256(1_000_000e6)  / 4 hours);
 
-        mainnetController.setMaxSlippage(address(susde), 1e18 - 1e4);  // Rounding slippage
+        mainnetControllerState.setMaxSlippage(address(susde), 1e18 - 1e4);  // Rounding slippage
 
         vm.stopPrank();
     }

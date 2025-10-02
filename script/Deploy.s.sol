@@ -72,18 +72,9 @@ contract DeployMainnetController is Script {
 
         string memory config = ScriptTools.loadConfig(fileSlug);
 
-        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"))
-            ? config.readAddress(".psmWrapper")
-            : config.readAddress(".psm");
-
         address controller = MainnetControllerDeploy.deployController({
-            admin      : config.readAddress(".admin"),
-            almProxy   : config.readAddress(".almProxy"),
-            rateLimits : config.readAddress(".rateLimits"),
-            vault      : config.readAddress(".allocatorVault"),
-            psm        : psm,
-            daiUsds    : config.readAddress(".daiUsds"),
-            cctp       : config.readAddress(".cctpTokenMessenger")
+            admin           : config.readAddress(".admin"),
+            controllerState : config.readAddress(".controllerState")
         });
 
         vm.stopBroadcast();

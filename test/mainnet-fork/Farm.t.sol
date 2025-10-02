@@ -18,7 +18,7 @@ contract MainnetControllerFarmTestBase is ForkTestBase {
 
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_FARM_DEPOSIT(),
+                LimitsLib.LIMIT_FARM_DEPOSIT,
                 farm
             ),
             10_000_000e18,
@@ -26,7 +26,7 @@ contract MainnetControllerFarmTestBase is ForkTestBase {
         );
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAssetKey(
-                mainnetController.LIMIT_FARM_WITHDRAW(),
+                LimitsLib.LIMIT_FARM_WITHDRAW,
                 farm
             ),
             10_000_000e18,
@@ -61,7 +61,7 @@ contract MainnetControllerDepositFarmFailureTests is MainnetControllerFarmTestBa
 
     function test_depositToFarm_rateLimitsBoundary() external {
         bytes32 key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_FARM_DEPOSIT(),
+            LimitsLib.LIMIT_FARM_DEPOSIT,
             farm
         );
 
@@ -83,7 +83,7 @@ contract MainnetControllerFarmDepositSuccessTests is MainnetControllerFarmTestBa
 
     function test_depositToFarm() external {
         bytes32 depositKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_FARM_DEPOSIT(),
+            LimitsLib.LIMIT_FARM_DEPOSIT,
             farm
         );
 
@@ -124,7 +124,7 @@ contract MainnetControllerFarmWithdrawFailureTests is MainnetControllerFarmTestB
 
     function test_withdrawFromFarm_rateLimitsBoundary() external {
         bytes32 key = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_FARM_WITHDRAW(),
+            LimitsLib.LIMIT_FARM_WITHDRAW,
             farm
         );
 
@@ -147,7 +147,7 @@ contract MainnetControllerFarmWithdrawSuccessTests is MainnetControllerFarmTestB
 
     function test_withdrawFromFarm() external {
         bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
-            mainnetController.LIMIT_FARM_WITHDRAW(),
+            LimitsLib.LIMIT_FARM_WITHDRAW,
             farm
         );
 
