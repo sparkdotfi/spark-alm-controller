@@ -136,7 +136,7 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
             mainnetController.setOTCBuffer(exchange, address(otcBuffer));
 
             skip(1 days);
-            uint256 expRateLimit = 1 days * (10_000_000e18 / 1 days);
+            uint256 expRateLimit = 10_000_000e18;
             assertEq(rateLimits.getCurrentRateLimit(key), expRateLimit);
             // The controller decreases rate limit by sent18, which is:
             //   `uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();`
