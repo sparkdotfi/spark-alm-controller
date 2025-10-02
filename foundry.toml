@@ -19,12 +19,6 @@ remappings = [
     'solidity-bytes-utils/=lib/solidity-bytes-utils/',
 ]
 
-[profile.ci]
-solc_version = '0.8.25'
-optimizer = true
-optimizer_runs = 1
-evm_version = 'cancun'
-
 [fuzz]
 runs = 1000
 

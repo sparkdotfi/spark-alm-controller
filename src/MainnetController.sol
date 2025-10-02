@@ -105,6 +105,13 @@ contract MainnetController is AccessControl {
         address indexed newOTCBuffer,
         address indexed oldOTCBuffer
     );
+    event OTCClaimed(
+        address indexed exchange,
+        address indexed buffer,
+        address indexed assetClaimed,
+        uint256 amountClaimed,
+        uint256 amountClaimed18
+    );
     event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
     event OTCSwapSent(
         address indexed exchange,
@@ -112,13 +119,6 @@ contract MainnetController is AccessControl {
         address indexed tokenSent,
         uint256 amountSent,
         uint256 amountSent18
-    );
-    event OTCClaimed(
-        address indexed exchange,
-        address indexed buffer,
-        address indexed assetClaimed,
-        uint256 amountClaimed,
-        uint256 amountClaimed18
     );
     event RelayerRemoved(address indexed relayer);
 
@@ -249,8 +249,8 @@ contract MainnetController is AccessControl {
     function setOTCBuffer(address exchange, address otcBuffer) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange  != address(0), "MainnetController/exchange-zero-address");
-        require(exchange  != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
+        require(exchange != address(0), "MainnetController/exchange-zero-address");
+        require(exchange != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
 
         OTCConfig storage otcConfig = otcConfigs[exchange];
 
