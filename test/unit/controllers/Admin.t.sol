@@ -17,8 +17,8 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event OTCBufferSet(
         address indexed exchange,
-        address indexed newOTCBuffer,
-        address indexed oldOTCBuffer
+        address indexed oldOTCBuffer,
+        address indexed newOTCBuffer
     );
     event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
 
@@ -211,7 +211,7 @@ contract MainnetControllerSetOTCBufferTests is MainnetControllerAdminTestBase {
     function test_setOTCBuffer() external {
         vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit OTCBufferSet(exchange, address(otcBuffer), address(0));
+        emit OTCBufferSet(exchange, address(0), address(otcBuffer));
         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
     }
 
