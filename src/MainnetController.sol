@@ -102,8 +102,8 @@ contract MainnetController is AccessControl {
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event OTCBufferSet(
         address indexed exchange,
-        address indexed newOTCBuffer,
-        address indexed oldOTCBuffer
+        address indexed oldOTCBuffer,
+        address indexed newOTCBuffer
     );
     event OTCClaimed(
         address indexed exchange,
@@ -254,7 +254,7 @@ contract MainnetController is AccessControl {
 
         OTCConfig storage otcConfig = otcConfigs[exchange];
 
-        emit OTCBufferSet(exchange, otcBuffer, otcConfig.buffer);
+        emit OTCBufferSet(exchange, otcConfig.buffer, otcBuffer);
         otcConfig.buffer = otcBuffer;
     }
 
@@ -1011,8 +1011,11 @@ contract MainnetController is AccessControl {
 
         // Transfer assets from the OTC buffer to the proxy
         // NOTE: Reentrancy not possible here because both are known contracts.
-        // NOTE: We are not using SafeERC20 here; tokens that do not revert will fail silently.
-        IERC20(assetToClaim).transferFrom(otcBuffer, address(proxy), amountToClaim);
+        // NOTE: SafeERC20 is not used here; tokens that do not revert will fail silently.
+        proxy.doCall(
+            assetToClaim,
+            abi.encodeCall(IERC20(assetToClaim).transferFrom, (otcBuffer, address(proxy), amountToClaim))
+        );
 
         emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
     }
@@ -1026,7 +1029,7 @@ contract MainnetController is AccessControl {
             * otcConfig.rechargeRate18;
 
         if (maxSlippages[exchange] == 0) {
-            // maxSlippages should be set. We don't revert here because it is not necessary
+            // maxSlippages should be set. There is no revert here because it is not necessary
             // (returning `false` correctly answers the question of whether the last swap has been
             // returned).
             return false;

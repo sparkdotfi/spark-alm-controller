@@ -65,7 +65,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         // done separately in each test.
 
         // 2. Set rate limits
-        // We can do that because it doesn't depend on the asset
+        // This can be done because it doesn't depend on the asset
         key = RateLimitHelpers.makeAssetKey(
             LIMIT_OTC_SWAP,
             exchange
@@ -94,7 +94,7 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
         ERC20 assetToSend = new ERC20(18);
         // Set allowance
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(assetToSend), address(mainnetController), type(uint256).max);
+        otcBuffer.approve(address(assetToSend), address(almProxy), type(uint256).max);
 
         // Set OTC buffer
         vm.prank(Ethereum.SPARK_PROXY);
@@ -132,7 +132,7 @@ contract MainnetControllerOTCSwapFailureTests is MainnetControllerOTCSwapBase {
         ERC20 assetToSend = new ERC20(18);
         // Set allowance
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(assetToSend), address(mainnetController), type(uint256).max);
+        otcBuffer.approve(address(assetToSend), address(almProxy), type(uint256).max);
 
         // Set OTC buffer
         vm.prank(Ethereum.SPARK_PROXY);
@@ -162,7 +162,7 @@ contract MainnetControllerOTCSwapSendSuccessTests is MainnetControllerOTCSwapBas
         ERC20 assetToSend = new ERC20(18);
         // Set allowance
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(assetToSend), address(mainnetController), type(uint256).max);
+        otcBuffer.approve(address(assetToSend), address(almProxy), type(uint256).max);
 
         // Set OTC buffer
         vm.prank(Ethereum.SPARK_PROXY);
@@ -235,7 +235,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         // Set allowance
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(assetToReturn), address(mainnetController), type(uint256).max);
+        otcBuffer.approve(address(assetToReturn), address(almProxy), type(uint256).max);
 
         // Set OTC buffer
         vm.prank(Ethereum.SPARK_PROXY);
@@ -352,9 +352,9 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         // Set allowance
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(assetToReturn),  address(mainnetController), type(uint256).max);
+        otcBuffer.approve(address(assetToReturn),  address(almProxy), type(uint256).max);
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(assetToReturn2), address(mainnetController), type(uint256).max);
+        otcBuffer.approve(address(assetToReturn2), address(almProxy), type(uint256).max);
 
         // Set OTC buffer
         vm.prank(Ethereum.SPARK_PROXY);
@@ -569,7 +569,7 @@ contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwap
 
         // Set allowance
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(assetToReturn), address(mainnetController), type(uint256).max);
+        otcBuffer.approve(address(assetToReturn), address(almProxy), type(uint256).max);
 
         // Set OTC buffer
         vm.prank(Ethereum.SPARK_PROXY);
