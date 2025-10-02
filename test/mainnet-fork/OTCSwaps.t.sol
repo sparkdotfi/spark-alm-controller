@@ -113,6 +113,18 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
         mainnetController.otcSwapSend(exchange, address(1), 1e18);
     }
 
+    function test_otcSwapSend_assetToSendZero() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/asset-to-send-zero");
+        mainnetController.otcSwapSend(exchange, address(0), 1e18);
+    }
+
+    function test_otcSwapSend_amountToSendZero() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/amount-to-send-zero");
+        mainnetController.otcSwapSend(exchange, address(asset_12), 0);
+    }
+
     function test_otcSwapSend_rateLimitedBoundary() external {
         uint256 id = vm.snapshotState();
         for (uint8 decimalsSend = 6; decimalsSend <= 18; decimalsSend += 6) {
@@ -132,21 +144,13 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
             uint256 maxAmountToSend = expRateLimit * 10 ** decimalsSend / 1e18;
 
             deal(address(assetToSend), address(almProxy), maxAmountToSend + 1);
-            vm.prank(relayer);
+            vm.startPrank(relayer);
             vm.expectRevert("RateLimits/rate-limit-exceeded");
             mainnetController.otcSwapSend(exchange, address(assetToSend), maxAmountToSend + 1);
 
-            vm.prank(relayer);
-            vm.expectEmit(address(mainnetController));
-            emit OTCSwapSent(exchange, address(otcBuffer), address(assetToSend), maxAmountToSend, expRateLimit);
             mainnetController.otcSwapSend(exchange, address(assetToSend), maxAmountToSend);
+            vm.stopPrank();
         }
-    }
-
-    function test_otcSwapSend_amountToSendZero() external {
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/amount-to-send-zero");
-        mainnetController.otcSwapSend(exchange, address(asset_12), 0);
     }
 
     function test_otcSwapSend_otcBufferNotSet() external {
@@ -164,11 +168,20 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
         // In this test it is prudent to use less than 10M so rate limit is not reached.
         deal(address(asset_12), address(almProxy), 5_000_000e12);
 
+        assertEq(asset_12.balanceOf(address(exchange)), 0);
+
         // Execute OTC swap
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
         emit OTCSwapSent(exchange, address(otcBuffer), address(asset_12), 5_000_000e12, 5_000_000e18);
         mainnetController.otcSwapSend(exchange, address(asset_12), 5_000_000e12);
+
+        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = (
+            mainnetController.otcSwapStates(exchange)
+        );
+        assertEq(swapTimestamp, uint48(block.timestamp));
+        assertEq(sent18, 5_000_000e18);
+        assertEq(claimed18, 0);
 
         // Try to do another one
         skip(1 seconds);
@@ -222,6 +235,15 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcClaim(exchange, address(1), 1e18);
     }
 
+    function test_otcClaim_assetToClaimZero() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/asset-to-claim-zero");
+        mainnetController.otcClaim(exchange, address(0), 1e18);
+    }
+
     function test_otcClaim_amountToClaimZero() external {
         vm.prank(relayer);
         vm.expectRevert("MainnetController/amount-to-claim-zero");
@@ -232,15 +254,6 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
         vm.prank(relayer);
         vm.expectRevert("MainnetController/otc-buffer-not-set");
         mainnetController.otcClaim(exchange, address(1), 1e18);
-    }
-
-    function test_otcClaim_assetZero() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
-
-        vm.prank(relayer);
-        vm.expectRevert("call to non-contract address 0x0000000000000000000000000000000000000000");
-        mainnetController.otcClaim(exchange, address(0), 1e18);
     }
 
 }

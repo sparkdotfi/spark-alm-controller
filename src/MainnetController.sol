@@ -967,7 +967,8 @@ contract MainnetController is AccessControl {
 
     function otcSwapSend(address exchange, address assetToSend, uint256 amountToSend) external {
         _checkRole(RELAYER);
-        require(amountToSend > 0, "MainnetController/amount-to-send-zero");
+        require(assetToSend != address(0), "MainnetController/asset-to-send-zero");
+        require(amountToSend > 0,          "MainnetController/amount-to-send-zero");
 
         uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
 
@@ -996,7 +997,8 @@ contract MainnetController is AccessControl {
 
     function otcClaim(address exchange, address assetToClaim, uint256 amountToClaim) external {
         _checkRole(RELAYER);
-        require(amountToClaim > 0, "MainnetController/amount-to-claim-zero");
+        require(assetToClaim != address(0), "MainnetController/asset-to-claim-zero");
+        require(amountToClaim > 0,          "MainnetController/amount-to-claim-zero");
 
         OTCSwapState storage otcSwapState = otcSwapStates[exchange];
         OTCConfig    storage otcConfig    = otcConfigs[exchange];
