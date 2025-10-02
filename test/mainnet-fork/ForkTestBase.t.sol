@@ -260,9 +260,17 @@ contract ForkTestBase is DssTest {
                 cctp       : Ethereum.CCTP_TOKEN_MESSENGER
             });
 
-        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
+        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](1);
+        layerZeroRecipients[0] = Init.LayerZeroRecipient({
+            destinationEndpointId : 30110,
+            recipient             : bytes32(uint256(uint160(makeAddr("arbitrumAlmProxy"))))
+        });
 
-        Init.MaxSlippageParams[] memory maxSlippageParams = new Init.MaxSlippageParams[](0);
+        Init.MaxSlippageParams[] memory maxSlippageParams = new Init.MaxSlippageParams[](1);
+        maxSlippageParams[0] = Init.MaxSlippageParams({
+            pool        : makeAddr("pool"),
+            maxSlippage : 0.99e18
+        });
 
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
 

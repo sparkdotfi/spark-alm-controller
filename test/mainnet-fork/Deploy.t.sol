@@ -19,9 +19,10 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
             cctp    : CCTP_MESSENGER
         });
 
-        ALMProxy          newAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
-        MainnetController newController = MainnetController(controllerInst.controller);
-        RateLimits        newRateLimits = RateLimits(controllerInst.rateLimits);
+        ALMProxy          newAlmProxy             = ALMProxy(payable(controllerInst.almProxy));
+        MainnetController newController           = MainnetController(controllerInst.controller);
+        RateLimits        newRateLimits           = RateLimits(controllerInst.rateLimits);
+        MainnetControllerState newControllerState = MainnetControllerState(controllerInst.controllerState);
 
         assertEq(newAlmProxy.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
         assertEq(newAlmProxy.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);  // Deployer never gets admin
@@ -29,7 +30,18 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         assertEq(newRateLimits.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
         assertEq(newRateLimits.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);  // Deployer never gets admin
 
-        _assertControllerInitState(newController, address(newAlmProxy), address(newRateLimits), vault, buffer);
+        assertEq(newControllerState.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
+        assertEq(newControllerState.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);  // Deployer never gets admin
+
+        _assertControllerInitState(newController, controllerInst.controllerState);
+
+        assertEq(address(newControllerState.proxy()),      address(newAlmProxy));
+        assertEq(address(newControllerState.rateLimits()), address(newRateLimits));
+        assertEq(address(newControllerState.vault()),      vault);
+        assertEq(address(newControllerState.buffer()),     buffer);
+        assertEq(address(newControllerState.psm()),        PSM);
+        assertEq(address(newControllerState.daiUsds()),    DAI_USDS);
+        assertEq(address(newControllerState.cctp()),       CCTP_MESSENGER);
     }
 
     function test_deployController() external {
@@ -40,14 +52,14 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
             controllerState : address(mainnetControllerState)
         }));
 
-        _assertControllerInitState(newController, address(almProxy), address(rateLimits), vault, buffer);
+        _assertControllerInitState(newController, address(mainnetControllerState));
     }
 
-    function _assertControllerInitState(MainnetController controller, address almProxy, address rateLimits, address vault, address buffer) internal view {
+    function _assertControllerInitState(MainnetController controller, address state) internal view {
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);
 
-        assertEq(address(controller.state()),        address(mainnetControllerState));
+        assertEq(address(controller.state()), state);
     }
 
 }

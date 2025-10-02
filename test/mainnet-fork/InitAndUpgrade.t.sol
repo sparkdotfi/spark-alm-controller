@@ -362,9 +362,10 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         );
 
         // Overwrite storage for all previous deployments in setUp and assert brand new deployment
-        mainnetController = MainnetController(controllerInst.controller);
-        almProxy          = ALMProxy(payable(controllerInst.almProxy));
-        rateLimits        = RateLimits(controllerInst.rateLimits);
+        mainnetController      = MainnetController(controllerInst.controller);
+        almProxy               = ALMProxy(payable(controllerInst.almProxy));
+        rateLimits             = RateLimits(controllerInst.rateLimits);
+        mainnetControllerState = MainnetControllerState(controllerInst.controllerState);
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
 
