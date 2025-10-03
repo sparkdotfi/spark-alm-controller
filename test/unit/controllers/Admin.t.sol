@@ -174,6 +174,23 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
         assertEq(mainnetController.maxSlippages(pool), 0.02e18);
     }
 
+    function test_setUniV4tickLimits() public {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setUniV4tickLimits(bytes32(0), -100, 100);
+
+        vm.prank(freezer);
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            freezer,
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setUniV4tickLimits(bytes32(0), -100, 100);
+    }
+
 }
 
 contract ForeignControllerAdminTests is UnitTestBase {

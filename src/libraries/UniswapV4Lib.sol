@@ -140,11 +140,11 @@ library UniswapV4Lib {
         // controller is authorized in the downstream calls).
         require(IERC721(address(posm)).ownerOf(tokenId) == address(p.proxy), "UniswapV4Lib: not position owner");
 
-        // When adding liquidity, accrued fees are automatically accounted. Thus it is
-        // technically possible that the delta will be in favor of the liquidity provider. Since
-        // settle pair always assumes an obligation from the provider to the pool, we use close
-        // currency instead, which doesn't have this requirement (btw, take pair does the exact
-        // opposite (it assumes the obligation is from the pool to the provider)).
+        // When adding liquidity, accrued fees are automatically accounted. Thus it is technically
+        // possible that the delta will be in favor of the liquidity provider. Since settle pair
+        // always assumes an obligation from the provider to the pool, close currency is used here
+        // instead, which doesn't have this requirement (btw, take pair does the exact opposite (it
+        // assumes the obligation is from the pool to the provider)).
         bytes memory actions = abi.encodePacked(
             uint8(Actions.INCREASE_LIQUIDITY),
             uint8(Actions.CLOSE_CURRENCY),
@@ -321,7 +321,7 @@ library UniswapV4Lib {
         // NOTE: The -1 is to avoid rounding issues: If the entire tick range lies outside of the
         // current price, one of {amount0Max, amount1Max} will be 0. However, it is conceivable that
         // callers will add 1 to amount0Max and amount1Max to account for the potential for rounding
-        // errors. To allow for that behavior, we subtract 1 here.
+        // errors. To allow for that behavior, 1 is subtracted here.
         require(
             (amount0Max - 1) * p.maxSlippage <= amount0 * 1e18,
             "UniswapV4Lib: amount0Max too high"
@@ -373,14 +373,14 @@ library UniswapV4Lib {
         p.rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makePoolKey(p.rateLimitId, p.poolId),
             // Technically one can receive tokens when adding liquidity (if there are fees to be
-            // accumulated, so we need safe / clamped / non-negative subtraction here).
+            // accumulated, so safe / clamped / non-negative subtraction is needed here).
             _nonNegSub(token0balAlm1_18 + token1balAlm1_18, token0balAlm2_18 + token1balAlm2_18)
         );
 
         // Reset approval of Permit2 in token0 and token1
         // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it doesn't
-        // have allowance in the token at this point), but for let's do it anyway so we don't have
-        // a hanging unusable approval.
+        // have allowance in the token at this point), but it is done anyways so there isn't a
+        // hanging unused approval.
         _approvePermit2andPosm(p.proxy, poolKey.currency0, 0);
         _approvePermit2andPosm(p.proxy, poolKey.currency1, 0);
     }
