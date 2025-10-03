@@ -351,7 +351,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         assertEq(assetToReturn.balanceOf(address(otcBuffer)), assetToReturnBalanceOTCBuffer - (returnAmount - 1));
         assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
 
-        // There is a rounding error so we skip an additional second
+        // There is a rounding error so skipping an additional second is needed.
         if (recharge) skip(1 seconds);
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
@@ -389,13 +389,13 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         if (recharge) {
             // 1M normalized token per day
             rechargeRate = uint256(1_000_000e18) / 1 days;
-            // The maxSlippage is 99.5%, hence we need at least 9_950_000 back. Recharge rate will
-            // give us 1M, hence we need at least 8_950_000 back.
+            // The maxSlippage is 99.5%, hence at least 9_950_000 is needed back. Recharge rate will
+            // give 1M, hence at least 8_950_000 back is needed.
             returnAmount  = 4_475_000 * 10 ** decimalsReturn;
             returnAmount2 = 4_475_000 * 10 ** decimalsReturn2;
         } else {
             rechargeRate = 0;
-            // No recharge rate, we need full amount.
+            // No recharge rate, full amount is needed.
             returnAmount  = 4_975_000 * 10 ** decimalsReturn;
             returnAmount2 = 4_975_000 * 10 ** decimalsReturn2;
         }
@@ -525,7 +525,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         uint256 returnAmount2,
         bool    recharge
     ) internal {
-        // There is a rounding error so we skip an additional second
+        // There is a rounding error so skipping an additional second is needed.
         if (recharge) skip(1 seconds);
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
