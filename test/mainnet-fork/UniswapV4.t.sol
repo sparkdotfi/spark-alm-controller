@@ -17,9 +17,9 @@ import { IStateView }       from "v4-periphery/src/interfaces/IStateView.sol";
 
 import "forge-std/console2.sol";
 
-import { LiquidityAmounts } from "../../src/vendor/LiquidityAmounts.sol";
-
 import { UniV4Params } from "../../src/libraries/UniswapV4Lib.sol";
+
+import { LiquidityAmounts } from "../../src/libraries/UniLiquidityAmounts.sol";
 
 import "./ForkTestBase.t.sol";
 

@@ -13,6 +13,8 @@ import { IPoolManager } from "v4-core/interfaces/IPoolManager.sol";
 import { PoolId }       from "v4-core/types/PoolId.sol";
 import { PoolKey }      from "v4-core/types/PoolKey.sol";
 import { TickMath }     from "v4-core/libraries/TickMath.sol";
+import { FullMath }    from "v4-core/libraries/FullMath.sol";
+import { FixedPoint96 } from "v4-core/libraries/FixedPoint96.sol";
 
 import { Actions }          from "v4-periphery/src/libraries/Actions.sol";
 import { PositionInfo }     from "v4-periphery/src/libraries/PositionInfoLibrary.sol";
@@ -24,7 +26,7 @@ import { IRateLimits } from "../interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
-import { LiquidityAmounts } from "../vendor/LiquidityAmounts.sol";
+import { LiquidityAmounts } from "./UniLiquidityAmounts.sol";
 
 interface HasPoolKeys {
     function poolKeys(bytes25 poolId) external view returns (PoolKey memory);
