@@ -7,12 +7,14 @@ import { SafeERC20 }                from "openzeppelin-contracts/contracts/token
 
 contract OTCBuffer is AccessControlEnumerable {
 
+    using SafeERC20 for IERC20;
+
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
 
     constructor(address admin) {
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        require(_grantRole(DEFAULT_ADMIN_ROLE, admin), "grant failed");
     }
 
     /**********************************************************************************************/
@@ -22,7 +24,7 @@ contract OTCBuffer is AccessControlEnumerable {
     function approve(address asset, address spender, uint256 allowance)
         external onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        SafeERC20.forceApprove(IERC20(asset), spender, allowance);
+        IERC20(asset).forceApprove(spender, allowance);
     }
 
     /**********************************************************************************************/
