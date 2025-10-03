@@ -275,12 +275,12 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         if (recharge) {
             // 1M normalized token per day
             rechargeRate = uint256(1_000_000e18) / 1 days;
-            // The maxSlippage is 99.5%, hence we need at least 9_950_000 back. Recharge rate will
-            // give us 1M, hence we need at least 8_950_000 back.
+            // The maxSlippage is 99.5%, hence at least 9_950_000 is needed back. Recharge rate will
+            // give 1M, hence at least 8_950_000 back is needed.
             returnAmount = 8_950_000 * 10 ** decimalsReturn;
         } else {
             rechargeRate = 0;
-            // No recharge rate, we need full amount.
+            // No recharge rate, full amount is needed.
             returnAmount = 9_950_000 * 10 ** decimalsReturn;
         }
 
