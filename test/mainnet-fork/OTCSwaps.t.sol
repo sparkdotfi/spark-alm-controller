@@ -269,6 +269,61 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         // Mint tokens
         deal(address(usdt), address(almProxy), 10_000_000e6);
+        deal(address(usds), address(exchange), 9_500_000e18);
+
+        assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy + 10_000_000e6);
+        assertEq(usds.balanceOf(address(otcBuffer)), 0);
+
+        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
+
+        // Execute OTC swap
+        vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
+        mainnetController.otcSwapSend(exchange, address(usdt), 10_000_000e6);
+
+        assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy);
+
+        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+
+        vm.prank(exchange);
+        SafeERC20.safeTransfer(IERC20Metadata(address(usds)), address(otcBuffer), 9_500_000e18);
+
+        assertEq(usds.balanceOf(address(otcBuffer)), 9_500_000e18);
+
+        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = mainnetController.otcSwapStates(exchange);
+
+        assertEq(swapTimestamp, uint48(block.timestamp));
+        assertEq(sent18,        10_000_000e18);
+        assertEq(claimed18,     0);
+
+        assertEq(usds.balanceOf(address(almProxy)),  usdsBalanceALMProxy);
+        assertEq(usds.balanceOf(address(otcBuffer)), 9_500_000e18);
+
+        skip(1 days);
+
+        // Claim
+        vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(exchange, address(otcBuffer), address(usds), 9_500_000e18, 9_500_000e18);
+        mainnetController.otcClaim(exchange, address(usds), 9_500_000e18);
+
+        (swapTimestamp, sent18, claimed18) = mainnetController.otcSwapStates(exchange);
+
+        assertEq(swapTimestamp, block.timestamp - 1 days);
+        assertEq(sent18,        10_000_000e18);
+        assertEq(claimed18,     9_500_000e18);
+
+        assertEq(usds.balanceOf(address(almProxy)),  9_500_000e18);
+        assertEq(usds.balanceOf(address(otcBuffer)), 0);
+    }
+
+    function test_e2e_swapUsdtToUsds_withRecharge() external {
+        uint256 usdtBalanceALMProxy = usdt.balanceOf(address(almProxy));
+        uint256 usdsBalanceALMProxy = usds.balanceOf(address(almProxy));
+
+        // Mint tokens
+        deal(address(usdt), address(almProxy), 10_000_000e6);
 
         assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy + 10_000_000e6);
         assertEq(usds.balanceOf(address(otcBuffer)), 0);
@@ -340,11 +395,7 @@ contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwap
         // Execute OTC swap
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
-        emit OTCSwapSent(
-            exchange, address(otcBuffer), address(usdt), 10_000_000e6, (
-                10_000_000e18
-            )
-        );
+        emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcSwapSend(
             exchange,
             address(usdt),
