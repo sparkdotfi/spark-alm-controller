@@ -122,6 +122,13 @@ contract MainnetControllerMintPositionUniV4FailureTests is UniV4TestBase {
     // amount1Max - 1 * p.maxSlippage > amount1 * 1e18
     // approvals shouldn't fail
     // rate limit
+    // == state effects:
+    // rate limits
+    // token approvals go to 0 (proxy -> permit2 in the token, proxy -> posm in permit2)
+    // mint: get num of positions, mint, get num of positions again, should be +1
+    // check owner, pool, tickLower, tickUpper, liquidity
+    // increaseLiquidity: first fetch position, then do action and fetch again
+    // token transfers: from proxy to poolm
 
     // also test case when we deposit liquidity but actually receive tokens
 
