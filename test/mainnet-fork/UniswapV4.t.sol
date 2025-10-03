@@ -109,7 +109,27 @@ contract UniV4TestBase is ForkTestBase {
 contract MainnetControllerMintPositionUniV4FailureTests is UniV4TestBase {
 
     // function test_mintPositionUniV4_notRelayer() public {
-    // function test_mintPositionUniV4
+    // tickLower < uniV4tickLowerMin[poolId]
+    // tickUpper > uniV4tickUpperMax[poolId]
+    // ? invalid pool id ?
+
+    // increase: not relayer % token id for different pool % ownerOf != proxy
+    // burn position: not relayer % 
+    // decrease liquidity: not relayer %
+
+    // _mintOrIncrease: maxSlippage == 0
+    // amount0Max - 1 * p.maxSlippage > amount0 * 1e18
+    // amount1Max - 1 * p.maxSlippage > amount1 * 1e18
+    // approvals shouldn't fail
+    // rate limit
+
+    // also test case when we deposit liquidity but actually receive tokens
+
+    // _burnOrDecrease: maxSlippage == 0
+    // (amount0Min + 1) * p.maxSlippage < amount0 * 1e18
+    // (amount1Min + 1) * p.maxSlippage < amount1 * 1e18
+    // rate limit
+
 
 }
 

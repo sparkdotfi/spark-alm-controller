@@ -347,13 +347,8 @@ library UniswapV4Lib {
         _approvePermit2andPosm(p.proxy, poolKey.currency1, amount1Max);
 
         // Get token balances before mint / increase
-        uint256 token0balAlm1_18; uint256 token1balAlm1_18;
-        {
-            uint256 token0balAlm1 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
-            token0balAlm1_18 = token0balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
-            uint256 token1balAlm1 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
-            token1balAlm1_18 = token1balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
-        }
+        uint256 token0balAlm1_18 = getAssetBalance18(p.proxy, poolKey.currency0);
+        uint256 token1balAlm1_18 = getAssetBalance18(p.proxy, poolKey.currency1);
 
         // Perform action
         p.proxy.doCall(
@@ -361,13 +356,8 @@ library UniswapV4Lib {
             abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
         );
 
-        uint256 token0balAlm2_18; uint256 token1balAlm2_18;
-        {
-            uint256 token0balAlm2 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
-            token0balAlm2_18 = token0balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
-            uint256 token1balAlm2 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
-            token1balAlm2_18 = token1balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
-        }
+        uint256 token0balAlm2_18 = getAssetBalance18(p.proxy, poolKey.currency0);
+        uint256 token1balAlm2_18 = getAssetBalance18(p.proxy, poolKey.currency1);
 
         // Perform rate limit
         p.rateLimits.triggerRateLimitDecrease(
@@ -427,13 +417,8 @@ library UniswapV4Lib {
         PoolKey memory poolKey = HasPoolKeys(address(posm)).poolKeys(bytes25(p.poolId));
 
         // Get token balances before mint / increase
-        uint256 token0balAlm1_18; uint256 token1balAlm1_18;
-        {
-            uint256 token0balAlm1 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
-            token0balAlm1_18 = token0balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
-            uint256 token1balAlm1 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
-            token1balAlm1_18 = token1balAlm1 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
-        }
+        uint256 token0balAlm1_18 = getAssetBalance18(p.proxy, poolKey.currency0);
+        uint256 token1balAlm1_18 = getAssetBalance18(p.proxy, poolKey.currency1);
 
         // Submit Calls
         p.proxy.doCall(
@@ -441,13 +426,8 @@ library UniswapV4Lib {
             abi.encodeCall(IPositionManager.modifyLiquidities, (abi.encode(actions, params), block.timestamp))
         );
 
-        uint256 token0balAlm2_18; uint256 token1balAlm2_18;
-        {
-            uint256 token0balAlm2 = IERC20(Currency.unwrap(poolKey.currency0)).balanceOf(address(p.proxy));
-            token0balAlm2_18 = token0balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency0)).decimals());
-            uint256 token1balAlm2 = IERC20(Currency.unwrap(poolKey.currency1)).balanceOf(address(p.proxy));
-            token1balAlm2_18 = token1balAlm2 * 1e18 / (10 ** IERC20Metadata(Currency.unwrap(poolKey.currency1)).decimals());
-        }
+        uint256 token0balAlm2_18 = getAssetBalance18(p.proxy, poolKey.currency0);
+        uint256 token1balAlm2_18 = getAssetBalance18(p.proxy, poolKey.currency1);
 
         // This is a burn / decrease, so each of token0balAlm2 and token1balAlm2 should be >=
         require(token0balAlm2_18 >= token0balAlm1_18, "UniswapV4Lib: token0 balance decreased");
@@ -514,6 +494,12 @@ library UniswapV4Lib {
 
     function _nonNegSub(uint256 a, uint256 b) internal pure returns (uint256) {
         return a >= b ? a - b : 0;
+    }
+
+    function getAssetBalance18(IALMProxy proxy, Currency currency) internal view returns (uint256) {
+        address token = Currency.unwrap(currency);
+        uint256 bal = IERC20(token).balanceOf(address(proxy));
+        return bal * 1e18 / (10 ** IERC20Metadata(token).decimals());
     }
 
 }
