@@ -5,7 +5,7 @@ import { ERC20Mock }      from "openzeppelin-contracts/contracts/mocks/token/ERC
 import { IERC20Metadata } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 }      from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { OTCSwapState } from "src/MainnetController.sol";
+import { OTC } from "src/MainnetController.sol";
 
 import { OTCBuffer } from "src/OTCBuffer.sol";
 
@@ -33,7 +33,6 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
     bytes32 key;
 
     OTCBuffer otcBuffer;
-    // 12-decimal asset
     IERC20    asset_12;
 
     event OTCBufferSet(
@@ -126,7 +125,7 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
     function test_otcSwapSend_amountToSendZero() external {
         vm.prank(relayer);
         vm.expectRevert("MainnetController/amount-to-send-zero");
-        mainnetController.otcSwapSend(exchange, address(asset_12), 0);
+        mainnetController.otcSwapSend(exchange, address(usdt), 0);
     }
 
     function otcSwapSend_rateLimitZero() external {
@@ -135,31 +134,27 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.otcSwapSend(exchange, address(asset_12), 1e18);
+        mainnetController.otcSwapSend(exchange, address(usdt), 1e18);
     }
 
-    function test_otcSwapSend_rateLimitedBoundary() external {
-        uint256 id = vm.snapshotState();
-        for (uint8 decimalsSend = 6; decimalsSend <= 18; decimalsSend += 6) {
-            vm.revertToState(id);
-            IERC20 assetToSend = _getAssetByDecimals(decimalsSend);
+    function test_otcSwapSend_usdt_rateLimitedBoundary() external {
+        deal(address(usdt), address(almProxy), 10_000_000e6 + 1);
 
-            skip(1 days);
-            uint256 maxRateLimit = 10_000_000e18;
-            assertEq(rateLimits.getCurrentRateLimit(key), maxRateLimit);
-            // The controller decreases rate limit by sent18, which is:
-            //   `uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();`
-            // Hence maximum amountToSend is: `maxRateLimit * 10 ** decimalsSend / 1e18`
-            uint256 maxAmountToSend = maxRateLimit * 10 ** decimalsSend / 1e18;
+        vm.startPrank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.otcSwapSend(exchange, address(usdt), 10_000_000e6 + 1);
 
-            deal(address(assetToSend), address(almProxy), maxAmountToSend + 1);
-            vm.startPrank(relayer);
-            vm.expectRevert("RateLimits/rate-limit-exceeded");
-            mainnetController.otcSwapSend(exchange, address(assetToSend), maxAmountToSend + 1);
+        mainnetController.otcSwapSend(exchange, address(usdt), 10_000_000e6);
+    }
 
-            mainnetController.otcSwapSend(exchange, address(assetToSend), maxAmountToSend);
-            vm.stopPrank();
-        }
+    function test_otcSwapSend_usds_rateLimitedBoundary() external {
+        deal(address(usds), address(almProxy), 10_000_000e18 + 1);
+
+        vm.startPrank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.otcSwapSend(exchange, address(usds), 10_000_000e18 + 1);
+
+        mainnetController.otcSwapSend(exchange, address(usds), 10_000_000e18);
     }
 
     function test_otcSwapSend_otcBufferNotSet() external {
@@ -168,46 +163,45 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/otc-buffer-not-set");
-        mainnetController.otcSwapSend(exchange, address(asset_12), 1e18);
+        mainnetController.otcSwapSend(exchange, address(usdt), 1e6);
     }
 
     function test_otcSwapSend_lastSwapNotReturned() external {
         // Mint tokens
         // In this test it is prudent to use less than 10M so rate limit is not reached.
-        deal(address(asset_12), address(almProxy), 5_000_000e12);
+        deal(address(usdt), address(almProxy), 5_000_000e6);
 
-        assertEq(asset_12.balanceOf(address(exchange)), 0);
+        assertEq(usdt.balanceOf(address(exchange)), 0);
 
         // Execute OTC swap
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
-        emit OTCSwapSent(exchange, address(otcBuffer), address(asset_12), 5_000_000e12, 5_000_000e18);
-        mainnetController.otcSwapSend(exchange, address(asset_12), 5_000_000e12);
+        emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 5_000_000e6, 5_000_000e18);
+        mainnetController.otcSwapSend(exchange, address(usdt), 5_000_000e6);
 
-        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = (
-            mainnetController.otcSwapStates(exchange)
-        );
+        ( ,, uint256 swapTimestamp, uint256 sent18, uint256 claimed18 )
+            = mainnetController.otcs(exchange);
+
         assertEq(swapTimestamp, uint48(block.timestamp));
         assertEq(sent18,        5_000_000e18);
         assertEq(claimed18,     0);
 
         // Try to do another one
-        skip(1 seconds);
         vm.prank(relayer);
         vm.expectRevert("MainnetController/last-swap-not-returned");
-        mainnetController.otcSwapSend(exchange, address(asset_12), 1e18);
+        mainnetController.otcSwapSend(exchange, address(usdt), 1e6);
     }
 
 }
 
 contract MainnetControllerOTCSwapSendSuccessTests is MainnetControllerOTCSwapBase {
 
-    function test_otcSwapSend() external {
+    function test_otcSwapSend_usdt() external {
         // Mint tokens
-        deal(address(asset_12), address(almProxy), 10_000_000e12);
+        deal(address(usdt), address(almProxy), 10_000_000e6);
 
-        assertEq(asset_12.balanceOf(address(almProxy)), 10_000_000e12);
-        assertEq(asset_12.balanceOf(address(exchange)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)), 10_000_000e6);
+        assertEq(usdt.balanceOf(address(exchange)), 0);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
 
@@ -216,19 +210,50 @@ contract MainnetControllerOTCSwapSendSuccessTests is MainnetControllerOTCSwapBas
         // Execute OTC swap
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
-        emit OTCSwapSent(exchange, address(otcBuffer), address(asset_12), 10_000_000e12, 10_000_000e18);
-        mainnetController.otcSwapSend(exchange, address(asset_12), 10_000_000e12);
+        emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
+        mainnetController.otcSwapSend(exchange, address(usdt), 10_000_000e6);
 
-        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = (
-            mainnetController.otcSwapStates(exchange)
-        );
+        ( ,, uint256 swapTimestamp, uint256 sent18, uint256 claimed18 )
+            = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, uint48(block.timestamp));
-        assertEq(sent18, 10_000_000e18);
-        assertEq(claimed18, 0);
+        assertEq(sent18,        10_000_000e18);
+        assertEq(claimed18,     0);
 
-        assertEq(asset_12.balanceOf(address(almProxy)), 0);
-        assertEq(asset_12.balanceOf(address(exchange)), 10_000_000e12);
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(exchange)), 10_000_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
+    }
+
+    function test_otcSwapSend_usds() external {
+        // Mint tokens
+        deal(address(usds), address(almProxy), 10_000_000e18);
+
+        assertEq(usds.balanceOf(address(almProxy)), 10_000_000e18);
+        assertEq(usds.balanceOf(address(exchange)), 0);
+
+        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
+
+        assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
+
+        // Execute OTC swap
+        vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(exchange, address(otcBuffer), address(usds), 10_000_000e18, 10_000_000e18);
+        mainnetController.otcSwapSend(exchange, address(usds), 10_000_000e18);
+
+        ( ,, uint256 swapTimestamp, uint256 sent18, uint256 claimed18 )
+            = mainnetController.otcs(exchange);
+
+        assertEq(swapTimestamp, uint48(block.timestamp));
+        assertEq(sent18,        10_000_000e18);
+        assertEq(claimed18,     0);
+
+        assertEq(usds.balanceOf(address(almProxy)), 0);
+        assertEq(usds.balanceOf(address(exchange)), 10_000_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
@@ -304,7 +329,8 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         assertEq(usds.balanceOf(address(otcBuffer)), 9_500_000e18);
 
-        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, uint256 swapTimestamp, uint256 sent18, uint256 claimed18 )
+            = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, uint48(block.timestamp));
         assertEq(sent18,        10_000_000e18);
@@ -321,7 +347,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCClaimed(exchange, address(otcBuffer), address(usds), 9_500_000e18, 9_500_000e18);
         mainnetController.otcClaim(exchange, address(usds), 9_500_000e18);
 
-        (swapTimestamp, sent18, claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, swapTimestamp, sent18, claimed18 ) = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, block.timestamp - 1 days);
         assertEq(sent18,        10_000_000e18);
@@ -362,7 +388,8 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         assertEq(usds.balanceOf(address(otcBuffer)), 8_500_000e18);
 
-        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, uint256 swapTimestamp, uint256 sent18, uint256 claimed18 )
+            = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, uint48(block.timestamp));
         assertEq(sent18,        10_000_000e18);
@@ -381,7 +408,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCClaimed(exchange, address(otcBuffer), address(usds), 8_500_000e18, 8_500_000e18);
         mainnetController.otcClaim(exchange, address(usds), 8_500_000e18);
 
-        (swapTimestamp, sent18, claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, swapTimestamp, sent18, claimed18 ) = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, block.timestamp - 1 days);
         assertEq(sent18,        10_000_000e18);
@@ -427,7 +454,8 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         assertEq(usdt.balanceOf(address(otcBuffer)), 9_500_000e6);
 
-        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, uint256 swapTimestamp, uint256 sent18, uint256 claimed18 )
+            = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, uint48(block.timestamp));
         assertEq(sent18,        10_000_000e18);
@@ -446,7 +474,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCClaimed(exchange, address(otcBuffer), address(usdt), 9_500_000e6, 9_500_000e18);
         mainnetController.otcClaim(exchange, address(usdt), 9_500_000e6);
 
-        (swapTimestamp, sent18, claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, swapTimestamp, sent18, claimed18 ) = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, block.timestamp - 1 days);
         assertEq(sent18,        10_000_000e18);
@@ -489,7 +517,8 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         assertEq(usdt.balanceOf(address(otcBuffer)), 8_500_000e6);
 
-        (uint256 swapTimestamp, uint256 sent18, uint256 claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, uint256 swapTimestamp, uint256 sent18, uint256 claimed18 )
+            = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, uint48(block.timestamp));
         assertEq(sent18,        10_000_000e18);
@@ -508,7 +537,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCClaimed(exchange, address(otcBuffer), address(usdt), 8_500_000e6, 8_500_000e18);
         mainnetController.otcClaim(exchange, address(usdt), 8_500_000e6);
 
-        (swapTimestamp, sent18, claimed18) = mainnetController.otcSwapStates(exchange);
+        ( ,, swapTimestamp, sent18, claimed18 ) = mainnetController.otcs(exchange);
 
         assertEq(swapTimestamp, block.timestamp - 1 days);
         assertEq(sent18,        10_000_000e18);
@@ -528,9 +557,9 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
 }
 
-contract MainnetControlerGetClaimedWithRechargeTests is MainnetControllerOTCSwapBase {
+contract MainnetControlergetOtcClaimedWithRechargeTests is MainnetControllerOTCSwapBase {
 
-    function test_getClaimedWithRecharge() external {
+    function test_getOtcClaimedWithRecharge() external {
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
@@ -555,22 +584,22 @@ contract MainnetControlerGetClaimedWithRechargeTests is MainnetControllerOTCSwap
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, address(usds), 5_500_000e18);
 
-        assertEq(mainnetController.getClaimedWithRecharge(exchange), 5_500_000e18);
+        assertEq(mainnetController.getOtcClaimedWithRecharge(exchange), 5_500_000e18);
 
         skip(1 days);
-        assertEq(mainnetController.getClaimedWithRecharge(exchange), 6_499_999.999999999999993600e18);
+        assertEq(mainnetController.getOtcClaimedWithRecharge(exchange), 6_499_999.999999999999993600e18);
 
         skip(1 days);
-        assertEq(mainnetController.getClaimedWithRecharge(exchange), 7_499_999.999999999999987200e18);
+        assertEq(mainnetController.getOtcClaimedWithRecharge(exchange), 7_499_999.999999999999987200e18);
 
         skip(2 days);
-        assertEq(mainnetController.getClaimedWithRecharge(exchange), 9_499_999.999999999999974400e18);
+        assertEq(mainnetController.getOtcClaimedWithRecharge(exchange), 9_499_999.999999999999974400e18);
 
         skip(1 days);
-        assertEq(mainnetController.getClaimedWithRecharge(exchange), 10_499999.999999999999968000e18);
+        assertEq(mainnetController.getOtcClaimedWithRecharge(exchange), 10_499999.999999999999968000e18);
 
         skip(10 days);
-        assertEq(mainnetController.getClaimedWithRecharge(exchange), 20_499_999.999999999999904000e18);
+        assertEq(mainnetController.getOtcClaimedWithRecharge(exchange), 20_499_999.999999999999904000e18);
     }
 
 }

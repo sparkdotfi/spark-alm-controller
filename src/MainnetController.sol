@@ -78,15 +78,12 @@ interface ISparkVaultLike {
     function take(uint256 assetAmount) external;
 }
 
-struct OTCSwapState {
+struct OTC {
+    address buffer;
+    uint256 rechargeRate18;
     uint256 swapTimestamp;
     uint256 sent18;
     uint256 claimed18;
-}
-
-struct OTCConfig {
-    address buffer;
-    uint256 rechargeRate18;
 }
 
 contract MainnetController is AccessControl {
@@ -181,8 +178,7 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // OTC swap (also uses maxSlippages)
-    mapping(address exchange => OTCSwapState otcSwapState) public otcSwapStates;
-    mapping(address exchange => OTCConfig    otcConfig)    public otcConfigs;
+    mapping(address exchange => OTC otcData) public otcs;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -252,17 +248,17 @@ contract MainnetController is AccessControl {
         require(exchange != address(0), "MainnetController/exchange-zero-address");
         require(exchange != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
 
-        OTCConfig storage otcConfig = otcConfigs[exchange];
+        OTC storage otc = otcs[exchange];
 
-        emit OTCBufferSet(exchange, otcConfig.buffer, otcBuffer);
-        otcConfig.buffer = otcBuffer;
+        emit OTCBufferSet(exchange, otc.buffer, otcBuffer);
+        otc.buffer = otcBuffer;
     }
 
     function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
-        OTCConfig storage otcConfig = otcConfigs[exchange];
-        emit OTCRechargeRateSet(exchange, otcConfig.rechargeRate18, rechargeRate18);
-        otcConfig.rechargeRate18 = rechargeRate18;
+        OTC storage otc = otcs[exchange];
+        emit OTCRechargeRateSet(exchange, otc.rechargeRate18, rechargeRate18);
+        otc.rechargeRate18 = rechargeRate18;
     }
 
     /**********************************************************************************************/
@@ -967,6 +963,7 @@ contract MainnetController is AccessControl {
 
     function otcSwapSend(address exchange, address assetToSend, uint256 amountToSend) external {
         _checkRole(RELAYER);
+
         require(assetToSend != address(0), "MainnetController/asset-to-send-zero");
         require(amountToSend > 0,          "MainnetController/amount-to-send-zero");
 
@@ -974,17 +971,15 @@ contract MainnetController is AccessControl {
 
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
 
-        OTCConfig storage otcConfig = otcConfigs[exchange];
+        OTC storage otc = otcs[exchange];
 
         // Just to check that OTC buffer exists
-        require(otcConfig.buffer != address(0), "MainnetController/otc-buffer-not-set");
-        require(isOtcSwapReady(exchange),       "MainnetController/last-swap-not-returned");
+        require(otc.buffer != address(0), "MainnetController/otc-buffer-not-set");
+        require(isOtcSwapReady(exchange), "MainnetController/last-swap-not-returned");
 
-        otcSwapStates[exchange] = OTCSwapState({
-            swapTimestamp : block.timestamp,
-            sent18        : sent18,
-            claimed18     : 0
-        });
+        otc.swapTimestamp = block.timestamp;
+        otc.sent18        = sent18;
+        otc.claimed18     = 0;
 
         // NOTE: Reentrancy not relevant here because there are no state changes after this call
         proxy.doCall(
@@ -992,55 +987,51 @@ contract MainnetController is AccessControl {
             abi.encodeCall(IERC20(assetToSend).transfer, (exchange, amountToSend))
         );
 
-        emit OTCSwapSent(exchange, otcConfig.buffer, assetToSend, amountToSend, sent18);
+        emit OTCSwapSent(exchange, otc.buffer, assetToSend, amountToSend, sent18);
     }
 
     function otcClaim(address exchange, address assetToClaim, uint256 amountToClaim) external {
         _checkRole(RELAYER);
+
         require(assetToClaim != address(0), "MainnetController/asset-to-claim-zero");
         require(amountToClaim > 0,          "MainnetController/amount-to-claim-zero");
 
-        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
-        OTCConfig    storage otcConfig    = otcConfigs[exchange];
+        address otcBuffer = otcs[exchange].buffer;
 
-        address otcBuffer = otcConfig.buffer;
         require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
 
         // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 amountToClaim18 = amountToClaim * 1e18 / 10 ** IERC20Metadata(assetToClaim).decimals();
+        uint256 amountToClaim18
+            = amountToClaim * 1e18 / 10 ** IERC20Metadata(assetToClaim).decimals();
 
-        otcSwapState.claimed18 += amountToClaim18;
+        otcs[exchange].claimed18 += amountToClaim18;
 
         // Transfer assets from the OTC buffer to the proxy
         // NOTE: Reentrancy not possible here because both are known contracts.
         // NOTE: SafeERC20 is not used here; tokens that do not revert will fail silently.
         proxy.doCall(
             assetToClaim,
-            abi.encodeCall(IERC20(assetToClaim).transferFrom, (otcBuffer, address(proxy), amountToClaim))
+            abi.encodeCall(
+                IERC20(assetToClaim).transferFrom,
+                (otcBuffer, address(proxy), amountToClaim)
+            )
         );
 
         emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
     }
 
-    function getClaimedWithRecharge(address exchange) public view returns (uint256) {
-        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
-        OTCConfig    storage otcConfig    = otcConfigs[exchange];
+    function getOtcClaimedWithRecharge(address exchange) public view returns (uint256) {
+        OTC memory otc = otcs[exchange];
 
-        uint256 claimedWithRecharge18 = otcSwapState.claimed18
-            + (block.timestamp - otcSwapState.swapTimestamp)
-            * otcConfig.rechargeRate18;
-
-        return claimedWithRecharge18;
+        return otc.claimed18 + (block.timestamp - otc.swapTimestamp) * otc.rechargeRate18;
     }
 
     function isOtcSwapReady(address exchange) public view returns (bool) {
         // If maxSlippages is not set, the exchange is not onboarded.
         if (maxSlippages[exchange] == 0) return false;
 
-        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
-
-        return getClaimedWithRecharge(exchange)
-            >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;
+        return getOtcClaimedWithRecharge(exchange)
+            >= otcs[exchange].sent18 * maxSlippages[exchange] / 1e18;
     }
 
     /**********************************************************************************************/
