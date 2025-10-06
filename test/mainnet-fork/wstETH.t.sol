@@ -26,7 +26,7 @@ contract MainnetControllerWstETHTestBase is ForkTestBase {
 
     IWithdrawalQueue constant withdrawQueue = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE);
 
-    IERC20 constant weth    = IERC20(Ethereum.WETH);
+    IERC20  constant weth   = IERC20(Ethereum.WETH);
     IWSTETH constant wsteth = IWSTETH(Ethereum.WSTETH);
 
     function _getBlock() internal override pure returns (uint256) {
@@ -117,9 +117,8 @@ contract MainnetControllerRequestWithdrawFromWstETHFailureTests is MainnetContro
     function test_requestWithdrawFromWstETH_rateLimitsBoundary() external {
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
 
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(requestWithdrawKey, 500e18, uint256(500e18) / 1 days);
-        vm.stopPrank();
 
         deal(Ethereum.WSTETH, address(almProxy), 500e18);
 
@@ -202,7 +201,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
     address finalizer = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
     
-    function test_testclaimWithdrawalFromWstETH() external {
+    function test_claimWithdrawalFromWstETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
 
@@ -269,6 +268,12 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
         assertEq(weth.balanceOf(address(almProxy)),   6.075117156205896631e18);
         assertEq(wsteth.balanceOf(address(almProxy)), 818.02939539073162522e18);
+
+        assertApproxEqAbs(
+            weth.balanceOf(address(almProxy)) + wsteth.getStETHByWstETH(wsteth.balanceOf(address(almProxy))),
+            1_000e18,
+            2
+        );
     }
 
 }

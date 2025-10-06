@@ -321,7 +321,7 @@ contract MainnetController is AccessControl {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = amount;
 
-        (uint256[] memory requestIds) = abi.decode(
+        ( uint256[] memory requestIds ) = abi.decode(
             proxy.doCall(
                 Ethereum.WSTETH_WITHDRAW_QUEUE,
                 abi.encodeCall(
