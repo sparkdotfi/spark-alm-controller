@@ -974,8 +974,7 @@ contract MainnetController is AccessControl {
 
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
 
-        OTCConfig    storage otcConfig    = otcConfigs[exchange];
-        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
+        OTCConfig storage otcConfig = otcConfigs[exchange];
 
         // Just to check that OTC buffer exists
         require(otcConfig.buffer != address(0), "MainnetController/otc-buffer-not-set");
@@ -1039,7 +1038,6 @@ contract MainnetController is AccessControl {
         if (maxSlippages[exchange] == 0) return false;
 
         OTCSwapState storage otcSwapState = otcSwapStates[exchange];
-        OTCConfig    storage otcConfig    = otcConfigs[exchange];
 
         return getClaimedWithRecharge(exchange)
             >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;

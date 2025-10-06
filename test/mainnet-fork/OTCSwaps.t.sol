@@ -188,8 +188,8 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
             mainnetController.otcSwapStates(exchange)
         );
         assertEq(swapTimestamp, uint48(block.timestamp));
-        assertEq(sent18, 5_000_000e18);
-        assertEq(claimed18, 0);
+        assertEq(sent18,        5_000_000e18);
+        assertEq(claimed18,     0);
 
         // Try to do another one
         skip(1 seconds);
@@ -229,6 +229,7 @@ contract MainnetControllerOTCSwapSendSuccessTests is MainnetControllerOTCSwapBas
 
         assertEq(asset_12.balanceOf(address(almProxy)), 0);
         assertEq(asset_12.balanceOf(address(exchange)), 10_000_000e12);
+
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
         assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
@@ -294,7 +295,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcSwapSend(exchange, address(usdt), 10_000_000e6);
 
-        assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy);
+        assertEq(usdt.balanceOf(address(almProxy)), usdtBalanceALMProxy);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
@@ -352,7 +353,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcSwapSend(exchange, address(usdt), 10_000_000e6);
 
-        assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy);
+        assertEq(usdt.balanceOf(address(almProxy)), usdtBalanceALMProxy);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
