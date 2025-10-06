@@ -974,7 +974,8 @@ contract MainnetController is AccessControl {
 
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
 
-        OTCConfig storage otcConfig = otcConfigs[exchange];
+        OTCConfig    storage otcConfig    = otcConfigs[exchange];
+        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
 
         // Just to check that OTC buffer exists
         require(otcConfig.buffer != address(0), "MainnetController/otc-buffer-not-set");
@@ -1022,10 +1023,7 @@ contract MainnetController is AccessControl {
         emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
     }
 
-    function isOtcSwapReady(address exchange) public view returns (bool) {
-        // If maxSlippages is not set, the exchange is not onboarded.
-        if (maxSlippages[exchange] == 0) return false;
-
+    function getClaimedWithRecharge(address exchange) public view returns (uint256) {
         OTCSwapState storage otcSwapState = otcSwapStates[exchange];
         OTCConfig    storage otcConfig    = otcConfigs[exchange];
 
@@ -1033,7 +1031,18 @@ contract MainnetController is AccessControl {
             + (block.timestamp - otcSwapState.swapTimestamp)
             * otcConfig.rechargeRate18;
 
-        return claimedWithRecharge18 >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;
+        return claimedWithRecharge18;
+    }
+
+    function isOtcSwapReady(address exchange) public view returns (bool) {
+        // If maxSlippages is not set, the exchange is not onboarded.
+        if (maxSlippages[exchange] == 0) return false;
+
+        OTCSwapState storage otcSwapState = otcSwapStates[exchange];
+        OTCConfig    storage otcConfig    = otcConfigs[exchange];
+
+        return getClaimedWithRecharge(exchange)
+            >= otcSwapState.sent18 * maxSlippages[exchange] / 1e18;
     }
 
     /**********************************************************************************************/
