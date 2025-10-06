@@ -129,6 +129,15 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
         mainnetController.otcSwapSend(exchange, address(asset_12), 0);
     }
 
+    function otcSwapSend_rateLimitZero() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 0, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        mainnetController.otcSwapSend(exchange, address(asset_12), 1e18);
+    }
+
     function test_otcSwapSend_rateLimitedBoundary() external {
         uint256 id = vm.snapshotState();
         for (uint8 decimalsSend = 6; decimalsSend <= 18; decimalsSend += 6) {
@@ -199,7 +208,9 @@ contract MainnetControllerOTCSwapSendSuccessTests is MainnetControllerOTCSwapBas
 
         assertEq(asset_12.balanceOf(address(almProxy)), 10_000_000e12);
         assertEq(asset_12.balanceOf(address(exchange)), 0);
+
         assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
+
         assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
 
         // Execute OTC swap
@@ -219,6 +230,7 @@ contract MainnetControllerOTCSwapSendSuccessTests is MainnetControllerOTCSwapBas
         assertEq(asset_12.balanceOf(address(almProxy)), 0);
         assertEq(asset_12.balanceOf(address(exchange)), 10_000_000e12);
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
+
         assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
     }
 
@@ -517,7 +529,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
 contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwapBase {
 
-    function test_isOTcSwapReady_false() external {
+    function test_isOTcSwapReady_falseWithZeroSlippage() external {
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setMaxSlippage(exchange, 0);
 
