@@ -93,7 +93,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
     }
 
-    function _getAssetByDecimals(uint8 decimals) internal returns (IERC20) {
+    function _getAssetByDecimals(uint8 decimals) internal view returns (IERC20) {
         // This will use USDT for 6 decimals and USDS for 18 decimals.
         if (decimals == 6) {
             return usdt;
@@ -136,12 +136,12 @@ contract MainnetControllerOTCSwapSendFailureTests is MainnetControllerOTCSwapBas
             IERC20 assetToSend = _getAssetByDecimals(decimalsSend);
 
             skip(1 days);
-            uint256 expRateLimit = 10_000_000e18;
-            assertEq(rateLimits.getCurrentRateLimit(key), expRateLimit);
+            uint256 maxRateLimit = 10_000_000e18;
+            assertEq(rateLimits.getCurrentRateLimit(key), maxRateLimit);
             // The controller decreases rate limit by sent18, which is:
             //   `uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();`
-            // Hence maximum amountToSend is: `expRateLimit * 10 ** decimalsSend / 1e18`
-            uint256 maxAmountToSend = expRateLimit * 10 ** decimalsSend / 1e18;
+            // Hence maximum amountToSend is: `maxRateLimit * 10 ** decimalsSend / 1e18`
+            uint256 maxAmountToSend = maxRateLimit * 10 ** decimalsSend / 1e18;
 
             deal(address(assetToSend), address(almProxy), maxAmountToSend + 1);
             vm.startPrank(relayer);
