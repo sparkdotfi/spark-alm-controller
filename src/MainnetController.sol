@@ -961,13 +961,13 @@ contract MainnetController is AccessControl {
     /*** OTC swap functions                                                                     ***/
     /**********************************************************************************************/
 
-    function otcSwapSend(address exchange, address assetToSend, uint256 amountToSend) external {
+    function otcSend(address exchange, address asset, uint256 amount) external {
         _checkRole(RELAYER);
 
-        require(assetToSend != address(0), "MainnetController/asset-to-send-zero");
-        require(amountToSend > 0,          "MainnetController/amount-to-send-zero");
+        require(asset != address(0), "MainnetController/asset-to-send-zero");
+        require(amount > 0,          "MainnetController/amount-to-send-zero");
 
-        uint256 sent18 = amountToSend * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
+        uint256 sent18 = amount * 1e18 / 10 ** IERC20Metadata(asset).decimals();
 
         _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
 
@@ -983,26 +983,26 @@ contract MainnetController is AccessControl {
 
         // NOTE: Reentrancy not relevant here because there are no state changes after this call
         proxy.doCall(
-            assetToSend,
-            abi.encodeCall(IERC20(assetToSend).transfer, (exchange, amountToSend))
+            asset,
+            abi.encodeCall(IERC20(asset).transfer, (exchange, amount))
         );
 
-        emit OTCSwapSent(exchange, otc.buffer, assetToSend, amountToSend, sent18);
+        emit OTCSwapSent(exchange, otc.buffer, asset, amount, sent18);
     }
 
-    function otcClaim(address exchange, address assetToClaim, uint256 amountToClaim) external {
+    function otcClaim(address exchange, address asset) external {
         _checkRole(RELAYER);
 
-        require(assetToClaim != address(0), "MainnetController/asset-to-claim-zero");
-        require(amountToClaim > 0,          "MainnetController/amount-to-claim-zero");
+        require(asset != address(0), "MainnetController/asset-to-claim-zero");
 
         address otcBuffer = otcs[exchange].buffer;
 
         require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
 
+        uint256 amountToClaim = IERC20(asset).balanceOf(otcBuffer);
+
         // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 amountToClaim18
-            = amountToClaim * 1e18 / 10 ** IERC20Metadata(assetToClaim).decimals();
+        uint256 amountToClaim18 = amountToClaim * 1e18 / 10 ** IERC20Metadata(asset).decimals();
 
         otcs[exchange].claimed18 += amountToClaim18;
 
@@ -1010,17 +1010,17 @@ contract MainnetController is AccessControl {
         // NOTE: Reentrancy not possible here because both are known contracts.
         // NOTE: SafeERC20 is not used here; tokens that do not revert will fail silently.
         proxy.doCall(
-            assetToClaim,
+            asset,
             abi.encodeCall(
-                IERC20(assetToClaim).transferFrom,
+                IERC20(asset).transferFrom,
                 (otcBuffer, address(proxy), amountToClaim)
             )
         );
 
-        emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
+        emit OTCClaimed(exchange, otcBuffer, asset, amountToClaim, amountToClaim18);
     }
 
-    function getOtcClaimedWithRecharge(address exchange) public view returns (uint256) {
+    function getOtcClaimWithRecharge(address exchange) public view returns (uint256) {
         OTC memory otc = otcs[exchange];
 
         return otc.claimed18 + (block.timestamp - otc.swapTimestamp) * otc.rechargeRate18;
@@ -1030,7 +1030,7 @@ contract MainnetController is AccessControl {
         // If maxSlippages is not set, the exchange is not onboarded.
         if (maxSlippages[exchange] == 0) return false;
 
-        return getOtcClaimedWithRecharge(exchange)
+        return getOtcClaimWithRecharge(exchange)
             >= otcs[exchange].sent18 * maxSlippages[exchange] / 1e18;
     }
 
