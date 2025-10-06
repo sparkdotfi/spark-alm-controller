@@ -86,7 +86,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
         // 5. Set maxSlippages
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(exchange, 1e18 - 0.005e18); // 100% - 0.5% == 99.5%
+        mainnetController.setMaxSlippage(exchange, 1e18 - 0.05e18); // 100% - 5% == 95%
 
         // 6. Set OTC buffer
         vm.prank(Ethereum.SPARK_PROXY);
@@ -358,7 +358,9 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         assertEq(usds.balanceOf(address(almProxy)),  usdsBalanceALMProxy);
         assertEq(usds.balanceOf(address(otcBuffer)), 8_500_000e18);
 
-        skip(1 days + 1 seconds);
+        skip(1 days);
+
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
 
         // Claim
         vm.prank(relayer);
@@ -368,9 +370,17 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         (swapTimestamp, sent18, claimed18) = mainnetController.otcSwapStates(exchange);
 
-        assertEq(swapTimestamp, block.timestamp - 1 days - 1 seconds);
+        assertEq(swapTimestamp, block.timestamp - 1 days);
         assertEq(sent18,        10_000_000e18);
         assertEq(claimed18,     8_500_000e18);
+
+        // Still not ready
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
+
+        skip(1 seconds);
+
+        // Now it is ready
+        assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
 
         assertEq(usds.balanceOf(address(almProxy)),  usdsBalanceALMProxy + 8_500_000e18);
         assertEq(usds.balanceOf(address(otcBuffer)), 0);
@@ -415,6 +425,8 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         skip(1 days);
 
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
+
         // Claim
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
@@ -429,6 +441,8 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         assertEq(usdt.balanceOf(address(almProxy)),  9_500_000e6);
         assertEq(usdt.balanceOf(address(otcBuffer)), 0);
+
+        assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
     }
 
     function test_e2e_swapUsdsToUsdt_withRecharge() external {
@@ -471,7 +485,9 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy);
         assertEq(usdt.balanceOf(address(otcBuffer)), 8_500_000e6);
 
-        skip(1 days + 1 seconds);
+        skip(1 days);
+
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
 
         // Claim
         vm.prank(relayer);
@@ -481,9 +497,17 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         (swapTimestamp, sent18, claimed18) = mainnetController.otcSwapStates(exchange);
 
-        assertEq(swapTimestamp, block.timestamp - 1 days - 1 seconds);
+        assertEq(swapTimestamp, block.timestamp - 1 days);
         assertEq(sent18,        10_000_000e18);
         assertEq(claimed18,     8_500_000e18);
+
+        // Still not ready
+        assertFalse(mainnetController.isOtcSwapReady(address(exchange)));
+
+        skip(1 seconds);
+
+        // Now it is ready
+        assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
 
         assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy + 8_500_000e6);
         assertEq(usdt.balanceOf(address(otcBuffer)), 0);
@@ -506,7 +530,7 @@ contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwap
 
         // Mint tokens
         deal(address(usdt), address(almProxy), 10_000_000e6);
-        deal(address(usds), address(exchange), 5_950_000e18);
+        deal(address(usds), address(exchange), 5_500_000e18);
 
         // Execute OTC swap
         vm.prank(relayer);
@@ -519,11 +543,11 @@ contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwap
         );
 
         vm.prank(exchange);
-        usds.transfer(address(otcBuffer), 5_950_000e18);
+        usds.transfer(address(otcBuffer), 5_500_000e18);
 
         // Claim
         vm.prank(relayer);
-        mainnetController.otcClaim(exchange, address(usds), 5_950_000e18);
+        mainnetController.otcClaim(exchange, address(usds), 5_500_000e18);
 
         // Skip time by 4 days to recharge
         skip(4 days);
