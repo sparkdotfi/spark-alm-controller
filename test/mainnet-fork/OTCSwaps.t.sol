@@ -313,7 +313,6 @@ contract MainnetControllerotcSendFailureTests is MainnetControllerOTCSwapBase {
 contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 
     function test_otcSend_usdt() external {
-        // Mint tokens
         deal(address(usdt), address(almProxy), 10_000_000e6);
 
         assertEq(usdt.balanceOf(address(almProxy)), 10_000_000e6);
@@ -351,7 +350,6 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
     }
 
     function test_otcSend_usds() external {
-        // Mint tokens
         deal(address(usds), address(almProxy), 10_000_000e18);
 
         assertEq(usds.balanceOf(address(almProxy)), 10_000_000e18);
@@ -390,48 +388,96 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 
 }
 
-// contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
+contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
 
-//     function test_otcClaim_notRelayer() external {
-//         vm.expectRevert(abi.encodeWithSignature(
-//             "AccessControlUnauthorizedAccount(address,bytes32)",
-//             address(this),
-//             RELAYER
-//         ));
-//         mainnetController.otcClaim(exchange, address(1));
-//     }
+    function test_otcClaim_notRelayer() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER
+        ));
+        mainnetController.otcClaim(exchange, address(1));
+    }
 
-//     function test_otcClaim_assetToClaimZero() external {
-//         vm.prank(Ethereum.SPARK_PROXY);
-//         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+    function test_otcClaim_assetToClaimZero() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
 
-//         vm.prank(relayer);
-//         vm.expectRevert("MainnetController/asset-to-claim-zero");
-//         mainnetController.otcClaim(exchange, address(0));
-//     }
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/asset-to-claim-zero");
+        mainnetController.otcClaim(exchange, address(0));
+    }
 
-//     function test_otcClaim_otcBufferNotSet() external {
-//         vm.prank(Ethereum.SPARK_PROXY);
-//         mainnetController.setOTCBuffer(exchange, address(0));
+    function test_otcClaim_otcBufferNotSet() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/otc-buffer-not-set");
+        mainnetController.otcClaim(makeAddr("fake-exchange"), address(1));
+    }
 
-//         vm.prank(relayer);
-//         vm.expectRevert("MainnetController/otc-buffer-not-set");
-//         mainnetController.otcClaim(exchange, address(1));
-//     }
+}
 
-// }
+contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
+
+    function test_otcClaim_usdt() external {
+        ( address octBuffer,,,, ) = mainnetController.otcs(exchange);
+
+        deal(address(usdt), address(octBuffer), 10_000_000e6);
+
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(octBuffer)),   10_000_000e6);
+
+        ( ,,,, uint256 claimed18 ) = mainnetController.otcs(exchange);
+
+        assertEq(claimed18, 0);
+
+        vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(exchange, address(octBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
+        mainnetController.otcClaim(exchange, address(usdt));
+
+        assertEq(usdt.balanceOf(address(almProxy)), 10_000_000e6);
+        assertEq(usdt.balanceOf(address(octBuffer)),   0);
+
+        ( ,,,, claimed18 ) = mainnetController.otcs(exchange);
+
+        assertEq(claimed18, 10_000_000e18);
+    }
+
+    function test_otcClaim_usds() external {
+        ( address octBuffer,,,, ) = mainnetController.otcs(exchange);
+
+        deal(address(usds), address(octBuffer), 10_000_000e18);
+
+        assertEq(usds.balanceOf(address(octBuffer)),   10_000_000e18);
+
+        ( ,,,, uint256 claimed18 ) = mainnetController.otcs(exchange);
+
+        assertEq(claimed18, 0);
+
+        vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCClaimed(exchange, address(octBuffer), address(usds), 10_000_000e18, 10_000_000e18);
+        mainnetController.otcClaim(exchange, address(usds));
+
+        assertEq(usds.balanceOf(address(almProxy)),  10_000_000e18);
+        assertEq(usds.balanceOf(address(octBuffer)),    0);
+
+        ( ,,,, claimed18 ) = mainnetController.otcs(exchange);
+
+        assertEq(claimed18, 10_000_000e18);
+    }
+
+}
 
 // contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
 //     function test_e2e_swapUsdtToUsds() external {
-//         uint256 usdtBalanceALMProxy = usdt.balanceOf(address(almProxy));
-//         uint256 usdsBalanceALMProxy = usds.balanceOf(address(almProxy));
-
-//         // Mint tokens
+//
 //         deal(address(usdt), address(almProxy), 10_000_000e6);
 //         deal(address(usds), address(exchange), 9_500_000e18);
 
-//         assertEq(usdt.balanceOf(address(almProxy)),  usdtBalanceALMProxy + 10_000_000e6);
+//         assertEq(usdt.balanceOf(address(almProxy)),  10_000_000e6);
+//         assertEq(usdt.balanceOf(address(exchange)),  0);
 //         assertEq(usds.balanceOf(address(otcBuffer)), 0);
 
 //         assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
@@ -442,7 +488,8 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 //         emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
 //         mainnetController.otcSend(exchange, address(usdt), 10_000_000e6);
 
-//         assertEq(usdt.balanceOf(address(almProxy)), usdtBalanceALMProxy);
+//         assertEq(usdt.balanceOf(address(almProxy)),  0);
+//         assertEq(usdt.balanceOf(address(otcBuffer)), 0);
 
 //         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
@@ -486,7 +533,7 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 //         vm.prank(Ethereum.SPARK_PROXY);
 //         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
-//         // Mint tokens
+//
 //         deal(address(usdt), address(almProxy), 10_000_000e6);
 //         deal(address(usds), address(exchange), 8_500_000e18);
 
@@ -552,7 +599,7 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 //         uint256 usdsBalanceALMProxy = usds.balanceOf(address(almProxy));
 //         uint256 usdtBalanceALMProxy = usdt.balanceOf(address(almProxy));
 
-//         // Mint tokens
+//
 //         deal(address(usds), address(almProxy), 10_000_000e18);
 //         deal(address(usdt), address(exchange), 9_500_000e6);
 
@@ -615,7 +662,7 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 //         vm.prank(Ethereum.SPARK_PROXY);
 //         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
-//         // Mint tokens
+//
 //         deal(address(usds), address(almProxy), 10_000_000e18);
 //         deal(address(usdt), address(exchange), 8_500_000e6);
 
@@ -685,7 +732,7 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 //         vm.prank(Ethereum.SPARK_PROXY);
 //         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
-//         // Mint tokens
+//
 //         deal(address(usdt), address(almProxy), 10_000_000e6);
 //         deal(address(usds), address(exchange), 5_500_000e18);
 
@@ -739,7 +786,7 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 //         vm.prank(Ethereum.SPARK_PROXY);
 //         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
-//         // Mint tokens
+//
 //         deal(address(usdt), address(almProxy), 10_000_000e6);
 //         deal(address(usds), address(exchange), 5_500_000e18);
 

@@ -993,10 +993,9 @@ contract MainnetController is AccessControl {
     function otcClaim(address exchange, address asset) external {
         _checkRole(RELAYER);
 
-        require(asset != address(0), "MainnetController/asset-to-claim-zero");
-
         address otcBuffer = otcs[exchange].buffer;
 
+        require(asset     != address(0), "MainnetController/asset-to-claim-zero");
         require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
 
         uint256 amountToClaim = IERC20(asset).balanceOf(otcBuffer);
