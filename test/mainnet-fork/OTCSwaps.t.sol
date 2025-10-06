@@ -527,9 +527,56 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
 }
 
+contract MainnetControlerGetClaimedWithRechargeTests is MainnetControllerOTCSwapBase {
+
+    function test_getClaimedWithRecharge() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
+
+        // Mint tokens
+        deal(address(usdt), address(almProxy), 10_000_000e6);
+        deal(address(usds), address(exchange), 5_500_000e18);
+
+        // Execute OTC swap
+        vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
+        mainnetController.otcSwapSend(
+            exchange,
+            address(usdt),
+            10_000_000e6
+        );
+
+        vm.prank(exchange);
+        usds.transfer(address(otcBuffer), 5_500_000e18);
+
+        // Claim
+        vm.prank(relayer);
+        mainnetController.otcClaim(exchange, address(usds), 5_500_000e18);
+
+        assertEq(mainnetController.getClaimedWithRecharge(exchange), 5_500_000e18);
+
+        skip(1 days);
+        assertEq(mainnetController.getClaimedWithRecharge(exchange), 6_499_999.999999999999993600e18);
+
+        skip(1 days);
+        assertEq(mainnetController.getClaimedWithRecharge(exchange), 7_499_999.999999999999987200e18);
+
+        skip(2 days);
+        assertEq(mainnetController.getClaimedWithRecharge(exchange), 9_499_999.999999999999974400e18);
+
+        skip(1 days);
+        assertEq(mainnetController.getClaimedWithRecharge(exchange), 10_499999.999999999999968000e18);
+
+        skip(10 days);
+        assertEq(mainnetController.getClaimedWithRecharge(exchange), 20_499_999.999999999999904000e18);
+    }
+
+}
+
 contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwapBase {
 
-    function test_isOTcSwapReady_falseWithZeroSlippage() external {
+    function test_isOtcSwapReady_falseWithZeroSlippage() external {
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setMaxSlippage(exchange, 0);
 
