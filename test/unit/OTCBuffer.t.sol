@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { OTCBuffer } from "src/OTCBuffer.sol";
-
 import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+
+import { OTCBuffer } from "src/OTCBuffer.sol";
 
 import { UnitTestBase } from "./UnitTestBase.t.sol";
 
