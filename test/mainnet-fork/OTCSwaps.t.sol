@@ -83,6 +83,21 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
         vm.stopPrank();
     }
+
+    function _assertOtcState(
+        uint256 sent18,
+        uint256 claimed18,
+        uint256 claimedTimestamp
+    )
+        internal view
+    {
+        ( ,, uint256 sent18_, uint256 claimed18_, uint256 claimedTimestamp_ )
+            = mainnetController.otcs(exchange);
+
+        assertEq(sent18_,           sent18);
+        assertEq(claimed18_,        claimed18);
+        assertEq(claimedTimestamp_, claimedTimestamp);
+    }
 }
 
 contract MainnetControllerotcSendFailureTests is MainnetControllerOTCSwapBase {
@@ -322,12 +337,11 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 
         assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
 
-        ( ,, uint256 sent18, uint256 claimed18, uint256 claimedTimestamp )
-            = mainnetController.otcs(exchange);
-
-        assertEq(sent18,           0);
-        assertEq(claimed18,        0);
-        assertEq(claimedTimestamp, 0);
+        _assertOtcState({
+            sent18:           0,
+            claimed18:        0,
+            claimedTimestamp: 0
+        });
 
         // Execute OTC swap
         vm.prank(relayer);
@@ -335,11 +349,11 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcSend(exchange, address(usdt), 10_000_000e6);
 
-        ( ,, sent18, claimed18, claimedTimestamp ) = mainnetController.otcs(exchange);
-
-        assertEq(sent18,           10_000_000e18);
-        assertEq(claimed18,        0);
-        assertEq(claimedTimestamp, 0);
+        _assertOtcState({
+            sent18:           10_000_000e18,
+            claimed18:        0,
+            claimedTimestamp: 0
+        });
 
         assertEq(usdt.balanceOf(address(almProxy)), 0);
         assertEq(usdt.balanceOf(address(exchange)), 10_000_000e6);
@@ -359,12 +373,11 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
 
         assertTrue(mainnetController.isOtcSwapReady(address(exchange)));
 
-        ( ,, uint256 sent18, uint256 claimed18, uint256 claimedTimestamp )
-            = mainnetController.otcs(exchange);
-
-        assertEq(sent18,           0);
-        assertEq(claimed18,        0);
-        assertEq(claimedTimestamp, 0);
+        _assertOtcState({
+            sent18:           0,
+            claimed18:        0,
+            claimedTimestamp: 0
+        });
 
         // Execute OTC swap
         vm.prank(relayer);
@@ -372,11 +385,11 @@ contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCSwapSent(exchange, address(otcBuffer), address(usds), 10_000_000e18, 10_000_000e18);
         mainnetController.otcSend(exchange, address(usds), 10_000_000e18);
 
-        ( ,, sent18, claimed18, claimedTimestamp ) = mainnetController.otcs(exchange);
-
-        assertEq(sent18,           10_000_000e18);
-        assertEq(claimed18,        0);
-        assertEq(claimedTimestamp, 0);
+        _assertOtcState({
+            sent18:           10_000_000e18,
+            claimed18:        0,
+            claimedTimestamp: 0
+        });
 
         assertEq(usds.balanceOf(address(almProxy)), 0);
         assertEq(usds.balanceOf(address(exchange)), 10_000_000e18);
@@ -423,26 +436,28 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         deal(address(usdt), address(octBuffer), 10_000_000e6);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 0);
-        assertEq(usdt.balanceOf(address(octBuffer)),   10_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)),  0);
+        assertEq(usdt.balanceOf(address(octBuffer)), 10_000_000e6);
 
-        ( ,,, uint256 claimed18, uint256 claimedTimestamp ) = mainnetController.otcs(exchange);
-
-        assertEq(claimed18,        0);
-        assertEq(claimedTimestamp, 0);
+        _assertOtcState({
+            sent18:           0,
+            claimed18:        0,
+            claimedTimestamp: 0
+        });
 
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
         emit OTCClaimed(exchange, address(octBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcClaim(exchange, address(usdt));
 
-        assertEq(usdt.balanceOf(address(almProxy)), 10_000_000e6);
-        assertEq(usdt.balanceOf(address(octBuffer)),   0);
+        assertEq(usdt.balanceOf(address(almProxy)),  10_000_000e6);
+        assertEq(usdt.balanceOf(address(octBuffer)), 0);
 
-        ( ,,, claimed18, claimedTimestamp ) = mainnetController.otcs(exchange);
-
-        assertEq(claimed18,        10_000_000e18);
-        assertEq(claimedTimestamp, uint48(block.timestamp));
+        _assertOtcState({
+            sent18:           0,  // Sent step not done, but this shows its not modified
+            claimed18:        10_000_000e18,
+            claimedTimestamp: uint48(block.timestamp)
+        });
     }
 
     function test_otcClaim_usds() external {
@@ -450,12 +465,14 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         deal(address(usds), address(octBuffer), 10_000_000e18);
 
-        assertEq(usds.balanceOf(address(octBuffer)),   10_000_000e18);
+        assertEq(usds.balanceOf(address(almProxy)),  0);
+        assertEq(usds.balanceOf(address(octBuffer)), 10_000_000e18);
 
-        ( ,,, uint256 claimed18, uint256 claimedTimestamp ) = mainnetController.otcs(exchange);
-
-        assertEq(claimed18,        0);
-        assertEq(claimedTimestamp, 0);
+        _assertOtcState({
+            sent18:           0,
+            claimed18:        0,
+            claimedTimestamp: 0
+        });
 
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
@@ -463,12 +480,13 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         mainnetController.otcClaim(exchange, address(usds));
 
         assertEq(usds.balanceOf(address(almProxy)),  10_000_000e18);
-        assertEq(usds.balanceOf(address(octBuffer)),    0);
+        assertEq(usds.balanceOf(address(octBuffer)), 0);
 
-        ( ,,, claimed18, claimedTimestamp ) = mainnetController.otcs(exchange);
-
-        assertEq(claimed18,        10_000_000e18);
-        assertEq(claimedTimestamp, uint48(block.timestamp));
+        _assertOtcState({
+            sent18:           0,  // Sent step not done, but this shows its not modified
+            claimed18:        10_000_000e18,
+            claimedTimestamp: uint48(block.timestamp)
+        });
     }
 
 }
