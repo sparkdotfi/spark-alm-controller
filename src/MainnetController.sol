@@ -615,7 +615,8 @@ contract MainnetController is AccessControl {
 
     function redeemPendlePT(
         address pendleMarket,
-        uint256 pyAmountIn
+        uint256 pyAmountIn,
+        uint256 minAmountOut
     ) external {
         _checkRole(RELAYER);
 
@@ -624,7 +625,8 @@ contract MainnetController is AccessControl {
             rateLimits   : rateLimits,
             rateLimitId  : LIMIT_PENDLE_PT_REDEEM,
             pendleMarket : IPendleMarket(pendleMarket),
-            pyAmountIn   : pyAmountIn
+            pyAmountIn   : pyAmountIn,
+            minAmountOut : minAmountOut
         }));
     }
 

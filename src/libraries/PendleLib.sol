@@ -26,6 +26,7 @@ library PendleLib {
         IPendleMarket pendleMarket;
         bytes32       rateLimitId;
         uint256       pyAmountIn;
+        uint256       minAmountOut;
     }
 
     function createEmptySwapData() internal pure returns (SwapData memory emptySwapData) {}
@@ -47,6 +48,7 @@ library PendleLib {
         );
 
         require(params.pendleMarket.isExpired(), "PendleLib/market-not-expired");
+        require(params.minAmountOut != 0,        "PendleLib/min-amount-out-not-set");
 
         (address sy, address pt, address yt) = params.pendleMarket.readTokens();
 
@@ -57,6 +59,8 @@ library PendleLib {
         uint256 minTokenOut = params.pyAmountIn * 1e18 / ISY(sy).exchangeRate() - 5;
 
         _approve(params.proxy, pt, Ethereum.PENDLE_ROUTER, params.pyAmountIn);
+
+        uint256 tokenOutAmountBefore = IERC20(tokenOut).balanceOf(address(params.proxy));
 
         params.proxy.doCall(
             Ethereum.PENDLE_ROUTER,
@@ -69,6 +73,10 @@ library PendleLib {
                 )
             )
         );
+
+        uint256 tokenOutAmountAfter = IERC20(tokenOut).balanceOf(address(params.proxy));
+
+        require(tokenOutAmountAfter >= tokenOutAmountBefore + params.minAmountOut, "PendleLib/min-amount-not-met");
     }
 
     function _approve(
