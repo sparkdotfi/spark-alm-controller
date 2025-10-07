@@ -588,7 +588,7 @@ contract MainnetControllerE2ETests is MainnetControllerOTCSwapBase {
 
         assertEq(
             mainnetController.getOtcClaimWithRecharge(exchange),
-            9_400_000e18 + 3 hours * (1_000_000e18 / 1 days) - 800  // Rounding
+            9_400_000e18 + 3 hours * (uint256(1_000_000e18) / 1 days)
         );
 
         assertGt(mainnetController.getOtcClaimWithRecharge(exchange), 9_500_000e18);
@@ -694,7 +694,7 @@ contract MainnetControllerE2ETests is MainnetControllerOTCSwapBase {
 
         assertEq(
             mainnetController.getOtcClaimWithRecharge(exchange),
-            9_400_000e18 + 3 hours * (1_000_000e18 / 1 days) - 800  // Rounding
+            9_400_000e18 + 3 hours * (uint256(1_000_000e18) / 1 days)
         );
 
         assertGt(mainnetController.getOtcClaimWithRecharge(exchange), 9_500_000e18);
@@ -708,52 +708,66 @@ contract MainnetControllerE2ETests is MainnetControllerOTCSwapBase {
 
 }
 
-// contract MainnetControlergetOtcClaimedWithRechargeTests is MainnetControllerOTCSwapBase {
+contract MainnetControlerGetOtcClaimedWithRechargeTests is MainnetControllerOTCSwapBase {
 
-//     function test_getOtcClaimedWithRecharge() external {
-//         vm.prank(Ethereum.SPARK_PROXY);
-//         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
+    function test_getOtcClaimedWithRecharge() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
-//
-//         deal(address(usdt), address(almProxy), 10_000_000e6);
-//         deal(address(usds), address(exchange), 5_500_000e18);
+        deal(address(usdt), address(almProxy), 10_000_000e6);
 
-//         // Execute OTC swap
-//         vm.prank(relayer);
-//         vm.expectEmit(address(mainnetController));
-//         emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
-//         mainnetController.otcSend(
-//             exchange,
-//             address(usdt),
-//             10_000_000e6
-//         );
+        // Execute OTC swap
+        vm.prank(relayer);
+        vm.expectEmit(address(mainnetController));
+        emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
+        mainnetController.otcSend(
+            exchange,
+            address(usdt),
+            10_000_000e6
+        );
 
-//         vm.prank(exchange);
-//         usds.transfer(address(otcBuffer), 5_500_000e18);
+        skip(30 minutes);
 
-//         // Claim
-//         vm.prank(relayer);
-//         mainnetController.otcClaim(exchange, address(usds));
+        deal(address(usds), address(exchange), 5_500_000e18);
 
-//         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18);
+        vm.prank(exchange);
+        usds.transfer(address(otcBuffer), 5_500_000e18);
 
-//         skip(1 days);
-//         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 6_499_999.999999999999993600e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
-//         skip(1 days);
-//         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 7_499_999.999999999999987200e18);
+        // Claiming starts the recharge
+        vm.prank(relayer);
+        mainnetController.otcClaim(exchange, address(usds));
 
-//         skip(2 days);
-//         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 9_499_999.999999999999974400e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18);
 
-//         skip(1 days);
-//         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 10_499999.999999999999968000e18);
+        skip(1 days);
 
-//         skip(10 days);
-//         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 20_499_999.999999999999904000e18);
-//     }
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 1 days * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 6_499_999.999999999999993600e18);
 
-// }
+        skip(1 days);
+
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 2 days * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 7_499_999.999999999999987200e18);
+
+        skip(2 days);
+
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 4 days * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 9_499_999.999999999999974400e18);
+
+        skip(1 days);
+
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 5 days * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 10_499999.999999999999968000e18);
+
+        skip(10 days);
+
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 15 days * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 20_499_999.999999999999904000e18);
+    }
+
+}
 
 // contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwapBase {
 
