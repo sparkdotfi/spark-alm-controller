@@ -1022,6 +1022,8 @@ contract MainnetController is AccessControl {
     function getOtcClaimWithRecharge(address exchange) public view returns (uint256) {
         OTC memory otc = otcs[exchange];
 
+        if (otc.sentTimestamp == 0) return 0;
+
         return otc.claimed18 + (block.timestamp - otc.sentTimestamp) * otc.rechargeRate18;
     }
 
