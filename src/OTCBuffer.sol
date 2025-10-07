@@ -14,7 +14,7 @@ contract OTCBuffer is AccessControlEnumerable {
     /**********************************************************************************************/
 
     constructor(address admin) {
-        require(_grantRole(DEFAULT_ADMIN_ROLE, admin), "grant failed");
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     /**********************************************************************************************/
