@@ -82,8 +82,8 @@ struct OTC {
     address buffer;
     uint256 rechargeRate18;
     uint256 sent18;
+    uint256 sentTimestamp;
     uint256 claimed18;
-    uint256 claimedTimestamp;
 }
 
 contract MainnetController is AccessControl {
@@ -977,9 +977,9 @@ contract MainnetController is AccessControl {
         require(otc.buffer != address(0), "MainnetController/otc-buffer-not-set");
         require(isOtcSwapReady(exchange), "MainnetController/last-swap-not-returned");
 
-        otc.sent18           = sent18;
-        otc.claimed18        = 0;
-        otc.claimedTimestamp = 0;
+        otc.sent18        = sent18;
+        otc.sentTimestamp = block.timestamp;
+        otc.claimed18     = 0;
 
         // NOTE: Reentrancy not relevant here because there are no state changes after this call
         proxy.doCall(
@@ -1005,8 +1005,6 @@ contract MainnetController is AccessControl {
 
         otcs[exchange].claimed18 += amountToClaim18;
 
-        otcs[exchange].claimedTimestamp = block.timestamp;
-
         // Transfer assets from the OTC buffer to the proxy
         // NOTE: Reentrancy not possible here because both are known contracts.
         // NOTE: SafeERC20 is not used here; tokens that do not revert will fail silently.
@@ -1024,10 +1022,7 @@ contract MainnetController is AccessControl {
     function getOtcClaimWithRecharge(address exchange) public view returns (uint256) {
         OTC memory otc = otcs[exchange];
 
-        // Used instead of claimed18 to allow recharging from zero if a claim has been made
-        if (otc.claimedTimestamp == 0) return 0;
-
-        return otc.claimed18 + (block.timestamp - otc.claimedTimestamp) * otc.rechargeRate18;
+        return otc.claimed18 + (block.timestamp - otc.sentTimestamp) * otc.rechargeRate18;
     }
 
     function isOtcSwapReady(address exchange) public view returns (bool) {
