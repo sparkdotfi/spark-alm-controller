@@ -87,6 +87,10 @@ interface IWithdrawalQueue {
     function claimWithdrawal(uint256 _requestId) external;
 }
 
+interface IWstETHLike {
+    function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
+}
+
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -308,7 +312,8 @@ contract MainnetController is AccessControl {
 
     function requestWithdrawFromWstETH(uint256 amount) external returns (uint256[] memory) {
         _checkRole(RELAYER);
-        _rateLimited(LIMIT_WSTETH_REQUEST_WITHDRAW, amount);
+        uint256 amountInEth = IWstETHLike(Ethereum.WSTETH).getStETHByWstETH(amount);
+        _rateLimited(LIMIT_WSTETH_REQUEST_WITHDRAW, amountInEth);
 
         proxy.doCall(
             Ethereum.WSTETH,
@@ -1049,4 +1054,3 @@ contract MainnetController is AccessControl {
     }
 
 }
-
