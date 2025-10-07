@@ -32,11 +32,6 @@ interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
 }
 
-interface IEthenaMinterLike {
-    function setDelegatedSigner(address delegateSigner) external;
-    function removeDelegatedSigner(address delegateSigner) external;
-}
-
 interface ICentrifugeToken is IERC7540 {
     function cancelDepositRequest(uint256 requestId, address controller) external;
     function cancelRedeemRequest(uint256 requestId, address controller) external;
@@ -46,15 +41,24 @@ interface ICentrifugeToken is IERC7540 {
         external returns (uint256 shares);
 }
 
-interface IMapleTokenLike is IERC4626 {
-    function requestRedeem(uint256 shares, address receiver) external;
-    function removeShares(uint256 shares, address receiver) external;
+interface IEthenaMinterLike {
+    function setDelegatedSigner(address delegateSigner) external;
+    function removeDelegatedSigner(address delegateSigner) external;
 }
 
 interface IFarmLike {
     function stake(uint256 amount) external;
     function withdraw(uint256 amount) external;
     function getReward() external;
+}
+
+interface IMapleTokenLike is IERC4626 {
+    function requestRedeem(uint256 shares, address receiver) external;
+    function removeShares(uint256 shares, address receiver) external;
+}
+
+interface ISparkVaultLike {
+    function take(uint256 assetAmount) external;
 }
 
 interface ISUSDELike is IERC4626 {
@@ -73,8 +77,14 @@ interface IVaultLike {
     function wipe(uint256 usdsAmount) external;
 }
 
-interface ISparkVaultLike {
-    function take(uint256 assetAmount) external;
+interface IWETH {
+    function withdraw(uint256 amount) external;
+}
+
+interface IWithdrawalQueue {
+    function requestWithdrawalsWstETH(uint256[] calldata _amounts, address _owner)
+        external returns (uint256[] memory requestIds);
+    function claimWithdrawal(uint256 _requestId) external;
 }
 
 contract MainnetController is AccessControl {
@@ -97,29 +107,31 @@ contract MainnetController is AccessControl {
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
 
-    bytes32 public LIMIT_4626_DEPOSIT         = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public LIMIT_4626_WITHDRAW        = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public LIMIT_7540_DEPOSIT         = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public LIMIT_7540_REDEEM          = keccak256("LIMIT_7540_REDEEM");
-    bytes32 public LIMIT_AAVE_DEPOSIT         = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public LIMIT_AAVE_WITHDRAW        = keccak256("LIMIT_AAVE_WITHDRAW");
-    bytes32 public LIMIT_ASSET_TRANSFER       = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public LIMIT_CURVE_DEPOSIT        = keccak256("LIMIT_CURVE_DEPOSIT");
-    bytes32 public LIMIT_CURVE_SWAP           = keccak256("LIMIT_CURVE_SWAP");
-    bytes32 public LIMIT_CURVE_WITHDRAW       = keccak256("LIMIT_CURVE_WITHDRAW");
-    bytes32 public LIMIT_LAYERZERO_TRANSFER   = keccak256("LIMIT_LAYERZERO_TRANSFER");
-    bytes32 public LIMIT_MAPLE_REDEEM         = keccak256("LIMIT_MAPLE_REDEEM");
-    bytes32 public LIMIT_FARM_DEPOSIT         = keccak256("LIMIT_FARM_DEPOSIT");
-    bytes32 public LIMIT_FARM_WITHDRAW        = keccak256("LIMIT_FARM_WITHDRAW");
-    bytes32 public LIMIT_SPARK_VAULT_TAKE     = keccak256("LIMIT_SPARK_VAULT_TAKE");
-    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
-    bytes32 public LIMIT_SUSDE_COOLDOWN       = keccak256("LIMIT_SUSDE_COOLDOWN");
-    bytes32 public LIMIT_USDC_TO_CCTP         = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public LIMIT_USDC_TO_DOMAIN       = keccak256("LIMIT_USDC_TO_DOMAIN");
-    bytes32 public LIMIT_USDE_BURN            = keccak256("LIMIT_USDE_BURN");
-    bytes32 public LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
-    bytes32 public LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
-    bytes32 public LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 public LIMIT_4626_DEPOSIT            = keccak256("LIMIT_4626_DEPOSIT");
+    bytes32 public LIMIT_4626_WITHDRAW           = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public LIMIT_7540_DEPOSIT            = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public LIMIT_7540_REDEEM             = keccak256("LIMIT_7540_REDEEM");
+    bytes32 public LIMIT_AAVE_DEPOSIT            = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 public LIMIT_AAVE_WITHDRAW           = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public LIMIT_ASSET_TRANSFER          = keccak256("LIMIT_ASSET_TRANSFER");
+    bytes32 public LIMIT_CURVE_DEPOSIT           = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 public LIMIT_CURVE_SWAP              = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 public LIMIT_CURVE_WITHDRAW          = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public LIMIT_LAYERZERO_TRANSFER      = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public LIMIT_MAPLE_REDEEM            = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public LIMIT_FARM_DEPOSIT            = keccak256("LIMIT_FARM_DEPOSIT");
+    bytes32 public LIMIT_FARM_WITHDRAW           = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
+    bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
+    bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
+    bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
+    bytes32 public LIMIT_USDS_TO_USDC            = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
+    bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
     uint256 internal CENTRIFUGE_REQUEST_ID = 0;
 
@@ -271,6 +283,78 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             asset,
             abi.encodeCall(IERC20(asset).transfer, (destination, amount))
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** wstETH Integration                                                                     ***/
+    /**********************************************************************************************/
+
+    function depositToWstETH(uint256 amount) external {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_WSTETH_DEPOSIT, amount);
+
+        proxy.doCall(
+            Ethereum.WETH,
+            abi.encodeCall((IWETH(Ethereum.WETH)).withdraw, (amount))
+        );
+
+        proxy.doCallWithValue(
+            Ethereum.WSTETH,
+            "",
+            amount
+        );
+    }
+
+    function requestWithdrawFromWstETH(uint256 amount) external returns (uint256[] memory) {
+        _checkRole(RELAYER);
+        _rateLimited(LIMIT_WSTETH_REQUEST_WITHDRAW, amount);
+
+        proxy.doCall(
+            Ethereum.WSTETH,
+            abi.encodeCall(
+                IERC20(Ethereum.WSTETH).approve,
+                (Ethereum.WSTETH_WITHDRAW_QUEUE, amount)
+            )
+        );
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = amount;
+
+        ( uint256[] memory requestIds ) = abi.decode(
+            proxy.doCall(
+                Ethereum.WSTETH_WITHDRAW_QUEUE,
+                abi.encodeCall(
+                    IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).requestWithdrawalsWstETH,
+                    (amounts, address(proxy))
+                )
+            ),
+            (uint256[])
+        );
+
+        return requestIds;
+    }
+
+    function claimWithdrawalFromWstETH(uint256 requestId) external {
+        _checkRole(RELAYER);
+
+        uint256 initialEthBalance = address(proxy).balance;
+
+        proxy.doCall(
+            Ethereum.WSTETH_WITHDRAW_QUEUE,
+            abi.encodeCall(
+                IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).claimWithdrawal,
+                (requestId)
+            )
+        );
+
+        uint256 ethReceived = address(proxy).balance - initialEthBalance;
+
+        // Wrap into WETH
+        proxy.doCallWithValue(
+            Ethereum.WETH,
+            "",
+            ethReceived
         );
     }
 
