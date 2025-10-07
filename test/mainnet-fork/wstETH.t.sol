@@ -241,7 +241,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
         // NOTE: Requesting for a small withdrawal so that it can be finalized.
         vm.prank(relayer);
-        uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(smallWithdrawWstETH);
+        uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(5e18);
 
         assertEq(wsteth.balanceOf(address(almProxy)), 818.02939539073162522e18);
 
@@ -254,7 +254,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
         WithdrawalRequestStatus[] memory statuses = withdrawQueue.getWithdrawalStatus(requestIds);
 
-        assertApproxEqAbs(statuses[0].amountOfShares, smallWithdrawWstETH, 1);
+        assertApproxEqAbs(statuses[0].amountOfShares, 5e18, 1);
 
         assertEq(statuses[0].amountOfStETH, expectedSmallWithdrawStETH);
         assertEq(statuses[0].owner,         address(almProxy));
