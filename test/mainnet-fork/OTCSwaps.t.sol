@@ -99,9 +99,10 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         assertEq(sentTimestamp_, sentTimestamp);
         assertEq(claimed18_,     claimed18);
     }
+
 }
 
-contract MainnetControllerotcSendFailureTests is MainnetControllerOTCSwapBase {
+contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
 
     function test_otcSend_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -326,7 +327,7 @@ contract MainnetControllerotcSendFailureTests is MainnetControllerOTCSwapBase {
 
 }
 
-contract MainnetControllerotcSendSuccessTests is MainnetControllerOTCSwapBase {
+contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
 
     function test_otcSend_usdt() external {
         deal(address(usdt), address(almProxy), 10_000_000e6);
@@ -908,7 +909,7 @@ contract MainnetControlerGetOtcClaimedWithRechargeTests is MainnetControllerOTCS
 
 }
 
-contract MainnetControllerIsOTCSwapReadySuccessTests is MainnetControllerOTCSwapBase {
+contract MainnetControllerIsOtcSwapReadySuccessTests is MainnetControllerOTCSwapBase {
 
     function test_isOtcSwapReady_falseWithZeroSlippage() external {
         assertFalse(mainnetController.isOtcSwapReady(makeAddr("fake-exchange")));

@@ -66,7 +66,7 @@ contract FullStagingDeploy is Script {
 
     address constant AUSDS  = 0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259;
     address constant AUSDC  = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
-    address constant SPUSDC = Ethereum.USDC_ATOKEN;  // SparkLend spUSDC
+    address constant SPUSDC = Ethereum.USDC_SPTOKEN;  // SparkLend spUSDC
 
     address constant FLUID_SUSDS_VAULT      = 0x2BBE31d63E6813E3AC858C04dae43FB2a72B0D11;
     address constant FLUID_SUSDS_VAULT_BASE = 0xf62e339f21d8018940f188F6987Bcdf02A849619;
