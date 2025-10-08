@@ -23,6 +23,7 @@ import { AaveLib }                        from "./libraries/AaveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -102,6 +103,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         uint256 claimed18;
     }
 
+    struct UniswapV4Limits {
+        int24 tickLowerMin;
+        int24 tickUpperMax;
+    }
+
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
@@ -135,6 +141,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         uint256         amountSent18
     );
     event RelayerRemoved(address indexed relayer);
+    event UniswapV4TickLimitsSet(bytes32 indexed poolId, int24 tickLowerMin, int24 tickUpperMax);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -159,6 +166,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
     bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
@@ -196,6 +204,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     mapping(address exchange => OTC otcData) public otcs;
 
     mapping(address exchange => mapping(address asset => bool)) public otcWhitelistedAssets;
+
+    // Uniswap V4 tick ranges
+    mapping(bytes32 poolId => UniswapV4Limits uniswapV4Limits) public uniswapV4Limits;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -295,6 +306,25 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         emit OTCWhitelistedAssetSet(exchange, asset, isWhitelisted);
         otcWhitelistedAssets[exchange][asset] = isWhitelisted;
+    }
+
+    function setUniswapV4TickLimits(
+        bytes32 poolId,
+        int24   tickLowerMin,
+        int24   tickUpperMax
+    )
+        external
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(tickLowerMin < tickUpperMax, "Invalid ticks");
+
+        uniswapV4Limits[poolId] = UniswapV4Limits({
+            tickLowerMin : tickLowerMin,
+            tickUpperMax : tickUpperMax
+        });
+
+        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax);
     }
 
     /**********************************************************************************************/
@@ -609,6 +639,47 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             minWithdrawAmounts : minWithdrawAmounts,
             maxSlippage        : maxSlippages[pool]
         }));
+    }
+
+    /**********************************************************************************************/
+    /*** Uniswap V4 functions                                                                   ***/
+    /**********************************************************************************************/
+
+    function mintPositionUniswapV4(
+        bytes32 poolId,
+        int24   tickUpper,
+        int24   tickLower,
+        uint128 liquidity,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Limits memory limits = uniswapV4Limits[poolId];
+
+        require(tickLower >= limits.tickLowerMin, "tickLower too low");
+        require(tickUpper <= limits.tickUpperMax, "tickUpper too high");
+
+        // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
+        //       160 bits of the id. It is still intractable for there to be a collision (on
+        //       purpose or accidentally).
+        UniswapV4Lib.mintPosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tickLower  :   tickLower,
+            tickUpper  :   tickUpper,
+            liquidity  :   liquidity,
+            amount0Max :   amount0Max,
+            amount1Max :   amount1Max
+        });
     }
 
     /**********************************************************************************************/
