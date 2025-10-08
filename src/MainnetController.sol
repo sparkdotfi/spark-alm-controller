@@ -317,7 +317,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(tickLowerMin < tickUpperMax, "Invalid ticks");
+        require(tickLowerMin <= tickUpperMax, "Invalid ticks");
 
         uniswapV4Limits[poolId] = UniswapV4Limits({
             tickLowerMin : tickLowerMin,
@@ -679,6 +679,33 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             liquidity  :   liquidity,
             amount0Max :   amount0Max,
             amount1Max :   amount1Max
+        });
+    }
+
+    function increaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.increasePosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tokenId           : tokenId,
+            liquidityIncrease : liquidityIncrease,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max
         });
     }
 
