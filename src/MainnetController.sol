@@ -362,30 +362,30 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function requestWithdrawFromWstETH(uint256 amount) external returns (uint256[] memory) {
+    function requestWithdrawFromWstETH(uint256 amountToRedeem) external returns (uint256[] memory) {
         _checkRole(RELAYER);
         _rateLimited(
             LIMIT_WSTETH_REQUEST_WITHDRAW,
-            IWstETHLike(Ethereum.WSTETH).getStETHByWstETH(amount)
+            IWstETHLike(Ethereum.WSTETH).getStETHByWstETH(amountToRedeem)
         );
 
         proxy.doCall(
             Ethereum.WSTETH,
             abi.encodeCall(
                 IERC20(Ethereum.WSTETH).approve,
-                (Ethereum.WSTETH_WITHDRAW_QUEUE, amount)
+                (Ethereum.WSTETH_WITHDRAW_QUEUE, amountToRedeem)
             )
         );
 
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = amount;
+        uint256[] memory amountsToRedeem = new uint256[](1);
+        amountsToRedeem[0] = amountToRedeem;
 
         ( uint256[] memory requestIds ) = abi.decode(
             proxy.doCall(
                 Ethereum.WSTETH_WITHDRAW_QUEUE,
                 abi.encodeCall(
                     IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).requestWithdrawalsWstETH,
-                    (amounts, address(proxy))
+                    (amountsToRedeem, address(proxy))
                 )
             ),
             (uint256[])
