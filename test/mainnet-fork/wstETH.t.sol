@@ -117,8 +117,10 @@ contract MainnetControllerRequestWithdrawFromWstETHFailureTests is MainnetContro
     function test_requestWithdrawFromWstETH_rateLimitsBoundary() external {
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
 
+        uint256 stEthLimit = wsteth.getStETHByWstETH(500e18);
+
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(requestWithdrawKey, 500e18, uint256(500e18) / 1 days);
+        rateLimits.setRateLimitData(requestWithdrawKey, stEthLimit, stEthLimit / 1 days);
 
         deal(Ethereum.WSTETH, address(almProxy), 500e18);
 
@@ -160,12 +162,19 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
 
         assertApproxEqAbs(wsteth.getStETHByWstETH(wsteth.balanceOf(address(almProxy))), 1_000e18, 2);
 
+        uint256 expectedEthWithdrawal = wsteth.getStETHByWstETH(500e18);
+
+        assertEq(expectedEthWithdrawal, 607.511715620589663161e18);
+
         vm.prank(relayer);
         uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(500e18);
 
         assertEq(wsteth.balanceOf(address(almProxy)), 323.029395390731625220e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(requestWithdrawKey), 500e18);
+        assertEq(
+            rateLimits.getCurrentRateLimit(requestWithdrawKey),
+            1_000e18 - expectedEthWithdrawal
+        );
 
         assertEq(requestIds.length, 1);
 
@@ -173,9 +182,7 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
 
         assertApproxEqAbs(statuses[0].amountOfShares, 500e18, 1);
 
-        assertEq(wsteth.getStETHByWstETH(500e18), statuses[0].amountOfStETH);
-
-        assertEq(statuses[0].amountOfStETH, 607.511715620589663161e18);
+        assertEq(statuses[0].amountOfStETH, expectedEthWithdrawal);
         assertEq(statuses[0].owner,         address(almProxy));
         assertEq(statuses[0].timestamp,     block.timestamp);
         assertEq(statuses[0].isFinalized,   false);
@@ -228,13 +235,20 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
         assertApproxEqAbs(wsteth.getStETHByWstETH(wsteth.balanceOf(address(almProxy))), 1_000e18, 2);
 
+        uint256 expectedEthWithdrawal = wsteth.getStETHByWstETH(5e18);
+
+        assertEq(expectedEthWithdrawal, 6.075117156205896631e18);
+
         // NOTE: Requesting for a small withdrawal so that it can be finalized.
         vm.prank(relayer);
         uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(5e18);
 
         assertEq(wsteth.balanceOf(address(almProxy)), 818.02939539073162522e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(requestWithdrawKey), 995e18);
+        assertEq(
+            rateLimits.getCurrentRateLimit(requestWithdrawKey),
+            1_000e18 - expectedEthWithdrawal
+        );
 
         assertEq(requestIds.length, 1);
 
@@ -242,14 +256,12 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
         assertApproxEqAbs(statuses[0].amountOfShares, 5e18, 1);
 
-        assertEq(wsteth.getStETHByWstETH(5e18), statuses[0].amountOfStETH);
-
-        assertEq(statuses[0].amountOfStETH, 6.075117156205896631e18);
+        assertEq(statuses[0].amountOfStETH, expectedEthWithdrawal);
         assertEq(statuses[0].owner,         address(almProxy));
         assertEq(statuses[0].timestamp,     block.timestamp);
         assertEq(statuses[0].isFinalized,   false);
         assertEq(statuses[0].isClaimed,     false);
-        
+
         vm.prank(finalizer);
         withdrawQueue.finalize(requestIds[0], 300e27);
 
@@ -266,7 +278,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
         assertEq(statuses[0].isFinalized, true);
         assertEq(statuses[0].isClaimed,   true);
 
-        assertEq(weth.balanceOf(address(almProxy)),   6.075117156205896631e18);
+        assertEq(weth.balanceOf(address(almProxy)),   expectedEthWithdrawal);
         assertEq(wsteth.balanceOf(address(almProxy)), 818.02939539073162522e18);
 
         assertApproxEqAbs(
