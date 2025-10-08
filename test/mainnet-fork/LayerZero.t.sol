@@ -315,7 +315,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         vm.stopPrank();

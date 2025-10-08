@@ -158,7 +158,7 @@ contract UpgradeForeignController is Script {
             mintRecipient : bytes32(uint256(uint160(mainnetAlmProxy)))
         });
 
-        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, true);
 
         vm.stopBroadcast();
 
