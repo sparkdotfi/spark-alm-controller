@@ -18,6 +18,7 @@ remappings = [
     '@layerzerolabs/lz-evm-messagelib-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib/',
     'solidity-bytes-utils/=lib/solidity-bytes-utils/',
     'forge-std/=lib/forge-std/src/',
+    '@uniswap/v4-core/=lib/uniswap-v4-core/'
 ]
 
 [fuzz]

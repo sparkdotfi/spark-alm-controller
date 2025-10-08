@@ -24,6 +24,7 @@ import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -129,6 +130,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bool            isWhitelisted
     );
     event RelayerRemoved(address indexed relayer);
+    event UniswapV4TickLimitsSet(
+        bytes32 indexed poolId,
+        int24           tickLowerMin,
+        int24           tickUpperMax,
+        uint24          maxTickSpacing
+    );
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -153,6 +160,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
@@ -193,6 +202,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     // ERC4626 exchange rate thresholds (1e36 precision)
     mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
+
+    // Uniswap V4 tick ranges
+    mapping(bytes32 poolId => UniswapV4Lib.TickLimits tickLimits) public uniswapV4TickLimits;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -305,6 +317,31 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             token,
             maxExchangeRates[token] = ERC4626Lib.getExchangeRate(shares, maxExpectedAssets)
         );
+    }
+
+    function setUniswapV4TickLimits(
+        bytes32 poolId,
+        int24   tickLowerMin,
+        int24   tickUpperMax,
+        uint24  maxTickSpacing
+    )
+        external nonReentrant
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(
+            ((tickLowerMin == 0) && (tickUpperMax == 0) && (maxTickSpacing == 0)) ||
+            ((maxTickSpacing > 0) && (tickLowerMin < tickUpperMax)),
+            "MC/invalid-ticks"
+        );
+
+        uniswapV4TickLimits[poolId] = UniswapV4Lib.TickLimits({
+            tickLowerMin : tickLowerMin,
+            tickUpperMax : tickUpperMax,
+            maxTickSpacing : maxTickSpacing
+        });
+
+        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax, maxTickSpacing);
     }
 
     /**********************************************************************************************/
@@ -599,6 +636,79 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     /**********************************************************************************************/
+    /*** Uniswap V4 functions                                                                   ***/
+    /**********************************************************************************************/
+
+    function mintPositionUniswapV4(
+        bytes32 poolId,
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.mintPosition({
+            proxy      : address(proxy),
+            rateLimits : address(rateLimits),
+            poolId     : poolId,
+            tickLower  : tickLower,
+            tickUpper  : tickUpper,
+            liquidity  : liquidity,
+            amount0Max : amount0Max,
+            amount1Max : amount1Max,
+            tickLimits : uniswapV4TickLimits
+        });
+    }
+
+    function increaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.increasePosition({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            poolId            : poolId,
+            tokenId           : tokenId,
+            liquidityIncrease : liquidityIncrease,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max
+        });
+    }
+
+    function decreaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint256 amount0Min,
+        uint256 amount1Min
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.decreasePosition({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            poolId            : poolId,
+            tokenId           : tokenId,
+            liquidityDecrease : liquidityDecrease,
+            amount0Min        : amount0Min,
+            amount1Min        : amount1Min
+        });
+    }
+
+    /**********************************************************************************************/
     /*** Relayer Ethena functions                                                               ***/
     /**********************************************************************************************/
 
@@ -813,7 +923,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         });
 
         // Query the min amount received on the destination chain and set it.
-        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
