@@ -9,8 +9,9 @@ import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
 import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
-import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
-import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
+import { IERC20 }         from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC20Metadata } from "openzeppelin-contracts/contracts/interfaces/IERC20Metadata.sol";
+import { IERC4626 }       from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
@@ -87,6 +88,18 @@ interface IWithdrawalQueue {
     function claimWithdrawal(uint256 _requestId) external;
 }
 
+interface IWstETHLike {
+    function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
+}
+
+struct OTC {
+    address buffer;
+    uint256 rechargeRate18;
+    uint256 sent18;
+    uint256 sentTimestamp;
+    uint256 claimed18;
+}
+
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
@@ -98,6 +111,26 @@ contract MainnetController is AccessControl {
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
+    event OTCBufferSet(
+        address indexed exchange,
+        address indexed oldOTCBuffer,
+        address indexed newOTCBuffer
+    );
+    event OTCClaimed(
+        address indexed exchange,
+        address indexed buffer,
+        address indexed assetClaimed,
+        uint256 amountClaimed,
+        uint256 amountClaimed18
+    );
+    event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
+    event OTCSwapSent(
+        address indexed exchange,
+        address indexed buffer,
+        address indexed tokenSent,
+        uint256 amountSent,
+        uint256 amountSent18
+    );
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
@@ -117,10 +150,11 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_CURVE_DEPOSIT           = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public LIMIT_CURVE_SWAP              = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public LIMIT_CURVE_WITHDRAW          = keccak256("LIMIT_CURVE_WITHDRAW");
-    bytes32 public LIMIT_LAYERZERO_TRANSFER      = keccak256("LIMIT_LAYERZERO_TRANSFER");
-    bytes32 public LIMIT_MAPLE_REDEEM            = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public LIMIT_FARM_DEPOSIT            = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW           = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 public LIMIT_LAYERZERO_TRANSFER      = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public LIMIT_MAPLE_REDEEM            = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
@@ -158,6 +192,9 @@ contract MainnetController is AccessControl {
 
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
+
+    // OTC swap (also uses maxSlippages)
+    mapping(address exchange => OTC otcData) public otcs;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -219,6 +256,25 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
+    }
+
+    function setOTCBuffer(address exchange, address otcBuffer) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(exchange != address(0), "MainnetController/exchange-zero-address");
+        require(exchange != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
+
+        OTC storage otc = otcs[exchange];
+
+        emit OTCBufferSet(exchange, otc.buffer, otcBuffer);
+        otc.buffer = otcBuffer;
+    }
+
+    function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        OTC storage otc = otcs[exchange];
+        emit OTCRechargeRateSet(exchange, otc.rechargeRate18, rechargeRate18);
+        otc.rechargeRate18 = rechargeRate18;
     }
 
     /**********************************************************************************************/
@@ -306,27 +362,30 @@ contract MainnetController is AccessControl {
         );
     }
 
-    function requestWithdrawFromWstETH(uint256 amount) external returns (uint256[] memory) {
+    function requestWithdrawFromWstETH(uint256 amountToRedeem) external returns (uint256[] memory) {
         _checkRole(RELAYER);
-        _rateLimited(LIMIT_WSTETH_REQUEST_WITHDRAW, amount);
+        _rateLimited(
+            LIMIT_WSTETH_REQUEST_WITHDRAW,
+            IWstETHLike(Ethereum.WSTETH).getStETHByWstETH(amountToRedeem)
+        );
 
         proxy.doCall(
             Ethereum.WSTETH,
             abi.encodeCall(
                 IERC20(Ethereum.WSTETH).approve,
-                (Ethereum.WSTETH_WITHDRAW_QUEUE, amount)
+                (Ethereum.WSTETH_WITHDRAW_QUEUE, amountToRedeem)
             )
         );
 
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = amount;
+        uint256[] memory amountsToRedeem = new uint256[](1);
+        amountsToRedeem[0] = amountToRedeem;
 
         ( uint256[] memory requestIds ) = abi.decode(
             proxy.doCall(
                 Ethereum.WSTETH_WITHDRAW_QUEUE,
                 abi.encodeCall(
                     IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).requestWithdrawalsWstETH,
-                    (amounts, address(proxy))
+                    (amountsToRedeem, address(proxy))
                 )
             ),
             (uint256[])
@@ -990,6 +1049,85 @@ contract MainnetController is AccessControl {
     }
 
     /**********************************************************************************************/
+    /*** OTC swap functions                                                                     ***/
+    /**********************************************************************************************/
+
+    function otcSend(address exchange, address assetToSend, uint256 amount) external {
+        _checkRole(RELAYER);
+
+        require(assetToSend != address(0), "MainnetController/asset-to-send-zero");
+        require(amount > 0,                "MainnetController/amount-to-send-zero");
+
+        uint256 sent18 = amount * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
+
+        _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
+
+        OTC storage otc = otcs[exchange];
+
+        // Just to check that OTC buffer exists
+        require(otc.buffer != address(0), "MainnetController/otc-buffer-not-set");
+        require(isOtcSwapReady(exchange), "MainnetController/last-swap-not-returned");
+
+        otc.sent18        = sent18;
+        otc.sentTimestamp = block.timestamp;
+        otc.claimed18     = 0;
+
+        // NOTE: Reentrancy not relevant here because there are no state changes after this call
+        proxy.doCall(
+            assetToSend,
+            abi.encodeCall(IERC20(assetToSend).transfer, (exchange, amount))
+        );
+
+        emit OTCSwapSent(exchange, otc.buffer, assetToSend, amount, sent18);
+    }
+
+    function otcClaim(address exchange, address assetToClaim) external {
+        _checkRole(RELAYER);
+
+        address otcBuffer = otcs[exchange].buffer;
+
+        require(assetToClaim != address(0), "MainnetController/asset-to-claim-zero");
+        require(otcBuffer    != address(0), "MainnetController/otc-buffer-not-set");
+
+        uint256 amountToClaim = IERC20(assetToClaim).balanceOf(otcBuffer);
+
+        // NOTE: This will lose precision for tokens with >18 decimals.
+        uint256 amountToClaim18
+            = amountToClaim * 1e18 / 10 ** IERC20Metadata(assetToClaim).decimals();
+
+        otcs[exchange].claimed18 += amountToClaim18;
+
+        // Transfer assets from the OTC buffer to the proxy
+        // NOTE: Reentrancy not possible here because both are known contracts.
+        // NOTE: SafeERC20 is not used here; tokens that do not revert will fail silently.
+        proxy.doCall(
+            assetToClaim,
+            abi.encodeCall(
+                IERC20(assetToClaim).transferFrom,
+                (otcBuffer, address(proxy), amountToClaim)
+            )
+        );
+
+        emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
+    }
+
+    function getOtcClaimWithRecharge(address exchange) public view returns (uint256) {
+        OTC memory otc = otcs[exchange];
+
+        if (otc.sentTimestamp == 0) return 0;
+
+        return otc.claimed18 + (block.timestamp - otc.sentTimestamp) * otc.rechargeRate18;
+    }
+
+    function isOtcSwapReady(address exchange) public view returns (bool) {
+        // If maxSlippages is not set, the exchange is not onboarded.
+        if (maxSlippages[exchange] == 0) return false;
+
+        return getOtcClaimWithRecharge(exchange)
+            >= otcs[exchange].sent18 * maxSlippages[exchange] / 1e18;
+    }
+
+    /**********************************************************************************************/
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
 
@@ -1049,4 +1187,3 @@ contract MainnetController is AccessControl {
     }
 
 }
-
