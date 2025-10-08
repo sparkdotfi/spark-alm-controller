@@ -1087,7 +1087,7 @@ contract MainnetController is AccessControl {
         address otcBuffer = otcs[exchange].buffer;
 
         require(assetToClaim != address(0), "MainnetController/asset-to-claim-zero");
-        require(otcBuffer != address(0), "MainnetController/otc-buffer-not-set");
+        require(otcBuffer    != address(0), "MainnetController/otc-buffer-not-set");
 
         uint256 amountToClaim = IERC20(assetToClaim).balanceOf(otcBuffer);
 
