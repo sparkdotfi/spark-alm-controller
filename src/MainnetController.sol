@@ -24,6 +24,7 @@ import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -95,6 +96,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         uint256 claimed18;
     }
 
+    struct UniswapV4Limits {
+        int24 tickLowerMin;
+        int24 tickUpperMax;
+    }
+
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
@@ -129,6 +135,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bool            isWhitelisted
     );
     event RelayerRemoved(address indexed relayer);
+    event UniswapV4TickLimitsSet(bytes32 indexed poolId, int24 tickLowerMin, int24 tickUpperMax);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -153,6 +160,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
+    bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
     bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
@@ -193,6 +202,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     // ERC4626 exchange rate thresholds (1e36 precision)
     mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
+
+    // Uniswap V4 tick ranges
+    mapping(bytes32 poolId => UniswapV4Limits uniswapV4Limits) public uniswapV4Limits;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -305,6 +317,25 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             token,
             maxExchangeRates[token] = ERC4626Lib.getExchangeRate(shares, maxExpectedAssets)
         );
+    }
+
+    function setUniswapV4TickLimits(
+        bytes32 poolId,
+        int24   tickLowerMin,
+        int24   tickUpperMax
+    )
+        external nonReentrant
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(tickLowerMin <= tickUpperMax, "MC/invalid-ticks");
+
+        uniswapV4Limits[poolId] = UniswapV4Limits({
+            tickLowerMin : tickLowerMin,
+            tickUpperMax : tickUpperMax
+        });
+
+        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax);
     }
 
     /**********************************************************************************************/
@@ -599,6 +630,127 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     /**********************************************************************************************/
+    /*** Uniswap V4 functions                                                                   ***/
+    /**********************************************************************************************/
+
+    function mintPositionUniswapV4(
+        bytes32 poolId,
+        int24   tickUpper,
+        int24   tickLower,
+        uint128 liquidity,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Limits memory limits = uniswapV4Limits[poolId];
+
+        require(tickLower >= limits.tickLowerMin, "MC/tickLower-too-low");
+        require(tickUpper <= limits.tickUpperMax, "MC/tickUpper-too-high");
+
+        // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
+        //       160 bits of the id. It is possible, buit highly unliekly there us a collision.
+        UniswapV4Lib.mintPosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tickLower  : tickLower,
+            tickUpper  : tickUpper,
+            liquidity  : liquidity,
+            amount0Max : amount0Max,
+            amount1Max : amount1Max
+        });
+    }
+
+    function increaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
+        //       160 bits of the id. It is possible, buit highly unliekly there us a collision.
+        UniswapV4Lib.increasePosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tokenId           : tokenId,
+            liquidityIncrease : liquidityIncrease,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max
+        });
+    }
+
+    function burnPositionUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint256 amount0Min,
+        uint256 amount1Min
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.burnPosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tokenId    : tokenId,
+            amount0Min : amount0Min,
+            amount1Min : amount1Min
+        });
+    }
+
+    function decreaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint256 amount0Min,
+        uint256 amount1Min
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.decreasePosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tokenId           : tokenId,
+            liquidityDecrease : liquidityDecrease,
+            amount0Min        : amount0Min,
+            amount1Min        : amount1Min
+        });
+    }
+
+    /**********************************************************************************************/
     /*** Relayer Ethena functions                                                               ***/
     /**********************************************************************************************/
 
@@ -813,7 +965,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         });
 
         // Query the min amount received on the destination chain and set it.
-        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
