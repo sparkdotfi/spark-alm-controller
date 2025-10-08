@@ -58,7 +58,8 @@ library ForeignControllerInit {
         ConfigAddressParams  memory configAddresses,
         CheckAddressParams   memory checkAddresses,
         MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        LayerZeroRecipient[] memory layerZeroRecipients,
+        bool                 checkPsm
     )
         internal
     {
@@ -69,7 +70,7 @@ library ForeignControllerInit {
 
         // Step 2: Initialize the controller
 
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, checkPsm);
     }
 
     function upgradeController(
@@ -77,11 +78,12 @@ library ForeignControllerInit {
         ConfigAddressParams  memory configAddresses,
         CheckAddressParams   memory checkAddresses,
         MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        LayerZeroRecipient[] memory layerZeroRecipients,
+        bool                 checkPsm
     )
         internal
     {
-        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        _initController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, checkPsm);
 
         IALMProxy   almProxy   = IALMProxy(controllerInst.almProxy);
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
@@ -104,7 +106,8 @@ library ForeignControllerInit {
         ConfigAddressParams  memory configAddresses,
         CheckAddressParams   memory checkAddresses,
         MintRecipient[]      memory mintRecipients,
-        LayerZeroRecipient[] memory layerZeroRecipients
+        LayerZeroRecipient[] memory layerZeroRecipients,
+        bool                 checkPsm
     )
         private
     {
@@ -125,14 +128,16 @@ library ForeignControllerInit {
 
         // Step 2: Perform PSM sanity checks
 
-        IPSM3Like psm = IPSM3Like(checkAddresses.psm);
+        if (checkPsm) {
+            IPSM3Like psm = IPSM3Like(checkAddresses.psm);
 
-        require(psm.totalAssets() >= 1e18, "ForeignControllerInit/psm-totalAssets-not-seeded");
-        require(psm.totalShares() >= 1e18, "ForeignControllerInit/psm-totalShares-not-seeded");
+            require(psm.totalAssets() >= 1e18, "ForeignControllerInit/psm-totalAssets-not-seeded");
+            require(psm.totalShares() >= 1e18, "ForeignControllerInit/psm-totalShares-not-seeded");
 
-        require(psm.usdc()  == checkAddresses.usdc,  "ForeignControllerInit/psm-incorrect-usdc");
-        require(psm.usds()  == checkAddresses.usds,  "ForeignControllerInit/psm-incorrect-usds");
-        require(psm.susds() == checkAddresses.susds, "ForeignControllerInit/psm-incorrect-susds");
+            require(psm.usdc()  == checkAddresses.usdc,  "ForeignControllerInit/psm-incorrect-usdc");
+            require(psm.usds()  == checkAddresses.usds,  "ForeignControllerInit/psm-incorrect-usds");
+            require(psm.susds() == checkAddresses.susds, "ForeignControllerInit/psm-incorrect-susds");
+        }
 
         // Step 3: Configure ACL permissions controller, almProxy, and rateLimits
 

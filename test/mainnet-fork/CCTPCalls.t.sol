@@ -264,7 +264,8 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         uint256 usdcMaxAmount = 5_000_000e6;

@@ -151,7 +151,8 @@ contract ForkTestBase is Test {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         uint256 usdcMaxAmount = 5_000_000e6;

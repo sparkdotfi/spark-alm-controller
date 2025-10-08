@@ -18,11 +18,12 @@ contract LibraryWrapper {
         Init.ConfigAddressParams  memory configAddresses,
         Init.CheckAddressParams   memory checkAddresses,
         Init.MintRecipient[]      memory mintRecipients,
-        Init.LayerZeroRecipient[] memory layerZeroRecipients
+        Init.LayerZeroRecipient[] memory layerZeroRecipients,
+        bool                      checkPsm
     )
         external
     {
-        Init.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        Init.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, checkPsm);
     }
 
     function upgradeController(
@@ -30,11 +31,12 @@ contract LibraryWrapper {
         Init.ConfigAddressParams  memory configAddresses,
         Init.CheckAddressParams   memory checkAddresses,
         Init.MintRecipient[]      memory mintRecipients,
-        Init.LayerZeroRecipient[] memory layerZeroRecipients
+        Init.LayerZeroRecipient[] memory layerZeroRecipients,
+        bool                      checkPsm
     )
         external
     {
-        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients);
+        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, checkPsm);
     }
 
 }
@@ -159,7 +161,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
     }
 
@@ -173,7 +176,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
     }
 
@@ -350,7 +354,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
     }
 
@@ -369,7 +374,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
     }
 
@@ -388,7 +394,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
     }
 
@@ -403,7 +410,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         vm.expectRevert(expectedError);
@@ -412,7 +420,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
     }
 
@@ -424,7 +433,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         vm.revertTo(id);
@@ -436,7 +446,8 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
     }
 
@@ -503,7 +514,8 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         assertEq(foreignController.hasRole(foreignController.FREEZER(), freezer), true);
@@ -606,7 +618,8 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         assertEq(newController.hasRole(newController.FREEZER(), freezer), true);

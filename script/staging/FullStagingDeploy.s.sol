@@ -351,7 +351,8 @@ contract FullStagingDeploy is Script {
             configAddresses,
             checkAddresses,
             mintRecipients,
-            layerZeroRecipients
+            layerZeroRecipients,
+            true
         );
 
         vm.stopBroadcast();
