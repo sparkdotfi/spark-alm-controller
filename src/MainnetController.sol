@@ -167,6 +167,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
+    bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
     bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
@@ -707,6 +708,58 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             liquidityIncrease : liquidityIncrease,
             amount0Max        : amount0Max,
             amount1Max        : amount1Max
+        });
+    }
+
+    function burnPositionUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint256 amount0Min,
+        uint256 amount1Min
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.burnPosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tokenId    : tokenId,
+            amount0Min : amount0Min,
+            amount1Min : amount1Min
+        });
+    }
+
+    function decreaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint256 amount0Min,
+        uint256 amount1Min
+    )
+        external
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.decreasePosition({
+            commonParams: UniswapV4Lib.CommonParams({
+                proxy       : address(proxy),
+                rateLimits  : address(rateLimits),
+                rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
+                // TODO: Use central state contract
+                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
+                poolId      : poolId
+            }),
+            tokenId           : tokenId,
+            liquidityDecrease : liquidityDecrease,
+            amount0Min        : amount0Min,
+            amount1Min        : amount1Min
         });
     }
 

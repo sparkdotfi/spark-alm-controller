@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { console } from "../../lib/forge-std/src/console.sol";
+
 import { FullMath } from "../../lib/uniswap-v4-core/src/libraries/FullMath.sol";
 import { TickMath } from "../../lib/uniswap-v4-core/src/libraries/TickMath.sol";
 
@@ -99,7 +101,10 @@ library UniswapV4Lib {
         uint256               amount1Max
     ) external returns (uint256 rateLimitDecrease) {
         // The proxy must be the position owner to retain ownership of the increased liquidity.
-        _requireTokenIsOwnedByProxy(tokenId, commonParams.proxy);
+        require(
+            IPositionManagerLike(_POSITION_MANAGER).ownerOf(tokenId) == commonParams.proxy,
+            "UniswapV4Lib/non-proxy-position"
+        );
 
         (
             PoolKey      memory poolKey,
@@ -145,9 +150,127 @@ library UniswapV4Lib {
         });
     }
 
+    function burnPosition(
+        CommonParams calldata commonParams,
+        uint256               tokenId,
+        uint256               amount0Min,
+        uint256               amount1Min
+    ) external returns (uint256 rateLimitDecrease) {
+        (
+            PoolKey      memory poolKey,
+            PositionInfo        positionInfo
+        ) = _getPositionInfo(commonParams.poolId, tokenId);
+
+        uint128 liquidity = IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(tokenId);
+
+        _validateLiquidityDecrease({
+            commonParams      : commonParams,
+            tickLower         : positionInfo.tickLower(),
+            tickUpper         : positionInfo.tickUpper(),
+            liquidityDecrease : liquidity,
+            amount0Min        : amount0Min,
+            amount1Min        : amount1Min
+        });
+
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.BURN_POSITION),
+            uint8(Actions.TAKE_PAIR)
+        );
+
+        bytes[] memory params = new bytes[](2);
+
+        params[0] = abi.encode(
+            tokenId,     // Position to burn
+            amount0Min,  // Minimum token0 to receive
+            amount1Min,  // Minimum token1 to receive
+            ""           // No hook data needed
+        );
+
+        params[1] = abi.encode(
+            poolKey.currency0,  // First token
+            poolKey.currency1,  // Second token
+            commonParams.proxy  // Who receives the tokens
+        );
+
+        return _decreaseLiquidity({
+            commonParams : commonParams,
+            token0       : Currency.unwrap(poolKey.currency0),
+            token1       : Currency.unwrap(poolKey.currency1),
+            actions      : actions,
+            params       : params
+        });
+    }
+
+    function decreasePosition(
+        CommonParams calldata commonParams,
+        uint256               tokenId,
+        uint128               liquidityDecrease,
+        uint256               amount0Min,
+        uint256               amount1Min
+    ) external returns (uint256 rateLimitDecrease) {
+        (
+            PoolKey      memory poolKey,
+            PositionInfo        positionInfo
+        ) = _getPositionInfo(commonParams.poolId, tokenId);
+
+        _validateLiquidityDecrease({
+            commonParams      : commonParams,
+            tickLower         : positionInfo.tickLower(),
+            tickUpper         : positionInfo.tickUpper(),
+            liquidityDecrease : liquidityDecrease,
+            amount0Min        : amount0Min,
+            amount1Min        : amount1Min
+        });
+
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.DECREASE_LIQUIDITY),
+            uint8(Actions.TAKE_PAIR)
+        );
+
+        bytes[] memory params = new bytes[](2);
+
+        params[0] = abi.encode(
+            tokenId,            // Position to decrease
+            liquidityDecrease,  // Amount to remove
+            amount0Min,         // Minimum token0 to receive
+            amount1Min,         // Minimum token1 to receive
+            ""                  // No hook data needed
+        );
+
+        params[1] = abi.encode(
+            poolKey.currency0,  // First token
+            poolKey.currency1,  // Second token
+            commonParams.proxy  // Who receives the tokens
+        );
+
+        return _decreaseLiquidity({
+            commonParams : commonParams,
+            token0       : Currency.unwrap(poolKey.currency0),
+            token1       : Currency.unwrap(poolKey.currency1),
+            actions      : actions,
+            params       : params
+        });
+    }
+
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
+
+    function getAmountsForLiquidity(
+        bytes32 poolId,
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity
+    ) public view returns (uint256 amount0, uint256 amount1) {
+        ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(poolId));
+
+        return getAmountsForLiquidity(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(tickLower),
+            TickMath.getSqrtPriceAtTick(tickUpper),
+            liquidity
+        );
+    }
 
     function getAmountsForLiquidity(
         uint160 sqrtPriceX96,
@@ -264,6 +387,40 @@ library UniswapV4Lib {
         _approvePositionManager(commonParams.proxy, token1, 0);
     }
 
+    function _decreaseLiquidity(
+        CommonParams calldata commonParams,
+        address               token0,
+        address               token1,
+        bytes        memory   actions,
+        bytes[]      memory   params
+    ) internal returns (uint256 rateLimitDecrease) {
+        // Get token balances before mint.
+        uint256 startingBalance0 = _getNormalizedBalance(token0, commonParams.proxy);
+        uint256 startingBalance1 = _getNormalizedBalance(token1, commonParams.proxy);
+
+        // Perform action
+        IALMProxy(commonParams.proxy).doCall(
+            _POSITION_MANAGER,
+            abi.encodeCall(
+                IPositionManagerLike.modifyLiquidities,
+                (abi.encode(actions, params), block.timestamp)
+            )
+        );
+
+        // Get token balances after mint.
+        uint256 endingBalance0 = _getNormalizedBalance(token0, commonParams.proxy);
+        uint256 endingBalance1 = _getNormalizedBalance(token1, commonParams.proxy);
+
+        // Perform rate limit decrease.
+        // TODO: Not impossible that an increase is needed, given fees and a low liquidity increase.
+        IRateLimits(commonParams.rateLimits).triggerRateLimitDecrease(
+            RateLimitHelpers.makeBytes32Key(commonParams.rateLimitId, commonParams.poolId),
+            // Technically one can receive tokens when adding liquidity (if there are fees to be
+            // accumulated, so safe/clamped/non-negative subtraction is needed here).
+            rateLimitDecrease = endingBalance0 + endingBalance1 - startingBalance0 - startingBalance1
+        );
+    }
+
     /**********************************************************************************************/
     /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
@@ -315,13 +472,6 @@ library UniswapV4Lib {
         require(keccak256(abi.encode(poolKey)) == poolId, "UniswapV4Lib/tokenId-poolId-mismatch");
     }
 
-    function _requireTokenIsOwnedByProxy(uint256 tokenId, address proxy) internal view {
-        require(
-            IPositionManagerLike(_POSITION_MANAGER).ownerOf(tokenId) == proxy,
-            "UniswapV4Lib/non-proxy-position"
-        );
-    }
-
     function _validateLiquidityIncrease(
         CommonParams calldata commonParams,
         int24                 tickLower,
@@ -330,15 +480,12 @@ library UniswapV4Lib {
         uint256               amount0Max,
         uint256               amount1Max
     ) internal view {
-        // Perform maxSlippages / amount0Max & amount1Max checks
-        require(commonParams.maxSlippage != 0, "UniswapV4Lib/maxSlippage-not-set");
-
-        ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(commonParams.poolId));
+        _requireNonZeroMaxSlippage(commonParams);
 
         ( uint256 amount0, uint256 amount1 ) = getAmountsForLiquidity(
-            sqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(tickLower),
-            TickMath.getSqrtPriceAtTick(tickUpper),
+            commonParams.poolId,
+            tickLower,
+            tickUpper,
             liquidityIncrease
         );
 
@@ -354,4 +501,36 @@ library UniswapV4Lib {
         );
     }
 
+    function _validateLiquidityDecrease(
+        CommonParams calldata commonParams,
+        int24                 tickLower,
+        int24                 tickUpper,
+        uint128               liquidityDecrease,
+        uint256               amount0Min,
+        uint256               amount1Min
+    ) internal view {
+        _requireNonZeroMaxSlippage(commonParams);
+
+        ( uint256 amount0, uint256 amount1 ) = getAmountsForLiquidity(
+            commonParams.poolId,
+            tickLower,
+            tickUpper,
+            liquidityDecrease
+        );
+
+        // Ensure the amountMin is above the allowed worst case scenario (amount * maxSlippage).
+        require(
+            amount0Min * 1e18 >= amount0 * commonParams.maxSlippage,
+            "UniswapV4Lib/amount0Min-too-small"
+        );
+
+        require(
+            amount1Min * 1e18 >= amount1 * commonParams.maxSlippage,
+            "UniswapV4Lib/amount1Min-too-small"
+        );
+    }
+
+    function _requireNonZeroMaxSlippage(CommonParams calldata commonParams) internal pure {
+        require(commonParams.maxSlippage != 0, "UniswapV4Lib/maxSlippage-not-set");
+    }
 }
