@@ -16,8 +16,8 @@ contract SUSDSTestBase is ForkTestBase {
     function setUp() override public {
         super.setUp();
 
-        bytes32 depositKey  = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
+        bytes32 depositKey  = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
@@ -178,11 +178,11 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
 contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
 
     function test_withdrawERC4626() external {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_4626_DEPOSIT(),
             Ethereum.SUSDS
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_4626_WITHDRAW(),
             Ethereum.SUSDS
         );
@@ -244,7 +244,7 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
         // Longer setup because rate limit revert is at the end of the function
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 mainnetController.LIMIT_4626_WITHDRAW(),
                 Ethereum.SUSDS
             ),
@@ -290,11 +290,11 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
 contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
 
     function test_redeemERC4626() external {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_4626_DEPOSIT(),
             Ethereum.SUSDS
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_4626_WITHDRAW(),
             Ethereum.SUSDS
         );

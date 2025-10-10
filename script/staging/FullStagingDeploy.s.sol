@@ -403,10 +403,10 @@ contract FullStagingDeploy is Script {
 
         vm.startBroadcast();
 
-        bytes32 susdeDepositKey = RateLimitHelpers.makeAssetKey(controller.LIMIT_4626_DEPOSIT(), address(controller.susde()));
+        bytes32 susdeDepositKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), address(controller.susde()));
 
-        bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAssetKey(controller.LIMIT_4626_DEPOSIT(), SYRUP_USDC);
-        bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAssetKey(controller.LIMIT_MAPLE_REDEEM(), SYRUP_USDC);
+        bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), SYRUP_USDC);
+        bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_MAPLE_REDEEM(), SYRUP_USDC);
 
         bytes32 domainKeyArbitrum = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
         bytes32 domainKeyBase     = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
@@ -454,13 +454,13 @@ contract FullStagingDeploy is Script {
         susds = domain.input.readAddress(".susds");
 
         // PSM rate limits for all three assets
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usdc),  maxAmount6,  slope6);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usdc),  maxAmount6,  slope6);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  usds),  maxAmount18, slope18);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(psmDepositKey,  susds), maxAmount18, slope18);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(psmDepositKey,  usdc),  maxAmount6,  slope6);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(psmWithdrawKey, usdc),  maxAmount6,  slope6);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(psmDepositKey,  usds),  maxAmount18, slope18);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(psmDepositKey,  susds), maxAmount18, slope18);
         
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, usds));
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(psmWithdrawKey, susds));
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(psmWithdrawKey, usds));
+        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(psmWithdrawKey, susds));
 
         // CCTP rate limits
         rateLimits.setRateLimitData(domainKeyEthereum, maxAmount6, slope6);
@@ -504,8 +504,8 @@ contract FullStagingDeploy is Script {
 
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  aToken), maxAmount,         slope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, aToken), type(uint256).max, 0);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  aToken), maxAmount,         slope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, aToken), type(uint256).max, 0);
 
         vm.stopBroadcast();
     }
@@ -528,8 +528,8 @@ contract FullStagingDeploy is Script {
 
         IRateLimits rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  token), maxAmount,         slope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, token), type(uint256).max, 0);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  token), maxAmount,         slope);
+        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, token), type(uint256).max, 0);
 
         vm.stopBroadcast();
     }

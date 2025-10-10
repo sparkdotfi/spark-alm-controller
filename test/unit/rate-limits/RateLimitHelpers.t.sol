@@ -8,8 +8,8 @@ import { RateLimitHelpers }        from "../../../src/RateLimitHelpers.sol";
 
 contract RateLimitHelpersWrapper {
 
-    function makeAssetKey(bytes32 key, address asset) public pure returns (bytes32) {
-        return RateLimitHelpers.makeAssetKey(key, asset);
+    function makeAddressKey(bytes32 key, address asset) public pure returns (bytes32) {
+        return RateLimitHelpers.makeAddressKey(key, asset);
     }
 
     function makeAssetDestinationKey(bytes32 key, address asset, address destination) public pure returns (bytes32) {
@@ -59,9 +59,9 @@ contract RateLimitHelpersTestBase is UnitTestBase {
 
 contract RateLimitHelpersPureFunctionTests is RateLimitHelpersTestBase {
 
-    function test_makeAssetKey() public view {
+    function test_makeAddressKey() public view {
         assertEq(
-            wrapper.makeAssetKey(KEY, address(this)),
+            wrapper.makeAddressKey(KEY, address(this)),
             keccak256(abi.encode(KEY, address(this)))
         );
     }

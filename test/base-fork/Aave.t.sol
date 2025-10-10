@@ -23,7 +23,7 @@ contract AaveV3BaseMarketTestBase is ForkTestBase {
 
         // NOTE: Hit SUPPLY_CAP_EXCEEDED when using 25m
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_AAVE_DEPOSIT(),
                 ATOKEN_USDC
             ),
@@ -31,7 +31,7 @@ contract AaveV3BaseMarketTestBase is ForkTestBase {
             uint256(1_000_000e6) / 1 days
         );
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_AAVE_WITHDRAW(),
                 ATOKEN_USDC
             ),
@@ -148,7 +148,7 @@ contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
         // Longer setup because rate limit revert is at the end of the function
         vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_AAVE_WITHDRAW(),
                 ATOKEN_USDC
             ),
@@ -187,11 +187,11 @@ contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
 contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
 
     function test_withdrawAave_usdc() public {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_AAVE_DEPOSIT(),
             ATOKEN_USDC
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );
@@ -245,11 +245,11 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
     }
 
     function test_withdrawAave_usdc_unlimitedRateLimit() public {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_AAVE_DEPOSIT(),
             ATOKEN_USDC
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_AAVE_WITHDRAW(),
             ATOKEN_USDC
         );

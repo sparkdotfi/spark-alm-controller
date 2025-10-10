@@ -39,7 +39,7 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
             ))
         );
 
-        key = RateLimitHelpers.makeAssetKey(
+        key = RateLimitHelpers.makeAddressKey(
             LIMIT_SPARK_VAULT_TAKE,
             address(sparkVault)
         );
@@ -244,7 +244,7 @@ contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
 
         // Step 3 (spell): Set the rate limits
 
-        takeKey = RateLimitHelpers.makeAssetKey(
+        takeKey = RateLimitHelpers.makeAddressKey(
             LIMIT_SPARK_VAULT_TAKE,
             address(sparkVault)
         );
@@ -255,12 +255,12 @@ contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
             address(sparkVault)
         );
 
-        bytes32 morphoKey = RateLimitHelpers.makeAssetKey(
+        bytes32 morphoKey = RateLimitHelpers.makeAddressKey(
             LIMIT_4626_DEPOSIT,
             address(morphoDaiVault)
         );
 
-        bytes32 morphoWithdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 morphoWithdrawKey = RateLimitHelpers.makeAddressKey(
             LIMIT_4626_WITHDRAW,
             address(morphoDaiVault)
         );

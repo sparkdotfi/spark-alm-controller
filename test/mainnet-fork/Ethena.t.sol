@@ -581,7 +581,7 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
 
         burnKey     = mainnetController.LIMIT_USDE_BURN();
         cooldownKey = mainnetController.LIMIT_SUSDE_COOLDOWN();
-        depositKey  = RateLimitHelpers.makeAssetKey(mainnetController.LIMIT_4626_DEPOSIT(), address(susde));
+        depositKey  = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), address(susde));
         mintKey     = mainnetController.LIMIT_USDE_MINT();
 
         rateLimits.setRateLimitData(burnKey,     5_000_000e18, uint256(1_000_000e18) / 4 hours);

@@ -68,7 +68,7 @@ contract MorphoBaseTest is ForkTestBase {
         IMetaMorpho(MORPHO_VAULT_USDC).setSupplyQueue(supplyQueueUSDC);
 
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_4626_DEPOSIT(),
                 MORPHO_VAULT_USDS
             ),
@@ -76,7 +76,7 @@ contract MorphoBaseTest is ForkTestBase {
             uint256(5_000_000e18) / 1 days
         );
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_4626_DEPOSIT(),
                 MORPHO_VAULT_USDC
             ),
@@ -84,7 +84,7 @@ contract MorphoBaseTest is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_4626_WITHDRAW(),
                 MORPHO_VAULT_USDS
             ),
@@ -92,7 +92,7 @@ contract MorphoBaseTest is ForkTestBase {
             uint256(5_000_000e18) / 1 days
         );
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_4626_WITHDRAW(),
                 MORPHO_VAULT_USDC
             ),
@@ -258,11 +258,11 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
 contract MorphoWithdrawSuccessTests is MorphoBaseTest {
 
     function test_morpho_usds_withdraw() public {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_DEPOSIT(),
             MORPHO_VAULT_USDS
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_WITHDRAW(),
             MORPHO_VAULT_USDS
         );
@@ -288,11 +288,11 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
     }
 
     function test_morpho_usdc_withdraw() public {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_DEPOSIT(),
             MORPHO_VAULT_USDC
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_WITHDRAW(),
             MORPHO_VAULT_USDC
         );
@@ -334,7 +334,7 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
         // Longer setup because rate limit revert is at the end of the function
         vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 foreignController.LIMIT_4626_WITHDRAW(),
                 MORPHO_VAULT_USDS
             ),
@@ -394,11 +394,11 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
 contract MorphoRedeemSuccessTests is MorphoBaseTest {
 
     function test_morpho_usds_redeem() public {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_DEPOSIT(),
             MORPHO_VAULT_USDS
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_WITHDRAW(),
             MORPHO_VAULT_USDS
         );
@@ -425,11 +425,11 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
     }
 
     function test_morpho_usdc_redeem() public {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_DEPOSIT(),
             MORPHO_VAULT_USDC
         );
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             foreignController.LIMIT_4626_WITHDRAW(),
             MORPHO_VAULT_USDC
         );

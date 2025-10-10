@@ -114,7 +114,7 @@ contract ForeignController is AccessControl {
     }
 
     modifier rateLimitedAsset(bytes32 key, address asset, uint256 amount) {
-        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAssetKey(key, asset), amount);
+        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
         _;
     }
 
@@ -228,7 +228,7 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_PSM_WITHDRAW, asset),
+            RateLimitHelpers.makeAddressKey(LIMIT_PSM_WITHDRAW, asset),
             assetsWithdrawn
         );
     }
@@ -365,7 +365,7 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             amount
         );
     }
@@ -387,11 +387,11 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
             assets
         );
         rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             assets
         );
     }
@@ -451,12 +451,12 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
+            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_WITHDRAW, aToken),
             amountWithdrawn
         );
 
         rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
+            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_DEPOSIT, aToken),
             amountWithdrawn
         );
     }
@@ -468,7 +468,7 @@ contract ForeignController is AccessControl {
     function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
         external
         onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
             morphoVault,
@@ -479,7 +479,7 @@ contract ForeignController is AccessControl {
     function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
         external
         onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
             morphoVault,
@@ -490,7 +490,7 @@ contract ForeignController is AccessControl {
     function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
         external
         onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
             morphoVault,
