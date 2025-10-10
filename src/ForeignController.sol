@@ -113,7 +113,7 @@ contract ForeignController is AccessControl {
         _;
     }
 
-    modifier rateLimitedAsset(bytes32 key, address asset, uint256 amount) {
+    modifier rateLimitedAddress(bytes32 key, address asset, uint256 amount) {
         rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
         _;
     }
@@ -189,7 +189,7 @@ contract ForeignController is AccessControl {
     function depositPSM(address asset, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_PSM_DEPOSIT, asset, amount)
+        rateLimitedAddress(LIMIT_PSM_DEPOSIT, asset, amount)
         returns (uint256 shares)
     {
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
@@ -322,7 +322,7 @@ contract ForeignController is AccessControl {
     function depositERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
+        rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
         require(maxSlippages[token] != 0, "ForeignController/max-slippage-not-set");
@@ -351,7 +351,7 @@ contract ForeignController is AccessControl {
     function withdrawERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount)
+        rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
         // Withdraw asset from a token, decode resulting shares.
@@ -403,7 +403,7 @@ contract ForeignController is AccessControl {
     function depositAave(address aToken, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
+        rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
         require(maxSlippages[aToken] != 0, "ForeignController/max-slippage-not-set");
 
@@ -505,7 +505,7 @@ contract ForeignController is AccessControl {
     function takeFromSparkVault(address sparkVault, uint256 assetAmount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
+        rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
     {
         // Take assets from the vault
         proxy.doCall(
