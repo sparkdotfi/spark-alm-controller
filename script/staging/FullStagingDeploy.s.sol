@@ -408,8 +408,8 @@ contract FullStagingDeploy is Script {
         bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), SYRUP_USDC);
         bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_MAPLE_REDEEM(), SYRUP_USDC);
 
-        bytes32 domainKeyArbitrum = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
-        bytes32 domainKeyBase     = RateLimitHelpers.makeDomainKey(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+        bytes32 domainKeyArbitrum = RateLimitHelpers.makeUint32Key(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
+        bytes32 domainKeyBase     = RateLimitHelpers.makeUint32Key(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
         // USDS mint/burn and cross-chain transfer rate limits
         rateLimits.setRateLimitData(domainKeyBase,                   maxAmount6,  slope6);
@@ -444,7 +444,7 @@ contract FullStagingDeploy is Script {
         bytes32 psmDepositKey  = foreignController.LIMIT_PSM_DEPOSIT();
         bytes32 psmWithdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
 
-        bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
+        bytes32 domainKeyEthereum = RateLimitHelpers.makeUint32Key(
             foreignController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
         );

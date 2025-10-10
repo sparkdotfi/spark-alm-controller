@@ -242,7 +242,7 @@ contract ForeignController is AccessControl {
         onlyRole(RELAYER)
         rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
         rateLimited(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
+            RateLimitHelpers.makeUint32Key(LIMIT_USDC_TO_DOMAIN, destinationDomain),
             usdcAmount
         )
     {
