@@ -28,6 +28,7 @@ library UniswapV4Lib {
         bytes32 poolId;  // the PoolId of the Uniswap V4 pool // TODO: Why not bytes25?
     }
 
+    // NOTE: From https://docs.uniswap.org/contracts/v4/deployments
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
     address internal constant _STATE_VIEW       = 0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227;
@@ -45,12 +46,12 @@ library UniswapV4Lib {
         uint256               amount1Max
     ) external returns (uint256 rateLimitDecrease) {
         _validateLiquidityIncrease({
-            commonParams: commonParams,
-            tickLower: tickLower,
-            tickUpper: tickUpper,
-            liquidityIncrease: liquidity,
-            amount0Max: amount0Max,
-            amount1Max: amount1Max
+            commonParams      : commonParams,
+            tickLower         : tickLower,
+            tickUpper         : tickUpper,
+            liquidityIncrease : liquidity,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max
         });
 
         // Encode actions and params
@@ -58,22 +59,22 @@ library UniswapV4Lib {
 
         ( bytes memory actions, bytes[] memory params ) = _getMintActionsAndParams({
             commonParams: commonParams,
-            poolKey: poolKey,
-            tickLower: tickLower,
-            tickUpper: tickUpper,
-            liquidity: liquidity,
-            amount0Max: amount0Max,
-            amount1Max: amount1Max
+            poolKey     : poolKey,
+            tickLower   : tickLower,
+            tickUpper   : tickUpper,
+            liquidity   : liquidity,
+            amount0Max  : amount0Max,
+            amount1Max  : amount1Max
         });
 
         return _increaseLiquidity({
-            commonParams: commonParams,
-            token0: Currency.unwrap(poolKey.currency0),
-            token1: Currency.unwrap(poolKey.currency1),
-            amount0Max: amount0Max,
-            amount1Max: amount1Max,
-            actions: actions,
-            params: params
+            commonParams : commonParams,
+            token0       : Currency.unwrap(poolKey.currency0),
+            token1       : Currency.unwrap(poolKey.currency1),
+            amount0Max   : amount0Max,
+            amount1Max   : amount1Max,
+            actions      : actions,
+            params       : params
         });
     }
 
@@ -93,30 +94,30 @@ library UniswapV4Lib {
         ) = _getPositionInfo(commonParams.poolId, tokenId);
 
         _validateLiquidityIncrease({
-            commonParams: commonParams,
-            tickLower: positionInfo.tickLower(),
-            tickUpper: positionInfo.tickUpper(),
-            liquidityIncrease: liquidityIncrease,
-            amount0Max: amount0Max,
-            amount1Max: amount1Max
+            commonParams      : commonParams,
+            tickLower         : positionInfo.tickLower(),
+            tickUpper         : positionInfo.tickUpper(),
+            liquidityIncrease : liquidityIncrease,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max
         });
 
         ( bytes memory actions, bytes[] memory params ) = _getIncreaseLiquidityActionsAndParams({
-            poolKey: poolKey,
-            tokenId: tokenId,
-            liquidityIncrease: liquidityIncrease,
-            amount0Max: amount0Max,
-            amount1Max: amount1Max
+            poolKey           : poolKey,
+            tokenId           : tokenId,
+            liquidityIncrease : liquidityIncrease,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max
         });
 
         return _increaseLiquidity({
-            commonParams: commonParams,
-            token0: Currency.unwrap(poolKey.currency0),
-            token1: Currency.unwrap(poolKey.currency1),
-            amount0Max: amount0Max,
-            amount1Max: amount1Max,
-            actions: actions,
-            params: params
+            commonParams : commonParams,
+            token0       : Currency.unwrap(poolKey.currency0),
+            token1       : Currency.unwrap(poolKey.currency1),
+            amount0Max   : amount0Max,
+            amount1Max   : amount1Max,
+            actions      : actions,
+            params       : params
         });
     }
 
@@ -268,11 +269,11 @@ library UniswapV4Lib {
     }
 
     function _getIncreaseLiquidityActionsAndParams(
-        PoolKey  memory poolKey,
-        uint256         tokenId,
-        uint128         liquidityIncrease,
-        uint256         amount0Max,
-        uint256         amount1Max
+        PoolKey memory poolKey,
+        uint256        tokenId,
+        uint128        liquidityIncrease,
+        uint256        amount0Max,
+        uint256        amount1Max
     ) internal pure returns (bytes memory actions, bytes[] memory params) {
         actions = abi.encodePacked(
             uint8(Actions.INCREASE_LIQUIDITY),
@@ -285,11 +286,11 @@ library UniswapV4Lib {
         // ```solidity
         //    // Parameters for INCREASE_LIQUIDITY
         //    params[0] = abi.encode(
-        //        tokenId,           // Position to increase
-        //        liquidityIncrease, // Amount to add
-        //        amount0Max,        // Maximum token0 to spend
-        //        amount1Max,        // Maximum token1 to spend
-        //        ""                // No hook data needed
+        //        tokenId,            // Position to increase
+        //        liquidityIncrease,  // Amount to add
+        //        amount0Max,         // Maximum token0 to spend
+        //        amount1Max,         // Maximum token1 to spend
+        //        ""                  // No hook data needed
         //    );
         // ```
         params[0] = abi.encode(tokenId, liquidityIncrease, amount0Max, amount1Max, "");
@@ -387,25 +388,21 @@ library UniswapV4Lib {
 
         (uint160 sqrtPriceX96,,,) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(commonParams.poolId));
 
-        (uint256 amount0, uint256 amount1) = getAmountsForLiquidity(
+        ( uint256 amount0, uint256 amount1 ) = getAmountsForLiquidity(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickLower),
             TickMath.getSqrtPriceAtTick(tickUpper),
             liquidityIncrease
         );
 
-        // NOTE: The -1 is to avoid rounding issues: if the entire tick range lies outside of the
-        //       current price, one of {amount0Max, amount1Max} will be 0. However, it is
-        //       conceivable that callers will add 1 to amount0Max and amount1Max to account for
-        //       potential for rounding errors. To allow for that behavior, 1 is subtracted here.
-        // TODO: This seems like a hack, or at the very least, arbitrary. What if they add 2?
+        // Ensure the amountMax is below the allowed worst case scenario (amount / maxSlippage).
         require(
-            (amount0Max - 1) * commonParams.maxSlippage <= amount0 * 1e18,
+            amount0Max * commonParams.maxSlippage <= amount0 * 1e18,
             "UniswapV4Lib/amount0Max-too-high"
         );
 
         require(
-            (amount1Max - 1) * commonParams.maxSlippage <= amount1 * 1e18,
+            amount1Max * commonParams.maxSlippage <= amount1 * 1e18,
             "UniswapV4Lib/amount1Max-too-high"
         );
     }

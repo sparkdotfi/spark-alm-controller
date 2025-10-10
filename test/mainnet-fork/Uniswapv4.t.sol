@@ -39,6 +39,8 @@ interface IPermit2Like {
 
 interface IPositionManagerLike {
 
+    function transferFrom(address from, address to, uint256 id) external;
+
     function getPoolAndPositionInfo(
         uint256 tokenId
     ) external view returns (PoolKey memory poolKey, PositionInfo info);
@@ -176,7 +178,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
         vm.stopPrank();
 
-        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(-10, 0, 1_000_000e6);
+        ( uint256 amount0Forecasted, ) = _quoteLiquidity(-10, 0, 1_000_000e6);
 
         vm.expectRevert("UniswapV4Lib/amount0Max-too-high");
 
@@ -186,8 +188,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : ((amount0Forecasted + 2) * 1e18) / 0.98e18,
-            amount1Max : amount1Forecasted + 1
+            amount0Max : ((amount0Forecasted + 1) * 1e18) / 0.98e18,
+            amount1Max : 0
         });
         vm.stopPrank();
     }
@@ -198,7 +200,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
         vm.stopPrank();
 
-        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(-10, 0, 1_000_000e6);
+        ( , uint256 amount1Forecasted ) = _quoteLiquidity(-10, 0, 1_000_000e6);
 
         vm.expectRevert("UniswapV4Lib/amount1Max-too-high");
 
@@ -208,8 +210,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : amount0Forecasted + 1,
-            amount1Max : ((amount1Forecasted + 2) * 1e18) / 0.98e18
+            amount0Max : 0,
+            amount1Max : ((amount1Forecasted + 1) * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -249,8 +251,44 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         vm.startPrank(_unauthorized);
         mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
+            poolId            : bytes32(0),
             tokenId           : 0,
+            liquidityIncrease : 0,
+            amount0Max        : 0,
+            amount1Max        : 0
+        });
+        vm.stopPrank();
+    }
+
+    function test_increaseLiquidityUniswapV4_revertsWhenPositionIsNotOwnedByProxy() external {
+        IncreasePositionResult memory minted = _setupForLiquidityIncrease();
+
+        vm.startPrank(address(almProxy));
+        IPositionManagerLike(_POSITION_MANAGER).transferFrom(address(almProxy), address(1), minted.tokenId);
+        vm.stopPrank();
+
+        vm.expectRevert("UniswapV4Lib/non-proxy-position");
+
+        vm.startPrank(relayer);
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : bytes32(0),
+            tokenId           : minted.tokenId,
+            liquidityIncrease : 0,
+            amount0Max        : 0,
+            amount1Max        : 0
+        });
+        vm.stopPrank();
+    }
+
+    function test_increaseLiquidityUniswapV4_revertsWhenTokenIsNotForPool() external {
+        IncreasePositionResult memory minted = _setupForLiquidityIncrease();
+
+        vm.expectRevert("UniswapV4Lib/tokenId-poolId-mismatch");
+
+        vm.startPrank(relayer);
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : bytes32(0),
+            tokenId           : minted.tokenId,
             liquidityIncrease : 0,
             amount0Max        : 0,
             amount1Max        : 0
@@ -281,10 +319,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
         vm.stopPrank();
 
-        (
-            uint256 amount0Forecasted,
-            uint256 amount1Forecasted
-        ) = _quoteLiquidity(minted.tickLower, minted.tickUpper, 1_000_000e6);
+        ( uint256 amount0Forecasted, ) = _quoteLiquidity(minted.tickLower, minted.tickUpper, 1_000_000e6);
 
         vm.expectRevert("UniswapV4Lib/amount0Max-too-high");
 
@@ -293,8 +328,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : ((amount0Forecasted + 2) * 1e18) / 0.98e18,
-            amount1Max        : amount1Forecasted + 1
+            amount0Max        : ((amount0Forecasted + 1) * 1e18) / 0.98e18,
+            amount1Max        : 0
         });
         vm.stopPrank();
     }
@@ -306,10 +341,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
         vm.stopPrank();
 
-        (
-            uint256 amount0Forecasted,
-            uint256 amount1Forecasted
-        ) = _quoteLiquidity(minted.tickLower, minted.tickUpper, 1_000_000e6);
+        ( , uint256 amount1Forecasted ) = _quoteLiquidity(minted.tickLower, minted.tickUpper, 1_000_000e6);
 
         vm.expectRevert("UniswapV4Lib/amount1Max-too-high");
 
@@ -318,8 +350,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : amount0Forecasted + 1,
-            amount1Max        : ((amount1Forecasted + 2) * 1e18) / 0.98e18
+            amount0Max        : 0,
+            amount1Max        : ((amount1Forecasted + 1) * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -429,14 +461,16 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         uint256 usdcBeforeCall = usdc.balanceOf(address(almProxy));
         uint256 usdtBeforeCall = usdt.balanceOf(address(almProxy));
 
+        uint256 maxSlippage = mainnetController.maxSlippages(address(uint160(uint256(_POOL_ID))));
+
         vm.startPrank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
             tickLower  : tickLower,
             tickUpper  : tickUpper,
             liquidity  : liquidity,
-            amount0Max : amount0Forecasted + 1,
-            amount1Max : amount1Forecasted + 1
+            amount0Max : (amount0Forecasted * 1e18) / maxSlippage,
+            amount1Max : (amount1Forecasted * 1e18) / maxSlippage
         });
         vm.stopPrank();
 
@@ -446,7 +480,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         result.tokenId           = tokenIdToMint;
         result.amount0Spent      = usdcBeforeCall - usdcAfterCall;
         result.amount1Spent      = usdtBeforeCall - usdtAfterCall;
-        result.liquidityIncrease = liquidity;  // TODO: This may not be accurate.
+        result.liquidityIncrease = liquidity;
         result.tickLower         = tickLower;
         result.tickUpper         = tickUpper;
     }
@@ -475,13 +509,15 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         uint256 usdcBeforeCall = usdc.balanceOf(address(almProxy));
         uint256 usdtBeforeCall = usdt.balanceOf(address(almProxy));
 
+        uint256 maxSlippage = mainnetController.maxSlippages(address(uint160(uint256(_POOL_ID))));
+
         vm.startPrank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : tokenId,
             liquidityIncrease : liquidityIncrease,
-            amount0Max        : amount0Forecasted + 1,
-            amount1Max        : amount1Forecasted + 1
+            amount0Max        : (amount0Forecasted * 1e18) / maxSlippage,
+            amount1Max        : (amount1Forecasted * 1e18) / maxSlippage
         });
         vm.stopPrank();
 
@@ -491,7 +527,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         result.tokenId           = tokenId;
         result.amount0Spent      = usdcBeforeCall - usdcAfterCall;
         result.amount1Spent      = usdtBeforeCall - usdtAfterCall;
-        result.liquidityIncrease = liquidityIncrease;  // TODO: This may not be accurate.
+        result.liquidityIncrease = liquidityIncrease;
         result.tickLower         = positionInfo.tickLower();
         result.tickUpper         = positionInfo.tickUpper();
     }
