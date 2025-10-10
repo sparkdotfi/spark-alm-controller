@@ -6,8 +6,6 @@ import { IERC20Metadata } from "openzeppelin-contracts/contracts/token/ERC20/ext
 
 import { IERC20 as OzIERC20, SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { OTC } from "src/MainnetController.sol";
-
 import { OTCBuffer } from "src/OTCBuffer.sol";
 
 import "./ForkTestBase.t.sol";

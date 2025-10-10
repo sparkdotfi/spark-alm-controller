@@ -6,7 +6,8 @@ import "./ForkTestBase.t.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 
-import { CurveLib } from "../../src/libraries/CurveLib.sol";
+import { ApproveLib } from "../../src/libraries/ApproveLib.sol";
+import { CurveLib }   from "../../src/libraries/CurveLib.sol";
 
 import { IALMProxy } from "../../src/interfaces/IALMProxy.sol";
 
@@ -60,7 +61,7 @@ contract MainnetControllerHarness is MainnetController {
     ) MainnetController(admin_, proxy_, rateLimits_, vault_, psm_, daiUsds_, cctp_) {}
 
     function approve(address token, address spender, uint256 amount) external {
-        _approve(token, spender, amount);
+        ApproveLib.approve(token, address(proxy), spender, amount);
     }
 
     function approveCurve(address proxy, address token, address spender, uint256 amount) external {

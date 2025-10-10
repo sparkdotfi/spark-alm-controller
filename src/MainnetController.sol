@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
+import { IAToken } from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 
 // This interface has been reviewed, and is compliant with the specs: https://eips.ethereum.org/EIPS/eip-7540
 import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
@@ -19,8 +18,10 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import  "./interfaces/ILayerZero.sol";
+import { ILayerZero, SendParam, OFTReceipt, MessagingFee } from "./interfaces/ILayerZero.sol";
 
+import { ApproveLib }                     from "./libraries/ApproveLib.sol";
+import { AaveLib }                        from "./libraries/AaveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
@@ -92,17 +93,17 @@ interface IWstETHLike {
     function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
 }
 
-struct OTC {
-    address buffer;
-    uint256 rechargeRate18;
-    uint256 sent18;
-    uint256 sentTimestamp;
-    uint256 claimed18;
-}
-
 contract MainnetController is AccessControl {
 
     using OptionsBuilder for bytes;
+
+    struct OTC {
+        address buffer;
+        uint256 rechargeRate18;
+        uint256 sent18;
+        uint256 sentTimestamp;
+        uint256 claimed18;
+    }
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -431,7 +432,7 @@ contract MainnetController is AccessControl {
         IERC20 asset = IERC20(IERC4626(token).asset());
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
+        ApproveLib.approve(address(asset), address(proxy), token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares
         shares = abi.decode(
@@ -499,7 +500,7 @@ contract MainnetController is AccessControl {
         IERC20 asset = IERC20(IERC7540(token).asset());
 
         // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
+        ApproveLib.approve(address(asset), address(proxy), token, amount);
 
         // Submit deposit request by transferring assets
         proxy.doCall(
@@ -553,7 +554,7 @@ contract MainnetController is AccessControl {
     /*** Relayer Centrifuge functions                                                           ***/
     /**********************************************************************************************/
 
-    // NOTE: These cancelation methods are compatible with ERC-7887
+    // NOTE: These cancellation methods are compatible with ERC-7887
 
     function cancelCentrifugeDepositRequest(address token) external {
         _checkRole(RELAYER);
@@ -615,63 +616,31 @@ contract MainnetController is AccessControl {
 
     function depositAave(address aToken, uint256 amount) external {
         _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount);
 
-        require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
-
-        IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
-        IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
-
-        // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        _approve(address(underlying), address(pool), amount);
-
-        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
-
-        // Deposit underlying into Aave pool, proxy receives aTokens
-        proxy.doCall(
-            address(pool),
-            abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
-        );
-
-        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
-
-        require(
-            newATokens >= amount * maxSlippages[aToken] / 1e18,
-            "MainnetController/slippage-too-high"
-        );
+        AaveLib.deposit({
+            proxy       : address(proxy),
+            aToken      : aToken,
+            amount      : amount,
+            maxSlippage : maxSlippages[aToken],
+            rateLimits  : address(rateLimits),
+            rateLimitId : LIMIT_AAVE_DEPOSIT
+        });
     }
 
-    // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
         external
         returns (uint256 amountWithdrawn)
     {
         _checkRole(RELAYER);
 
-        IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
-
-        // Withdraw underlying from Aave pool, decode resulting amount withdrawn.
-        // Assumes proxy has adequate aTokens.
-        amountWithdrawn = abi.decode(
-            proxy.doCall(
-                address(pool),
-                abi.encodeCall(
-                    pool.withdraw,
-                    (IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS(), amount, address(proxy))
-                )
-            ),
-            (uint256)
-        );
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_WITHDRAW, aToken),
-            amountWithdrawn
-        );
-
-        _cancelRateLimit(
-            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_DEPOSIT, aToken),
-            amountWithdrawn
-        );
+        return AaveLib.withdraw({
+            proxy               : address(proxy),
+            aToken              : aToken,
+            amount              : amount,
+            rateLimits          : address(rateLimits),
+            rateLimitWithdrawId : LIMIT_AAVE_WITHDRAW,
+            rateLimitDepositId  : LIMIT_AAVE_DEPOSIT
+        });
     }
 
     /**********************************************************************************************/
@@ -769,13 +738,13 @@ contract MainnetController is AccessControl {
     function prepareUSDeMint(uint256 usdcAmount) external {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_USDE_MINT, usdcAmount);
-        _approve(address(usdc), address(ethenaMinter), usdcAmount);
+        ApproveLib.approve(address(usdc), address(proxy), address(ethenaMinter), usdcAmount);
     }
 
     function prepareUSDeBurn(uint256 usdeAmount) external {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_USDE_BURN, usdeAmount);
-        _approve(address(usde), address(ethenaMinter), usdeAmount);
+        ApproveLib.approve(address(usde), address(proxy), address(ethenaMinter), usdeAmount);
     }
 
     function cooldownAssetsSUSDe(uint256 usdeAmount) external {
@@ -851,7 +820,7 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount);
 
-        _approve(address(usdc), address(ustb), usdcAmount);
+        ApproveLib.approve(address(usdc), address(proxy), address(ustb), usdcAmount);
 
         proxy.doCall(
             address(ustb),
@@ -868,7 +837,7 @@ contract MainnetController is AccessControl {
         onlyRole(RELAYER)
     {
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        _approve(address(usds), address(daiUsds), usdsAmount);
+        ApproveLib.approve(address(usds), address(proxy), address(daiUsds), usdsAmount);
 
         // Swap USDS to DAI 1:1
         proxy.doCall(
@@ -882,7 +851,7 @@ contract MainnetController is AccessControl {
         onlyRole(RELAYER)
     {
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        _approve(address(dai), address(daiUsds), daiAmount);
+        ApproveLib.approve(address(dai), address(proxy), address(daiUsds), daiAmount);
 
         // Swap DAI to USDS 1:1
         proxy.doCall(
@@ -949,7 +918,7 @@ contract MainnetController is AccessControl {
         //       approvalRequired == false. Add integration testing for this case before
         //       using in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
-            _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+            ApproveLib.approve(ILayerZero(oftAddress).token(), address(proxy), oftAddress, amount);
         }
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
@@ -1008,7 +977,7 @@ contract MainnetController is AccessControl {
             usdsAmount
         );
 
-        _approve(address(usds), farm, usdsAmount);
+        ApproveLib.approve(address(usds), address(proxy), farm, usdsAmount);
 
         proxy.doCall(
             farm,
@@ -1125,42 +1094,6 @@ contract MainnetController is AccessControl {
 
         return getOtcClaimWithRecharge(exchange)
             >= otcs[exchange].sent18 * maxSlippages[exchange] / 1e18;
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer helper functions                                                               ***/
-    /**********************************************************************************************/
-
-    // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
-    function _approve(address token, address spender, uint256 amount) internal {
-        bytes memory approveData = abi.encodeCall(IERC20.approve, (spender, amount));
-
-        // Call doCall on proxy to approve the token
-        ( bool success, bytes memory data )
-            = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
-
-        bytes memory approveCallReturnData;
-
-        if (success) {
-            // Data is the ABI-encoding of the approve call bytes return data, need to
-            // decode it first
-            approveCallReturnData = abi.decode(data, (bytes));
-            // Approve was successful if 1) no return value or 2) true return value
-            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
-                return;
-            }
-        }
-
-        // If call was unsuccessful, set to zero and try again
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
-
-        approveCallReturnData = proxy.doCall(token, approveData);
-
-        // Revert if approve returns false
-        require(
-            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
-            "MainnetController/approve-failed"
-        );
     }
 
     /**********************************************************************************************/
