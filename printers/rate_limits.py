@@ -349,7 +349,7 @@ class RateLimitsPrinter(Printer):
                         d_res[var_decl.name]["up"].add(name(function_enclosing))
                     elif "_rateLimited" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
-                    elif "_rateLimitedAsset" in map(lambda x: x.name, functions_called):
+                    elif "_rateLimitedAddress" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
                     elif "_cancelRateLimit" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["up"].add(name(function_enclosing))

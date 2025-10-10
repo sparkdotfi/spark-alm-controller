@@ -423,7 +423,7 @@ contract MainnetController is AccessControl {
 
     function depositERC4626(address token, uint256 amount) external returns (uint256 shares) {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount);
+        _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
         require(maxSlippages[token] != 0, "MainnetController/max-slippage-not-set");
 
@@ -450,7 +450,7 @@ contract MainnetController is AccessControl {
 
     function withdrawERC4626(address token, uint256 amount) external returns (uint256 shares) {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount);
+        _rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount);
 
         // Withdraw asset from a token, decode resulting shares.
         // Assumes proxy has adequate token shares.
@@ -493,7 +493,7 @@ contract MainnetController is AccessControl {
 
     function requestDepositERC7540(address token, uint256 amount) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_7540_DEPOSIT, token, amount);
+        _rateLimitedAddress(LIMIT_7540_DEPOSIT, token, amount);
 
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC7540(token).asset());
@@ -523,7 +523,7 @@ contract MainnetController is AccessControl {
 
     function requestRedeemERC7540(address token, uint256 shares) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(
+        _rateLimitedAddress(
             LIMIT_7540_REDEEM,
             token,
             IERC7540(token).convertToAssets(shares)
@@ -615,7 +615,7 @@ contract MainnetController is AccessControl {
 
     function depositAave(address aToken, uint256 amount) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount);
+        _rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount);
 
         require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
 
@@ -821,7 +821,7 @@ contract MainnetController is AccessControl {
 
     function requestMapleRedemption(address mapleToken, uint256 shares) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(
+        _rateLimitedAddress(
             LIMIT_MAPLE_REDEEM,
             mapleToken,
             IMapleTokenLike(mapleToken).convertToAssets(shares)
@@ -1039,7 +1039,7 @@ contract MainnetController is AccessControl {
 
     function takeFromSparkVault(address sparkVault, uint256 assetAmount) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
+        _rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
 
         // Take assets from the vault
         proxy.doCall(
@@ -1060,7 +1060,7 @@ contract MainnetController is AccessControl {
 
         uint256 sent18 = amount * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
 
-        _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
+        _rateLimitedAddress(LIMIT_OTC_SWAP, exchange, sent18);
 
         OTC storage otc = otcs[exchange];
 
@@ -1171,7 +1171,7 @@ contract MainnetController is AccessControl {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
-    function _rateLimitedAsset(bytes32 key, address asset, uint256 amount) internal {
+    function _rateLimitedAddress(bytes32 key, address asset, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
     }
 
