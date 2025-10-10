@@ -249,7 +249,7 @@ contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
             address(sparkVault)
         );
 
-        transferKey = RateLimitHelpers.makeAssetDestinationKey(
+        transferKey = RateLimitHelpers.makeAddressAddressKey(
             LIMIT_ASSET_TRANSFER,
             address(usdc),
             address(sparkVault)

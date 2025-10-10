@@ -21,7 +21,7 @@ contract TransferAssetBaseTest is ForkTestBase {
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetDestinationKey(
+            RateLimitHelpers.makeAddressAddressKey(
                 foreignController.LIMIT_ASSET_TRANSFER(),
                 address(usdcBase),
                 destination

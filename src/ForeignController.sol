@@ -172,7 +172,7 @@ contract ForeignController is AccessControl {
         onlyRole(RELAYER)
     {
         _rateLimited(
-            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
         );
 

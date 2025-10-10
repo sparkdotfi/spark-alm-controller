@@ -332,7 +332,7 @@ contract MainnetController is AccessControl {
     function transferAsset(address asset, address destination, uint256 amount) external {
         _checkRole(RELAYER);
         _rateLimited(
-            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
         );
 

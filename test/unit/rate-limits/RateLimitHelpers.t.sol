@@ -12,8 +12,8 @@ contract RateLimitHelpersWrapper {
         return RateLimitHelpers.makeAddressKey(key, asset);
     }
 
-    function makeAssetDestinationKey(bytes32 key, address asset, address destination) public pure returns (bytes32) {
-        return RateLimitHelpers.makeAssetDestinationKey(key, asset, destination);
+    function makeAddressAddressKey(bytes32 key, address asset, address destination) public pure returns (bytes32) {
+        return RateLimitHelpers.makeAddressAddressKey(key, asset, destination);
     }
 
     function makeDomainKey(bytes32 key, uint32 domain) public pure returns (bytes32) {
@@ -66,9 +66,9 @@ contract RateLimitHelpersPureFunctionTests is RateLimitHelpersTestBase {
         );
     }
 
-    function test_makeAssetDestinationKey() public view {
+    function test_makeAddressAddressKey() public view {
         assertEq(
-            wrapper.makeAssetDestinationKey(KEY, address(this), address(0)),
+            wrapper.makeAddressAddressKey(KEY, address(this), address(0)),
             keccak256(abi.encode(KEY, address(this), address(0)))
         );
     }

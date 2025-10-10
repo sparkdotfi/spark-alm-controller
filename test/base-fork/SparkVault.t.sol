@@ -253,7 +253,7 @@ contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
             address(sparkVault)
         );
 
-        transferKey = RateLimitHelpers.makeAssetDestinationKey(
+        transferKey = RateLimitHelpers.makeAddressAddressKey(
             LIMIT_ASSET_TRANSFER,
             address(usdcBase),
             address(sparkVault)
