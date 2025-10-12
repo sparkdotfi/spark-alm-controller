@@ -332,7 +332,7 @@ contract MainnetController is AccessControl {
     function transferAsset(address asset, address destination, uint256 amount) external {
         _checkRole(RELAYER);
         _rateLimited(
-            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
         );
 
@@ -423,7 +423,7 @@ contract MainnetController is AccessControl {
 
     function depositERC4626(address token, uint256 amount) external returns (uint256 shares) {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount);
+        _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
         require(maxSlippages[token] != 0, "MainnetController/max-slippage-not-set");
 
@@ -450,7 +450,7 @@ contract MainnetController is AccessControl {
 
     function withdrawERC4626(address token, uint256 amount) external returns (uint256 shares) {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount);
+        _rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount);
 
         // Withdraw asset from a token, decode resulting shares.
         // Assumes proxy has adequate token shares.
@@ -462,7 +462,7 @@ contract MainnetController is AccessControl {
             (uint256)
         );
 
-        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), amount);
+        _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), amount);
     }
 
     // NOTE: !!! Rate limited at end of function !!!
@@ -480,11 +480,11 @@ contract MainnetController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
             assets
         );
 
-        _cancelRateLimit(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token), assets);
+        _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), assets);
     }
 
     /**********************************************************************************************/
@@ -493,7 +493,7 @@ contract MainnetController is AccessControl {
 
     function requestDepositERC7540(address token, uint256 amount) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_7540_DEPOSIT, token, amount);
+        _rateLimitedAddress(LIMIT_7540_DEPOSIT, token, amount);
 
         // Note that whitelist is done by rate limits
         IERC20 asset = IERC20(IERC7540(token).asset());
@@ -510,7 +510,7 @@ contract MainnetController is AccessControl {
 
     function claimDepositERC7540(address token) external {
         _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_DEPOSIT, token));
 
         uint256 shares = IERC7540(token).maxMint(address(proxy));
 
@@ -523,7 +523,7 @@ contract MainnetController is AccessControl {
 
     function requestRedeemERC7540(address token, uint256 shares) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(
+        _rateLimitedAddress(
             LIMIT_7540_REDEEM,
             token,
             IERC7540(token).convertToAssets(shares)
@@ -538,7 +538,7 @@ contract MainnetController is AccessControl {
 
     function claimRedeemERC7540(address token) external {
         _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_REDEEM, token));
 
         uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
 
@@ -557,7 +557,7 @@ contract MainnetController is AccessControl {
 
     function cancelCentrifugeDepositRequest(address token) external {
         _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_DEPOSIT, token));
 
         // NOTE: While the cancelation is pending, no new deposit request can be submitted
         proxy.doCall(
@@ -571,7 +571,7 @@ contract MainnetController is AccessControl {
 
     function claimCentrifugeCancelDepositRequest(address token) external {
         _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_DEPOSIT, token));
+        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_DEPOSIT, token));
 
         proxy.doCall(
             token,
@@ -584,7 +584,7 @@ contract MainnetController is AccessControl {
 
     function cancelCentrifugeRedeemRequest(address token) external {
         _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_REDEEM, token));
 
         // NOTE: While the cancelation is pending, no new redeem request can be submitted
         proxy.doCall(
@@ -598,7 +598,7 @@ contract MainnetController is AccessControl {
 
     function claimCentrifugeCancelRedeemRequest(address token) external {
         _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_7540_REDEEM, token));
+        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_REDEEM, token));
 
         proxy.doCall(
             token,
@@ -615,7 +615,7 @@ contract MainnetController is AccessControl {
 
     function depositAave(address aToken, uint256 amount) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount);
+        _rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount);
 
         require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
 
@@ -664,12 +664,12 @@ contract MainnetController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
+            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_WITHDRAW, aToken),
             amountWithdrawn
         );
 
         _cancelRateLimit(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
+            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_DEPOSIT, aToken),
             amountWithdrawn
         );
     }
@@ -821,7 +821,7 @@ contract MainnetController is AccessControl {
 
     function requestMapleRedemption(address mapleToken, uint256 shares) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(
+        _rateLimitedAddress(
             LIMIT_MAPLE_REDEEM,
             mapleToken,
             IMapleTokenLike(mapleToken).convertToAssets(shares)
@@ -835,7 +835,7 @@ contract MainnetController is AccessControl {
 
     function cancelMapleRedemption(address mapleToken, uint256 shares) external {
         _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_MAPLE_REDEEM, mapleToken));
+        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_MAPLE_REDEEM, mapleToken));
 
         proxy.doCall(
             mapleToken,
@@ -1039,7 +1039,7 @@ contract MainnetController is AccessControl {
 
     function takeFromSparkVault(address sparkVault, uint256 assetAmount) external {
         _checkRole(RELAYER);
-        _rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
+        _rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
 
         // Take assets from the vault
         proxy.doCall(
@@ -1060,7 +1060,7 @@ contract MainnetController is AccessControl {
 
         uint256 sent18 = amount * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
 
-        _rateLimitedAsset(LIMIT_OTC_SWAP, exchange, sent18);
+        _rateLimitedAddress(LIMIT_OTC_SWAP, exchange, sent18);
 
         OTC storage otc = otcs[exchange];
 
@@ -1171,8 +1171,8 @@ contract MainnetController is AccessControl {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
-    function _rateLimitedAsset(bytes32 key, address asset, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAssetKey(key, asset), amount);
+    function _rateLimitedAddress(bytes32 key, address asset, uint256 amount) internal {
+        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
     }
 
     function _cancelRateLimit(bytes32 key, uint256 amount) internal {

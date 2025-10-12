@@ -8,16 +8,16 @@ import { RateLimitHelpers }        from "../../../src/RateLimitHelpers.sol";
 
 contract RateLimitHelpersWrapper {
 
-    function makeAssetKey(bytes32 key, address asset) public pure returns (bytes32) {
-        return RateLimitHelpers.makeAssetKey(key, asset);
+    function makeAddressKey(bytes32 key, address asset) public pure returns (bytes32) {
+        return RateLimitHelpers.makeAddressKey(key, asset);
     }
 
-    function makeAssetDestinationKey(bytes32 key, address asset, address destination) public pure returns (bytes32) {
-        return RateLimitHelpers.makeAssetDestinationKey(key, asset, destination);
+    function makeAddressAddressKey(bytes32 key, address asset, address destination) public pure returns (bytes32) {
+        return RateLimitHelpers.makeAddressAddressKey(key, asset, destination);
     }
 
-    function makeDomainKey(bytes32 key, uint32 domain) public pure returns (bytes32) {
-        return RateLimitHelpers.makeDomainKey(key, domain);
+    function makeUint32Key(bytes32 key, uint32 domain) public pure returns (bytes32) {
+        return RateLimitHelpers.makeUint32Key(key, domain);
     }
 
 }
@@ -59,23 +59,23 @@ contract RateLimitHelpersTestBase is UnitTestBase {
 
 contract RateLimitHelpersPureFunctionTests is RateLimitHelpersTestBase {
 
-    function test_makeAssetKey() public view {
+    function test_makeAddressKey() public view {
         assertEq(
-            wrapper.makeAssetKey(KEY, address(this)),
+            wrapper.makeAddressKey(KEY, address(this)),
             keccak256(abi.encode(KEY, address(this)))
         );
     }
 
-    function test_makeAssetDestinationKey() public view {
+    function test_makeAddressAddressKey() public view {
         assertEq(
-            wrapper.makeAssetDestinationKey(KEY, address(this), address(0)),
+            wrapper.makeAddressAddressKey(KEY, address(this), address(0)),
             keccak256(abi.encode(KEY, address(this), address(0)))
         );
     }
 
-    function test_makeDomainKey() public view {
+    function test_makeUint32Key() public view {
         assertEq(
-            wrapper.makeDomainKey(KEY, 123),
+            wrapper.makeUint32Key(KEY, 123),
             keccak256(abi.encode(KEY, 123))
         );
     }

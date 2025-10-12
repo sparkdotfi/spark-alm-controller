@@ -109,7 +109,7 @@ library CurveLib {
         );
 
         params.rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(params.rateLimitId, params.pool),
+            RateLimitHelpers.makeAddressKey(params.rateLimitId, params.pool),
             params.amountIn * rates[params.inputIndex] / 1e18
         );
 
@@ -174,7 +174,7 @@ library CurveLib {
 
         // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD)
         params.rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(params.addLiquidityRateLimitId, params.pool),
+            RateLimitHelpers.makeAddressKey(params.addLiquidityRateLimitId, params.pool),
             valueDeposited
         );
 
@@ -203,7 +203,7 @@ library CurveLib {
         uint256 averageSwap = totalSwapped / 2 / 1e18;
 
         params.rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(params.swapRateLimitId, params.pool),
+            RateLimitHelpers.makeAddressKey(params.swapRateLimitId, params.pool),
             averageSwap
         );
     }
@@ -259,7 +259,7 @@ library CurveLib {
         valueWithdrawn /= 1e18;
 
         params.rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(params.rateLimitId, params.pool),
+            RateLimitHelpers.makeAddressKey(params.rateLimitId, params.pool),
             valueWithdrawn
         );
     }

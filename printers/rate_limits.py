@@ -334,7 +334,7 @@ class RateLimitsPrinter(Printer):
                     # print(var_decl.name, "modifier_called")
                     if modifier_called.modifier_name.name == "rateLimited":
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
-                    elif modifier_called.modifier_name.name == "rateLimitedAsset":
+                    elif modifier_called.modifier_name.name == "rateLimitedAddress":
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
                     elif modifier_called.modifier_name.name == "rateLimitExists":
                         d_res[var_decl.name]["exists"].add(name(function_enclosing))
@@ -349,7 +349,7 @@ class RateLimitsPrinter(Printer):
                         d_res[var_decl.name]["up"].add(name(function_enclosing))
                     elif "_rateLimited" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
-                    elif "_rateLimitedAsset" in map(lambda x: x.name, functions_called):
+                    elif "_rateLimitedAddress" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["down"].add(name(function_enclosing))
                     elif "_cancelRateLimit" in map(lambda x: x.name, functions_called):
                         d_res[var_decl.name]["up"].add(name(function_enclosing))

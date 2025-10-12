@@ -68,7 +68,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         otcBuffer.approve(address(usds), address(almProxy), type(uint256).max);
         vm.stopPrank();
 
-        key = RateLimitHelpers.makeAssetKey(
+        key = RateLimitHelpers.makeAddressKey(
             LIMIT_OTC_SWAP,
             exchange
         );

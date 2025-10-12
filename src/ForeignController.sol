@@ -113,8 +113,8 @@ contract ForeignController is AccessControl {
         _;
     }
 
-    modifier rateLimitedAsset(bytes32 key, address asset, uint256 amount) {
-        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAssetKey(key, asset), amount);
+    modifier rateLimitedAddress(bytes32 key, address asset, uint256 amount) {
+        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
         _;
     }
 
@@ -172,7 +172,7 @@ contract ForeignController is AccessControl {
         onlyRole(RELAYER)
     {
         _rateLimited(
-            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
         );
 
@@ -189,7 +189,7 @@ contract ForeignController is AccessControl {
     function depositPSM(address asset, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_PSM_DEPOSIT, asset, amount)
+        rateLimitedAddress(LIMIT_PSM_DEPOSIT, asset, amount)
         returns (uint256 shares)
     {
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
@@ -228,7 +228,7 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_PSM_WITHDRAW, asset),
+            RateLimitHelpers.makeAddressKey(LIMIT_PSM_WITHDRAW, asset),
             assetsWithdrawn
         );
     }
@@ -242,7 +242,7 @@ contract ForeignController is AccessControl {
         onlyRole(RELAYER)
         rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
         rateLimited(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
+            RateLimitHelpers.makeUint32Key(LIMIT_USDC_TO_DOMAIN, destinationDomain),
             usdcAmount
         )
     {
@@ -322,7 +322,7 @@ contract ForeignController is AccessControl {
     function depositERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_4626_DEPOSIT, token, amount)
+        rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
         require(maxSlippages[token] != 0, "ForeignController/max-slippage-not-set");
@@ -351,7 +351,7 @@ contract ForeignController is AccessControl {
     function withdrawERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_4626_WITHDRAW, token, amount)
+        rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
         // Withdraw asset from a token, decode resulting shares.
@@ -365,7 +365,7 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             amount
         );
     }
@@ -387,11 +387,11 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_WITHDRAW, token),
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
             assets
         );
         rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, token),
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             assets
         );
     }
@@ -403,7 +403,7 @@ contract ForeignController is AccessControl {
     function depositAave(address aToken, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount)
+        rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
         require(maxSlippages[aToken] != 0, "ForeignController/max-slippage-not-set");
 
@@ -451,12 +451,12 @@ contract ForeignController is AccessControl {
         );
 
         rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
+            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_WITHDRAW, aToken),
             amountWithdrawn
         );
 
         rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAssetKey(LIMIT_AAVE_DEPOSIT, aToken),
+            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_DEPOSIT, aToken),
             amountWithdrawn
         );
     }
@@ -468,7 +468,7 @@ contract ForeignController is AccessControl {
     function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
         external
         onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
             morphoVault,
@@ -479,7 +479,7 @@ contract ForeignController is AccessControl {
     function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
         external
         onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
             morphoVault,
@@ -490,7 +490,7 @@ contract ForeignController is AccessControl {
     function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
         external
         onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
+        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
         proxy.doCall(
             morphoVault,
@@ -505,7 +505,7 @@ contract ForeignController is AccessControl {
     function takeFromSparkVault(address sparkVault, uint256 assetAmount)
         external
         onlyRole(RELAYER)
-        rateLimitedAsset(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
+        rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
     {
         // Take assets from the vault
         proxy.doCall(

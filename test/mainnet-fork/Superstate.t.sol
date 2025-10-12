@@ -141,7 +141,7 @@ contract MainnetControllerSuperstateE2ETests is SuperstateTestBase {
 
         // Rate limit to transfer USDC to USCC deposit addressx to mint USCC
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetDestinationKey(
+            RateLimitHelpers.makeAddressAddressKey(
                 mainnetController.LIMIT_ASSET_TRANSFER(),
                 address(usdc),
                 address(usccDepositAddress)
@@ -152,7 +152,7 @@ contract MainnetControllerSuperstateE2ETests is SuperstateTestBase {
 
         // Rate limit to transfer USCC to USCC to burn USCC for USDC
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetDestinationKey(
+            RateLimitHelpers.makeAddressAddressKey(
                 mainnetController.LIMIT_ASSET_TRANSFER(),
                 address(uscc),
                 address(uscc)

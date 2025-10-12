@@ -293,7 +293,7 @@ contract ForkTestBase is DssTest {
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
-        bytes32 domainKeyBase = RateLimitHelpers.makeDomainKey(
+        bytes32 domainKeyBase = RateLimitHelpers.makeUint32Key(
             mainnetController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
         );

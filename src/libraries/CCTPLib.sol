@@ -47,7 +47,7 @@ library CCTPLib {
         _rateLimited(params.rateLimits, params.cctpRateLimitId, params.usdcAmount);
         _rateLimited(
             params.rateLimits,
-            RateLimitHelpers.makeDomainKey(params.domainRateLimitId, params.destinationDomain),
+            RateLimitHelpers.makeUint32Key(params.domainRateLimitId, params.destinationDomain),
             params.usdcAmount
         );
 

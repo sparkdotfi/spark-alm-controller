@@ -17,7 +17,7 @@ contract MainnetControllerFarmTestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 mainnetController.LIMIT_FARM_DEPOSIT(),
                 farm
             ),
@@ -25,7 +25,7 @@ contract MainnetControllerFarmTestBase is ForkTestBase {
             uint256(1_000_000e18) / 1 days
         );
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAssetKey(
+            RateLimitHelpers.makeAddressKey(
                 mainnetController.LIMIT_FARM_WITHDRAW(),
                 farm
             ),
@@ -60,7 +60,7 @@ contract MainnetControllerDepositFarmFailureTests is MainnetControllerFarmTestBa
     }
 
     function test_depositToFarm_rateLimitsBoundary() external {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 key = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_FARM_DEPOSIT(),
             farm
         );
@@ -82,7 +82,7 @@ contract MainnetControllerDepositFarmFailureTests is MainnetControllerFarmTestBa
 contract MainnetControllerFarmDepositSuccessTests is MainnetControllerFarmTestBase {
 
     function test_depositToFarm() external {
-        bytes32 depositKey = RateLimitHelpers.makeAssetKey(
+        bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_FARM_DEPOSIT(),
             farm
         );
@@ -123,7 +123,7 @@ contract MainnetControllerFarmWithdrawFailureTests is MainnetControllerFarmTestB
     }
 
     function test_withdrawFromFarm_rateLimitsBoundary() external {
-        bytes32 key = RateLimitHelpers.makeAssetKey(
+        bytes32 key = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_FARM_WITHDRAW(),
             farm
         );
@@ -146,7 +146,7 @@ contract MainnetControllerFarmWithdrawFailureTests is MainnetControllerFarmTestB
 contract MainnetControllerFarmWithdrawSuccessTests is MainnetControllerFarmTestBase {
 
     function test_withdrawFromFarm() external {
-        bytes32 withdrawKey = RateLimitHelpers.makeAssetKey(
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_FARM_WITHDRAW(),
             farm
         );
