@@ -551,7 +551,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
 
         // Amount of aPYUSD received is less than the deposited amount due to slippage
         assertEq(pyusd.balanceOf(address(almProxy)),  0);
-        assertEq(apyusd.balanceOf(address(almProxy)), 99_900.000111e6);
+        assertEq(apyusd.balanceOf(address(almProxy)), 99_000.000011e6);
 
         // Attacker withdraws their share
         IAavePool(Ethereum.POOL).withdraw(address(pyusd), apyusd.balanceOf(address(this)), address(this));
@@ -559,12 +559,12 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         // User withdraws getting less than what they deposited
 
         assertEq(pyusd.balanceOf(address(almProxy)),  0);
-        assertEq(apyusd.balanceOf(address(almProxy)), 99_900.000111e6);
+        assertEq(apyusd.balanceOf(address(almProxy)), 99_000.000011e6);
 
         vm.prank(relayer);
-        mainnetController.withdrawAave(Ethereum.PYUSD_SPTOKEN, 99_900.000111e6);
+        mainnetController.withdrawAave(Ethereum.PYUSD_SPTOKEN, 99_000.000011e6);
 
-        assertEq(pyusd.balanceOf(address(almProxy)),  99_900.000111e6);
+        assertEq(pyusd.balanceOf(address(almProxy)),  99_000.000011e6);
         assertEq(apyusd.balanceOf(address(almProxy)), 0);
     }
 
@@ -580,7 +580,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         assertEq(initialLiquidityIndex, 1e27);
 
         // Step 2: Attacker deposits funds into empty pool
-        uint256 flashLoanAmount = 1_000_000e6;
+        uint256 flashLoanAmount = 10_000_000e6;
         deal(address(pyusd), address(this), flashLoanAmount);
         pyusd.approve(Ethereum.POOL, flashLoanAmount);
 
