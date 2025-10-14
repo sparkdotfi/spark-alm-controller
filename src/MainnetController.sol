@@ -298,7 +298,7 @@ contract MainnetController is AccessControl {
     {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(tickLowerMin <= tickUpperMax, "Invalid ticks");
+        require(tickLowerMin <= tickUpperMax, "MainnetController/invalid-ticks");
 
         uniswapV4Limits[poolId] = UniswapV4Limits({
             tickLowerMin : tickLowerMin,
@@ -760,12 +760,11 @@ contract MainnetController is AccessControl {
 
         UniswapV4Limits memory limits = uniswapV4Limits[poolId];
 
-        require(tickLower >= limits.tickLowerMin, "tickLower too low");
-        require(tickUpper <= limits.tickUpperMax, "tickUpper too high");
+        require(tickLower >= limits.tickLowerMin, "MainnetController/tickLower-too-low");
+        require(tickUpper <= limits.tickUpperMax, "MainnetController/tickUpper-too-high");
 
         // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
-        //       160 bits of the id. It is still intractable for there to be a collision (on
-        //       purpose or accidentally).
+        //       160 bits of the id. It is possible, buit highly unliekly there us a collision.
         UniswapV4Lib.mintPosition({
             commonParams: UniswapV4Lib.CommonParams({
                 proxy       : address(proxy),
@@ -775,11 +774,11 @@ contract MainnetController is AccessControl {
                 maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
-            tickLower  :   tickLower,
-            tickUpper  :   tickUpper,
-            liquidity  :   liquidity,
-            amount0Max :   amount0Max,
-            amount1Max :   amount1Max
+            tickLower  : tickLower,
+            tickUpper  : tickUpper,
+            liquidity  : liquidity,
+            amount0Max : amount0Max,
+            amount1Max : amount1Max
         });
     }
 
@@ -794,6 +793,8 @@ contract MainnetController is AccessControl {
     {
         _checkRole(RELAYER);
 
+        // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
+        //       160 bits of the id. It is possible, buit highly unliekly there us a collision.
         UniswapV4Lib.increasePosition({
             commonParams: UniswapV4Lib.CommonParams({
                 proxy       : address(proxy),
@@ -1032,7 +1033,7 @@ contract MainnetController is AccessControl {
         });
 
         // Query the min amount received on the destination chain and set it.
-        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
