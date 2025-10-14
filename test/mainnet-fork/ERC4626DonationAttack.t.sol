@@ -88,7 +88,9 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         usds.transfer(address(morpho_vault), 9);
         vm.stopPrank();
 
-        // assertEq()
+        assertEq(morpho_vault.totalSupply(), 1);
+        // assertEq(morpho_vault.totalAssets(), 10);
+        // assertEq(morpho_vault.convertToAssets(1), 10);
 
         // usds.approve(address(mainnetController), type(uint256).max);
 
