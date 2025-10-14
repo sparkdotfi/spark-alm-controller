@@ -252,7 +252,7 @@ library UniswapV4Lib {
 
         // Perform rate limit decrease.
         IRateLimits(commonParams.rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makePoolKey(commonParams.rateLimitId, commonParams.poolId),
+            RateLimitHelpers.makeBytes32Key(commonParams.rateLimitId, commonParams.poolId),
             rateLimitDecrease
         );
 
