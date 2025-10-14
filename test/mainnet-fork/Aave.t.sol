@@ -552,6 +552,20 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         // Amount of aPYUSD received is less than the deposited amount due to slippage
         assertEq(pyusd.balanceOf(address(almProxy)),  0);
         assertEq(apyusd.balanceOf(address(almProxy)), 99_900.000111e6);
+
+        // Attacker withdraws their share
+        IAavePool(Ethereum.POOL).withdraw(address(pyusd), apyusd.balanceOf(address(this)), address(this));
+
+        // User withdraws getting less than what they deposited
+
+        assertEq(pyusd.balanceOf(address(almProxy)),  0);
+        assertEq(apyusd.balanceOf(address(almProxy)), 99_900.000111e6);
+
+        vm.prank(relayer);
+        mainnetController.withdrawAave(Ethereum.PYUSD_SPTOKEN, 99_900.000111e6);
+
+        assertEq(pyusd.balanceOf(address(almProxy)),  99_900.000111e6);
+        assertEq(apyusd.balanceOf(address(almProxy)), 0);
     }
 
     function _doInflationAttack() internal {
