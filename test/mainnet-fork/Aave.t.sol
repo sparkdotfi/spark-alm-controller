@@ -502,8 +502,6 @@ contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
             10_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
-        
-        mainnetController.setMaxSlippage(Ethereum.PYUSD_SPTOKEN, 1e18 - 1e4);  // Rounding slippage
 
         // Empty the PYUSD pool.
         IAavePool(Ethereum.POOL).withdraw(address(pyusd), apyusd.balanceOf(Ethereum.SPARK_PROXY), Ethereum.SPARK_PROXY);
@@ -522,7 +520,41 @@ contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
 
 contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAttackBaseTest {
 
-    function test_depositAave_liquidityIndexInflationAttack_pyusd() public {
+    function test_depositAave_liquidityIndexInflationAttackFailure() public {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(Ethereum.PYUSD_SPTOKEN, 1e18 - 1e4);  // Rounding slippage
+
+        _doInflationAttack();
+
+        // Verify that deposit would fail due to slippage
+        deal(address(pyusd), address(almProxy), 100_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/slippage-too-high");
+        mainnetController.depositAave(Ethereum.PYUSD_SPTOKEN, 100_000e6);
+    }
+
+    function test_depositAave_liquidityIndexInflationAttackSuccess() public {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(Ethereum.PYUSD_SPTOKEN, 1);
+
+        _doInflationAttack();
+
+        // Deposit would succeed without slippage
+        deal(address(pyusd), address(almProxy), 100_000e6);
+
+        assertEq(pyusd.balanceOf(address(almProxy)),  100_000e6);
+        assertEq(apyusd.balanceOf(address(almProxy)), 0);
+
+        vm.prank(relayer);
+        mainnetController.depositAave(Ethereum.PYUSD_SPTOKEN, 100_000e6);
+
+        // Amount of aPYUSD received is less than the deposited amount due to slippage
+        assertEq(pyusd.balanceOf(address(almProxy)),  0);
+        assertEq(apyusd.balanceOf(address(almProxy)), 99_900.000111e6);
+    }
+
+    function _doInflationAttack() internal {
         // Step 1: Initial setup - Start with empty pool
         // The pool should have minimal liquidity from fork state
         assertEq(apyusd.totalSupply(),             0);
@@ -570,13 +602,6 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
 
         // The liquidity index should be much higher than 1 RAY due to the attack
         assertGt(finalLiquidityIndex, initialLiquidityIndex);
-
-        // Verify that deposit would fail due to slippage
-        deal(address(pyusd), address(almProxy), 100_000e6);
-
-        vm.prank(relayer);
-        vm.expectRevert("MainnetController/slippage-too-high");
-        mainnetController.depositAave(Ethereum.PYUSD_SPTOKEN, 100_000e6);
     }
 
     // Flash loan callback function
