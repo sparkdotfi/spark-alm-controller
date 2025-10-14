@@ -25,7 +25,7 @@ library UniswapV4Lib {
         address rateLimits;
         bytes32 rateLimitId;
         uint256 maxSlippage;
-        bytes32 poolId;  // the PoolId of the Uniswap V4 pool // TODO: Why not bytes25?
+        bytes32 poolId;  // the PoolId of the Uniswap V4 pool
     }
 
     // NOTE: From https://docs.uniswap.org/contracts/v4/deployments
@@ -57,15 +57,28 @@ library UniswapV4Lib {
         // Encode actions and params
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(commonParams.poolId));
 
-        ( bytes memory actions, bytes[] memory params ) = _getMintActionsAndParams({
-            commonParams: commonParams,
-            poolKey     : poolKey,
-            tickLower   : tickLower,
-            tickUpper   : tickUpper,
-            liquidity   : liquidity,
-            amount0Max  : amount0Max,
-            amount1Max  : amount1Max
-        });
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.MINT_POSITION),
+            uint8(Actions.SETTLE_PAIR)
+        );
+
+        bytes[] memory params = new bytes[](2);
+
+        params[0] = abi.encode(
+            poolKey,             // Which pool to mint in
+            tickLower,           // Position's lower price bound
+            tickUpper,           // Position's upper price bound
+            liquidity,           // Amount of liquidity to mint
+            amount0Max,          // Maximum amount of token0 to use
+            amount1Max,          // Maximum amount of token1 to use
+            commonParams.proxy,  // NFT recipient
+            ""                   // No hook data needed
+        );
+
+        params[1] = abi.encode(
+            poolKey.currency0,  // First token to settle
+            poolKey.currency1   // Second token to settle
+        );
 
         return _increaseLiquidity({
             commonParams : commonParams,
@@ -102,13 +115,24 @@ library UniswapV4Lib {
             amount1Max        : amount1Max
         });
 
-        ( bytes memory actions, bytes[] memory params ) = _getIncreaseLiquidityActionsAndParams({
-            poolKey           : poolKey,
-            tokenId           : tokenId,
-            liquidityIncrease : liquidityIncrease,
-            amount0Max        : amount0Max,
-            amount1Max        : amount1Max
-        });
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.INCREASE_LIQUIDITY),
+            uint8(Actions.CLOSE_CURRENCY),
+            uint8(Actions.CLOSE_CURRENCY)
+        );
+
+        bytes[] memory params = new bytes[](3);
+
+        params[0] = abi.encode(
+            tokenId,              // Position to increase
+            liquidityIncrease,    // Amount to add
+            amount0Max,           // Maximum token0 to spend
+            amount1Max,           // Maximum token1 to spend
+            ""                    // No hook data needed
+        );
+
+        params[1] = abi.encode(poolKey.currency0);
+        params[2] = abi.encode(poolKey.currency1);
 
         return _increaseLiquidity({
             commonParams : commonParams,
@@ -219,13 +243,17 @@ library UniswapV4Lib {
         uint256 endingBalance0 = _getNormalizedBalance(token0, commonParams.proxy);
         uint256 endingBalance1 = _getNormalizedBalance(token1, commonParams.proxy);
 
+        // Account for the theoretical possibility of receiving tokens when adding liquidity by
+        // using a clamped subtraction.
+        rateLimitDecrease = _clampedSub(
+            startingBalance0 + startingBalance1,
+            endingBalance0 + endingBalance1
+        );
+
         // Perform rate limit decrease.
-        // TODO: Not impossible that an increase is needed, given fees and a low liquidity increase.
         IRateLimits(commonParams.rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makePoolKey(commonParams.rateLimitId, commonParams.poolId),
-            // Technically one can receive tokens when adding liquidity (if there are fees to be
-            // accumulated, so safe/clamped/non-negative subtraction is needed here).
-            rateLimitDecrease = _clampedSub(startingBalance0 + startingBalance1, endingBalance0 + endingBalance1)
+            rateLimitDecrease
         );
 
         // Reset approval of Permit2 in token0 and token1
@@ -268,87 +296,6 @@ library UniswapV4Lib {
         return FullMath.mulDiv(liquidity, sqrtPriceBX96 - sqrtPriceAX96, 1 << 96);
     }
 
-    function _getIncreaseLiquidityActionsAndParams(
-        PoolKey memory poolKey,
-        uint256        tokenId,
-        uint128        liquidityIncrease,
-        uint256        amount0Max,
-        uint256        amount1Max
-    ) internal pure returns (bytes memory actions, bytes[] memory params) {
-        actions = abi.encodePacked(
-            uint8(Actions.INCREASE_LIQUIDITY),
-            uint8(Actions.CLOSE_CURRENCY),
-            uint8(Actions.CLOSE_CURRENCY)
-        );
-
-        params = new bytes[](3);
-
-        // ```solidity
-        //    // Parameters for INCREASE_LIQUIDITY
-        //    params[0] = abi.encode(
-        //        tokenId,            // Position to increase
-        //        liquidityIncrease,  // Amount to add
-        //        amount0Max,         // Maximum token0 to spend
-        //        amount1Max,         // Maximum token1 to spend
-        //        ""                  // No hook data needed
-        //    );
-        // ```
-        params[0] = abi.encode(tokenId, liquidityIncrease, amount0Max, amount1Max, "");
-
-        // ```solidity
-        //    // CLOSE_CURRENCY only needs the currency
-        //    params[1] = abi.encode(currency0);
-        // ```
-        params[1] = abi.encode(poolKey.currency0);
-        params[2] = abi.encode(poolKey.currency1);
-    }
-
-    function _getMintActionsAndParams(
-        CommonParams calldata commonParams,
-        PoolKey      memory   poolKey,
-        int24                 tickLower,
-        int24                 tickUpper,
-        uint128               liquidity,
-        uint256               amount0Max,
-        uint256               amount1Max
-    ) internal pure returns (bytes memory actions, bytes[] memory params) {
-        actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
-        params  = new bytes[](2);
-
-        // ```solidity
-        //     // Parameters for MINT_POSITION
-        //     params[0] = abi.encode(
-        //         poolKey,     // Which pool to mint in
-        //         tickLower,   // Position's lower price bound
-        //         tickUpper,   // Position's upper price bound
-        //         liquidity,   // Amount of liquidity to mint
-        //         amount0Max,  // Maximum amount of token0 to use
-        //         amount1Max,  // Maximum amount of token1 to use
-        //         recipient,   // Who receives the NFT
-        //         ""           // No hook data needed
-        //     );
-        // ```
-        params[0] = abi.encode(
-            poolKey,
-            tickLower,
-            tickUpper,
-            liquidity,
-            amount0Max,
-            amount1Max,
-            commonParams.proxy,
-            ""
-        );
-
-        // ```solidity
-        //    // Parameters for SETTLE_PAIR - specify tokens to provide
-        //    params[1] = abi.encode(
-        //        poolKey.currency0,  // First token to settle
-        //        poolKey.currency1   // Second token to settle
-        //    );
-        // ```
-        params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
-    }
-
     function _getNormalizedBalance(
         address token,
         address account
@@ -386,7 +333,7 @@ library UniswapV4Lib {
         // Perform maxSlippages / amount0Max & amount1Max checks
         require(commonParams.maxSlippage != 0, "UniswapV4Lib/maxSlippage-not-set");
 
-        (uint160 sqrtPriceX96,,,) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(commonParams.poolId));
+        ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(commonParams.poolId));
 
         ( uint256 amount0, uint256 amount1 ) = getAmountsForLiquidity(
             sqrtPriceX96,
@@ -406,4 +353,5 @@ library UniswapV4Lib {
             "UniswapV4Lib/amount1Max-too-high"
         );
     }
+
 }

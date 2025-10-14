@@ -109,7 +109,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     }
 
     function test_mintPositionUniswapV4_revertsWhenTickLowerTooLow() external {
-        vm.expectRevert("tickLower too low");
+        vm.expectRevert("MainnetController/tickLower-too-low");
 
         vm.startPrank(relayer);
         mainnetController.mintPositionUniswapV4({
@@ -124,7 +124,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     }
 
     function test_mintPositionUniswapV4_revertsWhenTickUpperTooHigh() external {
-        vm.expectRevert("tickUpper too high");
+        vm.expectRevert("MainnetController/tickUpper-too-high");
 
         vm.startPrank(relayer);
         mainnetController.mintPositionUniswapV4({
@@ -400,7 +400,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     }
 
     function test_setUniswapV4tickLimits_revertsWhenInvalidTicks() external {
-        vm.expectRevert("Invalid ticks");
+        vm.expectRevert("MainnetController/invalid-ticks");
 
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(bytes32(0), 1, 0);
