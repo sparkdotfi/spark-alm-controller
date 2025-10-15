@@ -88,8 +88,8 @@ contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
 
         deal(address(token), address(almProxy), 1_000_000e18);
 
-        vm.expectRevert("ForeignController/transfer-failed");
         vm.prank(relayer);
+        vm.expectRevert("ForeignController/transfer-failed");
         foreignController.transferAsset(address(token), receiver, 1_000_000e18);
     }
 
