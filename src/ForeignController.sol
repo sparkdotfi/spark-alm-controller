@@ -176,10 +176,15 @@ contract ForeignController is AccessControl {
             amount
         );
 
-        proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
+        ( bool success ) = abi.decode(
+            proxy.doCall(
+                asset,
+                abi.encodeCall(IERC20(asset).transfer, (destination, amount))
+            ),
+            (bool)
         );
+
+        require(success, "ForeignController/transfer-failed");
     }
 
     /**********************************************************************************************/
