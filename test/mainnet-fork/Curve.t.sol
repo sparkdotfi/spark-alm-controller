@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { IERC4626 } from "lib/forge-std/src/interfaces/IERC4626.sol";
+import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
 
 import "./ForkTestBase.t.sol";
 
