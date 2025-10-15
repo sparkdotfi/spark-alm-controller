@@ -80,24 +80,29 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
     function test_donationAttackERC4626_usds() external {
         address mallory = makeAddr("mallory");
 
-        deal(address(usds), mallory, 10);
+        deal(address(usds), mallory, 1_000_000e18 + 1);
 
         vm.startPrank(mallory);
         usds.approve(address(morpho_vault), 1);
         morpho_vault.deposit(1, mallory);
-        usds.transfer(address(morpho_vault), 9);
+        usds.transfer(address(morpho_vault), 1_000_000e18);  // Donation attack
         vm.stopPrank();
 
         assertEq(morpho_vault.totalSupply(), 1);
-        // The following two would succeed in a regular vault:
-        // assertEq(morpho_vault.totalAssets(), 10);
-        // assertEq(morpho_vault.convertToAssets(1), 10);
+        // The following two would succeed in a regular (susceptible) vault:
+        // assertEq(morpho_vault.totalAssets(), 1_000_000e18 + 1);
+        // assertEq(morpho_vault.convertToAssets(1), 1_000_000e18 + 1);
 
         deal(address(usds), address(almProxy), 2_000_000e18);
 
         vm.startPrank(relayer);
-        mainnetController.depositERC4626(address(morpho_vault), 1_000_000e18);
-        assertEq(morpho_vault.balanceOf(address(almProxy)), 1_000_000e18);
+        mainnetController.depositERC4626(address(morpho_vault), 2_000_000e18);
+        vm.stopPrank();
+
+        // These would fail for a susceptible vault, but succeed here:
+        assertEq(morpho_vault.convertToAssets(morpho_vault.balanceOf(address(almProxy))), 2_000_000e18);
+        assertEq(morpho_vault.balanceOf(address(almProxy)), 2_000_000e18);
+
     }
 
 }
