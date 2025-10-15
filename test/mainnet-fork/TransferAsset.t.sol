@@ -102,13 +102,13 @@ contract MainnetControllerTransferAssetSuccessTests is TransferAssetBaseTest {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         assertEq(usdc.balanceOf(address(receiver)), 0);
-        assertEq(usdc.balanceOf(address(almProxy)),    1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
 
         vm.prank(relayer);
         mainnetController.transferAsset(address(usdc), receiver, 1_000_000e6);
 
         assertEq(usdc.balanceOf(address(receiver)), 1_000_000e6);
-        assertEq(usdc.balanceOf(address(almProxy)),    0);
+        assertEq(usdc.balanceOf(address(almProxy)), 0);
     }
 
 }

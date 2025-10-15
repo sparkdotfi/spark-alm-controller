@@ -101,13 +101,13 @@ contract ForeignControllerTransferAssetSuccessTests is TransferAssetBaseTest {
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
 
         assertEq(usdcBase.balanceOf(address(receiver)), 0);
-        assertEq(usdcBase.balanceOf(address(almProxy)),    1_000_000e6);
+        assertEq(usdcBase.balanceOf(address(almProxy)), 1_000_000e6);
 
         vm.prank(relayer);
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6);
 
         assertEq(usdcBase.balanceOf(address(receiver)), 1_000_000e6);
-        assertEq(usdcBase.balanceOf(address(almProxy)),    0);
+        assertEq(usdcBase.balanceOf(address(almProxy)), 0);
     }
 
 }
