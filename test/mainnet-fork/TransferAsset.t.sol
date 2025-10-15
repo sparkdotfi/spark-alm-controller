@@ -10,7 +10,8 @@ import "./ForkTestBase.t.sol";
 contract MockToken is ERC20 {
 
     constructor() ERC20("MockToken", "MockToken") {}
-
+    
+    // Overriding transfer to return false to simulate a failed transfer
     function transfer(address to, uint256 value) public override returns (bool) {
         address owner = _msgSender();
         _transfer(owner, to, value);
@@ -21,7 +22,7 @@ contract MockToken is ERC20 {
 
 contract TransferAssetFailureBaseTest is ForkTestBase {
 
-    address destination = makeAddr("destination");
+    address dest = makeAddr("destination");
 
     MockToken public token;
 
@@ -30,13 +31,13 @@ contract TransferAssetFailureBaseTest is ForkTestBase {
 
         token = new MockToken();
 
-        vm.startPrank(Base.SPARK_EXECUTOR);
+        vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressAddressKey(
-                foreignController.LIMIT_ASSET_TRANSFER(),
+                mainnetController.LIMIT_ASSET_TRANSFER(),
                 address(token),
-                destination
+                dest
             ),
             1_000_000e18,
             uint256(1_000_000e18) / 1 days
@@ -49,18 +50,18 @@ contract TransferAssetFailureBaseTest is ForkTestBase {
 
 contract TransferAssetBaseTest is ForkTestBase {
 
-    address destination = makeAddr("destination");
+    address dest = makeAddr("destination");
 
     function setUp() public override {
         super.setUp();
 
-        vm.startPrank(Base.SPARK_EXECUTOR);
+        vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressAddressKey(
-                foreignController.LIMIT_ASSET_TRANSFER(),
-                address(usdcBase),
-                destination
+                mainnetController.LIMIT_ASSET_TRANSFER(),
+                address(usdc),
+                dest
             ),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
@@ -71,7 +72,7 @@ contract TransferAssetBaseTest is ForkTestBase {
 
 }
 
-contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
+contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
 
     function test_transferAsset_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -79,52 +80,52 @@ contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
             address(this),
             RELAYER
         ));
-        foreignController.transferAsset(address(usdcBase), destination, 1_000_000e6);
+        mainnetController.transferAsset(address(usdc), dest, 1_000_000e6);
     }
 
     function test_transferAsset_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        foreignController.transferAsset(makeAddr("fake-token"), destination, 1e18);
+        mainnetController.transferAsset(makeAddr("fake-token"), dest, 1e18);
     }
 
     function test_transferAsset_rateLimitedBoundary() external {
-        deal(address(usdcBase), address(almProxy), 1_000_000e6 + 1);
+        deal(address(usdc), address(almProxy), 1_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.startPrank(relayer);
-        foreignController.transferAsset(address(usdcBase), destination, 1_000_000e6 + 1);
+        mainnetController.transferAsset(address(usdc), dest, 1_000_000e6 + 1);
 
-        foreignController.transferAsset(address(usdcBase), destination, 1_000_000e6);
+        mainnetController.transferAsset(address(usdc), dest, 1_000_000e6);
     }
 
 }
 
-contract ForeignControllerTransferAssetTransferFailureTest is TransferAssetFailureBaseTest {
+contract MainnetControllerTransferAssetTransferFailureTest is TransferAssetFailureBaseTest {
 
     function test_transferAsset_transferFailed() external {
         deal(address(token), address(almProxy), 1_000_000e18);
 
         vm.expectRevert("TransferAsset/transfer-failed");
         vm.startPrank(relayer);
-        foreignController.transferAsset(address(token), destination, 1_000_000e18);
+        mainnetController.transferAsset(address(token), dest, 1_000_000e18);
     }
 
 }
 
-contract ForeignControllerTransferAssetSuccessTests is TransferAssetBaseTest {
+contract MainnetControllerTransferAssetSuccessTests is TransferAssetBaseTest {
 
     function test_transferAsset() external {
-        deal(address(usdcBase), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        assertEq(usdcBase.balanceOf(address(destination)), 0);
-        assertEq(usdcBase.balanceOf(address(almProxy)),    1_000_000e6);
+        assertEq(usdc.balanceOf(address(dest)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)),    1_000_000e6);
 
         vm.prank(relayer);
-        foreignController.transferAsset(address(usdcBase), destination, 1_000_000e6);
+        mainnetController.transferAsset(address(usdc), dest, 1_000_000e6);
 
-        assertEq(usdcBase.balanceOf(address(destination)), 1_000_000e6);
-        assertEq(usdcBase.balanceOf(address(almProxy)),    0);
+        assertEq(usdc.balanceOf(address(dest)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),    0);
     }
 
 }
