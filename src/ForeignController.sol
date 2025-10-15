@@ -184,7 +184,7 @@ contract ForeignController is AccessControl {
             (bool)
         );
 
-        require(success, "TransferAsset/transfer-failed");
+        require(success, "ForeignController/transfer-failed");
     }
 
     /**********************************************************************************************/

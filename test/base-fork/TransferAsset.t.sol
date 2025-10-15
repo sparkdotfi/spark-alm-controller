@@ -12,14 +12,13 @@ contract MockToken is ERC20 {
     constructor() ERC20("MockToken", "MockToken") {}
 
     function transfer(address to, uint256 value) public override returns (bool) {
-        address owner = _msgSender();
-        _transfer(owner, to, value);
+        _transfer(_msgSender(), to, value);
         return false;
     }
 
 }
 
-contract TransferAssetFailureBaseTest is ForkTestBase {
+contract TransferAssetBaseTest is ForkTestBase {
 
     address destination = makeAddr("destination");
 
@@ -35,35 +34,21 @@ contract TransferAssetFailureBaseTest is ForkTestBase {
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressAddressKey(
                 foreignController.LIMIT_ASSET_TRANSFER(),
-                address(token),
-                destination
-            ),
-            1_000_000e18,
-            uint256(1_000_000e18) / 1 days
-        );
-
-        vm.stopPrank();
-    }
-
-}
-
-contract TransferAssetBaseTest is ForkTestBase {
-
-    address destination = makeAddr("destination");
-
-    function setUp() public override {
-        super.setUp();
-
-        vm.startPrank(Base.SPARK_EXECUTOR);
-
-        rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAddressAddressKey(
-                foreignController.LIMIT_ASSET_TRANSFER(),
                 address(usdcBase),
                 destination
             ),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
+        );
+
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAddressAddressKey(
+                foreignController.LIMIT_ASSET_TRANSFER(),
+                address(token),
+                destination
+            ),
+            1_000_000e18,
+            uint256(1_000_000e18) / 1 days
         );
 
         vm.stopPrank();
@@ -98,14 +83,10 @@ contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
         foreignController.transferAsset(address(usdcBase), destination, 1_000_000e6);
     }
 
-}
-
-contract ForeignControllerTransferAssetTransferFailureTest is TransferAssetFailureBaseTest {
-
     function test_transferAsset_transferFailed() external {
         deal(address(token), address(almProxy), 1_000_000e18);
 
-        vm.expectRevert("TransferAsset/transfer-failed");
+        vm.expectRevert("ForeignController/transfer-failed");
         vm.prank(relayer);
         foreignController.transferAsset(address(token), destination, 1_000_000e18);
     }

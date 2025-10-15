@@ -10,17 +10,16 @@ import "./ForkTestBase.t.sol";
 contract MockToken is ERC20 {
 
     constructor() ERC20("MockToken", "MockToken") {}
-    
+
     // Overriding transfer to return false to simulate a failed transfer
     function transfer(address to, uint256 value) public override returns (bool) {
-        address owner = _msgSender();
-        _transfer(owner, to, value);
+        _transfer(_msgSender(), to, value);
         return false;
     }
 
 }
 
-contract TransferAssetFailureBaseTest is ForkTestBase {
+contract TransferAssetBaseTest is ForkTestBase {
 
     address dest = makeAddr("destination");
 
@@ -36,35 +35,21 @@ contract TransferAssetFailureBaseTest is ForkTestBase {
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressAddressKey(
                 mainnetController.LIMIT_ASSET_TRANSFER(),
-                address(token),
-                dest
-            ),
-            1_000_000e18,
-            uint256(1_000_000e18) / 1 days
-        );
-
-        vm.stopPrank();
-    }
-
-}
-
-contract TransferAssetBaseTest is ForkTestBase {
-
-    address dest = makeAddr("destination");
-
-    function setUp() public override {
-        super.setUp();
-
-        vm.startPrank(Ethereum.SPARK_PROXY);
-
-        rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAddressAddressKey(
-                mainnetController.LIMIT_ASSET_TRANSFER(),
                 address(usdc),
                 dest
             ),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
+        );
+
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAddressAddressKey(
+                mainnetController.LIMIT_ASSET_TRANSFER(),
+                address(token),
+                dest
+            ),
+            1_000_000e18,
+            uint256(1_000_000e18) / 1 days
         );
 
         vm.stopPrank();
@@ -99,14 +84,10 @@ contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
         mainnetController.transferAsset(address(usdc), dest, 1_000_000e6);
     }
 
-}
-
-contract MainnetControllerTransferAssetTransferFailureTest is TransferAssetFailureBaseTest {
-
     function test_transferAsset_transferFailed() external {
         deal(address(token), address(almProxy), 1_000_000e18);
 
-        vm.expectRevert("TransferAsset/transfer-failed");
+        vm.expectRevert("MainnetController/transfer-failed");
         vm.prank(relayer);
         mainnetController.transferAsset(address(token), dest, 1_000_000e18);
     }

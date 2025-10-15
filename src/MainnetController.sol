@@ -344,7 +344,7 @@ contract MainnetController is AccessControl {
             (bool)
         );
 
-        require(success, "TransferAsset/transfer-failed");
+        require(success, "MainnetController/transfer-failed");
     }
 
     /**********************************************************************************************/
