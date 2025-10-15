@@ -65,7 +65,7 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        mainnetController.setMaxSlippage(address(susds), 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setMaxSlippage(address(morpho_vault), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
     }
 
@@ -89,51 +89,15 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         vm.stopPrank();
 
         assertEq(morpho_vault.totalSupply(), 1);
+        // The following two would succeed in a regular vault:
         // assertEq(morpho_vault.totalAssets(), 10);
         // assertEq(morpho_vault.convertToAssets(1), 10);
 
-        // usds.approve(address(mainnetController), type(uint256).max);
+        deal(address(usds), address(almProxy), 2_000_000e18);
 
-        // Deposit into vault
-        // vm.startPrank(alice);
-        // mainnetController.depositERC4626(address(susds), morpho_vault, 1_000_000e18, alice);
-
-        // // Check shares received
-        // bytes memory data = abi.encodeWithSignature("balanceOf(address)", alice);
-        // (, bytes memory returnData) = morpho_vault.call(data);
-        // uint256 shares = abi.decode(returnData, (uint256));
-        // assertEq(shares, 1_000_000e18);
-        //
-        // // Check totalAssets and totalSupply
-        // data = abi.encodeWithSignature("totalAssets()");
-        // (, returnData) = morpho_vault.call(data);
-        // assertEq(abi.decode(returnData, (uint256)), 1_000_000e18);
-        //
-        // data = abi.encodeWithSignature("totalSupply()");
-        // (, returnData) = morpho_vault.call(data);
-        // assertEq(abi.decode(returnData, (uint256)), 1_000_000e18);
-        //
-        // // Simulate donation attack by sending 1_000_000 susds directly to the vault
-        // susds.transfer(morpho_vault, 1_000_000e18);
-        //
-        // // Check totalAssets and totalSupply after donation
-        // data = abi.encodeWithSignature("totalAssets()");
-        // (, returnData) = morpho_vault.call(data);
-        // assertEq(abi.decode(returnData, (uint256)), 2_000_000e18);
-        //
-        // data = abi.encodeWithSignature("totalSupply()");
-        // (, returnData) = morpho_vault.call(data);
-        // assertEq(abi.decode(returnData, (uint256)), 1_000_000e18);
-        //
-        // // Withdraw all shares
-        // mainnetController.withdrawERC4626(address(susds), morpho_vault, shares, alice, alice);
-        //
-        // // Check final susds balance of Alice
-        // uint256 finalBalance = susds.balanceOf(alice);
-        // // Alice should have more than her initial deposit due to the donation attack
-        // assertGt(finalBalance, 1_000_000e18);
-        //
-        // vm.stopPrank();
+        vm.startPrank(relayer);
+        mainnetController.depositERC4626(address(morpho_vault), 1_000_000e18);
+        assertEq(morpho_vault.balanceOf(address(almProxy)), 1_000_000e18);
     }
 
 }
