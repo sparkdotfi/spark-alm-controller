@@ -149,7 +149,7 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMaxSlippage(makeAddr("pool"), 0);
+        mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
 
         vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
@@ -157,13 +157,13 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
-        mainnetController.setMaxSlippage(makeAddr("pool"), 0);
+        mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
     function test_setMaxSlippage_poolZeroAddress() public {
         vm.prank(admin);
         vm.expectRevert("MainnetController/pool-zero-address");
-        mainnetController.setMaxSlippage(address(0), 0);
+        mainnetController.setMaxSlippage(address(0), 0.98e18);
     }
 
     function test_setMaxSlippage() public {
@@ -289,7 +289,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        foreignController.setMaxSlippage(makeAddr("pool"), 0.0);
+        foreignController.setMaxSlippage(makeAddr("pool"), 0.98e18);
 
         vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
@@ -297,13 +297,13 @@ contract ForeignControllerAdminTests is UnitTestBase {
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
-        foreignController.setMaxSlippage(makeAddr("pool"), 0.0);
+        foreignController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
     function test_setMaxSlippage_poolZeroAddress() public {
         vm.prank(admin);
         vm.expectRevert("ForeignController/pool-zero-address");
-        foreignController.setMaxSlippage(address(0), 0.0);
+        foreignController.setMaxSlippage(address(0), 0.98e18);
     }
 
     function test_setMaxSlippage() public {
