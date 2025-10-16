@@ -1,23 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
+import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
+
 import "./ForkTestBase.t.sol";
-
-contract MockToken is ERC20 {
-
-    constructor() ERC20("MockToken", "MockToken") {}
-
-    // Overriding transfer to return false to simulate a failed transfer
-    function transfer(address to, uint256 value) public override returns (bool) {
-        _transfer(_msgSender(), to, value);
-        return false;
-    }
-
-}
 
 contract TransferAssetBaseTest is ForkTestBase {
 
@@ -71,7 +59,7 @@ contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
     }
 
     function test_transferAsset_transferFailed() external {
-        MockToken token = new MockToken();
+        MockTokenReturnFalse token = new MockTokenReturnFalse();
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 

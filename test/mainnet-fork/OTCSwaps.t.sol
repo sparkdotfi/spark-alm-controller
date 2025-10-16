@@ -10,6 +10,8 @@ import { OTC } from "src/MainnetController.sol";
 
 import { OTCBuffer } from "src/OTCBuffer.sol";
 
+import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
+
 import "./ForkTestBase.t.sol";
 
 // Mock ERC20 with variable decimals
@@ -23,26 +25,6 @@ contract ERC20 is ERC20Mock {
 
     function decimals() public view override returns (uint8) {
         return _decimals;
-    }
-
-}
-
-// Mock ERC20 with transfer returning false to simulate a failed transfer
-contract MockToken is ERC20 {
-
-    constructor() ERC20(6) {}
-
-    // Overriding transfer to return false to simulate a failed transfer
-    function transfer(address to, uint256 value) public override returns (bool) {
-        _transfer(_msgSender(), to, value);
-        return false;
-    }
-
-    // Overriding transferFrom to return false to simulate a failed transfer
-    function transferFrom(address from, address to, uint256 value) public override returns (bool) {
-        _spendAllowance(from, _msgSender(), value);
-        _transfer(from, to, value);
-        return false;
     }
 
 }
@@ -181,7 +163,7 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
     }
 
     function test_otcSend_transferFailed() external {
-        MockToken token = new MockToken();
+        MockTokenReturnFalse token = new MockTokenReturnFalse();
 
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
@@ -463,7 +445,7 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
     }
 
     function test_otcClaim_transferFailed() external {
-        MockToken token = new MockToken();
+        MockTokenReturnFalse token = new MockTokenReturnFalse();
 
         deal(address(token), address(otcBuffer), 1_000_000e6);
 
