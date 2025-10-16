@@ -58,7 +58,7 @@ contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
         mainnetController.transferAsset(address(usdc), receiver, 1_000_000e6);
     }
 
-    function test_transferAsset_transferFailed() external {
+    function test_transferAsset_transferFailedOnReturnFalse() external {
         MockTokenReturnFalse token = new MockTokenReturnFalse();
 
         vm.startPrank(Ethereum.SPARK_PROXY);
