@@ -8,7 +8,7 @@ import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/Optio
 
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
-import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+import { AccessControlEnumerable } from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
 import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
@@ -31,7 +31,7 @@ interface ISparkVaultLike {
     function take(uint256 assetAmount) external;
 }
 
-contract ForeignController is AccessControl {
+contract ForeignController is AccessControlEnumerable {
 
     using OptionsBuilder for bytes;
 
