@@ -111,12 +111,17 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         assertEq(morphoVault.totalAssets(), 3_000_000e18 + 1);
         assertEq(morphoVault.totalSupply(), 4);
 
-        uint256 assetsOfProxy    = morphoVault.convertToAssets(morphoVault.balanceOf(almProxy));
+        uint256 assetsOfProxy    = morphoVault.convertToAssets(morphoVault.balanceOf(address(almProxy)));
         uint256 assetsOfAttacker = morphoVault.convertToAssets(morphoVault.balanceOf(attacker));
 
-        assertEq(assetsOfProxy, 1_500_000e18 + 1);
+        // convertToAssets(shares) == shares * (totalAssets + 1) / (totalSupply + 1)
+        // convertToAssets(3)      == 3 * (3_000_000e18 + 1 + 1) / (4 + 1)
+        //                         == 1_800_000e18 + 1
+        assertEq(assetsOfProxy, 1_800_000e18 + 1);
         assertLt(assetsOfProxy, 2_000_000e18);  // The proxy owns less than it deposited
-        assertEq(assetsOfAttacker, 500_000e18);
+        // convertToAssets(1)      == 1 * (3_000_000e18 + 1 + 1) / (4 + 1)
+        //                         == 600_000e18
+        assertEq(assetsOfAttacker, 600_000e18);
     }
 
     function _doAttack() internal {
