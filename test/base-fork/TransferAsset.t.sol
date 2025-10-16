@@ -1,22 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
+import { MockTokenReturnFalse, MockTokenReturnNull } from "../mocks/Mocks.sol";
+
 import "./ForkTestBase.t.sol";
-
-contract MockToken is ERC20 {
-
-    constructor() ERC20("MockToken", "MockToken") {}
-
-    function transfer(address to, uint256 value) public override returns (bool) {
-        _transfer(_msgSender(), to, value);
-        return false;
-    }
-
-}
 
 contract TransferAssetBaseTest is ForkTestBase {
 
@@ -69,8 +58,8 @@ contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6);
     }
 
-    function test_transferAsset_transferFailed() external {
-        MockToken token = new MockToken();
+    function test_transferAsset_transferFailedOnReturnFalse() external {
+        MockTokenReturnFalse token = new MockTokenReturnFalse();
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
@@ -108,6 +97,35 @@ contract ForeignControllerTransferAssetSuccessTests is TransferAssetBaseTest {
 
         assertEq(usdcBase.balanceOf(address(receiver)), 1_000_000e6);
         assertEq(usdcBase.balanceOf(address(almProxy)), 0);
+    }
+
+    function test_transferAsset_successNoReturnData() external {
+        MockTokenReturnNull token = new MockTokenReturnNull("Token", "TKN", 6);
+
+        vm.startPrank(Base.SPARK_EXECUTOR);
+
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAddressAddressKey(
+                foreignController.LIMIT_ASSET_TRANSFER(),
+                address(token),
+                receiver
+            ),
+            1_000_000e6,
+            uint256(1_000_000e6) / 1 days
+        );
+
+        vm.stopPrank();
+
+        deal(address(token), address(almProxy), 1_000_000e6);
+
+        assertEq(token.balanceOf(address(receiver)), 0);
+        assertEq(token.balanceOf(address(almProxy)), 1_000_000e6);
+
+        vm.prank(relayer);
+        foreignController.transferAsset(address(token), receiver, 1_000_000e6);
+
+        assertEq(token.balanceOf(address(receiver)), 1_000_000e6);
+        assertEq(token.balanceOf(address(almProxy)), 0);
     }
 
 }

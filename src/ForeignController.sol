@@ -176,15 +176,15 @@ contract ForeignController is AccessControlEnumerable {
             amount
         );
 
-        ( bool success ) = abi.decode(
-            proxy.doCall(
-                asset,
-                abi.encodeCall(IERC20(asset).transfer, (destination, amount))
-            ),
-            (bool)
+        bytes memory returnData = proxy.doCall(
+            asset,
+            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
         );
 
-        require(success, "ForeignController/transfer-failed");
+        require(
+            returnData.length == 0 || abi.decode(returnData, (bool)),
+            "ForeignController/transfer-failed"
+        );
     }
 
     /**********************************************************************************************/
