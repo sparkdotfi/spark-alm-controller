@@ -7,7 +7,7 @@ import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces
 // This interface has been reviewed, and is compliant with the specs: https://eips.ethereum.org/EIPS/eip-7540
 import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
 
-import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+import { AccessControlEnumerable } from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
 import { IERC20 }         from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import { IERC20Metadata } from "openzeppelin-contracts/contracts/interfaces/IERC20Metadata.sol";
@@ -100,7 +100,7 @@ struct OTC {
     uint256 claimed18;
 }
 
-contract MainnetController is AccessControl {
+contract MainnetController is AccessControlEnumerable {
 
     using OptionsBuilder for bytes;
 
