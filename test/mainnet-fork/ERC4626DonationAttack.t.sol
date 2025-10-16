@@ -29,6 +29,8 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
     address allocator      = makeAddr("allocator");
     address skim_recipient = makeAddr("skim_recipient");
 
+    address attacker = makeAddr("attacker");
+
     function setUp() override public {
         super.setUp();
 
@@ -65,12 +67,12 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
         assertEq(morphoVault.curator(),      curator);
         assertEq(morphoVault.guardian(),     guardian);
         assertEq(morphoVault.feeRecipient(), fee_recipient);
+
         assertTrue(morphoVault.isAllocator(allocator));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        mainnetController.setMaxSlippage(address(morphoVault), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
     }
 
@@ -82,18 +84,51 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
 
 contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
 
-    function test_donationAttackERC4626_usds() external {
-        address mallory = makeAddr("mallory");
+    function test_depositERC4626_donationAttackFailure() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(morphoVault), 1e18 - 1e4);  // Rounding slippage
 
+        _doAttack();
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/slippage-too-high");
+        mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
+    }
+
+    function test_depositERC4626_donationAttackSuccess() external {
+        // Set max slippage to (close to) 100%
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(morphoVault), 1);
+
+        _doAttack();
+        vm.prank(relayer);
+        uint256 shares = mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
+
+        // shares == assets * (totalSupply + 1) / (totalAssets + 1)
+        //        == 2_000_000e18 * (1 + 1) / (1_000_000e18 + 1 + 1)
+        //        == 3.9..
+        // Rounding down, the proxy receives 3 shares.
+        assertEq(shares,                    3);
+        assertEq(morphoVault.totalAssets(), 3_000_000e18 + 1);
+        assertEq(morphoVault.totalSupply(), 4);
+
+        uint256 assetsOfProxy    = morphoVault.convertToAssets(morphoVault.balanceOf(almProxy));
+        uint256 assetsOfAttacker = morphoVault.convertToAssets(morphoVault.balanceOf(attacker));
+
+        assertEq(assetsOfProxy, 1_500_000e18 + 1);
+        assertLt(assetsOfProxy, 2_000_000e18);  // The proxy owns less than it deposited
+        assertEq(assetsOfAttacker, 500_000e18);
+    }
+
+    function _doAttack() internal {
         Market memory market = morpho.market(marketId);
         assertEq(market.totalSupplyAssets, 36_095_481.319542091092211965e18); // ~36M USDS
         assertEq(market.totalSupplyShares, 36_095_481.319542091092211965000000e24);
 
-        deal(address(usds), mallory, 1_000_000e18 + 1);
+        deal(address(usds), attacker, 1_000_000e18 + 1);
 
-        vm.startPrank(mallory);
+        vm.startPrank(attacker);
         usds.approve(address(morphoVault), 1);
-        morphoVault.deposit(1, mallory);
+        morphoVault.deposit(1, attacker);
         usds.approve(address(morpho), 1_000_000e18);
         // Donation attack
         (uint256 assets, uint256 shares) = morpho.supply(
@@ -105,8 +140,8 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         assertEq(shares, uint256(1_000_000e18) * market.totalSupplyShares / market.totalSupplyAssets);
         assertEq(shares, 1e30);
 
-        assertEq(morphoVault.balanceOf(mallory), 1);
-        assertEq(morphoVault.totalSupply(), 1);
+        assertEq(morphoVault.balanceOf(attacker), 1);
+        assertEq(morphoVault.totalSupply(),       1);
 
         assertEq(morphoVault.totalAssets(), 1_000_000e18 + 1);
         // Instead of performing shares * totalAssets / totalShares, aka
@@ -116,19 +151,6 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         assertEq(morphoVault.convertToAssets(1), 500_000e18 + 1);
 
         deal(address(usds), address(almProxy), 2_000_000e18);
-
-        vm.prank(relayer);
-        try mainnetController.depositERC4626(address(morphoVault), 2_000_000e18) {
-            // The deposit went through. The only time this is permissible is if the attack had no
-            // effect.
-            uint256 assetsOfProxy = morphoVault.convertToAssets(morphoVault.balanceOf(address(almProxy)));
-            assertEq(assetsOfProxy,                            2_000_000e18);
-            assertEq(morphoVault.balanceOf(address(almProxy)), 2_000_000e24);
-        } catch Error(string memory reason) {
-            // The deposit was correctly reverted.
-            assertEq(reason, "MainnetController/slippage-too-high");
-        }
     }
-
 }
 
