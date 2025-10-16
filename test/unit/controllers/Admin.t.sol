@@ -160,6 +160,12 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
         mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
+    function test_setMaxSlippage_poolZeroAddress() public {
+        vm.prank(admin);
+        vm.expectRevert("MainnetController/pool-zero-address");
+        mainnetController.setMaxSlippage(address(0), 0.98e18);
+    }
+
     function test_setMaxSlippage() public {
         address pool = makeAddr("pool");
 
@@ -294,6 +300,12 @@ contract ForeignControllerAdminTests is UnitTestBase {
         foreignController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
+    function test_setMaxSlippage_poolZeroAddress() public {
+        vm.prank(admin);
+        vm.expectRevert("ForeignController/pool-zero-address");
+        foreignController.setMaxSlippage(address(0), 0.98e18);
+    }
+
     function test_setMaxSlippage() public {
         address pool = makeAddr("pool");
 
@@ -401,4 +413,3 @@ contract ForeignControllerAdminTests is UnitTestBase {
     }
 
 }
-

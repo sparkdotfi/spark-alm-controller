@@ -254,6 +254,9 @@ contract MainnetController is AccessControlEnumerable {
 
     function setMaxSlippage(address pool, uint256 maxSlippage) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(pool != address(0), "MainnetController/pool-zero-address");
+
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
     }
