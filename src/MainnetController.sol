@@ -336,15 +336,7 @@ contract MainnetController is AccessControl {
             amount
         );
 
-        bytes memory returnData = proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
-        );
-
-        require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
-            "MainnetController/transfer-failed"
-        );
+        _transfer(asset, destination, amount);
     }
 
     /**********************************************************************************************/
@@ -1078,10 +1070,7 @@ contract MainnetController is AccessControl {
         otc.claimed18     = 0;
 
         // NOTE: Reentrancy not relevant here because there are no state changes after this call
-        proxy.doCall(
-            assetToSend,
-            abi.encodeCall(IERC20(assetToSend).transfer, (exchange, amount))
-        );
+        _transfer(assetToSend, exchange, amount);
 
         emit OTCSwapSent(exchange, otc.buffer, assetToSend, amount, sent18);
     }
@@ -1104,14 +1093,7 @@ contract MainnetController is AccessControl {
 
         // Transfer assets from the OTC buffer to the proxy
         // NOTE: Reentrancy not possible here because both are known contracts.
-        // NOTE: SafeERC20 is not used here; tokens that do not revert will fail silently.
-        proxy.doCall(
-            assetToClaim,
-            abi.encodeCall(
-                IERC20(assetToClaim).transferFrom,
-                (otcBuffer, address(proxy), amountToClaim)
-            )
-        );
+        _transferFrom(assetToClaim, otcBuffer, address(proxy), amountToClaim);
 
         emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
     }
@@ -1165,6 +1147,35 @@ contract MainnetController is AccessControl {
         require(
             approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
             "MainnetController/approve-failed"
+        );
+    }
+
+    function _transfer(address asset, address destination, uint256 amount) internal {
+        bytes memory returnData = proxy.doCall(
+            asset,
+            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
+        );
+
+        require(
+            returnData.length == 0 || abi.decode(returnData, (bool)),
+            "MainnetController/transfer-failed"
+        );
+    }
+
+    function _transferFrom(
+        address asset,
+        address source,
+        address destination,
+        uint256 amount
+    ) internal {
+        bytes memory returnData = proxy.doCall(
+            asset,
+            abi.encodeCall(IERC20(asset).transferFrom, (source, destination, amount))
+        );
+
+        require(
+            returnData.length == 0 || abi.decode(returnData, (bool)),
+            "MainnetController/transfer-failed"
         );
     }
 

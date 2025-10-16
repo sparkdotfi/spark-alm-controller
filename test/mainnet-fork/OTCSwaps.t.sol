@@ -27,6 +27,26 @@ contract ERC20 is ERC20Mock {
 
 }
 
+// Mock ERC20 with transfer returning false to simulate a failed transfer
+contract MockToken is ERC20 {
+
+    constructor() ERC20(6) {}
+
+    // Overriding transfer to return false to simulate a failed transfer
+    function transfer(address to, uint256 value) public override returns (bool) {
+        _transfer(_msgSender(), to, value);
+        return false;
+    }
+
+    // Overriding transferFrom to return false to simulate a failed transfer
+    function transferFrom(address from, address to, uint256 value) public override returns (bool) {
+        _spendAllowance(from, _msgSender(), value);
+        _transfer(from, to, value);
+        return false;
+    }
+
+}
+
 contract MainnetControllerOTCSwapBase is ForkTestBase {
 
     bytes32 LIMIT_OTC_SWAP = keccak256("LIMIT_OTC_SWAP");
@@ -158,6 +178,19 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
         vm.prank(relayer);
         vm.expectRevert("MainnetController/otc-buffer-not-set");
         mainnetController.otcSend(exchange, address(usdt), 1e6);
+    }
+
+    function test_otcSend_transferFailed() external {
+        MockToken token = new MockToken();
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+
+        deal(address(token), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/transfer-failed");
+        mainnetController.otcSend(exchange, address(token), 1_000_000e6);
     }
 
     function test_otcSend_lastSwapNotReturnedBoundary_noRecharge_usdt() external {
@@ -429,17 +462,30 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcClaim(makeAddr("fake-exchange"), address(1));
     }
 
+    function test_otcClaim_transferFailed() external {
+        MockToken token = new MockToken();
+
+        deal(address(token), address(otcBuffer), 1_000_000e6);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        otcBuffer.approve(address(token), address(almProxy), type(uint256).max);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/transfer-failed");
+        mainnetController.otcClaim(exchange, address(token));
+    }
+
 }
 
 contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
     function test_otcClaim_usdt() external {
-        ( address octBuffer,,,, ) = mainnetController.otcs(exchange);
+        ( address otcBuffer,,,, ) = mainnetController.otcs(exchange);
 
-        deal(address(usdt), address(octBuffer), 10_000_000e6);
+        deal(address(usdt), address(otcBuffer), 10_000_000e6);
 
         assertEq(usdt.balanceOf(address(almProxy)),  0);
-        assertEq(usdt.balanceOf(address(octBuffer)), 10_000_000e6);
+        assertEq(usdt.balanceOf(address(otcBuffer)), 10_000_000e6);
 
         _assertOtcState({
             sent18:        0,
@@ -449,11 +495,11 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
-        emit OTCClaimed(exchange, address(octBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
+        emit OTCClaimed(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcClaim(exchange, address(usdt));
 
         assertEq(usdt.balanceOf(address(almProxy)),  10_000_000e6);
-        assertEq(usdt.balanceOf(address(octBuffer)), 0);
+        assertEq(usdt.balanceOf(address(otcBuffer)), 0);
 
         _assertOtcState({
             sent18:        0,  // Sent step not done, but this shows its not modified
@@ -463,12 +509,12 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
     }
 
     function test_otcClaim_usds() external {
-        ( address octBuffer,,,, ) = mainnetController.otcs(exchange);
+        ( address otcBuffer,,,, ) = mainnetController.otcs(exchange);
 
-        deal(address(usds), address(octBuffer), 10_000_000e18);
+        deal(address(usds), address(otcBuffer), 10_000_000e18);
 
         assertEq(usds.balanceOf(address(almProxy)),  0);
-        assertEq(usds.balanceOf(address(octBuffer)), 10_000_000e18);
+        assertEq(usds.balanceOf(address(otcBuffer)), 10_000_000e18);
 
         _assertOtcState({
             sent18:        0,
@@ -478,11 +524,11 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
-        emit OTCClaimed(exchange, address(octBuffer), address(usds), 10_000_000e18, 10_000_000e18);
+        emit OTCClaimed(exchange, address(otcBuffer), address(usds), 10_000_000e18, 10_000_000e18);
         mainnetController.otcClaim(exchange, address(usds));
 
         assertEq(usds.balanceOf(address(almProxy)),  10_000_000e18);
-        assertEq(usds.balanceOf(address(octBuffer)), 0);
+        assertEq(usds.balanceOf(address(otcBuffer)), 0);
 
         _assertOtcState({
             sent18:        0,  // Sent step not done, but this shows its not modified

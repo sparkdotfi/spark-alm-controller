@@ -111,4 +111,33 @@ contract MainnetControllerTransferAssetSuccessTests is TransferAssetBaseTest {
         assertEq(usdc.balanceOf(address(almProxy)), 0);
     }
 
+    function test_transferAsset_successNoReturnData() external {
+        IERC20 usdt = IERC20(Ethereum.USDT);
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAddressAddressKey(
+                mainnetController.LIMIT_ASSET_TRANSFER(),
+                address(usdt),
+                receiver
+            ),
+            1_000_000e6,
+            uint256(1_000_000e6) / 1 days
+        );
+
+        vm.stopPrank();
+
+        deal(address(usdt), address(almProxy), 1_000_000e6);
+
+        assertEq(usdt.balanceOf(address(receiver)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
+
+        vm.prank(relayer);
+        mainnetController.transferAsset(address(usdt), receiver, 1_000_000e6);
+
+        assertEq(usdt.balanceOf(address(receiver)), 1_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 0);
+    }
+
 }
