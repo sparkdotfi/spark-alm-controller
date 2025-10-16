@@ -134,6 +134,8 @@ contract ForeignController is AccessControlEnumerable {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(pool != address(0), "ForeignController/pool-zero-address");
+
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
     }

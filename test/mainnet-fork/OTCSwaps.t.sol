@@ -39,8 +39,8 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
     event OTCBufferSet(
         address indexed exchange,
-        address indexed newOTCBuffer,
-        address indexed oldOTCBuffer
+        address indexed oldOTCBuffer,
+        address indexed newOTCBuffer
     );
     event OTCSwapSent(
         address indexed exchange,
@@ -127,7 +127,7 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcSend(exchange, address(usdt), 0);
     }
 
-    function otcSend_rateLimitZero() external {
+    function test_otcSend_rateLimitZero() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.otcSend(makeAddr("fake-exchange"), address(usdt), 1e18);
