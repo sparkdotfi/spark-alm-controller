@@ -22,7 +22,7 @@ contract MockTokenReturnFalse is ERC20 {
 
 }
 
-contract MockTokenkReturnNull {
+contract MockTokenReturnNull {
 
     string public name;
     string public symbol;

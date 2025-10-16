@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-import { MockTokenReturnFalse, MockTokenkReturnNull } from "../mocks/Mocks.sol";
+import { MockTokenReturnFalse, MockTokenReturnNull } from "../mocks/Mocks.sol";
 
 import "./ForkTestBase.t.sol";
 
@@ -58,7 +58,7 @@ contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6);
     }
 
-    function test_transferAsset_transferFailed() external {
+    function test_transferAsset_transferFailedOnReturnFalse() external {
         MockTokenReturnFalse token = new MockTokenReturnFalse();
 
         vm.startPrank(Base.SPARK_EXECUTOR);
@@ -100,7 +100,7 @@ contract ForeignControllerTransferAssetSuccessTests is TransferAssetBaseTest {
     }
 
     function test_transferAsset_successNoReturnData() external {
-        MockTokenkReturnNull token = new MockTokenkReturnNull("MockTokenkReturnNull", "MockTokenkReturnNull", 6);
+        MockTokenReturnNull token = new MockTokenReturnNull("Token", "TKN", 6);
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 

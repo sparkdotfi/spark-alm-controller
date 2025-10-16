@@ -344,6 +344,7 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
 
 contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
 
+    // NOTE: This test covers the case where token returns null for transfer
     function test_otcSend_usdt() external {
         deal(address(usdt), address(almProxy), 10_000_000e6);
 
@@ -461,6 +462,7 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
 
 contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
+    // NOTE: This test covers the case where token returns null for transferFrom
     function test_otcClaim_usdt() external {
         ( address otcBuffer,,,, ) = mainnetController.otcs(exchange);
 
