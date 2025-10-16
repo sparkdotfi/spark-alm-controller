@@ -10,7 +10,7 @@ import "./ForkTestBase.t.sol";
 
 contract ERC4626DonationAttackTestBase is ForkTestBase {
 
-    IMetaMorpho morpho_vault = IMetaMorpho(0xe41a0583334f0dc4E023Acd0bFef3667F6FE0597);
+    IMetaMorpho morphoVault = IMetaMorpho(0xe41a0583334f0dc4E023Acd0bFef3667F6FE0597);
 
     IMorpho morpho;
 
@@ -32,43 +32,45 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
     function setUp() override public {
         super.setUp();
 
-        morpho = morpho_vault.MORPHO();
+        morpho = morphoVault.MORPHO();
 
-        bytes32 depositKey  = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  address(morpho_vault));
-        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), address(morpho_vault));
+        bytes32 depositKey  = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  address(morphoVault));
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), address(morphoVault));
 
         // Basic validation
-        assertEq(keccak256(abi.encode(morpho_vault.symbol())), keccak256(abi.encode("sparkUSDS")));
-        assertEq(morpho_vault.totalAssets(),                   0);
-        assertEq(morpho_vault.totalSupply(),                   0);
+        assertEq(keccak256(abi.encode(morphoVault.symbol())), keccak256(abi.encode("sparkUSDS")));
+        assertEq(morphoVault.totalAssets(),                   0);
+        assertEq(morphoVault.totalSupply(),                   0);
 
         // Initialization
         vm.startPrank(Ethereum.SPARK_PROXY);
-        morpho_vault.setCurator(curator);
-        morpho_vault.submitGuardian(guardian);
-        morpho_vault.setFeeRecipient(fee_recipient);
-        morpho_vault.setIsAllocator(allocator, true);
-        morpho_vault.setSkimRecipient(skim_recipient);
 
-        morpho_vault.submitCap(marketParams, 10_000_000e18);
-        skip(morpho_vault.timelock());  // Wait the timelock
-        morpho_vault.acceptCap(marketParams);
+        morphoVault.setCurator(curator);
+        morphoVault.submitGuardian(guardian);
+        morphoVault.setFeeRecipient(fee_recipient);
+        morphoVault.setIsAllocator(allocator, true);
+        morphoVault.setSkimRecipient(skim_recipient);
+
+        morphoVault.submitCap(marketParams, 10_000_000e18);
+        skip(morphoVault.timelock());  // Wait the timelock
+        morphoVault.acceptCap(marketParams);
 
         // Now that the market has a non-zero cap, set the supply queue order
         Id[] memory supplyOrder = new Id[](1);
         supplyOrder[0] = marketId;
-        morpho_vault.setSupplyQueue(supplyOrder);
+        morphoVault.setSupplyQueue(supplyOrder);
+
         vm.stopPrank();
 
-        assertEq(morpho_vault.curator(),      curator);
-        assertEq(morpho_vault.guardian(),     guardian);
-        assertEq(morpho_vault.feeRecipient(), fee_recipient);
-        assertTrue(morpho_vault.isAllocator(allocator));
+        assertEq(morphoVault.curator(),      curator);
+        assertEq(morphoVault.guardian(),     guardian);
+        assertEq(morphoVault.feeRecipient(), fee_recipient);
+        assertTrue(morphoVault.isAllocator(allocator));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        mainnetController.setMaxSlippage(address(morpho_vault), 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setMaxSlippage(address(morphoVault), 1e18 - 1e4);  // Rounding slippage
         vm.stopPrank();
     }
 
@@ -90,12 +92,12 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         deal(address(usds), mallory, 1_000_000e18 + 1);
 
         vm.startPrank(mallory);
-        usds.approve(address(morpho_vault), 1);
-        morpho_vault.deposit(1, mallory);
+        usds.approve(address(morphoVault), 1);
+        morphoVault.deposit(1, mallory);
         usds.approve(address(morpho), 1_000_000e18);
         // Donation attack
         (uint256 assets, uint256 shares) = morpho.supply(
-            marketParams, 1_000_000e18, 0, address(morpho_vault), hex""
+            marketParams, 1_000_000e18, 0, address(morphoVault), hex""
         );
         vm.stopPrank();
 
@@ -103,25 +105,25 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         assertEq(shares, uint256(1_000_000e18) * market.totalSupplyShares / market.totalSupplyAssets);
         assertEq(shares, 1e30);
 
-        assertEq(morpho_vault.balanceOf(mallory), 1);
-        assertEq(morpho_vault.totalSupply(), 1);
+        assertEq(morphoVault.balanceOf(mallory), 1);
+        assertEq(morphoVault.totalSupply(), 1);
 
-        assertEq(morpho_vault.totalAssets(), 1_000_000e18 + 1);
+        assertEq(morphoVault.totalAssets(), 1_000_000e18 + 1);
         // Instead of performing shares * totalAssets / totalShares, aka
         // 1 * (1_000_000e18 + 1) / 1 == 1_000_000e18 + 1, the vault actually adds 1 to the
         // numerator and denominator, so we get 1 * (1_000_000e18 + 1 + 1) / (1 + 1)
         // == (1_000_000e18 + 2) / 2 == 500_000e18 + 1.
-        assertEq(morpho_vault.convertToAssets(1), 500_000e18 + 1);
+        assertEq(morphoVault.convertToAssets(1), 500_000e18 + 1);
 
         deal(address(usds), address(almProxy), 2_000_000e18);
 
         vm.prank(relayer);
-        try mainnetController.depositERC4626(address(morpho_vault), 2_000_000e18) {
+        try mainnetController.depositERC4626(address(morphoVault), 2_000_000e18) {
             // The deposit went through. The only time this is permissible is if the attack had no
             // effect.
-            uint256 assetsOfProxy = morpho_vault.convertToAssets(morpho_vault.balanceOf(address(almProxy)));
-            assertEq(assetsOfProxy,                             2_000_000e18);
-            assertEq(morpho_vault.balanceOf(address(almProxy)), 2_000_000e24);
+            uint256 assetsOfProxy = morphoVault.convertToAssets(morphoVault.balanceOf(address(almProxy)));
+            assertEq(assetsOfProxy,                            2_000_000e18);
+            assertEq(morphoVault.balanceOf(address(almProxy)), 2_000_000e24);
         } catch Error(string memory reason) {
             // The deposit was correctly reverted.
             assertEq(reason, "MainnetController/slippage-too-high");
