@@ -103,6 +103,7 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
 
+        // We can compute:
         // shares == assets * (totalSupply + 1) / (totalAssets + 1)
         //        == 2_000_000e18 * (1 + 1) / (1_000_000e18 + 1 + 1)
         //        == 3.9..
@@ -126,6 +127,7 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
 
     function _doAttack() internal {
         Market memory market = morpho.market(marketId);
+
         assertEq(market.totalSupplyAssets, 36_095_481.319542091092211965e18); // ~36M USDS
         assertEq(market.totalSupplyShares, 36_095_481.319542091092211965000000e24);
 
@@ -157,5 +159,5 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
 
         deal(address(usds), address(almProxy), 2_000_000e18);
     }
-}
 
+}
