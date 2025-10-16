@@ -1,47 +1,53 @@
 {
-  "lib/dss-test": {
-    "rev": "f2a2b2bbea71921103c5b7cf3cb1d241b957bec7"
-  },
-  "lib/dss-allocator": {
-    "rev": "226584d3b179d98025497815adb4ea585ea0102d"
-  },
-  "lib/spark-psm": {
-    "rev": "6a5a579cb503a461df254007064370f732fcd19d"
-  },
-  "lib/spark-address-registry": {
-    "rev": "23eb286593ea7be1bcbb3f1a87fb9185e46e3285"
-  },
-  "lib/usds": {
-    "rev": "1e91268374d2796abcbb1af2b75473b2af488265"
-  },
-  "lib/erc20-helpers": {
-    "rev": "3c66d2b38ae12f5c0f81068fdb6a59f4079c799a"
+  "lib/aave-v3-origin": {
+    "rev": "e627c7428cbb358b9c84b601a009a86b4b871c08"
   },
   "lib/devtools": {
     "rev": "a7953d15c1eedb4077b1bc52982843ff6640e6cf"
   },
-  "lib/layerzero-v2": {
-    "rev": "88428755be6caa71cb1d2926141d73c8989296b5"
+  "lib/dss-allocator": {
+    "rev": "226584d3b179d98025497815adb4ea585ea0102d"
   },
-  "lib/sdai": {
-    "rev": "e5660deac9434c79d48ecde879c29f37fb89f2dc"
+  "lib/dss-test": {
+    "rev": "f2a2b2bbea71921103c5b7cf3cb1d241b957bec7"
+  },
+  "lib/erc20-helpers": {
+    "rev": "3c66d2b38ae12f5c0f81068fdb6a59f4079c799a"
   },
   "lib/forge-std": {
     "rev": "bf909b22fa55e244796dfa920c9639fdffa1c545"
   },
-  "lib/solidity-bytes-utils": {
-    "rev": "9505c85a251afc57ecced90a6076f2c661ee2404"
+  "lib/grove-address-registry": {
+    "rev": "bee148b3e92dc7c52790a4e7eee5f6911303b09c"
   },
-  "lib/aave-v3-origin": {
-    "rev": "e627c7428cbb358b9c84b601a009a86b4b871c08"
+  "lib/layerzero-v2": {
+    "rev": "88428755be6caa71cb1d2926141d73c8989296b5"
   },
   "lib/metamorpho": {
     "rev": "f5faa9c21b1396c291b471a6a5ad9407d23486a9"
   },
-  "lib/xchain-helpers": {
-    "rev": "07e27b6eebb985b0c1e3376329c02b29d49664f7"
-  },
   "lib/openzeppelin-contracts": {
     "rev": "dbb6104ce834628e473d2173bbc9d47f81a9eec3"
+  },
+  "lib/sdai": {
+    "rev": "e5660deac9434c79d48ecde879c29f37fb89f2dc"
+  },
+  "lib/solidity-bytes-utils": {
+    "rev": "9505c85a251afc57ecced90a6076f2c661ee2404"
+  },
+  "lib/spark-address-registry": {
+    "rev": "23eb286593ea7be1bcbb3f1a87fb9185e46e3285"
+  },
+  "lib/spark-psm": {
+    "rev": "6a5a579cb503a461df254007064370f732fcd19d"
+  },
+  "lib/usds": {
+    "rev": "1e91268374d2796abcbb1af2b75473b2af488265"
+  },
+  "lib/xchain-helpers": {
+    "branch": {
+      "name": "master",
+      "rev": "d31898ff80ee09d117315a490b847f0b5f777558"
+    }
   }
 }

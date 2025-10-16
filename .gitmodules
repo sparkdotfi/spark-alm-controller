@@ -10,9 +10,6 @@
 [submodule "lib/spark-psm"]
 	path = lib/spark-psm
 	url = https://github.com/marsfoundation/spark-psm
-[submodule "lib/xchain-helpers"]
-	path = lib/xchain-helpers
-	url = https://github.com/marsfoundation/xchain-helpers
 [submodule "lib/usds"]
 	path = lib/usds
 	url = https://github.com/makerdao/usds
@@ -46,3 +43,7 @@
 [submodule "lib/grove-address-registry"]
 	path = lib/grove-address-registry
 	url = https://github.com/grove-labs/grove-address-registry
+[submodule "lib/xchain-helpers"]
+	path = lib/xchain-helpers
+	url = https://github.com/grove-labs/xchain-helpers
+	branch = master
