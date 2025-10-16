@@ -336,15 +336,15 @@ contract MainnetController is AccessControl {
             amount
         );
 
-        ( bool success ) = abi.decode(
-            proxy.doCall(
-                asset,
-                abi.encodeCall(IERC20(asset).transfer, (destination, amount))
-            ),
-            (bool)
+        bytes memory returnData = proxy.doCall(
+            asset,
+            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
         );
 
-        require(success, "MainnetController/transfer-failed");
+        require(
+            returnData.length == 0 || abi.decode(returnData, (bool)),
+            "MainnetController/transfer-failed"
+        );
     }
 
     /**********************************************************************************************/
