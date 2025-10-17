@@ -15,8 +15,6 @@ import {
     TokenOutput
 } from "../interfaces/PendleInterfaces.sol";
 
-import { Ethereum } from "grove-address-registry/Ethereum.sol";
-
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
 library PendleLib {
@@ -25,6 +23,7 @@ library PendleLib {
         IALMProxy     proxy;
         IRateLimits   rateLimits;
         IPendleMarket pendleMarket;
+        address       pendleRouter;
         bytes32       rateLimitId;
         uint256       pyAmountIn;
         uint256       minAmountOut;
@@ -59,12 +58,12 @@ library PendleLib {
         // to avoid reverts due to potential rounding errors
         uint256 minTokenOut = params.pyAmountIn * 1e18 / pyIndexCurrent - 5;
 
-        _approve(params.proxy, pt, Ethereum.PENDLE_ROUTER, params.pyAmountIn);
+        _approve(params.proxy, pt, params.pendleRouter, params.pyAmountIn);
 
         uint256 tokenOutAmountBefore = IERC20(tokenOut).balanceOf(address(params.proxy));
 
         params.proxy.doCall(
-            Ethereum.PENDLE_ROUTER,
+            params.pendleRouter,
             abi.encodeCall(
                 IPendleRouter.redeemPyToToken, (
                     address(params.proxy),

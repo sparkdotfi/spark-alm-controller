@@ -625,6 +625,7 @@ contract MainnetController is AccessControl {
             rateLimits   : rateLimits,
             rateLimitId  : LIMIT_PENDLE_PT_REDEEM,
             pendleMarket : IPendleMarket(pendleMarket),
+            pendleRouter : Ethereum.PENDLE_ROUTER,
             pyAmountIn   : pyAmountIn,
             minAmountOut : minAmountOut
         }));
