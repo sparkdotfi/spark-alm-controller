@@ -23,11 +23,11 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
     });
     Id marketId = MarketParamsLib.id(marketParams);
 
-    address curator        = makeAddr("curator");
-    address guardian       = makeAddr("guardian");
-    address fee_recipient  = makeAddr("fee_recipient");
-    address allocator      = makeAddr("allocator");
-    address skim_recipient = makeAddr("skim_recipient");
+    address curator       = makeAddr("curator");
+    address guardian      = makeAddr("guardian");
+    address feeRecipient  = makeAddr("feeRecipient");
+    address allocator     = makeAddr("allocator");
+    address skimRecipient = makeAddr("skimRecipient");
 
     address attacker = makeAddr("attacker");
 
@@ -49,9 +49,9 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
 
         morphoVault.setCurator(curator);
         morphoVault.submitGuardian(guardian);
-        morphoVault.setFeeRecipient(fee_recipient);
+        morphoVault.setFeeRecipient(feeRecipient);
         morphoVault.setIsAllocator(allocator, true);
-        morphoVault.setSkimRecipient(skim_recipient);
+        morphoVault.setSkimRecipient(skimRecipient);
 
         morphoVault.submitCap(marketParams, 10_000_000e18);
         skip(morphoVault.timelock());  // Wait the timelock
@@ -66,7 +66,7 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
 
         assertEq(morphoVault.curator(),      curator);
         assertEq(morphoVault.guardian(),     guardian);
-        assertEq(morphoVault.feeRecipient(), fee_recipient);
+        assertEq(morphoVault.feeRecipient(), feeRecipient);
 
         assertTrue(morphoVault.isAllocator(allocator));
 
