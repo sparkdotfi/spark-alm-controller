@@ -41,7 +41,7 @@ library PendleLib {
         });
     }
 
-    function redeemPendlePT(RedeemPendlePTParams memory params) internal {
+    function redeemPendlePT(RedeemPendlePTParams memory params) external {
         params.rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetKey(params.rateLimitId, address(params.pendleMarket)),
             params.pyAmountIn
