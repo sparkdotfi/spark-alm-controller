@@ -40,6 +40,7 @@ jobs:
           ARBITRUM_NOVA_RPC_URL: ${{secrets.ARBITRUM_NOVA_RPC_URL}}
           GNOSIS_CHAIN_RPC_URL: ${{secrets.GNOSIS_CHAIN_RPC_URL}}
           BASE_RPC_URL: ${{secrets.BASE_RPC_URL}}
+          PLASMA_RPC_URL: ${{secrets.PLASMA_RPC_URL}}
         run: FOUNDRY_PROFILE=ci forge test
 
   coverage:
@@ -58,6 +59,7 @@ jobs:
           ARBITRUM_NOVA_RPC_URL: ${{secrets.ARBITRUM_NOVA_RPC_URL}}
           GNOSIS_CHAIN_RPC_URL: ${{secrets.GNOSIS_CHAIN_RPC_URL}}
           BASE_RPC_URL: ${{secrets.BASE_RPC_URL}}
+          PLASMA_RPC_URL: ${{secrets.PLASMA_RPC_URL}}
         run: forge coverage --report summary --report lcov
 
       # To ignore coverage for certain directories modify the paths in this step as needed. The
