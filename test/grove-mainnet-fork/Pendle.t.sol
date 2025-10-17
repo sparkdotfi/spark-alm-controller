@@ -56,6 +56,10 @@ contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
         vm.prank(GROVE_PROXY);
         rateLimits.setRateLimitData(redeemKey, 0, 0);
 
+        (, address pt,) = pendleMarket.readTokens();
+        vm.prank(PT_WHALE);
+        IERC20(pt).transfer((address(almProxy)), 1_000_000e18);
+
         vm.warp(pendleMarket.expiry());
 
         vm.prank(relayer);
@@ -64,18 +68,21 @@ contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
     }
 
     function test_redeemPendlePT_rateLimitsBoundary() public {
-        vm.prank(GROVE_PROXY);
-        rateLimits.setRateLimitData(redeemKey, 500_000e18, 1);
-
-        (, address pt,) = pendleMarket.readTokens();
+        (address sy, address pt,) = pendleMarket.readTokens();
         vm.prank(PT_WHALE);
         IERC20(pt).transfer((address(almProxy)), 1_000_000e18);
 
         vm.warp(pendleMarket.expiry());
 
+        uint256 exchangeRate = ISY(sy).exchangeRate();
+        uint256 exactAmountOut = 500_000e18 * 1e18 / exchangeRate;
+
+        vm.prank(GROVE_PROXY);
+        rateLimits.setRateLimitData(redeemKey, exactAmountOut - 1, 1);
+
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18 + 1, 1);
+        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
     }
 
     function test_redeemPendlePT_insufficientBalance() public {

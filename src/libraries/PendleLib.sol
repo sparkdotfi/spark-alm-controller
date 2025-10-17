@@ -42,11 +42,6 @@ library PendleLib {
     }
 
     function redeemPendlePT(RedeemPendlePTParams memory params) external {
-        params.rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAssetKey(params.rateLimitId, address(params.pendleMarket)),
-            params.pyAmountIn
-        );
-
         require(params.pendleMarket.isExpired(), "PendleLib/market-not-expired");
         require(params.minAmountOut != 0,        "PendleLib/min-amount-out-not-set");
 
@@ -74,9 +69,15 @@ library PendleLib {
             )
         );
 
-        uint256 tokenOutAmountAfter = IERC20(tokenOut).balanceOf(address(params.proxy));
+        uint256 totalTokenOutAmount = IERC20(tokenOut).balanceOf(address(params.proxy)) - tokenOutAmountBefore;
 
-        require(tokenOutAmountAfter >= tokenOutAmountBefore + params.minAmountOut, "PendleLib/min-amount-not-met");
+        require(totalTokenOutAmount >= params.minAmountOut, "PendleLib/min-amount-not-met");
+
+        params.rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAssetKey(params.rateLimitId, address(params.pendleMarket)),
+            totalTokenOutAmount
+        );
+
     }
 
     function _approve(
