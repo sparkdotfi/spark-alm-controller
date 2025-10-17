@@ -10,6 +10,7 @@ import {
     IPendleMarket,
     IPendleRouter,
     ISY,
+    IYT,
     SwapData,
     TokenOutput
 } from "../interfaces/PendleInterfaces.sol";
@@ -49,9 +50,14 @@ library PendleLib {
 
         address tokenOut = ISY(sy).yieldToken();
 
+        uint256 exchangeRate  = ISY(sy).exchangeRate();
+        uint256 pyIndexStored = IYT(yt).pyIndexStored();
+
+        uint256 pyIndexCurrent = exchangeRate > pyIndexStored ? exchangeRate : pyIndexStored;
+
         // expected to receive full amount, but the buffer is subtracted
         // to avoid reverts due to potential rounding errors
-        uint256 minTokenOut = params.pyAmountIn * 1e18 / ISY(sy).exchangeRate() - 5;
+        uint256 minTokenOut = params.pyAmountIn * 1e18 / pyIndexCurrent - 5;
 
         _approve(params.proxy, pt, Ethereum.PENDLE_ROUTER, params.pyAmountIn);
 
