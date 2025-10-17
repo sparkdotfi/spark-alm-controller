@@ -8,3 +8,4 @@ script/output/*/*.json
 !script/output/*/*-release-*.json
 .DS_Store
 WARP.md
+tmp/
