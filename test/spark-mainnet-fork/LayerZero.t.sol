@@ -222,6 +222,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
     address constant USDC_ARB           = Arbitrum.USDC;
     address constant USDT_OFT           = 0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92;
     address constant USDT0              = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address constant PENDLE_ROUTER_ARB  = 0x888888888889758F76e7103c6CbF23ABbF58F946;
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
@@ -271,10 +272,11 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
         /*** Step 3: Deploy and configure ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin : SPARK_EXECUTOR,
-            psm   : address(psmArb),
-            usdc  : USDC_ARB,
-            cctp  : CCTP_MESSENGER_ARB
+            admin        : SPARK_EXECUTOR,
+            psm          : address(psmArb),
+            usdc         : USDC_ARB,
+            cctp         : CCTP_MESSENGER_ARB,
+            pendleRouter : PENDLE_ROUTER_ARB
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -291,10 +293,11 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
         });
 
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin : SPARK_EXECUTOR,
-            psm   : address(psmArb),
-            cctp  : CCTP_MESSENGER_ARB,
-            usdc  : address(usdcArb)
+            admin        : SPARK_EXECUTOR,
+            psm          : address(psmArb),
+            cctp         : CCTP_MESSENGER_ARB,
+            usdc         : address(usdcArb),
+            pendleRouter : PENDLE_ROUTER_ARB
             // susds : address(susdsArb),
             // usds  : address(usdsArb)
         });

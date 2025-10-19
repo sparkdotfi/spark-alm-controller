@@ -84,10 +84,10 @@ contract PlasmaChainUSDTToLayerZeroTestBase is ForkTestBase {
          * Step 1: Set up environment and deploy mocks **
          */
         setChain(
-            "plasma", 
+            "plasma",
             ChainData({
-                name: "plasma", 
-                chainId: 9745, 
+                name: "plasma",
+                chainId: 9745,
                 rpcUrl: vm.envString("PLASMA_RPC_URL")
             })
         );
@@ -131,10 +131,11 @@ contract PlasmaChainUSDTToLayerZeroTestBase is ForkTestBase {
          * Step 3: Deploy and configure ALM system **
          */
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin:  Ethereum.GROVE_PROXY,
-            psm:    address(psmPlasma),
-            usdc:   address(usdt0Plasma),
-            cctp:   address(0xDeadBeef) // unused
+            admin        : Ethereum.GROVE_PROXY,
+            psm          : address(psmPlasma),
+            usdc         : address(usdt0Plasma),
+            cctp         : address(0xDeadBeef), // unused
+            pendleRouter : address(0xDeadBeef) // unused
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -150,10 +151,11 @@ contract PlasmaChainUSDTToLayerZeroTestBase is ForkTestBase {
             ForeignControllerInit.ConfigAddressParams({freezer: freezer, relayers: relayers, oldController: address(0)});
 
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin: Ethereum.GROVE_PROXY,
-            psm:   address(psmPlasma),
-            cctp:  address(0xDeadBeef), // unused
-            usdc:  address(usdt0Plasma)
+            admin        : Ethereum.GROVE_PROXY,
+            psm          : address(psmPlasma),
+            cctp         : address(0xDeadBeef), // unused
+            usdc         : address(usdt0Plasma),
+            pendleRouter : address(0xDeadBeef) // unused
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);

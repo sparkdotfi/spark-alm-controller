@@ -12,10 +12,11 @@ import "../UnitTestBase.t.sol";
 contract ForeignControllerDeployTests is UnitTestBase {
 
     function test_deployController() public {
-        address admin = makeAddr("admin");
-        address psm   = makeAddr("psm");
-        address usdc  = makeAddr("usdc");
-        address cctp  = makeAddr("cctp");
+        address admin        = makeAddr("admin");
+        address psm          = makeAddr("psm");
+        address usdc         = makeAddr("usdc");
+        address cctp         = makeAddr("cctp");
+        address pendleRouter = makeAddr("pendleRouter");
 
         address almProxy   = address(new ALMProxy(admin));
         address rateLimits = address(new RateLimits(admin));
@@ -27,27 +28,30 @@ contract ForeignControllerDeployTests is UnitTestBase {
                 rateLimits,
                 psm,
                 usdc,
-                cctp
+                cctp,
+                pendleRouter
             )
         );
 
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
 
-        assertEq(address(controller.proxy()),      almProxy);
-        assertEq(address(controller.rateLimits()), rateLimits);
-        assertEq(address(controller.psm()),        psm);
-        assertEq(address(controller.usdc()),       usdc);
-        assertEq(address(controller.cctp()),       cctp);
+        assertEq(address(controller.proxy()),        almProxy);
+        assertEq(address(controller.rateLimits()),   rateLimits);
+        assertEq(address(controller.psm()),          psm);
+        assertEq(address(controller.usdc()),         usdc);
+        assertEq(address(controller.cctp()),         cctp);
+        assertEq(address(controller.pendleRouter()), pendleRouter);
     }
 
     function test_deployFull() public {
-        address admin = makeAddr("admin");
-        address psm   = makeAddr("psm");
-        address usdc  = makeAddr("usdc");
-        address cctp  = makeAddr("cctp");
+        address admin        = makeAddr("admin");
+        address psm          = makeAddr("psm");
+        address usdc         = makeAddr("usdc");
+        address cctp         = makeAddr("cctp");
+        address pendleRouter = makeAddr("pendleRouter");
 
         ControllerInstance memory instance
-            = ForeignControllerDeploy.deployFull(admin, psm, usdc, cctp);
+            = ForeignControllerDeploy.deployFull(admin, psm, usdc, cctp, pendleRouter);
 
         ALMProxy          almProxy   = ALMProxy(payable(instance.almProxy));
         ForeignController controller = ForeignController(instance.controller);
@@ -57,11 +61,12 @@ contract ForeignControllerDeployTests is UnitTestBase {
         assertEq(rateLimits.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
 
-        assertEq(address(controller.proxy()),      instance.almProxy);
-        assertEq(address(controller.rateLimits()), instance.rateLimits);
-        assertEq(address(controller.psm()),        psm);
-        assertEq(address(controller.usdc()),       usdc);
-        assertEq(address(controller.cctp()),       cctp);
+        assertEq(address(controller.proxy()),        instance.almProxy);
+        assertEq(address(controller.rateLimits()),   instance.rateLimits);
+        assertEq(address(controller.psm()),          psm);
+        assertEq(address(controller.usdc()),         usdc);
+        assertEq(address(controller.cctp()),         cctp);
+        assertEq(address(controller.pendleRouter()), pendleRouter);
     }
 
 }

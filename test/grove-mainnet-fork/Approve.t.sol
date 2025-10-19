@@ -77,8 +77,9 @@ contract ForeignControllerHarness is ForeignController {
         address rateLimits_,
         address psm_,
         address usdc_,
-        address cctp_
-    ) ForeignController(admin_, proxy_, rateLimits_, psm_, usdc_, cctp_) {}
+        address cctp_,
+        address pendleRouter_
+    ) ForeignController(admin_, proxy_, rateLimits_, psm_, usdc_, cctp_, pendleRouter_) {}
 
     function approve(address token, address spender, uint256 amount) external {
         _approve(token, spender, amount);
@@ -202,7 +203,8 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
             makeAddr("rateLimits"),
             makeAddr("psm"),
             makeAddr("usdc"),
-            makeAddr("cctp")
+            makeAddr("cctp"),
+            makeAddr("pendleRouter")
         );
 
         ForeignControllerHarness harnessCode = new ForeignControllerHarness(
@@ -211,7 +213,8 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
             makeAddr("rateLimits"),
             makeAddr("psm"),
             makeAddr("usdc"),
-            makeAddr("cctp")
+            makeAddr("cctp"),
+            makeAddr("pendleRouter")
         );
 
         // Allow the foreign controller to call the ALMProxy

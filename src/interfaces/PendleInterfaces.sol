@@ -47,9 +47,8 @@ interface IPendleMarket {
 
 interface ISY {
     function yieldToken() external view returns (address);
-    function exchangeRate() external view returns (uint256);
 }
 
 interface IYT {
-    function pyIndexStored() external view returns (uint256);
+    function pyIndexCurrent() external returns (uint256);
 }

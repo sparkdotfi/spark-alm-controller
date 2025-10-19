@@ -49,10 +49,7 @@ library PendleLib {
 
         address tokenOut = ISY(sy).yieldToken();
 
-        uint256 exchangeRate  = ISY(sy).exchangeRate();
-        uint256 pyIndexStored = IYT(yt).pyIndexStored();
-
-        uint256 pyIndexCurrent = exchangeRate > pyIndexStored ? exchangeRate : pyIndexStored;
+        uint256 pyIndexCurrent = IYT(yt).pyIndexCurrent();
 
         // expected to receive full amount, but the buffer is subtracted
         // to avoid reverts due to potential rounding errors

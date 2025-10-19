@@ -107,10 +107,11 @@ contract DeployForeignFull is Script {
         vm.startBroadcast();
 
         ControllerInstance memory instance = ForeignControllerDeploy.deployFull({
-            admin : config.readAddress(".admin"),
-            psm   : config.readAddress(".psm"),
-            usdc  : config.readAddress(".usdc"),
-            cctp  : config.readAddress(".cctpTokenMessenger")
+            admin        : config.readAddress(".admin"),
+            psm          : config.readAddress(".psm"),
+            usdc         : config.readAddress(".usdc"),
+            cctp         : config.readAddress(".cctpTokenMessenger"),
+            pendleRouter : config.readAddress(".pendleRouter")
         });
 
         vm.stopBroadcast();
@@ -146,12 +147,13 @@ contract DeployForeignController is Script {
         vm.startBroadcast();
 
         address controller = ForeignControllerDeploy.deployController({
-            admin      : config.readAddress(".admin"),
-            almProxy   : config.readAddress(".almProxy"),
-            rateLimits : config.readAddress(".rateLimits"),
-            psm        : config.readAddress(".psm"),
-            usdc       : config.readAddress(".usdc"),
-            cctp       : config.readAddress(".cctpTokenMessenger")
+            admin        : config.readAddress(".admin"),
+            almProxy     : config.readAddress(".almProxy"),
+            rateLimits   : config.readAddress(".rateLimits"),
+            psm          : config.readAddress(".psm"),
+            usdc         : config.readAddress(".usdc"),
+            cctp         : config.readAddress(".cctpTokenMessenger"),
+            pendleRouter : config.readAddress(".pendleRouter")
         });
 
         vm.stopBroadcast();

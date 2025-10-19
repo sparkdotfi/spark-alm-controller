@@ -126,10 +126,11 @@ contract UpgradeForeignController is Script {
         });
 
         ForeignInit.CheckAddressParams memory checkAddresses = ForeignInit.CheckAddressParams({
-            admin : inputConfig.readAddress(".admin"),
-            psm   : inputConfig.readAddress(".psm"),
-            cctp  : inputConfig.readAddress(".cctpTokenMessenger"),
-            usdc  : inputConfig.readAddress(".usdc")
+            admin        : inputConfig.readAddress(".admin"),
+            psm          : inputConfig.readAddress(".psm"),
+            cctp         : inputConfig.readAddress(".cctpTokenMessenger"),
+            usdc         : inputConfig.readAddress(".usdc"),
+            pendleRouter : inputConfig.readAddress(".pendleRouter")
             // susds : inputConfig.readAddress(".susds"),
             // usds  : inputConfig.readAddress(".usds")
         });

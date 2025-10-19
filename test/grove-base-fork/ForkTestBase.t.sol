@@ -7,8 +7,6 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
-import { Base } from "spark-address-registry/Base.sol";
-
 import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "spark-psm/src/PSM3.sol";
 
@@ -25,9 +23,15 @@ import { RateLimits }        from "../../src/RateLimits.sol";
 
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-contract ForkTestBase is Test {
+contract MockSSROracle {
 
-    // TODO: Refactor to use live addresses
+    function getConversionRate() external pure returns (uint256) {
+        return 1e18;
+    }
+
+}
+
+contract ForkTestBase is Test {
 
     /**********************************************************************************************/
     /*** Constants/state variables                                                              ***/
@@ -39,21 +43,20 @@ contract ForkTestBase is Test {
     bytes32 FREEZER;
     bytes32 RELAYER;
 
-    address freezer = Base.ALM_FREEZER;
-    address relayer = Base.ALM_RELAYER;
-
     address pocket = makeAddr("pocket");
 
     /**********************************************************************************************/
-    /*** Base addresses                                                                         ***/
+    /*** Base addresses                                                                   ***/
     /**********************************************************************************************/
 
-    address constant SPARK_EXECUTOR      = Base.SPARK_EXECUTOR;
-    address constant CCTP_MESSENGER_BASE = Base.CCTP_TOKEN_MESSENGER;
-    address constant USDC_BASE           = Base.USDC;
-    address constant SSR_ORACLE          = Base.SSR_AUTH_ORACLE;
-    // TODO: Get this from the registry after added there
-    address constant PENDLE_ROUTER_BASE  = 0x888888888889758F76e7103c6CbF23ABbF58F946;
+    // TODO: Update these to use the correct addresses from the registry`
+    address constant ALM_FREEZER          = 0xB0113804960345fd0a245788b3423319c86940e5;
+    address constant ALM_RELAYER          = 0x0eEC86649E756a23CBc68d9EFEd756f16aD5F85f;
+    address constant CCTP_TOKEN_MESSENGER = 0x1682Ae6375C4E4A97e4B583BC394c861A46D8962;
+    address constant USDC_BASE            = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address constant PENDLE_ROUTER_BASE   = 0x888888888889758F76e7103c6CbF23ABbF58F946;
+
+    address GROVE_EXECUTOR = makeAddr("groveExecutor");
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
@@ -64,7 +67,7 @@ contract ForkTestBase is Test {
     ForeignController foreignController;
 
     /**********************************************************************************************/
-    /*** Casted addresses for testing                                                           ***/
+    /*** Addresses for testing                                                                  ***/
     /**********************************************************************************************/
 
     IERC20 usdsBase;
@@ -72,6 +75,8 @@ contract ForkTestBase is Test {
     IERC20 usdcBase;
 
     IPSM3 psmBase;
+
+    MockSSROracle ssrOracle;
 
     /**********************************************************************************************/
     /*** Test setup                                                                             ***/
@@ -86,15 +91,17 @@ contract ForkTestBase is Test {
         susdsBase = IERC20(address(new ERC20Mock()));
         usdcBase  = IERC20(USDC_BASE);
 
+        ssrOracle = new MockSSROracle();
+
         /*** Step 2: Deploy and configure PSM with a pocket ***/
 
         deal(address(usdsBase), address(this), 1e18);  // For seeding PSM during deployment
 
         psmBase = IPSM3(PSM3Deploy.deploy(
-            SPARK_EXECUTOR, USDC_BASE, address(usdsBase), address(susdsBase), SSR_ORACLE
+            GROVE_EXECUTOR, USDC_BASE, address(usdsBase), address(susdsBase), address(ssrOracle)
         ));
 
-        vm.prank(SPARK_EXECUTOR);
+        vm.prank(GROVE_EXECUTOR);
         psmBase.setPocket(pocket);
 
         vm.prank(pocket);
@@ -103,10 +110,10 @@ contract ForkTestBase is Test {
         /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin        : SPARK_EXECUTOR,
+            admin        : GROVE_EXECUTOR,
             psm          : address(psmBase),
             usdc         : USDC_BASE,
-            cctp         : CCTP_MESSENGER_BASE,
+            cctp         : CCTP_TOKEN_MESSENGER,
             pendleRouter : PENDLE_ROUTER_BASE
         });
 
@@ -118,22 +125,22 @@ contract ForkTestBase is Test {
         FREEZER    = foreignController.FREEZER();
         RELAYER    = foreignController.RELAYER();
 
-        /*** Step 3: Configure ALM system through Spark governance (Spark spell payload) ***/
+        /*** Step 3: Configure ALM system through Grove governance (Grove spell payload) ***/
 
         address[] memory relayers = new address[](1);
-        relayers[0] = relayer;
+        relayers[0] = ALM_RELAYER;
 
         Init.ConfigAddressParams memory configAddresses = Init.ConfigAddressParams({
-            freezer       : freezer,
+            freezer       : ALM_FREEZER,
             relayers      : relayers,
             oldController : address(0)
         });
 
         Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
-            admin        : Base.SPARK_EXECUTOR,
+            admin        : GROVE_EXECUTOR,
             psm          : address(psmBase),
-            cctp         : Base.CCTP_TOKEN_MESSENGER,
-            usdc         : address(usdcBase),
+            cctp         : CCTP_TOKEN_MESSENGER,
+            usdc         : USDC_BASE,
             pendleRouter : PENDLE_ROUTER_BASE
             // susds : address(susdsBase),
             // usds  : address(usdsBase)
@@ -150,7 +157,7 @@ contract ForkTestBase is Test {
 
         Init.CentrifugeRecipient[] memory centrifugeRecipients = new Init.CentrifugeRecipient[](0);
 
-        vm.startPrank(SPARK_EXECUTOR);
+        vm.startPrank(GROVE_EXECUTOR);
 
         Init.initAlmSystem(
             controllerInst,
@@ -161,36 +168,12 @@ contract ForkTestBase is Test {
             centrifugeRecipients
         );
 
-        uint256 usdcMaxAmount = 5_000_000e6;
-        uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
-        uint256 usdsMaxAmount = 5_000_000e18;
-        uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
-
-        bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
-        bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
-
-        bytes32 domainKeyEthereum = RateLimitHelpers.makeDomainKey(
-            foreignController.LIMIT_USDC_TO_DOMAIN(),
-            CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-        );
-
-        // NOTE: Using minimal config for test base setup
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdcBase)),  usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdcBase)),  usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(usdsBase)),  usdsMaxAmount, usdsSlope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAssetKey(depositKey,  address(susdsBase)), usdsMaxAmount, usdsSlope);
-        rateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(),                         usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(domainKeyEthereum,                                              usdcMaxAmount, usdcSlope);
-
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(usdsBase)));
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAssetKey(withdrawKey, address(susdsBase)));
-
         vm.stopPrank();
     }
 
     // Default configuration for the fork, can be overridden in inheriting tests
     function _getBlock() internal virtual pure returns (uint256) {
-        return 20782500;  // October 8, 2024
+        return 36912750; //  October 16, 2025
     }
 
 }
