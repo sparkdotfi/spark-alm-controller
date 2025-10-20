@@ -150,6 +150,14 @@ Below are all stated trust assumptions for using this contract in production:
   - Risk tolerance for a given protocol
   - Griefing attacks (e.g., repetitive transactions with high slippage by malicious relayer).
 
+## ALM Proxy Freezable
+
+The [`ALMProxyFreezable.sol`](./src/ALMProxyFreezable.sol) contract is a variant of the `ALMProxy` that is not intended to hold funds or have any critical authority. Rather, it plays a role within the ALM ecosystem to define low-risk parameters.
+
+A key architectural difference from the standard `ALMProxy` is how the `CONTROLLER` role is used. In the standard `ALMProxy`, the `controller` is a controller contract (e.g., `MainnetController` or `ForeignController`) that itself acts when approved relayers interact with it. In contrast, the "controllers" of the `ALMProxyFreezable` are the relayers themselves, since they are granted the `CONTROLLER` role directly.
+
+Since relayers are not necessarily first-party accounts or governance entities, they still carry some risk of misbehaving. To mitigate this risk, the `FREEZER` role has the additional ability to remove controllers via the `removeController` function in `ALMProxyFreezable`, which does not exist in the `ALMProxy`. This provides a safety mechanism to quickly revoke access from any relayer that may be compromised or acting maliciously, without needing to involve the same slower governance process that is used to remove the controller of the `ALMProxy`.
+
 ## Testing
 
 To run all tests, run the following command:
