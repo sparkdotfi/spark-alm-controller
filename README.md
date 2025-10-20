@@ -33,18 +33,21 @@ The diagram below provides and example of calling to mint USDS using the Sky all
 ## Permissions
 
 All contracts in this repo inherit and implement the AccessControl contract from OpenZeppelin to manage permissions. The following roles are defined:
+
 - `DEFAULT_ADMIN_ROLE`: The admin role is the role that can grant and revoke roles. Also used for general admin functions in all contracts.
 - `RELAYER`: Used for the ALM Planner offchain system. This address can call functions on `controller` contracts to perform actions on behalf of the `ALMProxy` contract.
 - `FREEZER`: Allows an address with this role to remove a `RELAYER` that has been compromised. The intention of this is to have a backup `RELAYER` that the system can fall back to when the main one is removed.
 - `CONTROLLER`: Used for the `ALMProxy` contract. Only contracts with this role can call the `call` functions on the `ALMProxy` contract. Also used in the RateLimits contract, only this role can update rate limits.
 
 ## Controller Functionality
+
 The `MainnetController` contains all logic necessary to interact with the Sky allocation system to mint and burn USDS, swap USDS to USDC in the PSM, as well as interact with mainnet external protocols and CCTP for bridging USDC.
 The `ForeignController` contains all logic necessary to deposit, withdraw, and swap assets in L2 PSMs as well as interact with external protocols on L2s and CCTP for bridging USDC.
 
 ## Rate Limits
 
 The `RateLimits` contract is used to enforce rate limits on the `controller` contracts. The rate limits are defined using `keccak256` hashes to identify which function to apply the rate limit to. This was done to allow flexibility in future function signatures for the same desired high-level functionality. The rate limits are stored in a mapping with the `keccak256` hash as the key and a struct containing the rate limit data:
+
 - `maxAmount`: Maximum allowed amount at any time.
 - `slope`: The slope of the rate limit, used to calculate the new limit based on time passed. [tokens / second]
 - `lastAmount`: The amount left available at the last update.
@@ -94,8 +97,36 @@ wake up config
 
 This will read Foundry remappings and create a new `wake.toml` file (which can then be moved to /printers.)
 
+# Offchain Swap Support
+
+This allows the SLL to perform an offchain swap while ensuring some constraints on how much capital has left the system at a time. It is intended to be used to gain access to liquidity from sources such as OTC Desks and exchanges.
+
+The idea is to have funds sent from the ALM Proxy to the offchain destination. This contract will not be able to send any more funds to an exchange until the required balance is returned. You can think of it like a gating mechanism that only allows a maximum `X` of funds to be outside the system, per approved OTC exchange, at any time.
+
+This will provide strong guarantees to Spark/Sky that at most `X` can be stolen/lost, per whitelisted OTC route, while still allowing for rapid throughput into an offchain market with high liquidity such as Binance. Below is a diagram outlining how the system works using Binance as an example.
+
+![Offchain Swap Module](https://github.com/user-attachments/assets/9aed5b7f-0b6e-45e3-8ad8-10bc5016470d)
+
+## OTC Swap Conditions
+
+In order for an OTC swap to be performed `isOtcSwapReady(exchange)` must return `true`. This function has two main components:
+
+### Slippage
+
+`maxSlippages` mapped on `exchange`, used in the same way as other parts of the controller. This value calculates a minimum viable amount to be returned from a swap in order for it to be considered complete, so another can be performed.
+
+### Recharge Rate
+
+In the OTC struct, there is a value `rechargeRate` that is expressed in 18 decimals of token per second. This value increases over time after the initial swap is sent. This value is necessary in the case where the exchange does return a material amount of funds but it is below the configured `maxSlippage`. In order to prevent the configuration of the system from bricking swapping functionality, this mechanism allows the OTC swap returned amount to virtually "recharge" over time so that it will eventually get over the required amount.
+
+The equation to determine if an OTC swap is ready is:
+
+$$ claimedAmount + (blockTimestamp - sentTimestamp) \times rechargeRate \ge sentAmount \times maxSlippage $$
+
 ## Trust Assumptions and Attack Mitigation
+
 Below are all stated trust assumptions for using this contract in production:
+
 - The `DEFAULT_ADMIN_ROLE` is fully trusted, to be run by governance.
 - The `RELAYER` role is assumed to be able to be fully compromised by a malicious actor. **This should be a major consideration during auditing engagements.**
   - The logic in the smart contracts must prevent the movement of value anywhere outside of the ALM system of contracts. The exception for this is in asynchronous style integrations such as BUIDL, where `transferAsset` can be used to send funds to a whitelisted address. LP tokens are then asynchronously minted into the ALMProxy in a separate transaction.
@@ -104,8 +135,14 @@ Below are all stated trust assumptions for using this contract in production:
 - A compromised `RELAYER` can perform DOS attacks. These attacks along with their respective recovery procedures are outlined in the `Attacks.t.sol` test files.
 - Ethena USDe Mint/Burn is trusted to not honor requests with over 50bps slippage from a delegated signer.
 - Withdrawals using `withdrawERC4626`/`redeemERC4626`/`withdrawAave` must always have a non-zero deposit rate limit set for their corresponding deposit functions in order to succeed.
+- All whitelisted exchanges or OTC desks have no counterparty risk (i.e. they will asynchronously complete the trade) outside of slippage risks.
+- All assets are tracking the same underlying. In other words, there will only be USD stablecoins. The value of these assets are treated the same (i.e. 1 USDT = 1 USDC). No yield-bearing versions, just 1:1.
+- Assume that the funds return to the OTC Buffer contract via transfer. This is to accommodate most exchanges/OTC desks that only have the ability to complete the swap by sending token to an address (i.e. not being able to make any arbitrary contracts calls outside of the ERC20 spec).
+- The maximum loss by the protocol is limited to the single outstanding OTC swap amount for a given exchange.
+- The recharge rate is configured to be low enough that the system will not practically allow for multiple swaps in a row without receiving material funds from the exchange.
 
 ## Operational Requirements
+
 - All ERC-4626 vaults that are onboarded MUST have an initial burned shares amount that prevents rounding-based frontrunning attacks. These shares have to be unrecoverable so that they cannot be removed at a later date.
 - All ERC-20 tokens are to be non-rebasing with sufficiently high decimal precision.
 - Rate limits must be configured for specific ERC-4626 vaults and AAVE aTokens (vaults without rate limits set will revert). Unlimited rate limits can be used as an onboarding tool.
@@ -122,10 +159,12 @@ forge test
 ```
 
 ## Deployments
+
 All commands to deploy:
-  - Either the full system or just the controller
-  - To mainnet or base
-  - For staging or production
+
+- Either the full system or just the controller
+- To mainnet or base
+- For staging or production
 
 Can be found in the Makefile, with the nomenclature `make deploy-<domain>-<env>-<type>`.
 
@@ -139,12 +178,15 @@ To deploy a full staging environment from scratch, with a new allocation system 
 To perform upgrades against forks of mainnet and base for testing/simulation purposes, use the following instructions.
 
 1. Set up two anvil nodes forked against mainnet and base.
+
 ```
 anvil --fork-url $MAINNET_RPC_URL
 ```
+
 ```
 anvil --fork-url $BASE_RPC_URL -p 8546
 ```
+
 ```
 anvil --fork-url $ARBITRUM_ONE_RPC_URL -p 8547
 ```
