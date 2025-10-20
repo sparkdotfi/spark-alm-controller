@@ -101,7 +101,7 @@ This will read Foundry remappings and create a new `wake.toml` file (which can t
 
 This allows the SLL to perform an offchain swap while ensuring some constraints on how much capital has left the system at a time. It is intended to be used to gain access to liquidity from sources such as OTC Desks and exchanges.
 
-The idea is to have funds sent from the ALM Proxy to the offchain destination. This contract will not be able to send any more funds to an exchange until the required balance is returned. You can think of it like a gating mechanism that only allows a maximum `X` of funds to be outside the system, per approved OTC exchange, at any time.
+The idea is to have funds sent from the ALM Proxy to the offchain destination. This contract will not be able to send any more funds to an exchange until the required balance is returned. It can be thought of like a gating mechanism that only allows a maximum `X` of funds to be outside the system, per approved OTC exchange, at any time.
 
 This will provide strong guarantees to Spark/Sky that at most `X` can be stolen/lost, per whitelisted OTC route, while still allowing for rapid throughput into an offchain market with high liquidity such as Binance. Below is a diagram outlining how the system works using Binance as an example.
 
