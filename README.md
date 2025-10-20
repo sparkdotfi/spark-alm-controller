@@ -33,18 +33,21 @@ The diagram below provides and example of calling to mint USDS using the Sky all
 ## Permissions
 
 All contracts in this repo inherit and implement the AccessControl contract from OpenZeppelin to manage permissions. The following roles are defined:
+
 - `DEFAULT_ADMIN_ROLE`: The admin role is the role that can grant and revoke roles. Also used for general admin functions in all contracts.
 - `RELAYER`: Used for the ALM Planner offchain system. This address can call functions on `controller` contracts to perform actions on behalf of the `ALMProxy` contract.
 - `FREEZER`: Allows an address with this role to remove a `RELAYER` that has been compromised. The intention of this is to have a backup `RELAYER` that the system can fall back to when the main one is removed.
 - `CONTROLLER`: Used for the `ALMProxy` contract. Only contracts with this role can call the `call` functions on the `ALMProxy` contract. Also used in the RateLimits contract, only this role can update rate limits.
 
 ## Controller Functionality
+
 The `MainnetController` contains all logic necessary to interact with the Sky allocation system to mint and burn USDS, swap USDS to USDC in the PSM, as well as interact with mainnet external protocols and CCTP for bridging USDC.
 The `ForeignController` contains all logic necessary to deposit, withdraw, and swap assets in L2 PSMs as well as interact with external protocols on L2s and CCTP for bridging USDC.
 
 ## Rate Limits
 
 The `RateLimits` contract is used to enforce rate limits on the `controller` contracts. The rate limits are defined using `keccak256` hashes to identify which function to apply the rate limit to. This was done to allow flexibility in future function signatures for the same desired high-level functionality. The rate limits are stored in a mapping with the `keccak256` hash as the key and a struct containing the rate limit data:
+
 - `maxAmount`: Maximum allowed amount at any time.
 - `slope`: The slope of the rate limit, used to calculate the new limit based on time passed. [tokens / second]
 - `lastAmount`: The amount left available at the last update.
@@ -95,7 +98,9 @@ wake up config
 This will read Foundry remappings and create a new `wake.toml` file (which can then be moved to /printers.)
 
 ## Trust Assumptions and Attack Mitigation
+
 Below are all stated trust assumptions for using this contract in production:
+
 - The `DEFAULT_ADMIN_ROLE` is fully trusted, to be run by governance.
 - The `RELAYER` role is assumed to be able to be fully compromised by a malicious actor. **This should be a major consideration during auditing engagements.**
   - The logic in the smart contracts must prevent the movement of value anywhere outside of the ALM system of contracts. The exception for this is in asynchronous style integrations such as BUIDL, where `transferAsset` can be used to send funds to a whitelisted address. LP tokens are then asynchronously minted into the ALMProxy in a separate transaction.
@@ -106,6 +111,7 @@ Below are all stated trust assumptions for using this contract in production:
 - Withdrawals using `withdrawERC4626`/`redeemERC4626`/`withdrawAave` must always have a non-zero deposit rate limit set for their corresponding deposit functions in order to succeed.
 
 ## Operational Requirements
+
 - All ERC-4626 vaults that are onboarded MUST have an initial burned shares amount that prevents rounding-based frontrunning attacks. These shares have to be unrecoverable so that they cannot be removed at a later date.
 - All ERC-20 tokens are to be non-rebasing with sufficiently high decimal precision.
 - Rate limits must be configured for specific ERC-4626 vaults and AAVE aTokens (vaults without rate limits set will revert). Unlimited rate limits can be used as an onboarding tool.
@@ -119,7 +125,7 @@ The [`ALMProxyFreezable.sol`](./src/ALMProxyFreezable.sol) contract is a variant
 
 A key architectural difference from the standard `ALMProxy` is how the `CONTROLLER` role is used. In the standard `ALMProxy`, the `controller` is a controller contract (e.g., `MainnetController` or `ForeignController`) that itself acts when approved relayers interact with it. In contrast, the "controllers" of the `ALMProxyFreezable` are the relayers themselves, since they are granted the `CONTROLLER` role directly.
 
-Since relayers are not necessarily first-party accounts or governance entities, they still carry some risk of misbehaving. To mitigate this risk, the `FREEZER` role has the additional ability to remove controllers via the `removeController` function in `ALMProxyFreezable`, which does not exist in the `ALMPpoxy`. This provides a safety mechanism to quickly revoke access from any relayer that may be compromised or acting maliciously, without needing to involve the same slower governance process that is used to remove the controller of the `ALMProxy`.88
+Since relayers are not necessarily first-party accounts or governance entities, they still carry some risk of misbehaving. To mitigate this risk, the `FREEZER` role has the additional ability to remove controllers via the `removeController` function in `ALMProxyFreezable`, which does not exist in the `ALMProxy`. This provides a safety mechanism to quickly revoke access from any relayer that may be compromised or acting maliciously, without needing to involve the same slower governance process that is used to remove the controller of the `ALMProxy`.
 
 ## Testing
 
@@ -130,10 +136,12 @@ forge test
 ```
 
 ## Deployments
+
 All commands to deploy:
-  - Either the full system or just the controller
-  - To mainnet or base
-  - For staging or production
+
+- Either the full system or just the controller
+- To mainnet or base
+- For staging or production
 
 Can be found in the Makefile, with the nomenclature `make deploy-<domain>-<env>-<type>`.
 
@@ -147,12 +155,15 @@ To deploy a full staging environment from scratch, with a new allocation system 
 To perform upgrades against forks of mainnet and base for testing/simulation purposes, use the following instructions.
 
 1. Set up two anvil nodes forked against mainnet and base.
+
 ```
 anvil --fork-url $MAINNET_RPC_URL
 ```
+
 ```
 anvil --fork-url $BASE_RPC_URL -p 8546
 ```
+
 ```
 anvil --fork-url $ARBITRUM_ONE_RPC_URL -p 8547
 ```
