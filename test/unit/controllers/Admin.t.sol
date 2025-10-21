@@ -268,8 +268,8 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
 
 contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminTestBase {
 
-    address exchange = makeAddr("exchange");
     address asset    = makeAddr("asset");
+    address exchange = makeAddr("exchange");
 
     function test_setOTCWhitelistedAsset_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(

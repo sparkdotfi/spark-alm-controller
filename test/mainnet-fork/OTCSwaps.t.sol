@@ -37,11 +37,6 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
     OTCBuffer otcBuffer;
 
-    event OTCBufferSet(
-        address indexed exchange,
-        address indexed oldOTCBuffer,
-        address indexed newOTCBuffer
-    );
     event OTCSwapSent(
         address indexed exchange,
         address indexed buffer,
@@ -56,8 +51,6 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         uint256 amountClaimed,
         uint256 amountClaimed18
     );
-    event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
-    event OTCWhitelistedAssetSet(address indexed exchange, address indexed asset, bool isWhitelisted);
 
     address exchange = makeAddr("exchange");
 

@@ -33,7 +33,6 @@ contract OTCBufferConstructorTest is OTCBufferTestBase {
 
 }
 
-
 contract OTCBufferApproveFailureTests is OTCBufferTestBase {
 
     function test_approve_notAuthorized() public {
