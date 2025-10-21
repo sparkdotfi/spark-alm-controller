@@ -21,6 +21,7 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
         address indexed newOTCBuffer
     );
     event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
+    event OTCWhitelistedAssetSet(address indexed exchange, address indexed asset, bool isWhitelisted);
 
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
@@ -244,6 +245,12 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
     }
 
+    function test_setOTCRechargeRate_exchangeZero() external {
+        vm.prank(admin);
+        vm.expectRevert("MainnetController/exchange-zero-address");
+        mainnetController.setOTCRechargeRate(address(0), uint256(1_000_000e18) / 1 days);
+    }
+
     function test_setOTCRechargeRate() external {
         ( , uint256 rate18,,, ) = mainnetController.otcs(exchange);
         assertEq(rate18, 0);
@@ -255,6 +262,43 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
 
         ( , rate18,,, ) = mainnetController.otcs(exchange);
         assertEq(rate18, uint256(1_000_000e18) / 1 days);
+    }
+
+}
+
+contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminTestBase {
+
+    address exchange = makeAddr("exchange");
+    address asset    = makeAddr("asset");
+
+    function test_setOTCWhitelistedAsset_unauthorizedAccount() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        mainnetController.setOTCWhitelistedAsset(exchange, asset, true);
+    }
+
+    function test_setOTCWhitelistedAsset_exchangeZero() external {
+        vm.prank(admin);
+        vm.expectRevert("MainnetController/exchange-zero-address");
+        mainnetController.setOTCWhitelistedAsset(address(0), asset, true);
+    }
+
+    function test_setOTCWhitelistedAsset_assetZero() external {
+        vm.prank(admin);
+        vm.expectRevert("MainnetController/asset-zero-address");
+        mainnetController.setOTCWhitelistedAsset(exchange, address(0), true);
+    }
+
+    function test_setOTCWhitelistedAsset() external {
+        vm.prank(admin);
+        vm.expectEmit(address(mainnetController));
+        emit OTCWhitelistedAssetSet(exchange, asset, true);
+        mainnetController.setOTCWhitelistedAsset(exchange, asset, true);
+
+        assertEq(mainnetController.otcWhitelistedAssets(exchange, asset), true);
     }
 
 }
