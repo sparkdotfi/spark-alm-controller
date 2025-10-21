@@ -104,21 +104,25 @@ contract MainnetController is AccessControlEnumerable {
         address indexed oldOTCBuffer,
         address indexed newOTCBuffer
     );
-    event OTCWhitelistedAssetSet(address indexed exchange, address indexed asset, bool isWhitelisted);
+    event OTCWhitelistedAssetSet(
+        address indexed exchange,
+        address indexed asset,
+        bool            isWhitelisted
+    );
     event OTCClaimed(
         address indexed exchange,
         address indexed buffer,
         address indexed assetClaimed,
-        uint256 amountClaimed,
-        uint256 amountClaimed18
+        uint256         amountClaimed,
+        uint256         amountClaimed18
     );
     event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
     event OTCSwapSent(
         address indexed exchange,
         address indexed buffer,
         address indexed tokenSent,
-        uint256 amountSent,
-        uint256 amountSent18
+        uint256         amountSent,
+        uint256         amountSent18
     );
     event RelayerRemoved(address indexed relayer);
 
@@ -180,7 +184,8 @@ contract MainnetController is AccessControlEnumerable {
 
     // OTC swap (also uses maxSlippages)
     mapping(address exchange => OTC otcData) public otcs;
-    mapping(address exchange => mapping(address asset => bool isWhitelisted)) public otcWhitelistedAssets;
+
+    mapping(address exchange => mapping(address asset => bool)) public otcWhitelistedAssets;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -274,7 +279,7 @@ contract MainnetController is AccessControlEnumerable {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
         require(exchange != address(0), "MainnetController/exchange-zero-address");
-        require(asset != address(0),    "MainnetController/asset-zero-address");
+        require(asset    != address(0), "MainnetController/asset-zero-address");
 
         emit OTCWhitelistedAssetSet(exchange, asset, isWhitelisted);
         otcWhitelistedAssets[exchange][asset] = isWhitelisted;
@@ -933,9 +938,13 @@ contract MainnetController is AccessControlEnumerable {
     function otcSend(address exchange, address assetToSend, uint256 amount) external {
         _checkRole(RELAYER);
 
-        require(assetToSend != address(0),                   "MainnetController/asset-to-send-zero");
-        require(amount > 0,                                  "MainnetController/amount-to-send-zero");
-        require(otcWhitelistedAssets[exchange][assetToSend], "MainnetController/asset-not-whitelisted");
+        require(assetToSend != address(0), "MainnetController/asset-to-send-zero");
+        require(amount > 0,                "MainnetController/amount-to-send-zero");
+
+        require(
+            otcWhitelistedAssets[exchange][assetToSend],
+            "MainnetController/asset-not-whitelisted"
+        );
 
         uint256 sent18 = amount * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
 
@@ -962,9 +971,13 @@ contract MainnetController is AccessControlEnumerable {
 
         address otcBuffer = otcs[exchange].buffer;
 
-        require(assetToClaim != address(0),                   "MainnetController/asset-to-claim-zero");
-        require(otcBuffer    != address(0),                   "MainnetController/otc-buffer-not-set");
-        require(otcWhitelistedAssets[exchange][assetToClaim], "MainnetController/asset-not-whitelisted");
+        require(assetToClaim != address(0), "MainnetController/asset-to-claim-zero");
+        require(otcBuffer    != address(0), "MainnetController/otc-buffer-not-set");
+
+        require(
+            otcWhitelistedAssets[exchange][assetToClaim],
+            "MainnetController/asset-not-whitelisted"
+        );
 
         uint256 amountToClaim = IERC20(assetToClaim).balanceOf(otcBuffer);
 

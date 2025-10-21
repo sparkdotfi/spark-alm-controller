@@ -299,6 +299,13 @@ contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminT
         mainnetController.setOTCWhitelistedAsset(exchange, asset, true);
 
         assertEq(mainnetController.otcWhitelistedAssets(exchange, asset), true);
+
+        vm.prank(admin);
+        vm.expectEmit(address(mainnetController));
+        emit OTCWhitelistedAssetSet(exchange, asset, false);
+        mainnetController.setOTCWhitelistedAsset(exchange, asset, false);
+
+        assertEq(mainnetController.otcWhitelistedAssets(exchange, asset), false);
     }
 
 }
