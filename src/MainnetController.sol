@@ -4,9 +4,6 @@ pragma solidity ^0.8.21;
 import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-// This interface has been reviewed, and is compliant with the specs: https://eips.ethereum.org/EIPS/eip-7540
-import { IERC7540 } from "forge-std/interfaces/IERC7540.sol";
-
 import { AccessControlEnumerable } from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
 import { IERC20 }         from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
@@ -31,15 +28,6 @@ import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
     function POOL() external view returns(address);
-}
-
-interface ICentrifugeToken is IERC7540 {
-    function cancelDepositRequest(uint256 requestId, address controller) external;
-    function cancelRedeemRequest(uint256 requestId, address controller) external;
-    function claimCancelDepositRequest(uint256 requestId, address receiver, address controller)
-        external returns (uint256 assets);
-    function claimCancelRedeemRequest(uint256 requestId, address receiver, address controller)
-        external returns (uint256 shares);
 }
 
 interface IEthenaMinterLike {
@@ -142,8 +130,6 @@ contract MainnetController is AccessControlEnumerable {
 
     bytes32 public LIMIT_4626_DEPOSIT            = keccak256("LIMIT_4626_DEPOSIT");
     bytes32 public LIMIT_4626_WITHDRAW           = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public LIMIT_7540_DEPOSIT            = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public LIMIT_7540_REDEEM             = keccak256("LIMIT_7540_REDEEM");
     bytes32 public LIMIT_AAVE_DEPOSIT            = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public LIMIT_AAVE_WITHDRAW           = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public LIMIT_ASSET_TRANSFER          = keccak256("LIMIT_ASSET_TRANSFER");
@@ -166,8 +152,6 @@ contract MainnetController is AccessControlEnumerable {
     bytes32 public LIMIT_USDS_TO_USDC            = keccak256("LIMIT_USDS_TO_USDC");
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
-
-    uint256 internal CENTRIFUGE_REQUEST_ID = 0;
 
     address public buffer;
 
@@ -485,128 +469,6 @@ contract MainnetController is AccessControlEnumerable {
         );
 
         _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), assets);
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer ERC7540 functions                                                              ***/
-    /**********************************************************************************************/
-
-    function requestDepositERC7540(address token, uint256 amount) external {
-        _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_7540_DEPOSIT, token, amount);
-
-        // Note that whitelist is done by rate limits
-        IERC20 asset = IERC20(IERC7540(token).asset());
-
-        // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
-
-        // Submit deposit request by transferring assets
-        proxy.doCall(
-            token,
-            abi.encodeCall(IERC7540(token).requestDeposit, (amount, address(proxy), address(proxy)))
-        );
-    }
-
-    function claimDepositERC7540(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_DEPOSIT, token));
-
-        uint256 shares = IERC7540(token).maxMint(address(proxy));
-
-        // Claim shares from the vault to the proxy
-        proxy.doCall(
-            token,
-            abi.encodeCall(IERC4626(token).mint, (shares, address(proxy)))
-        );
-    }
-
-    function requestRedeemERC7540(address token, uint256 shares) external {
-        _checkRole(RELAYER);
-        _rateLimitedAddress(
-            LIMIT_7540_REDEEM,
-            token,
-            IERC7540(token).convertToAssets(shares)
-        );
-
-        // Submit redeem request by transferring shares
-        proxy.doCall(
-            token,
-            abi.encodeCall(IERC7540(token).requestRedeem, (shares, address(proxy), address(proxy)))
-        );
-    }
-
-    function claimRedeemERC7540(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_REDEEM, token));
-
-        uint256 assets = IERC7540(token).maxWithdraw(address(proxy));
-
-        // Claim assets from the vault to the proxy
-        proxy.doCall(
-            token,
-            abi.encodeCall(IERC7540(token).withdraw, (assets, address(proxy), address(proxy)))
-        );
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Centrifuge functions                                                           ***/
-    /**********************************************************************************************/
-
-    // NOTE: These cancelation methods are compatible with ERC-7887
-
-    function cancelCentrifugeDepositRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_DEPOSIT, token));
-
-        // NOTE: While the cancelation is pending, no new deposit request can be submitted
-        proxy.doCall(
-            token,
-            abi.encodeCall(
-                ICentrifugeToken(token).cancelDepositRequest,
-                (CENTRIFUGE_REQUEST_ID, address(proxy))
-            )
-        );
-    }
-
-    function claimCentrifugeCancelDepositRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_DEPOSIT, token));
-
-        proxy.doCall(
-            token,
-            abi.encodeCall(
-                ICentrifugeToken(token).claimCancelDepositRequest,
-                (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
-            )
-        );
-    }
-
-    function cancelCentrifugeRedeemRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_REDEEM, token));
-
-        // NOTE: While the cancelation is pending, no new redeem request can be submitted
-        proxy.doCall(
-            token,
-            abi.encodeCall(
-                ICentrifugeToken(token).cancelRedeemRequest,
-                (CENTRIFUGE_REQUEST_ID, address(proxy))
-            )
-        );
-    }
-
-    function claimCentrifugeCancelRedeemRequest(address token) external {
-        _checkRole(RELAYER);
-        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_7540_REDEEM, token));
-
-        proxy.doCall(
-            token,
-            abi.encodeCall(
-                ICentrifugeToken(token).claimCancelRedeemRequest,
-                (CENTRIFUGE_REQUEST_ID, address(proxy), address(proxy))
-            )
-        );
     }
 
     /**********************************************************************************************/
