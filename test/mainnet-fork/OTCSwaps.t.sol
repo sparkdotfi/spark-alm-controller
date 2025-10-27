@@ -37,11 +37,6 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
     OTCBuffer otcBuffer;
 
-    event OTCBufferSet(
-        address indexed exchange,
-        address indexed oldOTCBuffer,
-        address indexed newOTCBuffer
-    );
     event OTCSwapSent(
         address indexed exchange,
         address indexed buffer,
@@ -56,7 +51,6 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         uint256 amountClaimed,
         uint256 amountClaimed18
     );
-    event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
 
     address exchange = makeAddr("exchange");
 
@@ -83,6 +77,8 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         mainnetController.setMaxSlippage(exchange, 0.9995e18);
         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
+        mainnetController.setOTCWhitelistedAsset(exchange, address(usdt), true);
+        mainnetController.setOTCWhitelistedAsset(exchange, address(usds), true);
 
         vm.stopPrank();
     }
@@ -127,7 +123,16 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcSend(exchange, address(usdt), 0);
     }
 
+    function test_otcSend_assetNotWhitelisted() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/asset-not-whitelisted");
+        mainnetController.otcSend(exchange, address(1), 1e18);
+    }
+
     function test_otcSend_rateLimitZero() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCWhitelistedAsset(makeAddr("fake-exchange"), address(usdt), true);
+
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.otcSend(makeAddr("fake-exchange"), address(usdt), 1e18);
@@ -163,16 +168,19 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
     }
 
     function test_otcSend_transferFailed() external {
-        MockTokenReturnFalse token = new MockTokenReturnFalse();
+        address token = address(new MockTokenReturnFalse());
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCWhitelistedAsset(exchange, token, true);
 
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
 
-        deal(address(token), address(almProxy), 1_000_000e6);
+        deal(token, address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/transfer-failed");
-        mainnetController.otcSend(exchange, address(token), 1_000_000e6);
+        mainnetController.otcSend(exchange, token, 1_000_000e6);
     }
 
     function test_otcSend_lastSwapNotReturnedBoundary_noRecharge_usdt() external {
@@ -445,17 +453,26 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
         mainnetController.otcClaim(makeAddr("fake-exchange"), address(1));
     }
 
-    function test_otcClaim_transferFailed() external {
-        MockTokenReturnFalse token = new MockTokenReturnFalse();
+    function test_otcClaim_assetNotWhitelisted() external {
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/asset-not-whitelisted");
+        mainnetController.otcClaim(exchange, address(1));
+    }
 
-        deal(address(token), address(otcBuffer), 1_000_000e6);
+    function test_otcClaim_transferFailed() external {
+        address token = address(new MockTokenReturnFalse());
 
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(token), address(almProxy), type(uint256).max);
+        mainnetController.setOTCWhitelistedAsset(exchange, token, true);
+
+        deal(token, address(otcBuffer), 1_000_000e6);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        otcBuffer.approve(token, address(almProxy), type(uint256).max);
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/transfer-failed");
-        mainnetController.otcClaim(exchange, address(token));
+        mainnetController.otcClaim(exchange, token);
     }
 
 }
