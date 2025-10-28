@@ -124,7 +124,11 @@ contract ERC20Transfer {
         return _getERC20TransferStorage().relayerRole;
     }
 
-    function getRateLimit(
+    function getCurrentRateLimit(address token_, address recipient_) external view returns (uint256 currentRateLimit_) {
+        return RateLimitLib.getCurrentRateLimit(_getERC20TransferStorage().limits[token_][recipient_]);
+    }
+
+    function getRateLimitData(
         address token_,
         address recipient_
     ) external view returns (RateLimitLib.RateLimitData memory rateLimitData_) {

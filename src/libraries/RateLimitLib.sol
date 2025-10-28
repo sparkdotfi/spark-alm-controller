@@ -51,15 +51,19 @@ library RateLimitLib {
         return true;
     }
 
-    function increase(RateLimitData storage rateLimitData_, uint256 amount_) internal {
+    function increase(RateLimitData storage rateLimitData_, uint256 amount_) internal returns (bool success_) {
         uint256 maxAmount_ = rateLimitData_.maxAmount;
 
-        if (maxAmount_ == type(uint256).max) return;  // Special case unlimited
+        if (maxAmount_ == 0) return false;
+
+        if (maxAmount_ == type(uint256).max) return true;  // Special case unlimited
 
         uint256 currentRateLimit_ = getCurrentRateLimit(rateLimitData_);
 
         rateLimitData_.lastAmount = min(currentRateLimit_ + amount_, maxAmount_);
         rateLimitData_.lastUpdated = block.timestamp;
+
+        return true;
     }
 
     function set(

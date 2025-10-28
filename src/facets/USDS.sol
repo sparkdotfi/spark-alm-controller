@@ -52,6 +52,8 @@ contract USDS {
 
     error USDS_RateLimitExceeded(uint256 amount, uint256 currentRateLimit);
 
+    error USDS_RateLimitZeroMaxAmount();
+
     /**********************************************************************************************/
     /*** UUPS Storage                                                                           ***/
     /**********************************************************************************************/
@@ -153,7 +155,11 @@ contract USDS {
         return _getUSDSStorage().relayerRole;
     }
 
-    function rateLimit() external view returns (RateLimitLib.RateLimitData memory rateLimitData_) {
+    function currentRateLimit() external view returns (uint256 currentRateLimit_) {
+        return RateLimitLib.getCurrentRateLimit(_getUSDSStorage().rateLimitData);
+    }
+
+    function rateLimitData() external view returns (RateLimitLib.RateLimitData memory rateLimitData_) {
         return _getUSDSStorage().rateLimitData;
     }
 
@@ -174,7 +180,10 @@ contract USDS {
     function _increaseRateLimit(uint256 amount_) internal {
         emit USDS_RateLimitIncreased(amount_);
 
-        RateLimitLib.increase(_getUSDSStorage().rateLimitData, amount_);
+        if (RateLimitLib.increase(_getUSDSStorage().rateLimitData, amount_)) return;
+
+        revert USDS_RateLimitZeroMaxAmount();
+
     }
 
     /**********************************************************************************************/

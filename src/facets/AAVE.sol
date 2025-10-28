@@ -68,6 +68,8 @@ contract AAVE {
 
     error AAVE_DepositRateLimitExceeded(address aToken, uint256 amount, uint256 currentRateLimitAmount);
 
+    error AAVE_DepositRateLimitZeroMaxAmount();
+
     error AAVE_WithdrawRateLimitExceeded(address aToken, uint256 amount, uint256 currentRateLimitAmount);
 
     /**********************************************************************************************/
@@ -232,7 +234,9 @@ contract AAVE {
     function _increaseDepositRateLimit(address aToken_, uint256 amount_) internal {
         emit AAVE_DepositRateLimitIncreased(aToken_, amount_);
 
-        RateLimitLib.increase(_getAAVEStorage().depositLimits[aToken_], amount_);
+        if (RateLimitLib.increase(_getAAVEStorage().depositLimits[aToken_], amount_)) return;
+
+        revert AAVE_DepositRateLimitZeroMaxAmount();
     }
 
     /**********************************************************************************************/

@@ -138,8 +138,8 @@ contract ALMProxy {
         return _getALMProxyStorage().implementations[functionSelector_];
     }
 
-    function implementations() external view returns (Implementation[] memory implementations_) {
-        bytes4[] memory functionSelectors_ = _getALMProxyStorage().functionSelectors;
+    function implementations() external view returns (bytes4[] memory functionSelectors_, Implementation[] memory implementations_) {
+        functionSelectors_ = _getALMProxyStorage().functionSelectors;
 
         implementations_ = new Implementation[](functionSelectors_.length);
 

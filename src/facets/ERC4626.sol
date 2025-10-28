@@ -60,6 +60,9 @@ contract ERC4626 {
     error ERC4626_SlippageTooHigh(uint256 assets, uint256 minExpectedAssets);
 
     error ERC4626_DepositRateLimitExceeded(address token, uint256 amount, uint256 currentRateLimitAmount);
+
+    error ERC4626_DepositRateLimitZeroMaxAmount();
+
     error ERC4626_WithdrawRateLimitExceeded(address token, uint256 amount, uint256 currentRateLimitAmount);
 
     /**********************************************************************************************/
@@ -243,7 +246,9 @@ contract ERC4626 {
     function _increaseDepositRateLimit(address token_, uint256 amount_) internal {
         emit ERC4626_DepositRateLimitIncreased(token_, amount_);
 
-        RateLimitLib.increase(_getERC4626Storage().depositLimits[token_], amount_);
+        if (RateLimitLib.increase(_getERC4626Storage().depositLimits[token_], amount_)) return;
+
+        revert ERC4626_DepositRateLimitZeroMaxAmount();
     }
 
     /**********************************************************************************************/
