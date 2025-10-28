@@ -103,7 +103,7 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
 
-        // We can compute:
+        // One can compute:
         // shares == assets * (totalSupply + 1) / (totalAssets + 1)
         //        == 2_000_000e18 * (1 + 1) / (1_000_000e18 + 1 + 1)
         //        == 3.9..
@@ -137,7 +137,8 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         usds.approve(address(morphoVault), 1);
         morphoVault.deposit(1, attacker);
         usds.approve(address(morpho), 1_000_000e18);
-        // Donation attack
+
+        // Donation attack performed by donating shares of Morpho market supply to Morpho vault
         (uint256 assets, uint256 shares) = morpho.supply(
             marketParams, 1_000_000e18, 0, address(morphoVault), hex""
         );
@@ -153,7 +154,7 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         assertEq(morphoVault.totalAssets(), 1_000_000e18 + 1);
         // Instead of performing shares * totalAssets / totalShares, aka
         // 1 * (1_000_000e18 + 1) / 1 == 1_000_000e18 + 1, the vault actually adds 1 to the
-        // numerator and denominator, so we get 1 * (1_000_000e18 + 1 + 1) / (1 + 1)
+        // numerator and denominator, so one gets 1 * (1_000_000e18 + 1 + 1) / (1 + 1)
         // == (1_000_000e18 + 2) / 2 == 500_000e18 + 1.
         assertEq(morphoVault.convertToAssets(1), 500_000e18 + 1);
 
