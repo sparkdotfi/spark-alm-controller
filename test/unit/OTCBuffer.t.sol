@@ -51,12 +51,12 @@ contract OTCBufferApproveFailureTests is OTCBufferTestBase {
 contract OTCBufferApproveSuccessTests is OTCBufferTestBase {
 
     function test_approve() public {
-        assertEq(usdt.allowance(address(buffer), address(buffer)), 0);
+        assertEq(usdt.allowance(address(buffer), almProxy), 0);
 
         vm.prank(admin);
         buffer.approve(address(usdt), 1_000_000e6);
 
-        assertEq(usdt.allowance(address(buffer), address(buffer)), 1_000_000e6);
+        assertEq(usdt.allowance(address(buffer), almProxy), 1_000_000e6);
     }
 
 }
