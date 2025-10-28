@@ -158,7 +158,7 @@ contract MainnetController is AccessControlEnumerable {
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
-    address public buffer;
+    address public buffer;  // Allocator buffer
 
     IALMProxy         public proxy;
     ICCTPLike         public cctp;
@@ -179,7 +179,7 @@ contract MainnetController is AccessControlEnumerable {
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
-    mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
+    mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;  // CCTP mint recipients
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // OTC swap (also uses maxSlippages)
@@ -946,6 +946,7 @@ contract MainnetController is AccessControlEnumerable {
             "MainnetController/asset-not-whitelisted"
         );
 
+        // NOTE: This will lose precision for tokens with >18 decimals.
         uint256 sent18 = amount * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
 
         _rateLimitedAddress(LIMIT_OTC_SWAP, exchange, sent18);
@@ -1071,7 +1072,7 @@ contract MainnetController is AccessControlEnumerable {
 
         require(
             returnData.length == 0 || abi.decode(returnData, (bool)),
-            "MainnetController/transfer-failed"
+            "MainnetController/transferFrom-failed"
         );
     }
 
