@@ -12,8 +12,10 @@ contract OTCBufferTestBase is UnitTestBase {
     OTCBuffer public buffer;
     ERC20Mock public usdt;
 
+    address almProxy = makeAddr("almProxy");
+
     function setUp() public {
-        buffer = new OTCBuffer(admin);
+        buffer = new OTCBuffer(admin, almProxy);
         usdt   = new ERC20Mock();
     }
 
@@ -26,7 +28,7 @@ contract OTCBufferConstructorTest is OTCBufferTestBase {
 
         address newAdmin = makeAddr("new-admin");
 
-        OTCBuffer newBuffer = new OTCBuffer(newAdmin);
+        OTCBuffer newBuffer = new OTCBuffer(newAdmin, almProxy);
 
         assertEq(newBuffer.hasRole(DEFAULT_ADMIN_ROLE, newAdmin), true);
     }
@@ -41,7 +43,7 @@ contract OTCBufferApproveFailureTests is OTCBufferTestBase {
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        buffer.approve(address(usdt), address(buffer), 1_000_000e6);
+        buffer.approve(address(usdt), 1_000_000e6);
     }
 
 }
@@ -52,7 +54,7 @@ contract OTCBufferApproveSuccessTests is OTCBufferTestBase {
         assertEq(usdt.allowance(address(buffer), address(buffer)), 0);
 
         vm.prank(admin);
-        buffer.approve(address(usdt), address(buffer), 1_000_000e6);
+        buffer.approve(address(usdt), 1_000_000e6);
 
         assertEq(usdt.allowance(address(buffer), address(buffer)), 1_000_000e6);
     }
