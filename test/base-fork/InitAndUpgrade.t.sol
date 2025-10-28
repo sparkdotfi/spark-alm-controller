@@ -19,11 +19,12 @@ contract LibraryWrapper {
         Init.CheckAddressParams   memory checkAddresses,
         Init.MintRecipient[]      memory mintRecipients,
         Init.LayerZeroRecipient[] memory layerZeroRecipients,
+        Init.MaxSlippageParams[]  memory maxSlippageParams,
         bool                      checkPsm
     )
         external
     {
-        Init.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, checkPsm);
+        Init.initAlmSystem(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams, checkPsm);
     }
 
     function upgradeController(
@@ -32,11 +33,12 @@ contract LibraryWrapper {
         Init.CheckAddressParams   memory checkAddresses,
         Init.MintRecipient[]      memory mintRecipients,
         Init.LayerZeroRecipient[] memory layerZeroRecipients,
+        Init.MaxSlippageParams[]  memory maxSlippageParams,
         bool                      checkPsm
     )
         external
     {
-        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, checkPsm);
+        Init.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams, checkPsm);
     }
 
 }
@@ -106,6 +108,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
     Init.CheckAddressParams   checkAddresses;
     Init.MintRecipient[]      mintRecipients;
     Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.MaxSlippageParams[]  maxSlippageParams;
 
     function setUp() public override {
         super.setUp();
@@ -162,6 +165,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
     }
@@ -177,6 +181,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
     }
@@ -355,6 +360,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
     }
@@ -375,6 +381,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
     }
@@ -395,6 +402,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
     }
@@ -411,6 +419,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
 
@@ -421,6 +430,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
     }
@@ -434,6 +444,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
 
@@ -447,6 +458,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
     }
@@ -463,6 +475,7 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
     Init.CheckAddressParams   checkAddresses;
     Init.MintRecipient[]      mintRecipients;
     Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.MaxSlippageParams[]  maxSlippageParams;
 
     function setUp() public override {
         super.setUp();
@@ -515,6 +528,7 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
 
@@ -557,6 +571,7 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
     Init.CheckAddressParams   checkAddresses;
     Init.MintRecipient[]      mintRecipients;
     Init.LayerZeroRecipient[] layerZeroRecipients;
+    Init.MaxSlippageParams[]  maxSlippageParams;
 
     ForeignController newController;
 
@@ -619,6 +634,7 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
 
