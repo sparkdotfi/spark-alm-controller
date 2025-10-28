@@ -18,6 +18,10 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+      
+      - name: Install dependencies
+        run: |
+          forge install
 
       - name: Build contracts
         run: |
@@ -31,6 +35,10 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+      
+      - name: Install dependencies
+        run: |
+          forge install
 
       - name: Run tests
         env:
@@ -50,6 +58,10 @@ jobs:
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install dependencies
+        run: |
+          forge install
 
       - name: Run coverage
         env:
