@@ -278,8 +278,9 @@ contract MainnetController is AccessControlEnumerable {
     function setOTCWhitelistedAsset(address exchange, address asset, bool isWhitelisted) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange != address(0), "MainnetController/exchange-zero-address");
-        require(asset    != address(0), "MainnetController/asset-zero-address");
+        require(exchange              != address(0), "MainnetController/exchange-zero-address");
+        require(asset                 != address(0), "MainnetController/asset-zero-address");
+        require(otcs[exchange].buffer != address(0), "MainnetController/otc-buffer-not-set");
 
         emit OTCWhitelistedAssetSet(exchange, asset, isWhitelisted);
         otcWhitelistedAssets[exchange][asset] = isWhitelisted;
