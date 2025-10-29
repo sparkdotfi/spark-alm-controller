@@ -7,11 +7,11 @@ import "forge-std/Script.sol";
 
 import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
-import { ControllerInstance }                   from "../deploy/ControllerInstance.sol";
-import { ForeignControllerInit as ForeignInit } from "../deploy/ForeignControllerInit.sol";
-import { MainnetControllerInit as MainnetInit } from "../deploy/MainnetControllerInit.sol";
+import { ControllerInstance }                   from "../../deploy/ControllerInstance.sol";
+import { ForeignControllerInit as ForeignInit } from "../../deploy/ForeignControllerInit.sol";
+import { MainnetControllerInit as MainnetInit } from "../../deploy/MainnetControllerInit.sol";
 
-import { MainnetController } from "../src/MainnetController.sol";
+import { MainnetController } from "src/MainnetController.sol";
 
 contract UpgradeMainnetController is Script {
 

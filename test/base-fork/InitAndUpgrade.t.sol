@@ -52,7 +52,8 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
             Init.ConfigAddressParams  memory configAddresses,
             Init.CheckAddressParams   memory checkAddresses,
             Init.MintRecipient[]      memory mintRecipients,
-            Init.LayerZeroRecipient[] memory layerZeroRecipients
+            Init.LayerZeroRecipient[] memory layerZeroRecipients,
+            Init.MaxSlippageParams[]  memory maxSlippageParams
         )
     {
         address[] memory relayers = new address[](1);
@@ -85,6 +86,13 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
         layerZeroRecipients[0] = Init.LayerZeroRecipient({
             destinationEndpointId : destinationEndpointId,
             recipient             : bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
+        });
+
+        maxSlippageParams = new Init.MaxSlippageParams[](1);
+
+        maxSlippageParams[0] = Init.MaxSlippageParams({
+            pool        : makeAddr("pool"),
+            maxSlippage : 0.99e18
         });
     }
 
@@ -129,7 +137,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, ) = _getDefaultParams();
+        ( configAddresses, checkAddresses, mintRecipients_,, ) = _getDefaultParams();
 
         // NOTE: This would need to be refactored to a for loop if more than one recipient
         mintRecipients.push(mintRecipients_[0]);
@@ -496,10 +504,13 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients_ = new Init.LayerZeroRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_ ) = _getDefaultParams();
+        Init.MaxSlippageParams[] memory maxSlippageParams_ = new Init.MaxSlippageParams[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_, maxSlippageParams_ ) = _getDefaultParams();
 
         mintRecipients.push(mintRecipients_[0]);
         layerZeroRecipients.push(layerZeroRecipients_[0]);
+        maxSlippageParams.push(maxSlippageParams_[0]);
 
         // Admin will be calling the library from its own address
         vm.etch(Base.SPARK_EXECUTOR, address(new LibraryWrapper()).code);
@@ -520,6 +531,9 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
 
         assertEq(foreignController.mintRecipients(mintRecipients[0].domain),                bytes32(0));
         assertEq(foreignController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM), bytes32(0));
+
+        assertEq(foreignController.maxSlippages(maxSlippageParams[0].pool), 0);
+        assertEq(foreignController.maxSlippages(makeAddr("pool")),          0);
 
         vm.startPrank(Base.SPARK_EXECUTOR);
         wrapper.initAlmSystem(
@@ -557,6 +571,16 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
             foreignController.layerZeroRecipients(destinationEndpointId),
             bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
         );
+
+        assertEq(
+            foreignController.maxSlippages(maxSlippageParams[0].pool),
+            maxSlippageParams[0].maxSlippage
+        );
+
+        assertEq(
+            foreignController.maxSlippages(makeAddr("pool")),
+            0.99e18
+        );
     }
 
 }
@@ -582,10 +606,13 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients_ = new Init.LayerZeroRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_ ) = _getDefaultParams();
+        Init.MaxSlippageParams[] memory maxSlippageParams_ = new Init.MaxSlippageParams[](1);
+
+        ( configAddresses, checkAddresses, mintRecipients_, layerZeroRecipients_, maxSlippageParams_ ) = _getDefaultParams();
 
         mintRecipients.push(mintRecipients_[0]);
         layerZeroRecipients.push(layerZeroRecipients_[0]);
+        maxSlippageParams.push(maxSlippageParams_[0]);
 
         newController = ForeignController(ForeignControllerDeploy.deployController({
             admin      : Base.SPARK_EXECUTOR,
@@ -627,6 +654,9 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
         assertEq(newController.mintRecipients(mintRecipients[0].domain),                bytes32(0));
         assertEq(newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM), bytes32(0));
 
+        assertEq(newController.maxSlippages(maxSlippageParams[0].pool), 0);
+        assertEq(newController.maxSlippages(makeAddr("pool")),          0);
+
         vm.startPrank(Base.SPARK_EXECUTOR);
         wrapper.upgradeController(
             controllerInst,
@@ -665,6 +695,16 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
         assertEq(
             newController.layerZeroRecipients(destinationEndpointId),
             bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
+        );
+
+        assertEq(
+            newController.maxSlippages(maxSlippageParams[0].pool),
+            maxSlippageParams[0].maxSlippage
+        );
+
+        assertEq(
+            newController.maxSlippages(makeAddr("pool")),
+            0.99e18
         );
     }
 
