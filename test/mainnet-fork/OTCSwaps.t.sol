@@ -130,8 +130,10 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
     }
 
     function test_otcSend_rateLimitZero() external {
-        vm.prank(Ethereum.SPARK_PROXY);
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(makeAddr("fake-exchange"), address(otcBuffer));
         mainnetController.setOTCWhitelistedAsset(makeAddr("fake-exchange"), address(usdt), true);
+        vm.stopPrank();
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");

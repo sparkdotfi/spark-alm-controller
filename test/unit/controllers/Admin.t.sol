@@ -292,11 +292,22 @@ contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminT
         mainnetController.setOTCWhitelistedAsset(exchange, address(0), true);
     }
 
-    function test_setOTCWhitelistedAsset() external {
+    function test_setOTCWhitelistedAsset_otcBufferNotSet() external {
         vm.prank(admin);
+        vm.expectRevert("MainnetController/otc-buffer-not-set");
+        mainnetController.setOTCWhitelistedAsset(makeAddr("fake-exchange"), asset, true);
+    }
+
+    function test_setOTCWhitelistedAsset() external {
+        vm.startPrank(admin);
+
+        mainnetController.setOTCBuffer(exchange, asset);
+
         vm.expectEmit(address(mainnetController));
         emit OTCWhitelistedAssetSet(exchange, asset, true);
         mainnetController.setOTCWhitelistedAsset(exchange, asset, true);
+
+        vm.stopPrank();
 
         assertEq(mainnetController.otcWhitelistedAssets(exchange, asset), true);
 
