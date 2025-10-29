@@ -23,6 +23,11 @@ contract OTCBufferTestBase is UnitTestBase {
 
 contract OTCBufferConstructorTest is OTCBufferTestBase {
 
+    function test_constructor_invalidAlmProxy() public {
+        vm.expectRevert("OTCBuffer/invalid-alm-proxy");
+        new OTCBuffer(admin, address(0));
+    }
+
     function test_constructor() public {
         assertEq(buffer.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
 

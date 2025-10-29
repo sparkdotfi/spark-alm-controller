@@ -9,13 +9,15 @@ contract OTCBuffer is AccessControlEnumerable {
 
     using SafeERC20 for IERC20;
 
-    address public almProxy;
+    address public immutable almProxy;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
 
     constructor(address admin, address _almProxy) {
+        require(_almProxy != address(0), "OTCBuffer/invalid-alm-proxy");
+
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
         almProxy = _almProxy;
