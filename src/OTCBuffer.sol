@@ -31,10 +31,4 @@ contract OTCBuffer is AccessControlEnumerable {
         IERC20(asset).forceApprove(almProxy, allowance);
     }
 
-    /**********************************************************************************************/
-    /*** Receive function                                                                       ***/
-    /**********************************************************************************************/
-
-    receive() external payable { }
-
 }

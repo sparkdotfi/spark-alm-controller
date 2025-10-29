@@ -471,7 +471,7 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
         otcBuffer.approve(token, type(uint256).max);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/transfer-failed");
+        vm.expectRevert("MainnetController/transferFrom-failed");
         mainnetController.otcClaim(exchange, token);
     }
 

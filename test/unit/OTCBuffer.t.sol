@@ -60,22 +60,3 @@ contract OTCBufferApproveSuccessTests is OTCBufferTestBase {
     }
 
 }
-
-contract OTCBufferReceiveEthTests is OTCBufferTestBase {
-
-    function test_receiveEth() public {
-        address user = makeAddr("user");
-
-        deal(user, 10 ether);
-
-        assertEq(address(user).balance,   10 ether);
-        assertEq(address(buffer).balance, 0);
-
-        vm.prank(user);
-        payable(address(buffer)).transfer(10 ether);
-
-        assertEq(address(user).balance,   0);
-        assertEq(address(buffer).balance, 10 ether);
-    }
-
-}
