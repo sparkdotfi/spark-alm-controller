@@ -308,6 +308,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
 
         ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 
+        ForeignControllerInit.MaxSlippageParams[] memory maxSlippageParams = new ForeignControllerInit.MaxSlippageParams[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
 
         ForeignControllerInit.initAlmSystem(
@@ -316,6 +318,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
 

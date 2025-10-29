@@ -57,11 +57,11 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        otcBuffer = new OTCBuffer(Ethereum.SPARK_PROXY);
+        otcBuffer = new OTCBuffer(Ethereum.SPARK_PROXY, address(almProxy));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(address(usdt), address(almProxy), type(uint256).max);
-        otcBuffer.approve(address(usds), address(almProxy), type(uint256).max);
+        otcBuffer.approve(address(usdt), type(uint256).max);
+        otcBuffer.approve(address(usds), type(uint256).max);
         vm.stopPrank();
 
         key = RateLimitHelpers.makeAddressKey(
@@ -470,7 +470,7 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
         deal(token, address(otcBuffer), 1_000_000e6);
 
         vm.prank(Ethereum.SPARK_PROXY);
-        otcBuffer.approve(token, address(almProxy), type(uint256).max);
+        otcBuffer.approve(token, type(uint256).max);
 
         vm.prank(relayer);
         vm.expectRevert("MainnetController/transferFrom-failed");
