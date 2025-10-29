@@ -144,6 +144,8 @@ contract ForkTestBase is Test {
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
 
+        Init.MaxSlippageParams[] memory maxSlippageParams = new Init.MaxSlippageParams[](0);
+
         vm.startPrank(SPARK_EXECUTOR);
 
         Init.initAlmSystem(
@@ -152,6 +154,7 @@ contract ForkTestBase is Test {
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
 

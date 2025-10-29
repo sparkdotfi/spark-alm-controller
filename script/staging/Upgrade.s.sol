@@ -7,11 +7,11 @@ import "forge-std/Script.sol";
 
 import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
-import { ControllerInstance }                   from "../deploy/ControllerInstance.sol";
-import { ForeignControllerInit as ForeignInit } from "../deploy/ForeignControllerInit.sol";
-import { MainnetControllerInit as MainnetInit } from "../deploy/MainnetControllerInit.sol";
+import { ControllerInstance }                   from "../../deploy/ControllerInstance.sol";
+import { ForeignControllerInit as ForeignInit } from "../../deploy/ForeignControllerInit.sol";
+import { MainnetControllerInit as MainnetInit } from "../../deploy/MainnetControllerInit.sol";
 
-import { MainnetController } from "../src/MainnetController.sol";
+import { MainnetController } from "src/MainnetController.sol";
 
 contract UpgradeMainnetController is Script {
 
@@ -149,6 +149,8 @@ contract UpgradeForeignController is Script {
 
         ForeignInit.MintRecipient[] memory mintRecipients = new ForeignInit.MintRecipient[](1);
 
+        ForeignInit.MaxSlippageParams[] memory maxSlippageParams = new ForeignInit.MaxSlippageParams[](0);
+
         string memory mainnetInputConfig = ScriptTools.readInput(string(abi.encodePacked("mainnet-", vm.envString("ENV"))));
 
         address mainnetAlmProxy = mainnetInputConfig.readAddress(".almProxy");
@@ -158,7 +160,7 @@ contract UpgradeForeignController is Script {
             mintRecipient : bytes32(uint256(uint160(mainnetAlmProxy)))
         });
 
-        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, true);
+        ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams, true);
 
         vm.stopBroadcast();
 
