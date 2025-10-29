@@ -346,12 +346,15 @@ contract FullStagingDeploy is Script {
 
         ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 
+        ForeignControllerInit.MaxSlippageParams[] memory maxSlippageParams = new ForeignControllerInit.MaxSlippageParams[](0);
+
         ForeignControllerInit.initAlmSystem(
             controllerInst,
             configAddresses,
             checkAddresses,
             mintRecipients,
             layerZeroRecipients,
+            maxSlippageParams,
             true
         );
 
