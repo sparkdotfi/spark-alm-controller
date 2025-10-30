@@ -151,7 +151,7 @@ library PSMLib {
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
 
-    function _rateLimited(IRateLimits rateLimits,bytes32 key, uint256 amount) internal {
+    function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }
 

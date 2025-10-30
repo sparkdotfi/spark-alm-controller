@@ -170,7 +170,7 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.setMaxSlippage(MORPHO_VAULT_USDS, 1e18 + 1);  // Positive slippage needed to cause error
 
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/slippage-too-high");
+        vm.expectRevert("ForeignController/inflated-shares");
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 5_000_000e18);
 
         vm.prank(Base.SPARK_EXECUTOR);
