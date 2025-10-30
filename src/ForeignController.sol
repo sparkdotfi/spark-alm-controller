@@ -351,7 +351,7 @@ contract ForeignController is AccessControlEnumerable {
 
         require(
             IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
-            "ForeignController/slippage-too-high"
+            "ForeignController/inflated-shares" 
         );
     }
 
