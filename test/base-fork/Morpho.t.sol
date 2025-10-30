@@ -7,6 +7,8 @@ import { IMetaMorpho, Id }       from "metamorpho/interfaces/IMetaMorpho.sol";
 import { MarketParamsLib }       from "morpho-blue/src/libraries/MarketParamsLib.sol";
 import { IMorpho, MarketParams } from "morpho-blue/src/interfaces/IMorpho.sol";
 
+import { ERC4626Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC4626Mock.sol";
+
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import "./ForkTestBase.t.sol";
@@ -315,6 +317,40 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
 
         assertEq(usdcVault.convertToAssets(usdcVault.balanceOf(address(almProxy))), 0);
         assertEq(IERC20(Base.USDC).balanceOf(address(almProxy)),                    1_000_000e6);
+    }
+
+    function test_withdrawERC4626_withRounding() external {
+        ERC4626Mock vault = new ERC4626Mock(Base.USDC);
+
+        bytes32 depositKey  = RateLimitHelpers.makeAddressKey(foreignController.LIMIT_4626_DEPOSIT(),  address(vault));
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), address(vault));
+
+        vm.startPrank(Base.SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(depositKey,  5_000_000e6, uint256(1_000_000e6) / 4 hours);
+        rateLimits.setRateLimitData(withdrawKey, 5_000_000e6, uint256(1_000_000e6) / 4 hours);
+        foreignController.setMaxSlippage(address(vault), 1e18 - 1e4);  // Rounding slippage
+        vm.stopPrank();
+
+        deal(Base.USDC, address(vault),    1e6 - 1);
+        deal(Base.USDC, address(almProxy), 2e6);
+
+        vm.prank(relayer);
+        foreignController.depositERC4626(address(vault), 2e6);
+
+        assertEq(vault.balanceOf(address(almProxy)),             2);
+        assertEq(vault.totalSupply(),                            2);
+        assertEq(vault.totalAssets(),                            2.999999e6);
+        assertEq(IERC20(Base.USDC).balanceOf(address(almProxy)), 0);
+
+        vm.prank(relayer);
+        uint256 shares = foreignController.withdrawERC4626(address(vault), 1e6 + 1);
+
+        assertEq(shares, 1);
+
+        assertEq(vault.balanceOf(address(almProxy)),             1);
+        assertEq(vault.totalSupply(),                            1);
+        assertEq(vault.totalAssets(),                            1.999999e6);
+        assertEq(IERC20(Base.USDC).balanceOf(address(almProxy)), 1e6);
     }
 
 }

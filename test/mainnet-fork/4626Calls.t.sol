@@ -3,6 +3,8 @@ pragma solidity >=0.8.0;
 
 import "./ForkTestBase.t.sol";
 
+import { ERC4626Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC4626Mock.sol";
+
 contract SUSDSTestBase is ForkTestBase {
 
     uint256 SUSDS_CONVERTED_ASSETS;
@@ -152,9 +154,23 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
     }
 
     function test_withdrawERC4626_zeroMaxAmount() external {
+        ERC4626Mock vault = new ERC4626Mock(Ethereum.USDC);
+
+        bytes32 depositKey  = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  address(vault));
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(depositKey,  5_000_000e6, uint256(1_000_000e6) / 4 hours);
+        mainnetController.setMaxSlippage(address(vault), 1e18 - 1e4);  // Rounding slippage
+        vm.stopPrank();
+
+        deal(Ethereum.USDC, address(almProxy), 1e6);
+
+        vm.prank(relayer);
+        mainnetController.depositERC4626(address(vault), 1e6);
+
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.withdrawERC4626(makeAddr("fake-token"), 1e18);
+        mainnetController.withdrawERC4626(address(vault), 1e6);
     }
 
     function test_withdrawERC4626_rateLimitBoundary() external {
@@ -168,7 +184,7 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(address(susds), 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.withdrawERC4626(address(susds), 5_000_000e18 + 1);
+        mainnetController.withdrawERC4626(address(susds), 5_000_000e18 + 10);
 
         mainnetController.withdrawERC4626(address(susds), 5_000_000e18);
     }
@@ -177,7 +193,7 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
 
 contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
 
-    function test_withdrawERC4626() external {
+    function test_withdrawERC4626_test() external {
         bytes32 depositKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_4626_DEPOSIT(),
             Ethereum.SUSDS
@@ -210,21 +226,55 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
         vm.prank(relayer);
         uint256 shares = mainnetController.withdrawERC4626(address(susds), 1e18 - 1);  // Rounding
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 1));
-        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 1));
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 2));
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 2));
 
-        assertEq(shares, SUSDS_CONVERTED_SHARES);
+        assertEq(shares, SUSDS_CONVERTED_SHARES - 2);
 
-        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 1);
+        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 2);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
-        assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1);  // Rounding
+        assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 2);  // Rounding
 
-        assertEq(usds.allowance(address(buffer),   address(vault)), type(uint256).max);
+        assertEq(usds.allowance(address(buffer),   address(vault)),  type(uint256).max);
         assertEq(usds.allowance(address(almProxy), address(susds)),  0);
+ 
+        assertEq(susds.totalSupply(),                SUSDS_TOTAL_SUPPLY + 1);
+        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1);
+        assertEq(susds.balanceOf(address(almProxy)), 1);
+    }
 
-        assertEq(susds.totalSupply(),                SUSDS_TOTAL_SUPPLY);
-        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS);
-        assertEq(susds.balanceOf(address(almProxy)), 0);
+    function test_withdrawERC4626_withRounding() external {
+        ERC4626Mock vault = new ERC4626Mock(Ethereum.USDC);
+
+        bytes32 depositKey  = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  address(vault));
+        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), address(vault));
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(depositKey,  5_000_000e6, uint256(1_000_000e6) / 4 hours);
+        rateLimits.setRateLimitData(withdrawKey, 5_000_000e6, uint256(1_000_000e6) / 4 hours);
+        mainnetController.setMaxSlippage(address(vault), 1e18 - 1e4);  // Rounding slippage
+        vm.stopPrank();
+
+        deal(Ethereum.USDC, address(vault),    1e6 - 1);
+        deal(Ethereum.USDC, address(almProxy), 2e6);
+
+        vm.prank(relayer);
+        mainnetController.depositERC4626(address(vault), 2e6);
+
+        assertEq(vault.balanceOf(address(almProxy)),                 2);
+        assertEq(vault.totalSupply(),                                2);
+        assertEq(vault.totalAssets(),                                2.999999e6);
+        assertEq(IERC20(Ethereum.USDC).balanceOf(address(almProxy)), 0);
+
+        vm.prank(relayer);
+        uint256 shares = mainnetController.withdrawERC4626(address(vault), 1e6 + 1);
+
+        assertEq(shares, 1);
+
+        assertEq(vault.balanceOf(address(almProxy)),                 1);
+        assertEq(vault.totalSupply(),                                1);
+        assertEq(vault.totalAssets(),                                1.999999e6);
+        assertEq(IERC20(Ethereum.USDC).balanceOf(address(almProxy)), 1e6);
     }
 
 }

@@ -456,25 +456,20 @@ contract MainnetController is AccessControlEnumerable {
 
     function withdrawERC4626(address token, uint256 amount) external returns (uint256 shares) {
         _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount);
 
-        // Withdraw asset from a token, decode resulting shares.
-        // Assumes proxy has adequate token shares.
-        shares = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).withdraw, (amount, address(proxy), address(proxy)))
-            ),
-            (uint256)
+        shares = IERC4626(token).convertToShares(
+            _redeem(token, IERC4626(token).convertToShares(amount))
         );
-
-        _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), amount);
     }
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares) external returns (uint256 assets) {
         _checkRole(RELAYER);
 
+        assets = _redeem(token, shares);
+    }
+
+    function _redeem(address token, uint256 shares) internal returns (uint256 assets) {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
         assets = abi.decode(

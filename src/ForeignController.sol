@@ -361,19 +361,8 @@ contract ForeignController is AccessControlEnumerable {
         rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
-        // Withdraw asset from a token, decode resulting shares.
-        // Assumes proxy has adequate token shares.
-        shares = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).withdraw, (amount, address(proxy), address(proxy)))
-            ),
-            (uint256)
-        );
-
-        rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
-            amount
+        shares = IERC4626(token).convertToShares(
+            _redeem(token, IERC4626(token).convertToShares(amount))
         );
     }
 
@@ -383,6 +372,15 @@ contract ForeignController is AccessControlEnumerable {
         onlyRole(RELAYER)
         returns (uint256 assets)
     {
+        assets = _redeem(token, shares);
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
+            assets
+        );
+    }
+
+    function _redeem(address token, uint256 shares) internal returns (uint256 assets) {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
         assets = abi.decode(
@@ -393,10 +391,6 @@ contract ForeignController is AccessControlEnumerable {
             (uint256)
         );
 
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
-            assets
-        );
         rateLimits.triggerRateLimitIncrease(
             RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             assets
