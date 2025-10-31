@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import { PoolId }       from "../../lib/uniswap-v4-core/src/types/PoolId.sol";
 import { PoolKey }      from "../../lib/uniswap-v4-core/src/types/PoolKey.sol";
 import { PositionInfo } from "../../lib/uniswap-v4-periphery/src/libraries/PositionInfoLibrary.sol";
+import { FullMath }     from "../../lib/uniswap-v4-core/src/libraries/FullMath.sol";
 import { TickMath }     from "../../lib/uniswap-v4-core/src/libraries/TickMath.sol";
 
 import { IAccessControl } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
@@ -152,35 +153,29 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     }
 
     function test_mintPositionUniswapV4_revertsWhenMaxSlippageNotSet() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
+        vm.stopPrank();
+
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(
+            -10,
+            0,
+            1_000_000e6
+        );
+
+        deal(address(usdc), address(almProxy), usdc.balanceOf(address(almProxy)) + amount0Forecasted + 1);
+        deal(address(usdt), address(almProxy), usdt.balanceOf(address(almProxy)) + amount1Forecasted + 1);
+
         vm.expectRevert("UniswapV4Lib/maxSlippage-not-set");
 
         vm.startPrank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
-            tickLower  : 0,
+            tickLower  : -10,
             tickUpper  : 0,
-            liquidity  : 0,
-            amount0Max : 0,
-            amount1Max : 0
-        });
-        vm.stopPrank();
-    }
-
-    function test_mintPositionUniswapV4_revertsWhenInvalidSqrtPrices() external {
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
-        vm.stopPrank();
-
-        vm.expectRevert("UniswapV4Lib/invalid-sqrtPrices");
-
-        vm.startPrank(relayer);
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : 1,
-            tickUpper  : 0,
-            liquidity  : 0,
-            amount0Max : 0,
-            amount1Max : 0
+            liquidity  : 1_000_000e6,
+            amount0Max : (amount0Forecasted * 1e18) / 0.98e18,
+            amount1Max : (amount1Forecasted * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -191,7 +186,14 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, ) = _quoteLiquidity(-10, 0, 1_000_000e6);
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(
+            -10,
+            0,
+            1_000_000e6
+        );
+
+        deal(address(usdc), address(almProxy), usdc.balanceOf(address(almProxy)) + amount0Forecasted + 1);
+        deal(address(usdt), address(almProxy), usdt.balanceOf(address(almProxy)) + amount1Forecasted + 1);
 
         vm.expectRevert("UniswapV4Lib/amount0Max-too-high");
 
@@ -201,8 +203,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : ((amount0Forecasted + 1) * 1e18) / 0.98e18,
-            amount1Max : 0
+            amount0Max : ((amount0Forecasted + 2) * 1e18) / 0.98e18,
+            amount1Max : (amount1Forecasted * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -213,7 +215,14 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
         vm.stopPrank();
 
-        ( , uint256 amount1Forecasted ) = _quoteLiquidity(-10, 0, 1_000_000e6);
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(
+            -10,
+            0,
+            1_000_000e6
+        );
+
+        deal(address(usdc), address(almProxy), usdc.balanceOf(address(almProxy)) + amount0Forecasted + 1);
+        deal(address(usdt), address(almProxy), usdt.balanceOf(address(almProxy)) + amount1Forecasted + 1);
 
         vm.expectRevert("UniswapV4Lib/amount1Max-too-high");
 
@@ -223,8 +232,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : 0,
-            amount1Max : ((amount1Forecasted + 1) * 1e18) / 0.98e18
+            amount0Max : (amount0Forecasted * 1e18) / 0.98e18,
+            amount1Max : ((amount1Forecasted + 2) * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -312,15 +321,24 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     function test_increaseLiquidityUniswapV4_revertsWhenMaxSlippageNotSet() external {
         IncreasePositionResult memory minted = _setupForLiquidityIncrease();
 
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(
+            minted.tickLower,
+            minted.tickUpper,
+            1_000_000e6
+        );
+
+        deal(address(usdc), address(almProxy), usdc.balanceOf(address(almProxy)) + amount0Forecasted + 1);
+        deal(address(usdt), address(almProxy), usdt.balanceOf(address(almProxy)) + amount1Forecasted + 1);
+
         vm.expectRevert("UniswapV4Lib/maxSlippage-not-set");
 
         vm.startPrank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
-            liquidityIncrease : 0,
-            amount0Max        : 0,
-            amount1Max        : 0
+            liquidityIncrease : 1_000_000e6,
+            amount0Max        : (amount0Forecasted * 1e18) / 0.98e18,
+            amount1Max        : (amount1Forecasted * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -332,7 +350,14 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, ) = _quoteLiquidity(minted.tickLower, minted.tickUpper, 1_000_000e6);
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(
+            minted.tickLower,
+            minted.tickUpper,
+            1_000_000e6
+        );
+
+        deal(address(usdc), address(almProxy), usdc.balanceOf(address(almProxy)) + amount0Forecasted + 1);
+        deal(address(usdt), address(almProxy), usdt.balanceOf(address(almProxy)) + amount1Forecasted + 1);
 
         vm.expectRevert("UniswapV4Lib/amount0Max-too-high");
 
@@ -341,8 +366,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : ((amount0Forecasted + 1) * 1e18) / 0.98e18,
-            amount1Max        : 0
+            amount0Max        : ((amount0Forecasted + 2) * 1e18) / 0.98e18,
+            amount1Max        : (amount1Forecasted * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -354,7 +379,14 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
         vm.stopPrank();
 
-        ( , uint256 amount1Forecasted ) = _quoteLiquidity(minted.tickLower, minted.tickUpper, 1_000_000e6);
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(
+            minted.tickLower,
+            minted.tickUpper,
+            1_000_000e6
+        );
+
+        deal(address(usdc), address(almProxy), usdc.balanceOf(address(almProxy)) + amount0Forecasted + 1);
+        deal(address(usdt), address(almProxy), usdt.balanceOf(address(almProxy)) + amount1Forecasted + 1);
 
         vm.expectRevert("UniswapV4Lib/amount1Max-too-high");
 
@@ -363,8 +395,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : 0,
-            amount1Max        : ((amount1Forecasted + 1) * 1e18) / 0.98e18
+            amount0Max        : (amount0Forecasted * 1e18) / 0.98e18,
+            amount1Max        : ((amount1Forecasted + 2) * 1e18) / 0.98e18
         });
         vm.stopPrank();
     }
@@ -870,13 +902,65 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         result.tickUpper         = positionInfo.tickUpper();
     }
 
+    function _getAmount0ForLiquidity(
+        uint160 sqrtPriceAX96,
+        uint160 sqrtPriceBX96,
+        uint128 liquidity
+    ) internal pure returns (uint256 amount0) {
+        require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices-0");
+
+        return FullMath.mulDiv(
+            uint256(liquidity) << 96,
+            sqrtPriceBX96 - sqrtPriceAX96,
+            uint256(sqrtPriceBX96) * sqrtPriceAX96
+        );
+    }
+
+    function _getAmount1ForLiquidity(
+        uint160 sqrtPriceAX96,
+        uint160 sqrtPriceBX96,
+        uint128 liquidity
+    ) internal pure returns (uint256 amount1) {
+        require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices-1");
+
+        return FullMath.mulDiv(liquidity, sqrtPriceBX96 - sqrtPriceAX96, 1 << 96);
+    }
+
+    function _getAmountsForLiquidity(
+        uint160 sqrtPriceX96,
+        uint160 sqrtPriceAX96,
+        uint160 sqrtPriceBX96,
+        uint128 liquidity
+    ) internal pure returns (uint256 amount0, uint256 amount1) {
+        require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices");
+
+        if (sqrtPriceX96 <= sqrtPriceAX96) {
+            return (
+                _getAmount0ForLiquidity(sqrtPriceAX96, sqrtPriceBX96, liquidity),
+                0
+            );
+        }
+
+        if (sqrtPriceX96 >= sqrtPriceBX96) {
+            return (
+                0,
+                _getAmount1ForLiquidity(sqrtPriceAX96, sqrtPriceBX96, liquidity)
+            );
+        }
+
+        return (
+            _getAmount0ForLiquidity(sqrtPriceX96, sqrtPriceBX96, liquidity),
+            _getAmount1ForLiquidity(sqrtPriceAX96, sqrtPriceX96, liquidity)
+        );
+    }
+
     function _quoteLiquidity(
         int24 tickLower,
         int24 tickUpper,
         uint128 liquidityAmount
     ) internal view returns (uint256 amount0, uint256 amount1) {
         ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(_POOL_ID));
-        return UniswapV4Lib.getAmountsForLiquidity(
+        return _getAmountsForLiquidity(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickLower),
             TickMath.getSqrtPriceAtTick(tickUpper),
