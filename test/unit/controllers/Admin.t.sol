@@ -215,12 +215,16 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
 
         assertEq(mainnetController.maxSlippages(pool), 0.98e18);
 
+        vm.record();
+
         vm.prank(admin);
         vm.expectEmit(address(mainnetController));
         emit MaxSlippageSet(pool, 0.99e18);
         mainnetController.setMaxSlippage(pool, 0.99e18);
 
         assertEq(mainnetController.maxSlippages(pool), 0.99e18);
+
+        _assertReentrancyGuardWrittenToTwice();
     }
 
 }
