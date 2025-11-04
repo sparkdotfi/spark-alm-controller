@@ -358,12 +358,10 @@ contract ForeignController is AccessControlEnumerable {
     function withdrawERC4626(address token, uint256 amount)
         external
         onlyRole(RELAYER)
-        rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
     {
-        shares = IERC4626(token).convertToShares(
-            _redeem(token, IERC4626(token).convertToShares(amount))
-        );
+        shares = IERC4626(token).convertToShares(amount);
+        _redeem(token, shares);
     }
 
     // NOTE: !!! Rate limited at end of function !!!
@@ -373,11 +371,6 @@ contract ForeignController is AccessControlEnumerable {
         returns (uint256 assets)
     {
         assets = _redeem(token, shares);
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
-            assets
-        );
     }
 
     function _redeem(address token, uint256 shares) internal returns (uint256 assets) {
@@ -389,6 +382,11 @@ contract ForeignController is AccessControlEnumerable {
                 abi.encodeCall(IERC4626(token).redeem, (shares, address(proxy), address(proxy)))
             ),
             (uint256)
+        );
+
+        rateLimits.triggerRateLimitDecrease(
+            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
+            assets
         );
 
         rateLimits.triggerRateLimitIncrease(

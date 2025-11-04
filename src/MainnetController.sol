@@ -457,9 +457,8 @@ contract MainnetController is AccessControlEnumerable {
     function withdrawERC4626(address token, uint256 amount) external returns (uint256 shares) {
         _checkRole(RELAYER);
 
-        shares = IERC4626(token).convertToShares(
-            _redeem(token, IERC4626(token).convertToShares(amount))
-        );
+        shares = IERC4626(token).convertToShares(amount);
+        _redeem(token, shares);
     }
 
     // NOTE: !!! Rate limited at end of function !!!

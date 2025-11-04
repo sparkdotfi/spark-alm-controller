@@ -7,6 +7,8 @@ import { IMetaMorpho, Id }       from "metamorpho/interfaces/IMetaMorpho.sol";
 import { MarketParamsLib }       from "morpho-blue/src/libraries/MarketParamsLib.sol";
 import { IMorpho, MarketParams } from "morpho-blue/src/interfaces/IMorpho.sol";
 
+import { Base } from "lib/spark-address-registry/src/Base.sol";
+
 import { ERC4626Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC4626Mock.sol";
 
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
@@ -228,9 +230,25 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
     }
 
     function test_morpho_withdraw_zeroMaxAmount() external {
+        vm.startPrank(Base.SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(
+            RateLimitHelpers.makeAddressKey(
+                foreignController.LIMIT_4626_WITHDRAW(),
+                MORPHO_VAULT_USDC
+            ),
+            0,
+            0
+        );
+        vm.stopPrank();
+
+        deal(Base.USDC, address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        foreignController.depositERC4626(MORPHO_VAULT_USDC, 1_000_000e6);
+
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        foreignController.withdrawERC4626(makeAddr("fake-token"), 1_000_000e18);
+        foreignController.withdrawERC4626(MORPHO_VAULT_USDC, 1_000_000e6);
     }
 
     function test_morpho_usds_withdraw_rateLimitBoundary() external {
