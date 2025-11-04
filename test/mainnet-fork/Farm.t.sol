@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 interface IFarmLike {
@@ -42,7 +44,13 @@ contract MainnetControllerFarmTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerDepositFarmFailureTests is MainnetControllerFarmTestBase {
+contract MainnetControllerFarmDepositFailureTests is MainnetControllerFarmTestBase {
+
+    function test_depositToFarm_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.depositToFarm(farm, 1_000_000e18);
+    }
 
     function test_depositToFarm_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -94,8 +102,12 @@ contract MainnetControllerFarmDepositSuccessTests is MainnetControllerFarmTestBa
         assertEq(usds.balanceOf(address(almProxy)),            1_000_000e18);
         assertEq(IFarmLike(farm).balanceOf(address(almProxy)), 0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.depositToFarm(farm, 1_000_000e18);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 9_000_000e18);
 
@@ -106,6 +118,12 @@ contract MainnetControllerFarmDepositSuccessTests is MainnetControllerFarmTestBa
 }
 
 contract MainnetControllerFarmWithdrawFailureTests is MainnetControllerFarmTestBase {
+
+    function test_withdrawFromFarm_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.withdrawFromFarm(farm, 1_000_000e18);
+    }
 
     function test_withdrawFromFarm_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -163,8 +181,12 @@ contract MainnetControllerFarmWithdrawSuccessTests is MainnetControllerFarmTestB
 
         skip(1 days);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.withdrawFromFarm(farm, 1_000_000e18);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
 

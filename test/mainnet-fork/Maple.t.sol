@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 import { IMapleTokenLike } from "../../src/MainnetController.sol";
@@ -160,6 +162,12 @@ contract MainnetControllerDepositERC4626Tests is MapleTestBase {
 
 contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
 
+    function test_requestMapleRedemption_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.requestMapleRedemption(address(syrup), 1_000_000e6);
+    }
+
     function test_requestMapleRedemption_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -218,8 +226,12 @@ contract MainnetControllerRequestMapleRedemptionSuccessTests is MapleTestBase {
         assertEq(syrup.balanceOf(address(almProxy)),                    proxyShares);
         assertEq(syrup.allowance(address(almProxy), withdrawalManager), 0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.requestMapleRedemption(address(syrup), proxyShares);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(syrup.balanceOf(address(withdrawalManager)),           totalEscrowedShares + proxyShares);
         assertEq(syrup.balanceOf(address(almProxy)),                    0);
@@ -228,6 +240,12 @@ contract MainnetControllerRequestMapleRedemptionSuccessTests is MapleTestBase {
 }
 
 contract MainnetControllerCancelMapleRedemptionFailureTests is MapleTestBase {
+
+    function test_cancelMapleRedemption_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.cancelMapleRedemption(address(syrup), 1_000_000e6);
+    }
 
     function test_cancelMapleRedemption_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -263,7 +281,11 @@ contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
         assertEq(syrup.balanceOf(address(withdrawalManager)), totalEscrowedShares + proxyShares);
         assertEq(syrup.balanceOf(address(almProxy)),          0);
 
+        vm.record();
+
         mainnetController.cancelMapleRedemption(address(syrup), proxyShares);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(syrup.balanceOf(address(withdrawalManager)), totalEscrowedShares);
         assertEq(syrup.balanceOf(address(almProxy)),          proxyShares);

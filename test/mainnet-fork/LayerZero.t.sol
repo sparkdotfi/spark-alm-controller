@@ -5,7 +5,8 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 import "./ForkTestBase.t.sol";
 
-import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { ERC20Mock }       from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { Arbitrum } from "spark-address-registry/Arbitrum.sol";
 
@@ -43,6 +44,12 @@ contract MainnetControllerLayerZeroTestBase is ForkTestBase {
 contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLayerZeroTestBase {
 
     using OptionsBuilder for bytes;
+
+    function test_transferTokenLayerZero_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, 30110);
+    }
 
     function test_transferTokenLayerZero_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -180,6 +187,8 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
 
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
+        vm.record();
+
         vm.expectEmit(USDT_OFT);
         emit OFTSent(
             bytes32(0xb6ebf135f758657b482818d84091e50f1af1cb378bd6f4e013f45dfa6f860cd6),
@@ -193,6 +202,8 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
             10_000_000e6,
             destinationEndpointId
         );
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(relayer.balance,                           1 ether - fee.nativeFee);
         assertEq(IERC20(usdt).balanceOf(USDT_OFT),          oftBalanceBefore + 10_000_000e6);
@@ -329,6 +340,10 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
         return 22468758;  // May 12, 2025
     }
 
+    function _setControllerEntered() internal override {
+        vm.store(address(foreignController), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
+    }
+
 }
 
 contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZeroTestBase {
@@ -339,6 +354,12 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
     function setUp() public override virtual {
         super.setUp();
         destination.selectFork();
+    }
+
+    function test_transferTokenLayerZero_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.transferTokenLayerZero(USDT_OFT, 1e6, destinationEndpointId);
     }
 
     function test_transferTokenLayerZero_notRelayer() external {
@@ -425,7 +446,6 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
 }
 
-
 contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZeroTestBase {
 
     using DomainHelpers  for *;
@@ -485,6 +505,8 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
 
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
+        vm.record();
+
         vm.expectEmit(USDT_OFT);
         emit OFTSent(
             bytes32(0xce4454206df6ee6a9cab360f7d76fd11ae258f65a9e8cc88faf1110c0bb36864),
@@ -498,6 +520,8 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
             10_000_000e6,
             destinationEndpointId
         );
+
+        _assertReeentrancyGuardWrittenToTwice(address(foreignController));
 
         assertEq(relayer.balance,                                   1 ether - fee.nativeFee);
         assertEq(foreignRateLimits.getCurrentRateLimit(key),        0);

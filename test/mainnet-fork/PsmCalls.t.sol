@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 interface IPSM is IPSMLike {
@@ -9,6 +11,12 @@ interface IPSM is IPSMLike {
 }
 
 contract MainnetControllerSwapUSDSToUSDCFailureTests is ForkTestBase {
+
+    function test_swapUSDSToUSDC_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.swapUSDSToUSDC(1e6);
+    }
 
     function test_swapUSDSToUSDC_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -64,8 +72,12 @@ contract MainnetControllerSwapUSDSToUSDCTests is ForkTestBase {
         assertEq(usds.allowance(address(almProxy), DAI_USDS),       0);
         assertEq(dai.allowance(address(almProxy),  PSM),            0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.swapUSDSToUSDC(1e6);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(almProxy)),          0);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
@@ -125,6 +137,12 @@ contract MainnetControllerSwapUSDSToUSDCTests is ForkTestBase {
 }
 
 contract MainnetControllerSwapUSDCToUSDSFailureTests is ForkTestBase {
+
+    function test_swapUSDCToUSDS_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.swapUSDCToUSDS(1e6);
+    }
 
     function test_swapUSDCToUSDS_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -217,8 +235,12 @@ contract MainnetControllerSwapUSDCToUSDSTests is ForkTestBase {
         assertEq(usds.allowance(address(almProxy), DAI_USDS),       0);
         assertEq(dai.allowance(address(almProxy),  PSM),            0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.swapUSDCToUSDS(1e6);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(almProxy)),          1e18);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
@@ -498,4 +520,3 @@ contract MainnetControllerSwapUSDCToUSDSTests is ForkTestBase {
     }
 
 }
-

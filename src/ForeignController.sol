@@ -8,10 +8,11 @@ import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/Optio
 
 import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
 
-import { AccessControlEnumerable } from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
+import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
+import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IERC20 }   from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
-import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
+import { IERC20 }   from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { IERC4626 } from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
 
@@ -31,7 +32,7 @@ interface ISparkVaultLike {
     function take(uint256 assetAmount) external;
 }
 
-contract ForeignController is AccessControlEnumerable {
+contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     using OptionsBuilder for bytes;
 
@@ -131,8 +132,7 @@ contract ForeignController is AccessControlEnumerable {
     /**********************************************************************************************/
 
     function setMaxSlippage(address pool, uint256 maxSlippage)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(pool != address(0), "ForeignController/pool-zero-address");
 
@@ -141,16 +141,14 @@ contract ForeignController is AccessControlEnumerable {
     }
 
     function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
     {
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
     }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
     {
         layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
         emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
@@ -160,7 +158,7 @@ contract ForeignController is AccessControlEnumerable {
     /*** Freezer functions                                                                      ***/
     /**********************************************************************************************/
 
-    function removeRelayer(address relayer) external onlyRole(FREEZER) {
+    function removeRelayer(address relayer) external nonReentrant onlyRole(FREEZER) {
         _revokeRole(RELAYER, relayer);
         emit RelayerRemoved(relayer);
     }
@@ -170,8 +168,7 @@ contract ForeignController is AccessControlEnumerable {
     /**********************************************************************************************/
 
     function transferAsset(address asset, address destination, uint256 amount)
-        external
-        onlyRole(RELAYER)
+        external nonReentrant onlyRole(RELAYER)
     {
         _rateLimited(
             RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
@@ -195,6 +192,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function depositPSM(address asset, uint256 amount)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitedAddress(LIMIT_PSM_DEPOSIT, asset, amount)
         returns (uint256 shares)
@@ -217,9 +215,7 @@ contract ForeignController is AccessControlEnumerable {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawPSM(address asset, uint256 maxAmount)
-        external
-        onlyRole(RELAYER)
-        returns (uint256 assetsWithdrawn)
+        external nonReentrant onlyRole(RELAYER) returns (uint256 assetsWithdrawn)
     {
         // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result
         // to get `assetsWithdrawn` (assumes the proxy has enough PSM shares).
@@ -246,6 +242,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
         rateLimited(
@@ -282,7 +279,7 @@ contract ForeignController is AccessControlEnumerable {
         uint256 amount,
         uint32  destinationEndpointId
     )
-        external payable
+        external payable nonReentrant
     {
         _checkRole(RELAYER);
         _rateLimited(
@@ -328,6 +325,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function depositERC4626(address token, uint256 amount)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
@@ -351,12 +349,13 @@ contract ForeignController is AccessControlEnumerable {
 
         require(
             IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
-            "ForeignController/inflated-shares" 
+            "ForeignController/inflated-shares"
         );
     }
 
     function withdrawERC4626(address token, uint256 amount)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount)
         returns (uint256 shares)
@@ -379,9 +378,7 @@ contract ForeignController is AccessControlEnumerable {
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares)
-        external
-        onlyRole(RELAYER)
-        returns (uint256 assets)
+        external nonReentrant onlyRole(RELAYER) returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
@@ -409,6 +406,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function depositAave(address aToken, uint256 amount)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
@@ -438,9 +436,7 @@ contract ForeignController is AccessControlEnumerable {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
-        external
-        onlyRole(RELAYER)
-        returns (uint256 amountWithdrawn)
+        external nonReentrant onlyRole(RELAYER) returns (uint256 amountWithdrawn)
     {
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 
@@ -474,6 +470,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
@@ -485,6 +482,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
@@ -496,6 +494,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
     {
@@ -511,6 +510,7 @@ contract ForeignController is AccessControlEnumerable {
 
     function takeFromSparkVault(address sparkVault, uint256 assetAmount)
         external
+        nonReentrant
         onlyRole(RELAYER)
         rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
     {

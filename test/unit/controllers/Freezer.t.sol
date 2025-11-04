@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { MainnetController } from "../../../src/MainnetController.sol";
 import { ForeignController } from "../../../src/ForeignController.sol";
 
@@ -44,6 +46,12 @@ contract MainnetControllerRemoveRelayerTests is UnitTestBase {
         vm.stopPrank();
     }
 
+    function test_removeRelayer_reentrancy() external {
+        vm.store(address(controller), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        controller.removeRelayer(relayer);
+    }
+
     function test_removeRelayer_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -73,10 +81,14 @@ contract MainnetControllerRemoveRelayerTests is UnitTestBase {
         assertEq(controller.hasRole(RELAYER, relayer1), false);
         assertEq(controller.hasRole(RELAYER, relayer2), true);
 
+        vm.record();
+
         vm.prank(freezer);
         vm.expectEmit(address(controller));
         emit RelayerRemoved(relayer2);
         controller.removeRelayer(relayer2);
+
+        _assertReeentrancyGuardWrittenToTwice(address(controller));
 
         assertEq(controller.hasRole(RELAYER, relayer1), false);
         assertEq(controller.hasRole(RELAYER, relayer2), false);
@@ -117,6 +129,12 @@ contract ForeignControllerRemoveRelayerTests is UnitTestBase {
         vm.stopPrank();
     }
 
+    function test_removeRelayer_reentrancy() external {
+        vm.store(address(controller), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        controller.removeRelayer(relayer);
+    }
+
     function test_removeRelayer_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -146,10 +164,14 @@ contract ForeignControllerRemoveRelayerTests is UnitTestBase {
         assertEq(controller.hasRole(RELAYER, relayer1), false);
         assertEq(controller.hasRole(RELAYER, relayer2), true);
 
+        vm.record();
+
         vm.prank(freezer);
         vm.expectEmit(address(controller));
         emit RelayerRemoved(relayer2);
         controller.removeRelayer(relayer2);
+
+        _assertReeentrancyGuardWrittenToTwice(address(controller));
 
         assertEq(controller.hasRole(RELAYER, relayer1), false);
         assertEq(controller.hasRole(RELAYER, relayer2), false);

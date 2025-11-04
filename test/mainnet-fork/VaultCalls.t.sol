@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 contract MainnetControllerMintUSDSFailureTests is ForkTestBase {
+
+    function test_mintUSDS_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.mintUSDS(1e18);
+    }
 
     function test_mintUSDS_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -50,8 +58,12 @@ contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
         assertEq(usds.balanceOf(address(almProxy)), 0);
         assertEq(usds.totalSupply(),                USDS_SUPPLY);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         ( ink, art ) = dss.vat.urns(ilk, vault);
         ( Art,,,, )  = dss.vat.ilks(ilk);
@@ -98,6 +110,12 @@ contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
 
 contract MainnetControllerBurnUSDSFailureTests is ForkTestBase {
 
+    function test_burnUSDS_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.burnUSDS(1e18);
+    }
+
     function test_burnUSDS_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -138,8 +156,12 @@ contract MainnetControllerBurnUSDSSuccessTests is ForkTestBase {
         assertEq(usds.balanceOf(address(almProxy)), 1e18);
         assertEq(usds.totalSupply(),                USDS_SUPPLY + 1e18);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.burnUSDS(1e18);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         ( ink, art ) = dss.vat.urns(ilk, vault);
         ( Art,,,, )  = dss.vat.ilks(ilk);

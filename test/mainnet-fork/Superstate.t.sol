@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 interface IAllowlistV2Like {
@@ -25,6 +27,12 @@ contract SuperstateTestBase is ForkTestBase {
 }
 
 contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase {
+
+    function test_subscribeSuperstate_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.subscribeSuperstate(1_000_000e6);
+    }
 
     function test_subscribeSuperstate_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -112,8 +120,12 @@ contract MainnetControllerSubscribeSuperstateSuccessTests is SuperstateTestBase 
         assertEq(stablecoinInAmountAfterFee, 1_000_000e6);
         assertEq(feeOnStablecoinInAmount,    0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 

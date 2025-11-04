@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { ERC20Mock as MockERC20 } from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import { ERC1967Proxy }           from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { ERC20Mock as MockERC20 } from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { ERC1967Proxy }           from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { ReentrancyGuard }        from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { SparkVault } from "spark-vaults-v2/src/SparkVault.sol";
 
@@ -65,6 +66,12 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
 contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestBase {
 
+    function test_takeFromSparkVault_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
+    }
+
     function test_takeFromSparkVault_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -122,8 +129,12 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
         _assertTestState(testState);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e6);
+
+        _assertReeentrancyGuardWrittenToTwice();
 
         testState.rateLimit -= 1_000_000e6;  // Rate limit goes down
         testState.usdcAlm   += 1_000_000e6;  // The almProxy receives the taken amount
