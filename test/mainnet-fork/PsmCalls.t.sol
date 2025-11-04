@@ -77,7 +77,7 @@ contract MainnetControllerSwapUSDSToUSDCTests is ForkTestBase {
         vm.prank(relayer);
         mainnetController.swapUSDSToUSDC(1e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(almProxy)),          0);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
@@ -240,7 +240,7 @@ contract MainnetControllerSwapUSDCToUSDSTests is ForkTestBase {
         vm.prank(relayer);
         mainnetController.swapUSDCToUSDS(1e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(almProxy)),          1e18);
         assertEq(usds.balanceOf(address(mainnetController)), 0);

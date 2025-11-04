@@ -134,7 +134,7 @@ contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(address(susds), 1e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, SUSDS_CONVERTED_SHARES);
 
@@ -230,7 +230,7 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
         vm.prank(relayer);
         uint256 shares = mainnetController.withdrawERC4626(address(susds), 1e18 - 1);  // Rounding
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 1));
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 1));
@@ -351,7 +351,7 @@ contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
         vm.prank(relayer);
         uint256 assets = mainnetController.redeemERC4626(address(susds), SUSDS_CONVERTED_SHARES);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 1));
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 1));

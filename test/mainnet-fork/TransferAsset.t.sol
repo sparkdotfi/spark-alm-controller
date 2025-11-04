@@ -105,7 +105,7 @@ contract MainnetControllerTransferAssetSuccessTests is TransferAssetBaseTest {
         vm.prank(relayer);
         mainnetController.transferAsset(address(usdc), receiver, 1_000_000e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdc.balanceOf(address(receiver)), 1_000_000e6);
         assertEq(usdc.balanceOf(address(almProxy)), 0);

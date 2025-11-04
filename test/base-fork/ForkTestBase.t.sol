@@ -33,8 +33,9 @@ contract ForkTestBase is Test {
     /*** Constants/state variables                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 internal constant _REENTRANCY_GUARD_SLOT    = bytes32(uint256(0));
-    bytes32 internal constant _REENTRANCY_GUARD_ENTERED = bytes32(uint256(2));
+    bytes32 internal constant _REENTRANCY_GUARD_SLOT        = bytes32(uint256(0));
+    bytes32 internal constant _REENTRANCY_GUARD_NOT_ENTERED = bytes32(uint256(1));
+    bytes32 internal constant _REENTRANCY_GUARD_ENTERED     = bytes32(uint256(2));
 
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
@@ -197,18 +198,19 @@ contract ForkTestBase is Test {
         vm.store(address(foreignController), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
     }
 
-    function _assertReeentrancyGuardWrittenToTwice() internal {
+    function _assertReentrancyGuardWrittenToTwice() internal {
         ( , bytes32[] memory writeSlots ) = vm.accesses(address(foreignController));
 
         uint256 count = 0;
 
-        for ( uint256 i = 0; i < writeSlots.length; ++i ) {
-            if ( writeSlots[i] != _REENTRANCY_GUARD_SLOT ) continue;
+        for (uint256 i = 0; i < writeSlots.length; ++i) {
+            if (writeSlots[i] != _REENTRANCY_GUARD_SLOT) continue;
 
             ++count;
         }
 
         assertEq(count, 2);
+        assertEq(vm.load(address(foreignController), _REENTRANCY_GUARD_SLOT), _REENTRANCY_GUARD_NOT_ENTERED);
     }
 
 }

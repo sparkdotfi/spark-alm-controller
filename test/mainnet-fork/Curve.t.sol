@@ -249,7 +249,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
             minLpAmount
         );
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(lpTokensReceived, 1_987_199.361495730708108741e18);
 
@@ -557,7 +557,7 @@ contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
             minWithdrawAmounts
         );
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(assetsReceived[0], 465_059.586753e6);
         assertEq(assetsReceived[1], 1_535_013.847298e6);
@@ -728,7 +728,7 @@ contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
         vm.prank(relayer);
         uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 999_500e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountOut, 999_712.1851680e6);
 

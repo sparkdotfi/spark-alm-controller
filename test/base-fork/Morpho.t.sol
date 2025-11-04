@@ -202,7 +202,7 @@ contract MorphoDepositSuccessTests is MorphoBaseTest {
         vm.prank(relayer);
         assertEq(foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18), 1_000_000e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdsVault.convertToAssets(usdsVault.balanceOf(address(almProxy))),          1_000_000e18);
         assertEq(IERC20(Base.USDS).balanceOf(address(almProxy)),                             0);
@@ -287,12 +287,8 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
 
-        vm.record();
-
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
-
-        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(usdsVault.convertToAssets(usdsVault.balanceOf(address(almProxy))), 1_000_000e18);
         assertEq(IERC20(Base.USDS).balanceOf(address(almProxy)),                    0);
@@ -300,8 +296,12 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18), 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
@@ -322,12 +322,8 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
 
-        vm.record();
-
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDC, 1_000_000e6);
-
-        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(usdcVault.convertToAssets(usdcVault.balanceOf(address(almProxy))), 1_000_000e6);
         assertEq(IERC20(Base.USDC).balanceOf(address(almProxy)),                    0);
@@ -335,8 +331,12 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
 
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.withdrawERC4626(MORPHO_VAULT_USDC, 1_000_000e6), 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e6);
@@ -439,12 +439,8 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
 
-        vm.record();
-
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
-
-        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(usdsVault.convertToAssets(usdsVault.balanceOf(address(almProxy))), 1_000_000e18);
         assertEq(IERC20(Base.USDS).balanceOf(address(almProxy)),                    0);
@@ -453,8 +449,13 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
         uint256 shares = usdsVault.balanceOf(address(almProxy));
+
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.redeemERC4626(MORPHO_VAULT_USDS, shares), 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
@@ -475,12 +476,8 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
 
-        vm.record();
-
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDC, 1_000_000e6);
-
-        _assertReeentrancyGuardWrittenToTwice();
 
         assertEq(usdcVault.convertToAssets(usdcVault.balanceOf(address(almProxy))), 1_000_000e6);
         assertEq(IERC20(Base.USDC).balanceOf(address(almProxy)),                    0);
@@ -489,8 +486,13 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
 
         uint256 shares = usdcVault.balanceOf(address(almProxy));
+
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.redeemERC4626(MORPHO_VAULT_USDC, shares), 1_000_000e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e6);

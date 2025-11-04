@@ -105,7 +105,7 @@ contract ForeignControllerTransferAssetSuccessTests is TransferAssetBaseTest {
         vm.prank(relayer);
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdcBase.balanceOf(address(receiver)), 1_000_000e6);
         assertEq(usdcBase.balanceOf(address(almProxy)), 0);

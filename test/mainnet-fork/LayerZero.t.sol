@@ -203,7 +203,7 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
             destinationEndpointId
         );
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(relayer.balance,                           1 ether - fee.nativeFee);
         assertEq(IERC20(usdt).balanceOf(USDT_OFT),          oftBalanceBefore + 10_000_000e6);
@@ -521,7 +521,7 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
             destinationEndpointId
         );
 
-        _assertReeentrancyGuardWrittenToTwice(address(foreignController));
+        _assertReentrancyGuardWrittenToTwice(address(foreignController));
 
         assertEq(relayer.balance,                                   1 ether - fee.nativeFee);
         assertEq(foreignRateLimits.getCurrentRateLimit(key),        0);

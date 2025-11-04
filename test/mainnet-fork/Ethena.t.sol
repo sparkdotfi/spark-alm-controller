@@ -53,7 +53,7 @@ contract MainnetControllerSetDelegatedSignerSuccessTests is EthenaTestBase {
         emit DelegatedSignerInitiated(signer, address(almProxy));
         mainnetController.setDelegatedSigner(signer);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(ethenaMinter.delegatedSigner(signer, address(almProxy)), 1);  // PENDING
     }
@@ -100,7 +100,7 @@ contract MainnetControllerRemoveDelegatedSignerSuccessTests is EthenaTestBase {
         emit DelegatedSignerRemoved(signer, address(almProxy));
         mainnetController.removeDelegatedSigner(signer);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(ethenaMinter.delegatedSigner(signer, address(almProxy)), 0);  // REJECTED
     }
@@ -174,7 +174,7 @@ contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
         vm.prank(relayer);
         mainnetController.prepareUSDeMint(100e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdc.allowance(address(almProxy), ETHENA_MINTER), 100e6);
     }
@@ -266,7 +266,7 @@ contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
         vm.prank(relayer);
         mainnetController.prepareUSDeBurn(100e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 100e18);
     }
@@ -381,7 +381,7 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
         emit Withdraw(address(almProxy), silo, address(almProxy), assets, 100e18);
         mainnetController.cooldownAssetsSUSDe(assets);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(susde.balanceOf(address(almProxy)), 0);
         assertEq(usde.balanceOf(silo),               startingSiloBalance + assets);
@@ -507,7 +507,7 @@ contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
         emit Withdraw(address(almProxy), silo, address(almProxy), assets, 100e18);
         uint256 returnedAssets = mainnetController.cooldownSharesSUSDe(100e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(returnedAssets, assets);
 
@@ -629,7 +629,7 @@ contract MainnetControllerUnstakeSUSDeSuccessTests is EthenaTestBase {
         vm.prank(relayer);
         mainnetController.unstakeSUSDe();
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usde.balanceOf(address(almProxy)), assets);
         assertEq(usde.balanceOf(silo),              startingSiloBalance);

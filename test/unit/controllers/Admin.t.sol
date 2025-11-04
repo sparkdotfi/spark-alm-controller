@@ -52,8 +52,8 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
         vm.store(address(mainnetController), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
     }
 
-    function _assertReeentrancyGuardWrittenToTwice() internal {
-        _assertReeentrancyGuardWrittenToTwice(address(mainnetController));
+    function _assertReentrancyGuardWrittenToTwice() internal {
+        _assertReentrancyGuardWrittenToTwice(address(mainnetController));
     }
 
 }
@@ -110,7 +110,7 @@ contract MainnetControllerSetMintRecipientTests is MainnetControllerAdminTestBas
 
         assertEq(mainnetController.mintRecipients(1), mintRecipient2);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
     }
 
 }
@@ -167,7 +167,7 @@ contract MainnetControllerSetLayerZeroRecipientTests is MainnetControllerAdminTe
 
         assertEq(mainnetController.layerZeroRecipients(1), layerZeroRecipient2);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
     }
 
 }
@@ -269,7 +269,7 @@ contract MainnetControllerSetOTCBufferTests is MainnetControllerAdminTestBase {
         emit OTCBufferSet(exchange, address(0), address(otcBuffer));
         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         ( otcBuffer_,,,, ) = mainnetController.otcs(exchange);
 
@@ -314,7 +314,7 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
         emit OTCRechargeRateSet(exchange, 0, uint256(1_000_000e18) / 1 days);
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         ( , rate18,,, ) = mainnetController.otcs(exchange);
         assertEq(rate18, uint256(1_000_000e18) / 1 days);
@@ -380,7 +380,7 @@ contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminT
         emit OTCWhitelistedAssetSet(exchange, asset, false);
         mainnetController.setOTCWhitelistedAsset(exchange, asset, false);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(mainnetController.otcWhitelistedAssets(exchange, asset), false);
     }
@@ -415,8 +415,8 @@ contract ForeignControllerAdminTests is UnitTestBase {
         vm.store(address(foreignController), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
     }
 
-    function _assertReeentrancyGuardWrittenToTwice() internal {
-        _assertReeentrancyGuardWrittenToTwice(address(foreignController));
+    function _assertReentrancyGuardWrittenToTwice() internal {
+        _assertReentrancyGuardWrittenToTwice(address(foreignController));
     }
 
     function test_setMaxSlippage_reentrancy() external {
@@ -469,7 +469,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
 
         assertEq(foreignController.maxSlippages(pool), 0.99e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
     }
 
     function test_setMintRecipient_reentrancy() external {
@@ -522,7 +522,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
 
         assertEq(foreignController.mintRecipients(1), mintRecipient2);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
     }
 
     function test_setLayerZeroRecipient_reentrancy() external {
@@ -575,7 +575,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
 
         assertEq(foreignController.layerZeroRecipients(1), layerZeroRecipient2);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
     }
 
 }

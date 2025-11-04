@@ -97,7 +97,7 @@ contract MainnetControllerDepositToWstETHTests is MainnetControllerWstETHTestBas
         vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(mainnetController.LIMIT_WSTETH_DEPOSIT()), 0);
 
@@ -189,7 +189,7 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
         vm.prank(relayer);
         uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(500e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(wsteth.balanceOf(address(almProxy)), 323.029395390731625220e18);
 
@@ -303,7 +303,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
         vm.prank(relayer);
         mainnetController.claimWithdrawalFromWstETH(requestIds[0]);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         statuses = withdrawQueue.getWithdrawalStatus(requestIds);
 

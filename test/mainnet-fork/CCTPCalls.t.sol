@@ -486,7 +486,7 @@ contract USDCToCCTPIntegrationTests is BaseChainUSDCToCCTPTestBase {
         vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdc.balanceOf(address(almProxy)),          0);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
@@ -596,7 +596,7 @@ contract USDCToCCTPIntegrationTests is BaseChainUSDCToCCTPTestBase {
         vm.prank(relayer);
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
 
-        _assertReeentrancyGuardWrittenToTwice(address(foreignController));
+        _assertReentrancyGuardWrittenToTwice(address(foreignController));
 
         assertEq(usdcBase.balanceOf(address(foreignAlmProxy)),   0);
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);

@@ -63,7 +63,7 @@ contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
         vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         ( ink, art ) = dss.vat.urns(ilk, vault);
         ( Art,,,, )  = dss.vat.ilks(ilk);
@@ -161,7 +161,7 @@ contract MainnetControllerBurnUSDSSuccessTests is ForkTestBase {
         vm.prank(relayer);
         mainnetController.burnUSDS(1e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         ( ink, art ) = dss.vat.urns(ilk, vault);
         ( Art,,,, )  = dss.vat.ilks(ilk);

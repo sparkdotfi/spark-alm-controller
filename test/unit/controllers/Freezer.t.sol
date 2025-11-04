@@ -88,7 +88,7 @@ contract MainnetControllerRemoveRelayerTests is UnitTestBase {
         emit RelayerRemoved(relayer2);
         controller.removeRelayer(relayer2);
 
-        _assertReeentrancyGuardWrittenToTwice(address(controller));
+        _assertReentrancyGuardWrittenToTwice(address(controller));
 
         assertEq(controller.hasRole(RELAYER, relayer1), false);
         assertEq(controller.hasRole(RELAYER, relayer2), false);
@@ -171,7 +171,7 @@ contract ForeignControllerRemoveRelayerTests is UnitTestBase {
         emit RelayerRemoved(relayer2);
         controller.removeRelayer(relayer2);
 
-        _assertReeentrancyGuardWrittenToTwice(address(controller));
+        _assertReentrancyGuardWrittenToTwice(address(controller));
 
         assertEq(controller.hasRole(RELAYER, relayer1), false);
         assertEq(controller.hasRole(RELAYER, relayer2), false);

@@ -120,7 +120,7 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(usdsBase), 100e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, 100e18);
 
@@ -157,7 +157,7 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(usdcBase), 100e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, 100e18);
 
@@ -194,7 +194,7 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, 100.343092065533568746e18);  // Sanity check conversion at fork block
 
@@ -349,7 +349,7 @@ contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBas
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(usdsBase), 100e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountWithdrawn, 100e18);
 
@@ -388,7 +388,7 @@ contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBas
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(usdcBase), 100e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountWithdrawn, 100e6);
 
@@ -429,7 +429,7 @@ contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBas
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(susdsBase), 100e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountWithdrawn, 100e18 - 1);  // Rounding
 

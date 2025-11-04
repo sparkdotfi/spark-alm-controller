@@ -185,7 +185,7 @@ contract AaveV3MainMarketDepositSuccessTests is AaveV3MainMarketBaseTest {
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.allowance(address(almProxy), POOL), 0);
 
@@ -208,7 +208,7 @@ contract AaveV3MainMarketDepositSuccessTests is AaveV3MainMarketBaseTest {
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 1_000_000e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdc.allowance(address(almProxy), POOL), 0);
 
@@ -326,7 +326,7 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
         vm.prank(relayer);
         assertEq(mainnetController.withdrawAave(ATOKEN_USDS, 400_000e18), 400_000e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(ausds.balanceOf(address(almProxy)), aTokenBalance - 400_000e18);
         assertEq(usds.balanceOf(address(almProxy)),  400_000e18);

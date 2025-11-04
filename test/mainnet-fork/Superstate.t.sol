@@ -125,7 +125,7 @@ contract MainnetControllerSubscribeSuperstateSuccessTests is SuperstateTestBase 
         vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 

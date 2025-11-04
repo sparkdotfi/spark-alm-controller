@@ -134,7 +134,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         testState.rateLimit -= 1_000_000e6;  // Rate limit goes down
         testState.usdcAlm   += 1_000_000e6;  // The almProxy receives the taken amount

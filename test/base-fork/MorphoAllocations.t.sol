@@ -119,7 +119,7 @@ contract MorphoSetSupplyQueueMorphoSuccessTests is MorphoTestBase {
         vm.prank(relayer);
         foreignController.setSupplyQueueMorpho(address(morphoVault), supplyQueueUSDC);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(morphoVault.supplyQueueLength(), 2);
 
@@ -172,7 +172,7 @@ contract MorphoUpdateWithdrawQueueMorphoSuccessTests is MorphoTestBase {
         vm.prank(relayer);
         foreignController.updateWithdrawQueueMorpho(address(morphoVault), withdrawQueueUsdc);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(morphoVault.withdrawQueueLength(), 2);
 
@@ -264,7 +264,7 @@ contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
         vm.prank(relayer);
         foreignController.reallocateMorpho(address(morphoVault), reallocations);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         // NOTE: No interest is accrued because deposit coverered all markets and is atomic
         assertEq(positionAssets(usdcCBBTC), positionCBBTC);

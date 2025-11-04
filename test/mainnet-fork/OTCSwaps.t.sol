@@ -385,7 +385,7 @@ contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcSend(exchange, address(usdt), 10_000_000e6);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         _assertOtcState({
             sent18:        10_000_000e18,
@@ -425,7 +425,7 @@ contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCSwapSent(exchange, address(otcBuffer), address(usds), 10_000_000e18, 10_000_000e18);
         mainnetController.otcSend(exchange, address(usds), 10_000_000e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         _assertOtcState({
             sent18:        10_000_000e18,
@@ -523,7 +523,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCClaimed(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcClaim(exchange, address(usdt));
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdt.balanceOf(address(almProxy)),  10_000_000e6);
         assertEq(usdt.balanceOf(address(otcBuffer)), 0);
@@ -556,7 +556,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
         emit OTCClaimed(exchange, address(otcBuffer), address(usds), 10_000_000e18, 10_000_000e18);
         mainnetController.otcClaim(exchange, address(usds));
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(almProxy)),  10_000_000e18);
         assertEq(usds.balanceOf(address(otcBuffer)), 0);

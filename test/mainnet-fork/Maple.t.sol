@@ -231,7 +231,7 @@ contract MainnetControllerRequestMapleRedemptionSuccessTests is MapleTestBase {
         vm.prank(relayer);
         mainnetController.requestMapleRedemption(address(syrup), proxyShares);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(syrup.balanceOf(address(withdrawalManager)),           totalEscrowedShares + proxyShares);
         assertEq(syrup.balanceOf(address(almProxy)),                    0);
@@ -285,7 +285,7 @@ contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
 
         mainnetController.cancelMapleRedemption(address(syrup), proxyShares);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(syrup.balanceOf(address(withdrawalManager)), totalEscrowedShares);
         assertEq(syrup.balanceOf(address(almProxy)),          proxyShares);

@@ -107,7 +107,7 @@ contract MainnetControllerFarmDepositSuccessTests is MainnetControllerFarmTestBa
         vm.prank(relayer);
         mainnetController.depositToFarm(farm, 1_000_000e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 9_000_000e18);
 
@@ -186,7 +186,7 @@ contract MainnetControllerFarmWithdrawSuccessTests is MainnetControllerFarmTestB
         vm.prank(relayer);
         mainnetController.withdrawFromFarm(farm, 1_000_000e18);
 
-        _assertReeentrancyGuardWrittenToTwice();
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
 
