@@ -50,6 +50,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
+    event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
 
@@ -83,6 +84,9 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
+
+    // ERC4626 exchange rate thresholds
+    mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -152,6 +156,14 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     {
         layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
         emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
+    }
+
+    function setMaxExchangeRate(address token, uint256 maxExchangeRate) external nonReentrant {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(token != address(0), "ForeignController/token-zero-address");
+
+        emit MaxExchangeRateSet(token, maxExchangeRates[token] = maxExchangeRate);
     }
 
     /**********************************************************************************************/
@@ -330,26 +342,24 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
-        require(maxSlippages[token] != 0, "ForeignController/max-slippage-not-set");
+        require(
+            IERC4626(token).convertToAssets(1e18) <= maxExchangeRates[token],
+            "ForeignController/exchange-rate-too-high"
+        );
 
         // Note that whitelist is done by rate limits.
-        IERC20 asset = IERC20(IERC4626(token).asset());
+        address asset = IERC4626(token).asset();
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
+        _approve(asset, token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
-        shares = abi.decode(
+        return abi.decode(
             proxy.doCall(
                 token,
                 abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
             ),
             (uint256)
-        );
-
-        require(
-            IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
-            "ForeignController/inflated-shares"
         );
     }
 

@@ -102,8 +102,8 @@ contract MorphoBaseTest is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
-        foreignController.setMaxSlippage(MORPHO_VAULT_USDS, 1e18 - 1e4);  // Rounding slippage
-        foreignController.setMaxSlippage(MORPHO_VAULT_USDC, 1e18 - 1e4);  // Rounding slippage
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, IERC4626(MORPHO_VAULT_USDS).convertToAssets(1e18));
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDC, IERC4626(MORPHO_VAULT_USDC).convertToAssets(1e18));
 
         vm.stopPrank();
     }
@@ -140,22 +140,33 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.depositERC4626(makeAddr("fake-token"), 1e18);
     }
 
-    function test_depositERC4626_zeroMaxSlippage() external {
-        vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(MORPHO_VAULT_USDS, 0);
+    function test_depositERC4626_exchangeRateBoundary() external {
+        deal(Base.USDS, address(almProxy), 25_000_000e18);
+
+        vm.startPrank(Base.SPARK_EXECUTOR);
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, IERC4626(MORPHO_VAULT_USDS).convertToAssets(1e18) - 1);
+        vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/max-slippage-not-set");
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1e18);
+        vm.expectRevert("ForeignController/exchange-rate-too-high");
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18);
+
+        vm.startPrank(Base.SPARK_EXECUTOR);
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, IERC4626(MORPHO_VAULT_USDS).convertToAssets(1e18));
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18);
     }
 
     function test_morpho_usds_deposit_rateLimitedBoundary() external {
         deal(Base.USDS, address(almProxy), 25_000_000e18 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18 + 1);
 
+        vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18);
     }
 
@@ -163,27 +174,11 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         deal(Base.USDC, address(almProxy), 25_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDC, 25_000_000e6 + 1);
 
+        vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDC, 25_000_000e6);
-    }
-
-    function test_morpho_usds_deposit_slippageBoundary() external {
-        deal(Base.USDS, address(almProxy), 5_000_000e18);
-
-        vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(MORPHO_VAULT_USDS, 1e18 + 1);  // Positive slippage needed to cause error
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/inflated-shares");
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 5_000_000e18);
-
-        vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(MORPHO_VAULT_USDS, 1e18);
-
-        vm.prank(relayer);
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 5_000_000e18);
     }
 
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { console } from "forge-std/Test.sol";
+
 import { IMetaMorpho, Id } from "metamorpho/interfaces/IMetaMorpho.sol";
 
 import { MarketParamsLib }               from "morpho-blue/src/libraries/MarketParamsLib.sol";
@@ -85,21 +87,25 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
 contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
 
     function test_depositERC4626_donationAttackFailure() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(morphoVault), 1e18 - 1e4);  // Rounding slippage
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxExchangeRate(address(morphoVault), 1.2e18);
+        vm.stopPrank();
 
         _doAttack();
+
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/slippage-too-high");
+        vm.expectRevert("MainnetController/exchange-rate-too-high");
         mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
     }
 
     function test_depositERC4626_donationAttackSuccess() external {
-        // Set max slippage to (close to) 100%
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(morphoVault), 1);
+        // Set max exchange rate too high
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxExchangeRate(address(morphoVault), type(uint256).max);
+        vm.stopPrank();
 
         _doAttack();
+
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
 
