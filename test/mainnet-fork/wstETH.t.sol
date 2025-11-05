@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 interface IWithdrawalQueue {
@@ -36,6 +38,12 @@ contract MainnetControllerWstETHTestBase is ForkTestBase {
 }
 
 contract MainnetControllerDepositToWstETHFailureTests is MainnetControllerWstETHTestBase {
+
+    function test_depositToWstETH_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.depositToWstETH(1e18);
+    }
 
     function test_depositToWstETH_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -84,8 +92,12 @@ contract MainnetControllerDepositToWstETHTests is MainnetControllerWstETHTestBas
         assertEq(weth.balanceOf(address(almProxy)),   1_000e18);
         assertEq(wsteth.balanceOf(address(almProxy)), 0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(mainnetController.LIMIT_WSTETH_DEPOSIT()), 0);
 
@@ -98,6 +110,12 @@ contract MainnetControllerDepositToWstETHTests is MainnetControllerWstETHTestBas
 }
 
 contract MainnetControllerRequestWithdrawFromWstETHFailureTests is MainnetControllerWstETHTestBase {
+
+    function test_requestWithdrawFromWstETH_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.requestWithdrawFromWstETH(1e18);
+    }
 
     function test_requestWithdrawFromWstETH_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -166,8 +184,12 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
 
         assertEq(expectedEthWithdrawal, 607.511715620589663161e18);
 
+        vm.record();
+
         vm.prank(relayer);
         uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(500e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(wsteth.balanceOf(address(almProxy)), 323.029395390731625220e18);
 
@@ -193,6 +215,12 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
 
 contract MainnetControllerClaimWithdrawalFromWstETHFailureTests is MainnetControllerWstETHTestBase {
 
+    function test_claimWithdrawalFromWstETH_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.claimWithdrawalFromWstETH(1);
+    }
+
     function test_claimWithdrawalFromWstETH_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -207,7 +235,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHFailureTests is MainnetContro
 contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWstETHTestBase {
 
     address finalizer = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
-    
+
     function test_claimWithdrawalFromWstETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
@@ -270,8 +298,12 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
         assertEq(statuses[0].isFinalized, true);
         assertEq(statuses[0].isClaimed,   false);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.claimWithdrawalFromWstETH(requestIds[0]);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         statuses = withdrawQueue.getWithdrawalStatus(requestIds);
 

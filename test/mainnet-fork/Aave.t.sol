@@ -6,6 +6,8 @@ import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces
 import { DataTypes }          from "aave-v3-origin/src/core/contracts/protocol/libraries/types/DataTypes.sol";
 import { IPoolConfigurator }  from "aave-v3-origin/src/core/contracts/interfaces/IPoolConfigurator.sol";
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 contract AaveV3MainMarketBaseTest is ForkTestBase {
@@ -76,6 +78,12 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
 // NOTE: Only testing USDS for non-rate limit failures as it doesn't matter which asset is used
 
 contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
+
+    function test_depositAave_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
+    }
 
     function test_depositAave_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -172,8 +180,12 @@ contract AaveV3MainMarketDepositSuccessTests is AaveV3MainMarketBaseTest {
         assertEq(usds.balanceOf(address(almProxy)),  1_000_000e18);
         assertEq(usds.balanceOf(address(ausds)),     startingAUSDSBalance);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.allowance(address(almProxy), POOL), 0);
 
@@ -191,8 +203,12 @@ contract AaveV3MainMarketDepositSuccessTests is AaveV3MainMarketBaseTest {
         assertEq(usdc.balanceOf(address(almProxy)),  1_000_000e6);
         assertEq(usdc.balanceOf(address(ausdc)),     startingAUSDCBalance);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 1_000_000e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdc.allowance(address(almProxy), POOL), 0);
 
@@ -204,6 +220,12 @@ contract AaveV3MainMarketDepositSuccessTests is AaveV3MainMarketBaseTest {
 }
 
 contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
+
+    function test_withdrawAave_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.withdrawAave(ATOKEN_USDS, 1_000_000e18);
+    }
 
     function test_withdrawAave_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -298,9 +320,13 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
+        vm.record();
+
         // Partial withdraw
         vm.prank(relayer);
         assertEq(mainnetController.withdrawAave(ATOKEN_USDS, 400_000e18), 400_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(ausds.balanceOf(address(almProxy)), aTokenBalance - 400_000e18);
         assertEq(usds.balanceOf(address(almProxy)),  400_000e18);
@@ -493,7 +519,7 @@ contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
-        
+
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressKey(
                 mainnetController.LIMIT_AAVE_WITHDRAW(),

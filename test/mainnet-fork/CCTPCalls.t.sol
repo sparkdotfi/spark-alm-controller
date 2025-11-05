@@ -3,7 +3,8 @@ pragma solidity >=0.8.0;
 
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
-import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { ERC20Mock }       from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { Base } from "spark-address-registry/Base.sol";
 
@@ -27,6 +28,12 @@ import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import "./ForkTestBase.t.sol";
 
 contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
+
+    function test_transferUSDCToCCTP_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+    }
 
     function test_transferUSDCToCCTP_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -297,6 +304,10 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
         );
     }
 
+    function _setControllerEntered() internal override {
+        vm.store(address(foreignController), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
+    }
+
 }
 
 contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPTestBase {
@@ -306,6 +317,12 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
     function setUp( ) public override {
         super.setUp();
         destination.selectFork();
+    }
+
+    function test_transferUSDCToCCTP_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 
     function test_transferUSDCToCCTP_notRelayer() external {
@@ -464,8 +481,12 @@ contract USDCToCCTPIntegrationTests is BaseChainUSDCToCCTPTestBase {
 
         _expectEthereumCCTPEmit(114_803, 1e6);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdc.balanceOf(address(almProxy)),          0);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
@@ -570,8 +591,12 @@ contract USDCToCCTPIntegrationTests is BaseChainUSDCToCCTPTestBase {
 
         _expectBaseCCTPEmit(296_114, 1e6);
 
+        vm.record();
+
         vm.prank(relayer);
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
+
+        _assertReentrancyGuardWrittenToTwice(address(foreignController));
 
         assertEq(usdcBase.balanceOf(address(foreignAlmProxy)),   0);
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);

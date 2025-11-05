@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import { MockTokenReturnFalse, MockTokenReturnNull } from "../mocks/Mocks.sol";
@@ -32,6 +34,12 @@ contract TransferAssetBaseTest is ForkTestBase {
 }
 
 contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
+
+    function test_transferAsset_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6);
+    }
 
     function test_transferAsset_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -92,8 +100,12 @@ contract ForeignControllerTransferAssetSuccessTests is TransferAssetBaseTest {
         assertEq(usdcBase.balanceOf(address(receiver)), 0);
         assertEq(usdcBase.balanceOf(address(almProxy)), 1_000_000e6);
 
+        vm.record();
+
         vm.prank(relayer);
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdcBase.balanceOf(address(receiver)), 1_000_000e6);
         assertEq(usdcBase.balanceOf(address(almProxy)), 0);

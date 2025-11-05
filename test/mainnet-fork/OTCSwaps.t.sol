@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { ERC20Mock }      from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import { IERC20Metadata } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
-import { IERC20 as OzIERC20, SafeERC20 } from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20Mock }                     from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { IERC20Metadata }                from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { IERC20 as OzIERC20, SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard }               from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { OTC } from "src/MainnetController.sol";
 
@@ -101,6 +101,12 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 }
 
 contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
+
+    function test_otcSend_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.otcSend(exchange, address(1), 1e18);
+    }
 
     function test_otcSend_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -371,11 +377,15 @@ contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
             claimed18:     0
         });
 
+        vm.record();
+
         // Execute OTC swap
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
         emit OTCSwapSent(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcSend(exchange, address(usdt), 10_000_000e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         _assertOtcState({
             sent18:        10_000_000e18,
@@ -407,11 +417,15 @@ contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
             claimed18:     0
         });
 
+        vm.record();
+
         // Execute OTC swap
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
         emit OTCSwapSent(exchange, address(otcBuffer), address(usds), 10_000_000e18, 10_000_000e18);
         mainnetController.otcSend(exchange, address(usds), 10_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         _assertOtcState({
             sent18:        10_000_000e18,
@@ -430,6 +444,12 @@ contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
 }
 
 contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
+
+    function test_otcClaim_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.otcClaim(exchange, address(1));
+    }
 
     function test_otcClaim_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -496,10 +516,14 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
             claimed18:     0
         });
 
+        vm.record();
+
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
         emit OTCClaimed(exchange, address(otcBuffer), address(usdt), 10_000_000e6, 10_000_000e18);
         mainnetController.otcClaim(exchange, address(usdt));
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdt.balanceOf(address(almProxy)),  10_000_000e6);
         assertEq(usdt.balanceOf(address(otcBuffer)), 0);
@@ -525,10 +549,14 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
             claimed18:     0
         });
 
+        vm.record();
+
         vm.prank(relayer);
         vm.expectEmit(address(mainnetController));
         emit OTCClaimed(exchange, address(otcBuffer), address(usds), 10_000_000e18, 10_000_000e18);
         mainnetController.otcClaim(exchange, address(usds));
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(almProxy)),  10_000_000e18);
         assertEq(usds.balanceOf(address(otcBuffer)), 0);

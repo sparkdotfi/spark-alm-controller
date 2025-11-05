@@ -7,6 +7,8 @@ import { IMetaMorpho, Id }       from "metamorpho/interfaces/IMetaMorpho.sol";
 import { MarketParamsLib }       from "morpho-blue/src/libraries/MarketParamsLib.sol";
 import { IMorpho, MarketParams } from "morpho-blue/src/interfaces/IMorpho.sol";
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import "./ForkTestBase.t.sol";
@@ -117,6 +119,12 @@ contract MorphoBaseTest is ForkTestBase {
 
 contract MorphoDepositFailureTests is MorphoBaseTest {
 
+    function test_morpho_deposit_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
+    }
+
     function test_morpho_deposit_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -189,8 +197,12 @@ contract MorphoDepositSuccessTests is MorphoBaseTest {
         assertEq(IERC20(Base.USDS).balanceOf(address(almProxy)),                             1_000_000e18);
         assertEq(IERC20(Base.USDS).allowance(address(almProxy), address(MORPHO_VAULT_USDS)), 0);
 
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18), 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdsVault.convertToAssets(usdsVault.balanceOf(address(almProxy))),          1_000_000e18);
         assertEq(IERC20(Base.USDS).balanceOf(address(almProxy)),                             0);
@@ -215,6 +227,12 @@ contract MorphoDepositSuccessTests is MorphoBaseTest {
 }
 
 contract MorphoWithdrawFailureTests is MorphoBaseTest {
+
+    function test_morpho_withdraw_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
+    }
 
     function test_morpho_withdraw_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -268,6 +286,7 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         );
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
+
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
 
@@ -277,8 +296,12 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18), 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
@@ -298,6 +321,7 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         );
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
+
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDC, 1_000_000e6);
 
@@ -307,8 +331,12 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
 
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.withdrawERC4626(MORPHO_VAULT_USDC, 1_000_000e6), 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e6);
@@ -320,6 +348,12 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
 }
 
 contract MorphoRedeemFailureTests is MorphoBaseTest {
+
+    function test_morpho_redeem_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.redeemERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
+    }
 
     function test_morpho_redeem_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -404,6 +438,7 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
         );
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
+
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
 
@@ -414,8 +449,13 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
         uint256 shares = usdsVault.balanceOf(address(almProxy));
+
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.redeemERC4626(MORPHO_VAULT_USDS, shares), 1_000_000e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
@@ -435,6 +475,7 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
         );
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
+
         vm.prank(relayer);
         foreignController.depositERC4626(MORPHO_VAULT_USDC, 1_000_000e6);
 
@@ -445,8 +486,13 @@ contract MorphoRedeemSuccessTests is MorphoBaseTest {
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
 
         uint256 shares = usdcVault.balanceOf(address(almProxy));
+
+        vm.record();
+
         vm.prank(relayer);
         assertEq(foreignController.redeemERC4626(MORPHO_VAULT_USDC, shares), 1_000_000e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e6);

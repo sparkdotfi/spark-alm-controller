@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 interface IEthenaMinterLike {
@@ -15,6 +17,12 @@ contract EthenaTestBase is ForkTestBase {
 }
 
 contract MainnetControllerSetDelegatedSignerFailureTests is EthenaTestBase {
+
+    function test_setDelegatedSigner_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setDelegatedSigner(makeAddr("signer"));
+    }
 
     function test_setDelegatedSigner_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -38,10 +46,14 @@ contract MainnetControllerSetDelegatedSignerSuccessTests is EthenaTestBase {
 
         assertEq(ethenaMinter.delegatedSigner(signer, address(almProxy)), 0);  // REJECTED
 
+        vm.record();
+
         vm.prank(relayer);
         vm.expectEmit(ETHENA_MINTER);
         emit DelegatedSignerInitiated(signer, address(almProxy));
         mainnetController.setDelegatedSigner(signer);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(ethenaMinter.delegatedSigner(signer, address(almProxy)), 1);  // PENDING
     }
@@ -49,6 +61,12 @@ contract MainnetControllerSetDelegatedSignerSuccessTests is EthenaTestBase {
 }
 
 contract MainnetControllerRemoveDelegatedSignerFailureTests is EthenaTestBase {
+
+    function test_removeDelegatedSigner_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.removeDelegatedSigner(makeAddr("signer"));
+    }
 
     function test_removeDelegatedSigner_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -75,10 +93,14 @@ contract MainnetControllerRemoveDelegatedSignerSuccessTests is EthenaTestBase {
 
         assertEq(ethenaMinter.delegatedSigner(signer, address(almProxy)), 1);  // PENDING
 
+        vm.record();
+
         vm.prank(relayer);
         vm.expectEmit(ETHENA_MINTER);
         emit DelegatedSignerRemoved(signer, address(almProxy));
         mainnetController.removeDelegatedSigner(signer);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(ethenaMinter.delegatedSigner(signer, address(almProxy)), 0);  // REJECTED
     }
@@ -86,6 +108,12 @@ contract MainnetControllerRemoveDelegatedSignerSuccessTests is EthenaTestBase {
 }
 
 contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
+
+    function test_prepareUSDeMint_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.prepareUSDeMint(100);
+    }
 
     function test_prepareUSDeMint_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -141,8 +169,12 @@ contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
     function test_prepareUSDeMint() external {
         assertEq(usdc.allowance(address(almProxy), ETHENA_MINTER), 0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.prepareUSDeMint(100e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdc.allowance(address(almProxy), ETHENA_MINTER), 100e6);
     }
@@ -168,6 +200,12 @@ contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
 }
 
 contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
+
+    function test_prepareUSDeBurn_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.prepareUSDeBurn(100);
+    }
 
     function test_prepareUSDeBurn_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -223,8 +261,12 @@ contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
     function test_prepareUSDeBurn() external {
         assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 0);
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.prepareUSDeBurn(100e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usde.allowance(address(almProxy), ETHENA_MINTER), 100e18);
     }
@@ -250,6 +292,12 @@ contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
 }
 
 contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
+
+    function test_cooldownAssetsSUSDe_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.cooldownAssetsSUSDe(100e18);
+    }
 
     function test_cooldownAssetsSUSDe_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -326,10 +374,14 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
         assertEq(susde.balanceOf(address(almProxy)), 100e18);
         assertEq(usde.balanceOf(silo),               startingSiloBalance);
 
+        vm.record();
+
         vm.prank(relayer);
         vm.expectEmit(address(susde));
         emit Withdraw(address(almProxy), silo, address(almProxy), assets, 100e18);
         mainnetController.cooldownAssetsSUSDe(assets);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(susde.balanceOf(address(almProxy)), 0);
         assertEq(usde.balanceOf(silo),               startingSiloBalance + assets);
@@ -359,6 +411,12 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
 }
 
 contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
+
+    function test_cooldownSharesSUSDe_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.cooldownSharesSUSDe(100);
+    }
 
     function test_cooldownSharesSUSDe_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -442,10 +500,14 @@ contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
         assertEq(susde.balanceOf(address(almProxy)), 100e18);
         assertEq(usde.balanceOf(silo),               startingSiloBalance);
 
+        vm.record();
+
         vm.prank(relayer);
         vm.expectEmit(address(susde));
         emit Withdraw(address(almProxy), silo, address(almProxy), assets, 100e18);
         uint256 returnedAssets = mainnetController.cooldownSharesSUSDe(100e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(returnedAssets, assets);
 
@@ -489,6 +551,12 @@ contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
 }
 
 contract MainnetControllerUnstakeSUSDeFailureTests is EthenaTestBase {
+
+    function test_unstakeSUSDe_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.unstakeSUSDe();
+    }
 
     function test_unstakeSUSDe_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -556,8 +624,12 @@ contract MainnetControllerUnstakeSUSDeSuccessTests is EthenaTestBase {
 
         skip(7 days);  // Cooldown period
 
+        vm.record();
+
         vm.prank(relayer);
         mainnetController.unstakeSUSDe();
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usde.balanceOf(address(almProxy)), assets);
         assertEq(usde.balanceOf(silo),              startingSiloBalance);

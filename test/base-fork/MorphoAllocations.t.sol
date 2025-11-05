@@ -8,6 +8,8 @@ import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMo
 import { MarketParamsLib }       from "morpho-blue/src/libraries/MarketParamsLib.sol";
 import { IMorpho, MarketParams } from "morpho-blue/src/interfaces/IMorpho.sol";
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import "./ForkTestBase.t.sol";
@@ -76,6 +78,12 @@ contract MorphoTestBase is ForkTestBase {
 
 contract MorphoSetSupplyQueueMorphoFailureTests is MorphoTestBase {
 
+    function test_setSupplyQueueMorpho_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setSupplyQueueMorpho(address(morphoVault), new Id[](0));
+    }
+
     function test_setSupplyQueueMorpho_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -106,8 +114,12 @@ contract MorphoSetSupplyQueueMorphoSuccessTests is MorphoTestBase {
         assertEq(Id.unwrap(morphoVault.supplyQueue(0)), Id.unwrap(MarketParamsLib.id(usdcCBBTC)));
         assertEq(Id.unwrap(morphoVault.supplyQueue(1)), Id.unwrap(MarketParamsLib.id(usdcIdle)));
 
+        vm.record();
+
         vm.prank(relayer);
         foreignController.setSupplyQueueMorpho(address(morphoVault), supplyQueueUSDC);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(morphoVault.supplyQueueLength(), 2);
 
@@ -118,6 +130,12 @@ contract MorphoSetSupplyQueueMorphoSuccessTests is MorphoTestBase {
 }
 
 contract MorphoUpdateWithdrawQueueMorphoFailureTests is MorphoTestBase {
+
+    function test_updateWithdrawQueueMorpho_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.updateWithdrawQueueMorpho(address(morphoVault), new uint256[](0));
+    }
 
     function test_updateWithdrawQueueMorpho_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -149,8 +167,12 @@ contract MorphoUpdateWithdrawQueueMorphoSuccessTests is MorphoTestBase {
         assertEq(Id.unwrap(morphoVault.withdrawQueue(0)), Id.unwrap(MarketParamsLib.id(usdcIdle)));
         assertEq(Id.unwrap(morphoVault.withdrawQueue(1)), Id.unwrap(MarketParamsLib.id(usdcCBBTC)));
 
+        vm.record();
+
         vm.prank(relayer);
         foreignController.updateWithdrawQueueMorpho(address(morphoVault), withdrawQueueUsdc);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(morphoVault.withdrawQueueLength(), 2);
 
@@ -161,6 +183,12 @@ contract MorphoUpdateWithdrawQueueMorphoSuccessTests is MorphoTestBase {
 }
 
 contract MorphoReallocateMorphoFailureTests is MorphoTestBase {
+
+    function test_reallocateMorpho_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.reallocateMorpho(address(morphoVault), new MarketAllocation[](0));
+    }
 
     function test_reallocateMorpho_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -231,8 +259,12 @@ contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
             assets       : 1_000_000e6
         });
 
+        vm.record();
+
         vm.prank(relayer);
         foreignController.reallocateMorpho(address(morphoVault), reallocations);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         // NOTE: No interest is accrued because deposit coverered all markets and is atomic
         assertEq(positionAssets(usdcCBBTC), positionCBBTC);

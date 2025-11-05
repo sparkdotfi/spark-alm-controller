@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import "./ForkTestBase.t.sol";
 
 contract SUSDSTestBase is ForkTestBase {
@@ -45,6 +47,12 @@ contract SUSDSTestBase is ForkTestBase {
 }
 
 contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
+
+    function test_depositERC4626_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.depositERC4626(address(susds), 1e18);
+    }
 
     function test_depositERC4626_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -121,8 +129,12 @@ contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
         assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS);
         assertEq(susds.balanceOf(address(almProxy)), 0);
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(address(susds), 1e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, SUSDS_CONVERTED_SHARES);
 
@@ -141,6 +153,12 @@ contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
 }
 
 contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
+
+    function test_withdrawERC4626_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.withdrawERC4626(address(susds), 1e18);
+    }
 
     function test_withdrawERC4626_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -206,9 +224,13 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
 
+        vm.record();
+
         // Max available with rounding
         vm.prank(relayer);
         uint256 shares = mainnetController.withdrawERC4626(address(susds), 1e18 - 1);  // Rounding
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 1));
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 1));
@@ -230,6 +252,12 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
 }
 
 contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
+
+    function test_redeemERC4626_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.redeemERC4626(address(susds), 1e18);
+    }
 
     function test_redeemERC4626_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -318,8 +346,12 @@ contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 assets = mainnetController.redeemERC4626(address(susds), SUSDS_CONVERTED_SHARES);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_999_999e18 + (1e18 - 1));
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - (1e18 - 1));

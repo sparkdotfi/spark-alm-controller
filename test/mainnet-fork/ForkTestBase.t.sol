@@ -82,6 +82,10 @@ contract ForkTestBase is DssTest {
     /*** Constants/state variables                                                              ***/
     /**********************************************************************************************/
 
+    bytes32 internal constant _REENTRANCY_GUARD_SLOT        = bytes32(uint256(0));
+    bytes32 internal constant _REENTRANCY_GUARD_NOT_ENTERED = bytes32(uint256(1));
+    bytes32 internal constant _REENTRANCY_GUARD_ENTERED     = bytes32(uint256(2));
+
     bytes32 constant ilk                = "ILK-A";
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
@@ -322,6 +326,29 @@ contract ForkTestBase is DssTest {
 
     function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : b - a;
+    }
+
+    function _setControllerEntered() internal virtual {
+        vm.store(address(mainnetController), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
+    }
+
+    function _assertReentrancyGuardWrittenToTwice() internal {
+        _assertReentrancyGuardWrittenToTwice(address(mainnetController));
+    }
+
+    function _assertReentrancyGuardWrittenToTwice(address controller) internal {
+        ( , bytes32[] memory writeSlots ) = vm.accesses(controller);
+
+        uint256 count = 0;
+
+        for (uint256 i = 0; i < writeSlots.length; ++i) {
+            if (writeSlots[i] != _REENTRANCY_GUARD_SLOT) continue;
+
+            ++count;
+        }
+
+        assertEq(count, 2);
+        assertEq(vm.load(controller, _REENTRANCY_GUARD_SLOT), _REENTRANCY_GUARD_NOT_ENTERED);
     }
 
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import "./ForkTestBase.t.sol";
@@ -41,6 +43,12 @@ contract ForeignControllerPSMSuccessTestBase is ForkTestBase {
 
 
 contract ForeignControllerDepositPSMFailureTests is ForkTestBase {
+
+    function test_depositPSM_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.depositPSM(address(usdsBase), 1_000_000e18);
+    }
 
     function test_depositPSM_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -107,8 +115,12 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
             currentRateLimit : 5_000_000e18
         });
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(usdsBase), 100e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, 100e18);
 
@@ -140,8 +152,12 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
             currentRateLimit : 5_000_000e6
         });
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(usdcBase), 100e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, 100e18);
 
@@ -173,8 +189,12 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
             currentRateLimit : 5_000_000e18
         });
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(shares, 100.343092065533568746e18);  // Sanity check conversion at fork block
 
@@ -193,6 +213,12 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
 }
 
 contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
+
+    function test_withdrawPSM_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.withdrawPSM(address(usdsBase), 100e18);
+    }
 
     function test_withdrawPSM_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -318,8 +344,12 @@ contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBas
             currentRateLimit : type(uint256).max
         });
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(usdsBase), 100e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountWithdrawn, 100e18);
 
@@ -353,8 +383,12 @@ contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBas
             currentRateLimit : 5_000_000e6
         });
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(usdcBase), 100e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountWithdrawn, 100e6);
 
@@ -390,8 +424,12 @@ contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBas
             currentRateLimit : type(uint256).max
         });
 
+        vm.record();
+
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(susdsBase), 100e18);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountWithdrawn, 100e18 - 1);  // Rounding
 

@@ -3,6 +3,8 @@ pragma solidity >=0.8.0;
 
 import { IAToken } from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import "./ForkTestBase.t.sol";
@@ -53,6 +55,12 @@ contract AaveV3BaseMarketTestBase is ForkTestBase {
 }
 
 contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
+
+    function test_depositAave_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.depositAave(ATOKEN_USDC, 1_000_000e18);
+    }
 
     function test_depositAave_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -121,8 +129,12 @@ contract AaveV3BaseMarketDepositSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdcBase.balanceOf(address(ausdc)),    startingAUSDCBalance);
 
+        vm.record();
+
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usdcBase.allowance(address(almProxy), POOL), 0);
 
@@ -134,6 +146,12 @@ contract AaveV3BaseMarketDepositSuccessTests is AaveV3BaseMarketTestBase {
 }
 
 contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
+
+    function test_withdrawAave_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.withdrawAave(ATOKEN_USDC, 1_000_000e18);
+    }
 
     function test_withdrawAave_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -218,9 +236,13 @@ contract AaveV3BaseMarketWithdrawSuccessTests is AaveV3BaseMarketTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),  startingDepositRateLimit);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 1_000_000e6);
 
+        vm.record();
+
         // Partial withdraw
         vm.prank(relayer);
         assertEq(foreignController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);
+
+        _assertReentrancyGuardWrittenToTwice();
 
         assertEq(ausdc.balanceOf(address(almProxy)),    aTokenBalance - (400_000e6 - 1));  // Rounding
         assertEq(usdcBase.balanceOf(address(almProxy)), 400_000e6);
