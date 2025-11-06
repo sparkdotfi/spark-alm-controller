@@ -404,18 +404,20 @@ contract MainnetControllerSetMaxExchangeRateTests is MainnetControllerAdminTestB
     }
 
     function test_setMaxExchangeRate() external {
-        assertEq(mainnetController.maxExchangeRates(makeAddr("token")), 0);
+        address token = makeAddr("token");
+
+        assertEq(mainnetController.maxExchangeRates(token), 0);
 
         vm.record();
 
         vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.MaxExchangeRateSet(makeAddr("token"), 1e18);
-        mainnetController.setMaxExchangeRate(makeAddr("token"), 1e18);
+        emit MainnetController.MaxExchangeRateSet(token, 1e18);
+        mainnetController.setMaxExchangeRate(token, 1e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(mainnetController.maxExchangeRates(makeAddr("token")), 1e18);
+        assertEq(mainnetController.maxExchangeRates(token), 1e18);
     }
 
 }
@@ -629,17 +631,19 @@ contract ForeignControllerAdminTests is UnitTestBase {
     }
 
     function test_setMaxExchangeRate() external {
-        assertEq(foreignController.maxExchangeRates(makeAddr("token")), 0);
+        address token = makeAddr("token");
+
+        assertEq(foreignController.maxExchangeRates(token), 0);
 
         vm.record();
 
         vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MaxExchangeRateSet(makeAddr("token"), 1e18);
-        foreignController.setMaxExchangeRate(makeAddr("token"), 1e18);
+        emit ForeignController.MaxExchangeRateSet(token, 1e18);
+        foreignController.setMaxExchangeRate(token, 1e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(foreignController.maxExchangeRates(makeAddr("token")), 1e18);
+        assertEq(foreignController.maxExchangeRates(token), 1e18);
     }
 }

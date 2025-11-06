@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import { console } from "forge-std/Test.sol";
-
 import { IMetaMorpho, Id } from "metamorpho/interfaces/IMetaMorpho.sol";
 
 import { MarketParamsLib }               from "morpho-blue/src/libraries/MarketParamsLib.sol";
