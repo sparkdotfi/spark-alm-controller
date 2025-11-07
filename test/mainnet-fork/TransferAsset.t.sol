@@ -87,7 +87,7 @@ contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
         deal(address(token), address(almProxy), 1_000_000e18);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/transfer-failed");
+        vm.expectRevert("MC/transfer-failed");
         mainnetController.transferAsset(address(token), receiver, 1_000_000e18);
     }
 

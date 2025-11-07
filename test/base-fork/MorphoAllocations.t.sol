@@ -95,7 +95,7 @@ contract MorphoSetSupplyQueueMorphoFailureTests is MorphoTestBase {
 
     function test_setSupplyQueueMorpho_invalidVault() external {
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/invalid-action");
+        vm.expectRevert("FC/invalid-action");
         foreignController.setSupplyQueueMorpho(makeAddr("fake-vault"), new Id[](0));
     }
 
@@ -148,7 +148,7 @@ contract MorphoUpdateWithdrawQueueMorphoFailureTests is MorphoTestBase {
 
     function test_updateWithdrawQueueMorpho_invalidVault() external {
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/invalid-action");
+        vm.expectRevert("FC/invalid-action");
         foreignController.updateWithdrawQueueMorpho(makeAddr("fake-vault"), new uint256[](0));
     }
 
@@ -201,7 +201,7 @@ contract MorphoReallocateMorphoFailureTests is MorphoTestBase {
 
     function test_reallocateMorpho_invalidVault() external {
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/invalid-action");
+        vm.expectRevert("FC/invalid-action");
         foreignController.reallocateMorpho(makeAddr("fake-vault"), new MarketAllocation[](0));
     }
 

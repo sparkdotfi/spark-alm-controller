@@ -51,7 +51,7 @@ library CCTPLib {
             params.usdcAmount
         );
 
-        require(params.mintRecipient != 0, "MainnetController/domain-not-configured");
+        require(params.mintRecipient != 0, "MC/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
         _approve(params.proxy, address(params.usdc), address(params.cctp), params.usdcAmount);
@@ -135,7 +135,7 @@ library CCTPLib {
     /**********************************************************************************************/
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
-    
+
     function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }

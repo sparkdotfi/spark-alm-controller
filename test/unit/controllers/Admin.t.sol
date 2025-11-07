@@ -190,7 +190,7 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
 
     function test_setMaxSlippage_poolZeroAddress() public {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/pool-zero-address");
+        vm.expectRevert("MC/pool-zero-address");
         mainnetController.setMaxSlippage(address(0), 0.98e18);
     }
 
@@ -242,13 +242,13 @@ contract MainnetControllerSetOTCBufferTests is MainnetControllerAdminTestBase {
 
     function test_setOTCBuffer_exchangeZero() external {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/exchange-zero-address");
+        vm.expectRevert("MC/exchange-zero-address");
         mainnetController.setOTCBuffer(address(0), address(otcBuffer));
     }
 
     function test_setOTCBuffer_exchangeEqualsOTCBuffer() external {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/exchange-equals-otcBuffer");
+        vm.expectRevert("MC/exchange-equals-otcBuffer");
         mainnetController.setOTCBuffer(address(otcBuffer), address(otcBuffer));
     }
 
@@ -294,7 +294,7 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
 
     function test_setOTCRechargeRate_exchangeZero() external {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/exchange-zero-address");
+        vm.expectRevert("MC/exchange-zero-address");
         mainnetController.setOTCRechargeRate(address(0), uint256(1_000_000e18) / 1 days);
     }
 
@@ -339,19 +339,19 @@ contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminT
 
     function test_setOTCWhitelistedAsset_exchangeZero() external {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/exchange-zero-address");
+        vm.expectRevert("MC/exchange-zero-address");
         mainnetController.setOTCWhitelistedAsset(address(0), asset, true);
     }
 
     function test_setOTCWhitelistedAsset_assetZero() external {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/asset-zero-address");
+        vm.expectRevert("MC/asset-zero-address");
         mainnetController.setOTCWhitelistedAsset(exchange, address(0), true);
     }
 
     function test_setOTCWhitelistedAsset_otcBufferNotSet() external {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/otc-buffer-not-set");
+        vm.expectRevert("MC/otc-buffer-not-set");
         mainnetController.setOTCWhitelistedAsset(makeAddr("fake-exchange"), asset, true);
     }
 
@@ -401,7 +401,7 @@ contract MainnetControllerSetMaxExchangeRateTests is MainnetControllerAdminTestB
 
     function test_setMaxExchangeRate_tokenZeroAddress() external {
         vm.prank(admin);
-        vm.expectRevert("MainnetController/token-zero-address");
+        vm.expectRevert("MC/token-zero-address");
         mainnetController.setMaxExchangeRate(address(0), 1e18, 1e18);
     }
 
@@ -491,7 +491,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
 
     function test_setMaxSlippage_poolZeroAddress() public {
         vm.prank(admin);
-        vm.expectRevert("ForeignController/pool-zero-address");
+        vm.expectRevert("FC/pool-zero-address");
         foreignController.setMaxSlippage(address(0), 0.98e18);
     }
 
@@ -642,7 +642,7 @@ contract ForeignControllerAdminTests is UnitTestBase {
 
     function test_setMaxExchangeRate_tokenZeroAddress() external {
         vm.prank(admin);
-        vm.expectRevert("ForeignController/token-zero-address");
+        vm.expectRevert("FC/token-zero-address");
         foreignController.setMaxExchangeRate(address(0), 1e18, 1e18);
     }
 

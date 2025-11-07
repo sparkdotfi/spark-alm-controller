@@ -131,7 +131,7 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
         mainnetController.setMaxExchangeRate(address(syrup), 0, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/max-exchange-rate-not-set");
+        vm.expectRevert("MC/max-exchange-rate-not-set");
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
     }
 
@@ -143,7 +143,7 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
         vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/exchange-rate-too-high");
+        vm.expectRevert("MC/exchange-rate-too-high");
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
@@ -288,7 +288,7 @@ contract MainnetControllerCancelMapleRedemptionFailureTests is MapleTestBase {
 
     function test_cancelMapleRedemption_invalidMapleToken() external {
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/invalid-action");
+        vm.expectRevert("MC/invalid-action");
         mainnetController.cancelMapleRedemption(makeAddr("fake-syrup"), 1_000_000e6);
     }
 

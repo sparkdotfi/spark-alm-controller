@@ -262,7 +262,7 @@ contract ERC20ApproveReturningFalseNonZeroAmountMainnetTest is MainnetController
     function test_approveReturningFalseOnNonZeroAmount() public {
         ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
 
-        vm.expectRevert("MainnetController/approve-failed");
+        vm.expectRevert("MC/approve-failed");
         IHarness(harness).approve(address(mock), makeAddr("spender"), 100);
 
         vm.expectRevert("CurveLib/approve-failed");
@@ -285,7 +285,7 @@ contract ERC20ApproveReturningFalseNonZeroAmountForeignTest is ForeignController
     function test_approveReturningFalseOnNonZeroAmount() public {
         ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
 
-        vm.expectRevert("ForeignController/approve-failed");
+        vm.expectRevert("FC/approve-failed");
         IHarness(harness).approve(address(mock), makeAddr("spender"), 100);
     }
 

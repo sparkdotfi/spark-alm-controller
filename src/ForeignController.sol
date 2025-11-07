@@ -128,7 +128,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     modifier rateLimitExists(bytes32 key) {
         require(
             rateLimits.getRateLimitData(key).maxAmount > 0,
-            "ForeignController/invalid-action"
+            "FC/invalid-action"
         );
         _;
     }
@@ -140,7 +140,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     function setMaxSlippage(address pool, uint256 maxSlippage)
         external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(pool != address(0), "ForeignController/pool-zero-address");
+        require(pool != address(0), "FC/pool-zero-address");
 
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
@@ -165,7 +165,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(token != address(0), "ForeignController/token-zero-address");
+        require(token != address(0), "FC/token-zero-address");
 
         emit MaxExchangeRateSet(
             token,
@@ -201,7 +201,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             returnData.length == 0 || abi.decode(returnData, (bool)),
-            "ForeignController/transfer-failed"
+            "FC/transfer-failed"
         );
     }
 
@@ -271,7 +271,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     {
         bytes32 mintRecipient = mintRecipients[destinationDomain];
 
-        require(mintRecipient != 0, "ForeignController/domain-not-configured");
+        require(mintRecipient != 0, "FC/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
         _approve(address(usdc), address(cctp), usdcAmount);
@@ -351,7 +351,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     {
         uint256 maxExchangeRate = maxExchangeRates[token];
 
-        require(maxExchangeRate != 0, "ForeignController/max-exchange-rate-not-set");
+        require(maxExchangeRate != 0, "FC/max-exchange-rate-not-set");
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
         _approve(IERC4626(token).asset(), token, amount);
@@ -367,7 +367,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             _getExchangeRate(shares, amount) <= maxExchangeRate,
-            "ForeignController/exchange-rate-too-high"
+            "FC/exchange-rate-too-high"
         );
     }
 
@@ -428,7 +428,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
         rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
-        require(maxSlippages[aToken] != 0, "ForeignController/max-slippage-not-set");
+        require(maxSlippages[aToken] != 0, "FC/max-slippage-not-set");
 
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
@@ -448,7 +448,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             newATokens >= amount * maxSlippages[aToken] / 1e18,
-            "ForeignController/slippage-too-high"
+            "FC/slippage-too-high"
         );
     }
 
@@ -571,7 +571,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         // Revert if approve returns false
         require(
             approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
-            "ForeignController/approve-failed"
+            "FC/approve-failed"
         );
     }
 
@@ -614,7 +614,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         if (assets == 0) return 0;
 
         // Zero shares with non-zero assets is invalid (infinite exchange rate).
-        if (shares == 0) revert("ForeignController/zero-shares");
+        if (shares == 0) revert("FC/zero-shares");
 
         return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }

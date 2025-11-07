@@ -153,7 +153,7 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/domain-not-configured");
+        vm.expectRevert("MC/domain-not-configured");
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
     }
 
@@ -445,7 +445,7 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
         vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/domain-not-configured");
+        vm.expectRevert("FC/domain-not-configured");
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
     }
 

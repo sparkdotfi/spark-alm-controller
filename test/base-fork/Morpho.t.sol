@@ -167,7 +167,7 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, 0, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/max-exchange-rate-not-set");
+        vm.expectRevert("FC/max-exchange-rate-not-set");
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
     }
 
@@ -179,7 +179,7 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/exchange-rate-too-high");
+        vm.expectRevert("FC/exchange-rate-too-high");
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18);
 
         vm.startPrank(Base.SPARK_EXECUTOR);
