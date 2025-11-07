@@ -98,18 +98,13 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
-    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event OTCBufferSet(
         address indexed exchange,
         address indexed oldOTCBuffer,
         address indexed newOTCBuffer
-    );
-    event OTCWhitelistedAssetSet(
-        address indexed exchange,
-        address indexed asset,
-        bool            isWhitelisted
     );
     event OTCClaimed(
         address indexed exchange,
@@ -125,6 +120,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         address indexed tokenSent,
         uint256         amountSent,
         uint256         amountSent18
+    );
+    event OTCWhitelistedAssetSet(
+        address indexed exchange,
+        address indexed asset,
+        bool            isWhitelisted
     );
     event RelayerRemoved(address indexed relayer);
 

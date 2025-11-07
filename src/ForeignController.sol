@@ -49,8 +49,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     );
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
-    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
 
