@@ -361,7 +361,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        require(_getExchangeRate(shares, amount) <= maxExchangeRates[token], "FC/exchange-rate-too-high");
+        require(
+            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            "FC/exchange-rate-too-high"
+        );
     }
 
     function withdrawERC4626(address token, uint256 amount)

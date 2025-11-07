@@ -166,7 +166,7 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         deal(Base.USDS, address(almProxy), 25_000_000e18);
 
         vm.startPrank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, usdsVault.convertToShares(1e18) - 1, 1e18);
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, usdsVault.convertToShares(1e18), 1e18 - 1);
         vm.stopPrank();
 
         vm.prank(relayer);
