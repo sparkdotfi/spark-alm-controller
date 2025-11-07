@@ -56,7 +56,7 @@ contract MapleTestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
         rateLimits.setRateLimitData(redeemKey,  1_000_000e6, uint256(1_000_000e6) / 1 days);
-        mainnetController.setMaxSlippage(address(syrup), 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setMaxExchangeRate(address(syrup), syrup.convertToShares(1e18), 2e18);
         vm.stopPrank();
 
         // Maple onboarding process
@@ -118,10 +118,41 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
     function test_depositERC4626_maple_rateLimitBoundary() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.depositERC4626(address(syrup), 1_000_000e6 + 1);
 
+        vm.prank(relayer);
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
+    }
+
+    function test_depositERC4626_maple_exchangeRateTooHigh() external {
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxExchangeRate(address(syrup), syrup.convertToShares(1_000_000e6), 1_000_000e6 - 1);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/exchange-rate-too-high");
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxExchangeRate(address(syrup), syrup.convertToShares(1_000_000e6), 1_000_000e6);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
+    }
+
+    function test_depositERC4626_maple_zeroExchangeRate() external {
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxExchangeRate(address(syrup), 0, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/exchange-rate-too-high");
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
     }
 
@@ -201,10 +232,11 @@ contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
         assertEq(syrup.convertToAssets(overBoundaryShares), 1_000_000e6 + 1);
         assertEq(syrup.convertToAssets(atBoundaryShares),   1_000_000e6);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.requestMapleRedemption(address(syrup), overBoundaryShares);
 
+        vm.prank(relayer);
         mainnetController.requestMapleRedemption(address(syrup), atBoundaryShares);
     }
 
@@ -258,7 +290,7 @@ contract MainnetControllerCancelMapleRedemptionFailureTests is MapleTestBase {
 
     function test_cancelMapleRedemption_invalidMapleToken() external {
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/invalid-action");
+        vm.expectRevert("MC/invalid-action");
         mainnetController.cancelMapleRedemption(makeAddr("fake-syrup"), 1_000_000e6);
     }
 
@@ -274,6 +306,7 @@ contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.startPrank(relayer);
+
         uint256 proxyShares = mainnetController.depositERC4626(address(syrup), 1_000_000e6);
 
         mainnetController.requestMapleRedemption(address(syrup), proxyShares);
@@ -289,6 +322,8 @@ contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
 
         assertEq(syrup.balanceOf(address(withdrawalManager)), totalEscrowedShares);
         assertEq(syrup.balanceOf(address(almProxy)),          proxyShares);
+
+        vm.stopPrank();
     }
 
 }

@@ -105,7 +105,7 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/max-slippage-not-set");
+        vm.expectRevert("MC/max-slippage-not-set");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
 
@@ -119,14 +119,16 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
 
         vm.startPrank(relayer);
 
-        vm.expectRevert("MainnetController/invalid-deposit-amounts");
+        vm.expectRevert("MC/invalid-deposit-amounts");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         uint256[] memory amounts2 = new uint256[](1);
         amounts[0] = 1_000_000e6;
 
-        vm.expectRevert("MainnetController/invalid-deposit-amounts");
+        vm.expectRevert("MC/invalid-deposit-amounts");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts2, minLpAmount);
+
+        vm.stopPrank();
     }
 
     function test_addLiquidityCurve_underAllowableSlippageBoundary() public {
@@ -144,12 +146,15 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
         uint256 minLpAmount = boundaryAmount - 1;
 
         vm.startPrank(relayer);
-        vm.expectRevert("MainnetController/min-amount-not-met");
+
+        vm.expectRevert("MC/min-amount-not-met");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         minLpAmount = boundaryAmount;
 
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
+
+        vm.stopPrank();
     }
 
     function test_addLiquidityCurve_zeroMaxAmount() public {
@@ -180,12 +185,15 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
         uint256 minLpAmount = 1_950_000e18;
 
         vm.startPrank(relayer);
+
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         amounts[0] = 1_000_000e6;
 
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
+
+        vm.stopPrank();
     }
 
     function test_addLiquidityCurve_rateLimitBoundaryAsset1() public {
@@ -199,12 +207,15 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
         uint256 minLpAmount = 1_950_000e18;
 
         vm.startPrank(relayer);
+
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         amounts[1] = 1_000_000e6;
 
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
+
+        vm.stopPrank();
     }
 
 }
@@ -323,6 +334,8 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
         // Some accuracy differences because of fees
         assertEq(derivedSwapAmount,                 734_562.020077130663332756e18);
         assertEq(1_000_000e6 - withdrawnAmounts[0], 734_519.003234e6);
+
+        vm.stopPrank();
     }
 
     function testFuzz_addLiquidityCurve_swapRateLimit(uint256 usdcAmount, uint256 usdtAmount) public {
@@ -376,6 +389,8 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
         // Difference is accurate to within 1 unit of USDC
         assertApproxEqAbs(derivedSwapAmount, totalSwapped, 0.000001e18);
+
+        vm.stopPrank();
     }
 
 }
@@ -420,7 +435,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/max-slippage-not-set");
+        vm.expectRevert("MC/max-slippage-not-set");
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
     }
 
@@ -434,14 +449,16 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
 
         vm.startPrank(relayer);
 
-        vm.expectRevert("MainnetController/invalid-min-withdraw-amounts");
+        vm.expectRevert("MC/invalid-min-withdraw-amounts");
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
 
         uint256[] memory minWithdrawAmounts2 = new uint256[](1);
         minWithdrawAmounts[0] = 1_000_000e6;
 
-        vm.expectRevert("MainnetController/invalid-min-withdraw-amounts");
+        vm.expectRevert("MC/invalid-min-withdraw-amounts");
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts2);
+
+        vm.stopPrank();
     }
 
     function test_removeLiquidityCurve_underAllowableSlippageBoundary() public {
@@ -457,13 +474,16 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
         minWithdrawAmounts[1] = minTotalReturned / 1e12 - 465_000e6;
 
         vm.startPrank(relayer);
-        vm.expectRevert("MainnetController/min-amount-not-met");
+
+        vm.expectRevert("MC/min-amount-not-met");
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
         // Add one to get over the boundary
         minWithdrawAmounts[1] += 1;
 
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
+
+        vm.stopPrank();
     }
 
     function test_removeLiquidityCurve_zeroMaxAmount() public {
@@ -605,7 +625,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
     function test_swapCurve_sameIndex() public {
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/invalid-indices");
+        vm.expectRevert("MC/invalid-indices");
         mainnetController.swapCurve(CURVE_POOL, 1, 1, 1_000_000e6, 980_000e6);
     }
 
@@ -616,7 +636,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
         deal(address(usdt), address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/index-too-high");
+        vm.expectRevert("MC/index-too-high");
         mainnetController.swapCurve(CURVE_POOL, 2, 0, 1_000_000e6, 980_000e6);
 
         vm.prank(relayer);
@@ -630,7 +650,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/index-too-high");
+        vm.expectRevert("MC/index-too-high");
         mainnetController.swapCurve(CURVE_POOL, 0, 2, 1_000_000e6, 980_000e6);
 
         vm.prank(relayer);
@@ -642,7 +662,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
         mainnetController.setMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/max-slippage-not-set");
+        vm.expectRevert("MC/max-slippage-not-set");
         mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
@@ -652,10 +672,11 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
-        vm.expectRevert("MainnetController/min-amount-not-met");
+        vm.prank(relayer);
+        vm.expectRevert("MC/min-amount-not-met");
         mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6 - 1);
 
+        vm.prank(relayer);
         mainnetController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6);
     }
 
@@ -665,10 +686,11 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
         deal(address(usdt), address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
-        vm.expectRevert("MainnetController/min-amount-not-met");
+        vm.prank(relayer);
+        vm.expectRevert("MC/min-amount-not-met");
         mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6 - 1);
 
+        vm.prank(relayer);
         mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
@@ -689,10 +711,11 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
         deal(address(usdt), address(almProxy), 1_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6 + 1, 998_000e6);
 
+        vm.prank(relayer);
         mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 998_000e6);
     }
 
@@ -883,6 +906,8 @@ contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
         // Some accuracy differences because of fees
         assertEq(derivedSwapAmount,         0.642994597417510402e18);
         assertEq(1e8 - withdrawnAmounts[0], 0.64310277e8);
+
+        vm.stopPrank();
     }
 
 }
@@ -974,6 +999,8 @@ contract MainnetControllerSUsdsUsdtSwapRateLimitTest is ForkTestBase {
         assertEq(derivedSwapAmount, 333_336.356311008220852225e18);
 
         assertEq(1_000_000e18 - susds.convertToAssets(withdrawnAmounts[0]), 333_344.738258808767319360e18);
+
+        vm.stopPrank();
     }
 
 }

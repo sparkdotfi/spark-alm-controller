@@ -33,11 +33,11 @@ contract MainnetControllerMintUSDSFailureTests is ForkTestBase {
     }
 
     function test_mintUSDS_rateLimitBoundary() external {
-        vm.startPrank(relayer);
-
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.mintUSDS(5_000_000e18 + 1);
 
+        vm.prank(relayer);
         mainnetController.mintUSDS(5_000_000e18);
     }
 
@@ -80,6 +80,7 @@ contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
 
     function test_mintUSDS_rateLimited() external {
         bytes32 key = mainnetController.LIMIT_USDS_MINT();
+
         vm.startPrank(relayer);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e18);
@@ -178,6 +179,7 @@ contract MainnetControllerBurnUSDSSuccessTests is ForkTestBase {
 
     function test_burnUSDS_rateLimited() external {
         bytes32 key = mainnetController.LIMIT_USDS_MINT();
+
         vm.startPrank(relayer);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e18);

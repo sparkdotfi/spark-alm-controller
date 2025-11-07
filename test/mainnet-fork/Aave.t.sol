@@ -105,27 +105,29 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.setMaxSlippage(ATOKEN_USDS, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/max-slippage-not-set");
+        vm.expectRevert("MC/max-slippage-not-set");
         mainnetController.depositAave(ATOKEN_USDS, 1e18);
     }
 
     function test_depositAave_usdsRateLimitedBoundary() external {
         deal(Ethereum.USDS, address(almProxy), 25_000_000e18 + 1);
 
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.startPrank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 25_000_000e18 + 1);
 
+        vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 25_000_000e18);
     }
 
     function test_depositAave_usdcRateLimitedBoundary() external {
         deal(Ethereum.USDC, address(almProxy), 25_000_000e6 + 1);
 
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.startPrank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 25_000_000e6 + 1);
 
+        vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 25_000_000e6);
     }
 
@@ -137,7 +139,7 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 + 1);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/slippage-too-high");
+        vm.expectRevert("MC/slippage-too-high");
         mainnetController.depositAave(ATOKEN_USDS, 5_000_000e18);
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -157,7 +159,7 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/slippage-too-high");
+        vm.expectRevert("MC/slippage-too-high");
         mainnetController.depositAave(ATOKEN_USDC, 5_000_000e6);
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -251,10 +253,10 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
 
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
-
+        vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 1_000_000e6);
 
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.withdrawAave(ATOKEN_USDC, 1_000_000e6);
     }
@@ -270,6 +272,8 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.withdrawAave(ATOKEN_USDS, 10_000_000e18 + 1);
 
         mainnetController.withdrawAave(ATOKEN_USDS, 10_000_000e18);
+
+        vm.stopPrank();
     }
 
     function test_withdrawAave_usdcRateLimitedBoundary() external {
@@ -283,6 +287,8 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
         mainnetController.withdrawAave(ATOKEN_USDC, 10_000_000e6 + 1);
 
         mainnetController.withdrawAave(ATOKEN_USDC, 10_000_000e6);
+
+        vm.stopPrank();
     }
 
 }
@@ -556,7 +562,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         deal(address(pyusd), address(almProxy), 100_000e6);
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/slippage-too-high");
+        vm.expectRevert("MC/slippage-too-high");
         mainnetController.depositAave(Ethereum.PYUSD_SPTOKEN, 100_000e6);
     }
 

@@ -66,10 +66,11 @@ contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.subscribeSuperstate(1_000_000e6 + 1);
 
+        vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6);
     }
 

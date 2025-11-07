@@ -95,7 +95,7 @@ contract MorphoSetSupplyQueueMorphoFailureTests is MorphoTestBase {
 
     function test_setSupplyQueueMorpho_invalidVault() external {
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/invalid-action");
+        vm.expectRevert("FC/invalid-action");
         foreignController.setSupplyQueueMorpho(makeAddr("fake-vault"), new Id[](0));
     }
 
@@ -148,7 +148,7 @@ contract MorphoUpdateWithdrawQueueMorphoFailureTests is MorphoTestBase {
 
     function test_updateWithdrawQueueMorpho_invalidVault() external {
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/invalid-action");
+        vm.expectRevert("FC/invalid-action");
         foreignController.updateWithdrawQueueMorpho(makeAddr("fake-vault"), new uint256[](0));
     }
 
@@ -201,7 +201,7 @@ contract MorphoReallocateMorphoFailureTests is MorphoTestBase {
 
     function test_reallocateMorpho_invalidVault() external {
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/invalid-action");
+        vm.expectRevert("FC/invalid-action");
         foreignController.reallocateMorpho(makeAddr("fake-vault"), new MarketAllocation[](0));
     }
 
@@ -219,7 +219,7 @@ contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
-        foreignController.setMaxSlippage(address(morphoVault), 1e18 - 1e4);  // Rounding slippage
+        foreignController.setMaxExchangeRate(address(morphoVault), morphoVault.convertToShares(1_000_000e6), 1_100_000e6);
         vm.stopPrank();
 
         // Refresh markets so calculations don't include interest

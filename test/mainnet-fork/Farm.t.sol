@@ -78,10 +78,11 @@ contract MainnetControllerFarmDepositFailureTests is MainnetControllerFarmTestBa
 
         deal(address(usds), address(almProxy), 1_000_000e18);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.depositToFarm(farm, 1_000_000e18 + 1);
 
+        vm.prank(relayer);
         mainnetController.depositToFarm(farm, 1_000_000e18);
     }
 
@@ -150,13 +151,17 @@ contract MainnetControllerFarmWithdrawFailureTests is MainnetControllerFarmTestB
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
 
         deal(address(usds), address(almProxy), 1_000_000e18);
+
         vm.startPrank(relayer);
+
         mainnetController.depositToFarm(farm, 1_000_000e18);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.withdrawFromFarm(farm, 1_000_000e18 + 1);
 
         mainnetController.withdrawFromFarm(farm, 1_000_000e18);
+
+        vm.stopPrank();
     }
 
 }

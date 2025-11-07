@@ -49,6 +49,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     );
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
+    event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
@@ -56,6 +57,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
+
+    uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
 
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
@@ -83,6 +86,9 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
+
+    // ERC4626 exchange rate thresholds (1e36 precision)
+    mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -122,7 +128,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     modifier rateLimitExists(bytes32 key) {
         require(
             rateLimits.getRateLimitData(key).maxAmount > 0,
-            "ForeignController/invalid-action"
+            "FC/invalid-action"
         );
         _;
     }
@@ -134,7 +140,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     function setMaxSlippage(address pool, uint256 maxSlippage)
         external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(pool != address(0), "ForeignController/pool-zero-address");
+        require(pool != address(0), "FC/pool-zero-address");
 
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
@@ -152,6 +158,19 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     {
         layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
         emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
+    }
+
+    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
+        external nonReentrant
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(token != address(0), "FC/token-zero-address");
+
+        emit MaxExchangeRateSet(
+            token,
+            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
+        );
     }
 
     /**********************************************************************************************/
@@ -182,7 +201,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             returnData.length == 0 || abi.decode(returnData, (bool)),
-            "ForeignController/transfer-failed"
+            "FC/transfer-failed"
         );
     }
 
@@ -252,7 +271,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     {
         bytes32 mintRecipient = mintRecipients[destinationDomain];
 
-        require(mintRecipient != 0, "ForeignController/domain-not-configured");
+        require(mintRecipient != 0, "FC/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
         _approve(address(usdc), address(cctp), usdcAmount);
@@ -330,13 +349,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
-        require(maxSlippages[token] != 0, "ForeignController/max-slippage-not-set");
-
-        // Note that whitelist is done by rate limits.
-        IERC20 asset = IERC20(IERC4626(token).asset());
-
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
+        _approve(IERC4626(token).asset(), token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
@@ -348,8 +362,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
-            "ForeignController/inflated-shares"
+            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            "FC/exchange-rate-too-high"
         );
     }
 
@@ -410,7 +424,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
         rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount)
     {
-        require(maxSlippages[aToken] != 0, "ForeignController/max-slippage-not-set");
+        require(maxSlippages[aToken] != 0, "FC/max-slippage-not-set");
 
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
@@ -430,7 +444,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             newATokens >= amount * maxSlippages[aToken] / 1e18,
-            "ForeignController/slippage-too-high"
+            "FC/slippage-too-high"
         );
     }
 
@@ -553,7 +567,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         // Revert if approve returns false
         require(
             approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
-            "ForeignController/approve-failed"
+            "FC/approve-failed"
         );
     }
 
@@ -585,6 +599,20 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     function _rateLimited(bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
+    }
+
+    /**********************************************************************************************/
+    /*** Exchange rate helper functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
+        // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
+        if (assets == 0) return 0;
+
+        // Zero shares with non-zero assets is invalid (infinite exchange rate).
+        if (shares == 0) revert("FC/zero-shares");
+
+        return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }

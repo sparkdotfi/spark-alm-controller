@@ -56,8 +56,8 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         );
         vm.stopPrank();
 
-        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
@@ -66,8 +66,8 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 0, 0);
         vm.stopPrank();
 
-        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
@@ -95,10 +95,11 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
 
         deal(address(usdc), address(almProxy), 10_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.transferUSDCToCCTP(10_000_000e6 + 1, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
+        vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(10_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
@@ -128,10 +129,11 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
 
         deal(address(usdc), address(almProxy), 10_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.transferUSDCToCCTP(10_000_000e6 + 1, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
+        vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(10_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
     }
 
@@ -151,7 +153,7 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
         vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("MainnetController/domain-not-configured");
+        vm.expectRevert("MC/domain-not-configured");
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
     }
 
@@ -346,8 +348,8 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
         );
         vm.stopPrank();
 
-        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 
@@ -356,8 +358,8 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
         foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), 0, 0);
         vm.stopPrank();
 
-        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 
@@ -385,10 +387,11 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
 
         deal(address(usdcBase), address(foreignAlmProxy), 10_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.transferUSDCToCCTP(10_000_000e6 + 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
 
+        vm.prank(relayer);
         foreignController.transferUSDCToCCTP(10_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 
@@ -418,10 +421,11 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
 
         deal(address(usdcBase), address(foreignAlmProxy), 10_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.transferUSDCToCCTP(10_000_000e6 + 1, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
 
+        vm.prank(relayer);
         foreignController.transferUSDCToCCTP(10_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
 
@@ -441,7 +445,7 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
         vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert("ForeignController/domain-not-configured");
+        vm.expectRevert("FC/domain-not-configured");
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
     }
 

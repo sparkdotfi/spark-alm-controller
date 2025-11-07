@@ -73,8 +73,8 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         );
         vm.stopPrank();
 
-        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, destinationEndpointId);
     }
 
@@ -115,7 +115,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
@@ -123,6 +123,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
             destinationEndpointId
         );
 
+        vm.prank(relayer);
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
@@ -209,6 +210,8 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
         assertEq(IERC20(usdt).balanceOf(USDT_OFT),          oftBalanceBefore + 10_000_000e6);
         assertEq(IERC20(usdt).balanceOf(address(almProxy)), 0);
         assertEq(rateLimits.getCurrentRateLimit(key),       0);
+
+        vm.stopPrank();
     }
 
 }
@@ -384,8 +387,8 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         );
         vm.stopPrank();
 
-        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
+        vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.transferTokenLayerZero(USDT_OFT, 1e6, destinationEndpointId);
     }
 
@@ -429,7 +432,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
@@ -437,6 +440,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
             destinationEndpointId
         );
 
+        vm.prank(relayer);
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
@@ -526,6 +530,8 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
         assertEq(relayer.balance,                                   1 ether - fee.nativeFee);
         assertEq(foreignRateLimits.getCurrentRateLimit(key),        0);
         assertEq(IERC20(USDT0).balanceOf(address(foreignAlmProxy)), 0);
+
+        vm.stopPrank();
     }
 
 }

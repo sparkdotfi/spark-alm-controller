@@ -98,17 +98,13 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
+    event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event OTCBufferSet(
         address indexed exchange,
         address indexed oldOTCBuffer,
         address indexed newOTCBuffer
-    );
-    event OTCWhitelistedAssetSet(
-        address indexed exchange,
-        address indexed asset,
-        bool            isWhitelisted
     );
     event OTCClaimed(
         address indexed exchange,
@@ -125,11 +121,18 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         uint256         amountSent,
         uint256         amountSent18
     );
+    event OTCWhitelistedAssetSet(
+        address indexed exchange,
+        address indexed asset,
+        bool            isWhitelisted
+    );
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
+
+    uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
 
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
@@ -187,6 +190,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     mapping(address exchange => OTC otcData) public otcs;
 
     mapping(address exchange => mapping(address asset => bool)) public otcWhitelistedAssets;
+
+    // ERC4626 exchange rate thresholds (1e36 precision)
+    mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -246,7 +252,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setMaxSlippage(address pool, uint256 maxSlippage) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(pool != address(0), "MainnetController/pool-zero-address");
+        require(pool != address(0), "MC/pool-zero-address");
 
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
@@ -255,8 +261,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setOTCBuffer(address exchange, address otcBuffer) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange != address(0), "MainnetController/exchange-zero-address");
-        require(exchange != otcBuffer,  "MainnetController/exchange-equals-otcBuffer");
+        require(exchange != address(0), "MC/exchange-zero-address");
+        require(exchange != otcBuffer,  "MC/exchange-equals-otcBuffer");
 
         OTC storage otc = otcs[exchange];
 
@@ -267,7 +273,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange != address(0), "MainnetController/exchange-zero-address");
+        require(exchange != address(0), "MC/exchange-zero-address");
 
         OTC storage otc = otcs[exchange];
 
@@ -280,12 +286,25 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange              != address(0), "MainnetController/exchange-zero-address");
-        require(asset                 != address(0), "MainnetController/asset-zero-address");
-        require(otcs[exchange].buffer != address(0), "MainnetController/otc-buffer-not-set");
+        require(exchange              != address(0), "MC/exchange-zero-address");
+        require(asset                 != address(0), "MC/asset-zero-address");
+        require(otcs[exchange].buffer != address(0), "MC/otc-buffer-not-set");
 
         emit OTCWhitelistedAssetSet(exchange, asset, isWhitelisted);
         otcWhitelistedAssets[exchange][asset] = isWhitelisted;
+    }
+
+    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
+        external nonReentrant
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(token != address(0), "MC/token-zero-address");
+
+        emit MaxExchangeRateSet(
+            token,
+            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
+        );
     }
 
     /**********************************************************************************************/
@@ -439,15 +458,10 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
         _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
-        require(maxSlippages[token] != 0, "MainnetController/max-slippage-not-set");
-
-        // Note that whitelist is done by rate limits
-        IERC20 asset = IERC20(IERC4626(token).asset());
-
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
+        _approve(IERC4626(token).asset(), token, amount);
 
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares
+        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
             proxy.doCall(
                 token,
@@ -457,8 +471,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            IERC4626(token).convertToAssets(shares) >= amount * maxSlippages[token] / 1e18,
-            "MainnetController/slippage-too-high"
+            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            "MC/exchange-rate-too-high"
         );
     }
 
@@ -513,7 +527,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
         _rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount);
 
-        require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
+        require(maxSlippages[aToken] != 0, "MC/max-slippage-not-set");
 
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
@@ -533,7 +547,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             newATokens >= amount * maxSlippages[aToken] / 1e18,
-            "MainnetController/slippage-too-high"
+            "MC/slippage-too-high"
         );
     }
 
@@ -941,12 +955,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function otcSend(address exchange, address assetToSend, uint256 amount) external nonReentrant {
         _checkRole(RELAYER);
 
-        require(assetToSend != address(0), "MainnetController/asset-to-send-zero");
-        require(amount > 0,                "MainnetController/amount-to-send-zero");
+        require(assetToSend != address(0), "MC/asset-to-send-zero");
+        require(amount > 0,                "MC/amount-to-send-zero");
 
         require(
             otcWhitelistedAssets[exchange][assetToSend],
-            "MainnetController/asset-not-whitelisted"
+            "MC/asset-not-whitelisted"
         );
 
         // NOTE: This will lose precision for tokens with >18 decimals.
@@ -957,8 +971,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         OTC storage otc = otcs[exchange];
 
         // Just to check that OTC buffer exists
-        require(otc.buffer != address(0), "MainnetController/otc-buffer-not-set");
-        require(isOtcSwapReady(exchange), "MainnetController/last-swap-not-returned");
+        require(otc.buffer != address(0), "MC/otc-buffer-not-set");
+        require(isOtcSwapReady(exchange), "MC/last-swap-not-returned");
 
         otc.sent18        = sent18;
         otc.sentTimestamp = block.timestamp;
@@ -975,12 +989,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         address otcBuffer = otcs[exchange].buffer;
 
-        require(assetToClaim != address(0), "MainnetController/asset-to-claim-zero");
-        require(otcBuffer    != address(0), "MainnetController/otc-buffer-not-set");
+        require(assetToClaim != address(0), "MC/asset-to-claim-zero");
+        require(otcBuffer    != address(0), "MC/otc-buffer-not-set");
 
         require(
             otcWhitelistedAssets[exchange][assetToClaim],
-            "MainnetController/asset-not-whitelisted"
+            "MC/asset-not-whitelisted"
         );
 
         uint256 amountToClaim = IERC20(assetToClaim).balanceOf(otcBuffer);
@@ -1046,7 +1060,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         // Revert if approve returns false
         require(
             approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
-            "MainnetController/approve-failed"
+            "MC/approve-failed"
         );
     }
 
@@ -1058,7 +1072,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             returnData.length == 0 || abi.decode(returnData, (bool)),
-            "MainnetController/transfer-failed"
+            "MC/transfer-failed"
         );
     }
 
@@ -1075,7 +1089,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         require(
             returnData.length == 0 || abi.decode(returnData, (bool)),
-            "MainnetController/transferFrom-failed"
+            "MC/transferFrom-failed"
         );
     }
 
@@ -1098,8 +1112,22 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function _rateLimitExists(bytes32 key) internal view {
         require(
             rateLimits.getRateLimitData(key).maxAmount > 0,
-            "MainnetController/invalid-action"
+            "MC/invalid-action"
         );
+    }
+
+    /**********************************************************************************************/
+    /*** Exchange rate helper functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
+        // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
+        if (assets == 0) return 0;
+
+        // Zero shares with non-zero assets is invalid (infinite exchange rate).
+        if (shares == 0) revert("MC/zero-shares");
+
+        return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+
 import { ERC20Mock as MockERC20 } from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 import { ERC1967Proxy }           from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ReentrancyGuard }        from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
@@ -287,9 +289,9 @@ contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
 
         rateLimits.setUnlimitedRateLimitData(morphoWithdrawKey);
 
-        // Step 4 (spell): Set maxSlippage for ERC4626 deposit
+        // Step 4 (spell): Set maxExchangeRate for ERC4626 deposit
 
-        foreignController.setMaxSlippage(morphoUsdcVault, 1e18 - 1e4);  // Rounding slippage
+        foreignController.setMaxExchangeRate(morphoUsdcVault, 1e18, 1.2e18);
 
         vm.stopPrank();
     }
