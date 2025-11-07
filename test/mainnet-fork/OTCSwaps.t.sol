@@ -149,20 +149,22 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
     function test_otcSend_usdt_rateLimitedBoundary() external {
         deal(address(usdt), address(almProxy), 10_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.otcSend(exchange, address(usdt), 10_000_000e6 + 1);
 
+        vm.prank(relayer);
         mainnetController.otcSend(exchange, address(usdt), 10_000_000e6);
     }
 
     function test_otcSend_usds_rateLimitedBoundary() external {
         deal(address(usds), address(almProxy), 10_000_000e18 + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.otcSend(exchange, address(usds), 10_000_000e18 + 1);
 
+        vm.prank(relayer);
         mainnetController.otcSend(exchange, address(usds), 10_000_000e18);
     }
 

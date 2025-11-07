@@ -102,6 +102,7 @@ contract MainnetControllerSwapUSDSToUSDCTests is ForkTestBase {
         vm.stopPrank();
 
         bytes32 key = mainnetController.LIMIT_USDS_TO_USDC();
+
         vm.startPrank(relayer);
 
         mainnetController.mintUSDS(9_000_000e18);
@@ -193,10 +194,11 @@ contract MainnetControllerSwapUSDCToUSDSFailureTests is ForkTestBase {
 
         deal(address(usdc), address(almProxy), maxSwapAmount + 1);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("DssLitePsm/nothing-to-fill");
         mainnetController.swapUSDCToUSDS(maxSwapAmount + 1);
 
+        vm.prank(relayer);
         mainnetController.swapUSDCToUSDS(maxSwapAmount);
 
         assertEq(usds.balanceOf(address(almProxy)), maxSwapAmount * 1e12);
@@ -470,6 +472,7 @@ contract MainnetControllerSwapUSDCToUSDSTests is ForkTestBase {
 
     function test_swapUSDCToUSDS_rateLimited() external {
         bytes32 key = mainnetController.LIMIT_USDS_TO_USDC();
+
         vm.startPrank(relayer);
 
         mainnetController.mintUSDS(5_000_000e18);

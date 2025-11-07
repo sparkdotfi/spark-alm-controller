@@ -68,10 +68,11 @@ contract MainnetControllerDepositToWstETHFailureTests is MainnetControllerWstETH
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.depositToWstETH(1_000e18 + 1);
 
+        vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18);
     }
 
@@ -142,10 +143,11 @@ contract MainnetControllerRequestWithdrawFromWstETHFailureTests is MainnetContro
 
         deal(Ethereum.WSTETH, address(almProxy), 500e18);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.requestWithdrawFromWstETH(500e18 + 1);
 
+        vm.prank(relayer);
         mainnetController.requestWithdrawFromWstETH(500e18);
     }
 

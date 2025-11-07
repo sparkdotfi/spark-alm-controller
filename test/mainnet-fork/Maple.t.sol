@@ -118,10 +118,20 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
     function test_depositERC4626_maple_rateLimitBoundary() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.depositERC4626(address(syrup), 1_000_000e6 + 1);
 
+        vm.prank(relayer);
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
+    }
+
+    function test_depositERC4626_maple_maxExchangeRateNotSet() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxExchangeRate(address(syrup), 0, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("MainnetController/max-exchange-rate-not-set");
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
     }
 
@@ -220,10 +230,11 @@ contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
         assertEq(syrup.convertToAssets(overBoundaryShares), 1_000_000e6 + 1);
         assertEq(syrup.convertToAssets(atBoundaryShares),   1_000_000e6);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.requestMapleRedemption(address(syrup), overBoundaryShares);
 
+        vm.prank(relayer);
         mainnetController.requestMapleRedemption(address(syrup), atBoundaryShares);
     }
 
@@ -293,6 +304,7 @@ contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.startPrank(relayer);
+
         uint256 proxyShares = mainnetController.depositERC4626(address(syrup), 1_000_000e6);
 
         mainnetController.requestMapleRedemption(address(syrup), proxyShares);
@@ -308,6 +320,8 @@ contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
 
         assertEq(syrup.balanceOf(address(withdrawalManager)), totalEscrowedShares);
         assertEq(syrup.balanceOf(address(almProxy)),          proxyShares);
+
+        vm.stopPrank();
     }
 
 }

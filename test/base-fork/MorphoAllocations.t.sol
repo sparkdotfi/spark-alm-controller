@@ -209,7 +209,7 @@ contract MorphoReallocateMorphoFailureTests is MorphoTestBase {
 
 contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
 
-    function test_reallocateMorpho_xxx() external {
+    function test_reallocateMorpho() external {
         vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressKey(

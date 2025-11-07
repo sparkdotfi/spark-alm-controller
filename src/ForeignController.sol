@@ -349,6 +349,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
+        uint256 maxExchangeRate = maxExchangeRates[token];
+
+        require(maxExchangeRate != 0, "ForeignController/max-exchange-rate-not-set");
+
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
         _approve(IERC4626(token).asset(), token, amount);
 
@@ -362,7 +366,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            _getExchangeRate(shares, amount) <= maxExchangeRate,
             "ForeignController/exchange-rate-too-high"
         );
     }
@@ -606,7 +610,13 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
-        return assets == 0 ? 0 : (EXCHANGE_RATE_PRECISION * assets) / shares;
+        // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
+        if (assets == 0) return 0;
+
+        // Zero shares with non-zero assets is invalid (infinite exchange rate).
+        if (shares == 0) revert("ForeignController/zero-shares");
+
+        return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }

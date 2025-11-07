@@ -59,10 +59,11 @@ contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
     function test_transferAsset_rateLimitedBoundary() external {
         deal(address(usdc), address(almProxy), 1_000_000e6 + 1);
 
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.startPrank(relayer);
         mainnetController.transferAsset(address(usdc), receiver, 1_000_000e6 + 1);
 
+        vm.prank(relayer);
         mainnetController.transferAsset(address(usdc), receiver, 1_000_000e6);
     }
 

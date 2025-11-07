@@ -90,9 +90,10 @@ contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
         deal(Base.USDC, address(almProxy), 1_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6 + 1);
 
+        vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
     }
 
@@ -183,6 +184,7 @@ contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.withdrawAave(ATOKEN_USDC, 1_000_000e6);
+        vm.stopPrank();
     }
 
     function test_withdrawAave_usdcRateLimitedBoundary() external {
@@ -190,14 +192,19 @@ contract AaveV3BaseMarketWithdrawFailureTests is AaveV3BaseMarketTestBase {
 
         // Warp to get past rate limit
         vm.startPrank(relayer);
+
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
+
         skip(1 days);
+
         foreignController.depositAave(ATOKEN_USDC, 100_000e6);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.withdrawAave(ATOKEN_USDC, 1_000_000e6 + 1);
 
         foreignController.withdrawAave(ATOKEN_USDC, 1_000_000e6);
+
+        vm.stopPrank();
     }
 
 }

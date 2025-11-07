@@ -458,6 +458,10 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
         _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
+        uint256 maxExchangeRate = maxExchangeRates[token];
+
+        require(maxExchangeRate != 0, "MainnetController/max-exchange-rate-not-set");
+
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
         _approve(IERC4626(token).asset(), token, amount);
 
@@ -471,7 +475,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            _getExchangeRate(shares, amount) <= maxExchangeRate,
             "MainnetController/exchange-rate-too-high"
         );
     }
@@ -1121,6 +1125,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
+        // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
+        if (assets == 0) return 0;
+
+        // Zero shares with non-zero assets is invalid (infinite exchange rate).
+        if (shares == 0) revert("MainnetController/zero-shares");
+
         return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 

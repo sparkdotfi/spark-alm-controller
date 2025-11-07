@@ -68,31 +68,40 @@ contract ForeignControllerDepositPSMFailureTests is ForkTestBase {
     function test_depositPSM_usdcRateLimitedBoundary() external {
         deal(address(usdcBase), address(almProxy), 5_000_000e6 + 1);
 
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.startPrank(relayer);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.depositPSM(address(usdcBase), 5_000_000e6 + 1);
 
         foreignController.depositPSM(address(usdcBase), 5_000_000e6);
+
+        vm.stopPrank();
     }
 
     function test_depositPSM_usdsRateLimitedBoundary() external {
         deal(address(usdsBase), address(almProxy), 5_000_000e18 + 1);
 
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.startPrank(relayer);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.depositPSM(address(usdsBase), 5_000_000e18 + 1);
 
         foreignController.depositPSM(address(usdsBase), 5_000_000e18);
+
+        vm.stopPrank();
     }
 
     function test_depositPSM_susdsRateLimitedBoundary() external {
         deal(address(susdsBase), address(almProxy), 5_000_000e18 + 1);
 
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.startPrank(relayer);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.depositPSM(address(susdsBase), 5_000_000e18 + 1);
 
         foreignController.depositPSM(address(susdsBase), 5_000_000e18);
+
+        vm.stopPrank();
     }
 
 }
@@ -275,12 +284,15 @@ contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
         deal(address(usdcBase), address(almProxy), 1_000_000e6 + 1);
 
         vm.startPrank(relayer);
+
         foreignController.depositPSM(address(usdcBase), 1_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.withdrawPSM(address(usdcBase), 1_000_000e6 + 1);
 
         foreignController.withdrawPSM(address(usdcBase), 1_000_000e6);
+
+        vm.stopPrank();
     }
 
     function test_withdrawPSM_usdsRateLimitedBoundary() external {
@@ -293,12 +305,15 @@ contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
         deal(address(usdsBase), address(almProxy), 1_000_000e18 + 1);
 
         vm.startPrank(relayer);
+
         foreignController.depositPSM(address(usdsBase), 1_000_000e18 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.withdrawPSM(address(usdsBase), 1_000_000e18 + 1);
 
         foreignController.withdrawPSM(address(usdsBase), 1_000_000e18);
+
+        vm.stopPrank();
     }
 
     function test_withdrawPSM_susdsRateLimitedBoundary() external {
@@ -312,6 +327,7 @@ contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
         deal(address(susdsBase), address(almProxy), 1_000_000e18 + 2);
 
         vm.startPrank(relayer);
+
         foreignController.depositPSM(address(susdsBase), 1_000_000e18 + 2);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -320,6 +336,8 @@ contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
         uint256 withdrawn = foreignController.withdrawPSM(address(susdsBase), 1_000_000e18);
 
         assertEq(withdrawn, 1_000_000e18);
+
+        vm.stopPrank();
     }
 
 }

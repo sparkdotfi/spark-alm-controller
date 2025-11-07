@@ -47,10 +47,11 @@ contract MainnetControllerDepositBUIDLFailureTests is MainnetControllerBUIDLTest
 
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6 + 1);
 
+        vm.prank(relayer);
         mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6);
     }
 

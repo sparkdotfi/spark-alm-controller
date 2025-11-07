@@ -59,10 +59,11 @@ contract ForeignControllerTransferAssetFailureTests is TransferAssetBaseTest {
     function test_transferAsset_rateLimitedBoundary() external {
         deal(address(usdcBase), address(almProxy), 1_000_000e6 + 1);
 
+        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.startPrank(relayer);
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6 + 1);
 
+        vm.prank(relayer);
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6);
     }
 
