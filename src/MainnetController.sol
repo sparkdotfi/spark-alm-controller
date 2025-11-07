@@ -132,6 +132,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
 
+    uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
+
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
 
@@ -189,7 +191,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     mapping(address exchange => mapping(address asset => bool)) public otcWhitelistedAssets;
 
-    // ERC4626 exchange rate thresholds
+    // ERC4626 exchange rate thresholds (1e36 precision)
     mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
     /**********************************************************************************************/
@@ -292,12 +294,17 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         otcWhitelistedAssets[exchange][asset] = isWhitelisted;
     }
 
-    function setMaxExchangeRate(address token, uint256 maxExchangeRate) external nonReentrant {
+    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
+        external nonReentrant
+    {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
         require(token != address(0), "MainnetController/token-zero-address");
 
-        emit MaxExchangeRateSet(token, maxExchangeRates[token] = maxExchangeRate);
+        emit MaxExchangeRateSet(
+            token,
+            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
+        );
     }
 
     /**********************************************************************************************/
@@ -451,16 +458,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
         _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
-        require(
-            IERC4626(token).convertToAssets(1e18) <= maxExchangeRates[token],
-            "MainnetController/exchange-rate-too-high"
-        );
-
-        // Note that whitelist is done by rate limits
-        address asset = IERC4626(token).asset();
-
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(asset, token, amount);
+        _approve(IERC4626(token).asset(), token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares
         shares = abi.decode(
@@ -469,6 +468,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
                 abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
             ),
             (uint256)
+        );
+
+        require(
+            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            "MainnetController/exchange-rate-too-high"
         );
     }
 
@@ -1110,6 +1114,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             rateLimits.getRateLimitData(key).maxAmount > 0,
             "MainnetController/invalid-action"
         );
+    }
+
+    /**********************************************************************************************/
+    /*** Exchange rate helper functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
+        return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }

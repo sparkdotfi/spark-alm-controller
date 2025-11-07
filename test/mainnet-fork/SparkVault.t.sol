@@ -285,7 +285,7 @@ contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
 
         // Step 4 (spell): Set maxSlippage for ERC4626 deposit
 
-        mainnetController.setMaxExchangeRate(morphoDaiVault, 1.2e18);
+        mainnetController.setMaxExchangeRate(morphoDaiVault, 1e18, 1.2e18);
 
         vm.stopPrank();
     }

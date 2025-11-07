@@ -58,6 +58,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
 
+    uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
+
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
@@ -85,7 +87,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
-    // ERC4626 exchange rate thresholds
+    // ERC4626 exchange rate thresholds (1e36 precision)
     mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
     /**********************************************************************************************/
@@ -158,12 +160,17 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
     }
 
-    function setMaxExchangeRate(address token, uint256 maxExchangeRate) external nonReentrant {
+    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
+        external nonReentrant
+    {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
         require(token != address(0), "ForeignController/token-zero-address");
 
-        emit MaxExchangeRateSet(token, maxExchangeRates[token] = maxExchangeRate);
+        emit MaxExchangeRateSet(
+            token,
+            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
+        );
     }
 
     /**********************************************************************************************/
@@ -342,24 +349,21 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
-        require(
-            IERC4626(token).convertToAssets(1e18) <= maxExchangeRates[token],
-            "ForeignController/exchange-rate-too-high"
-        );
-
-        // Note that whitelist is done by rate limits.
-        address asset = IERC4626(token).asset();
-
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(asset, token, amount);
+        _approve(IERC4626(token).asset(), token, amount);
 
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
-        return abi.decode(
+        // Deposit asset into the token, proxy receives token shares, decode the resulting shares
+        shares = abi.decode(
             proxy.doCall(
                 token,
                 abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
             ),
             (uint256)
+        );
+
+        require(
+            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            "ForeignController/exchange-rate-too-high"
         );
     }
 
@@ -595,6 +599,14 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     function _rateLimited(bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
+    }
+
+    /**********************************************************************************************/
+    /*** Exchange rate helper functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
+        return assets == 0 ? 0 : (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }

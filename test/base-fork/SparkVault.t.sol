@@ -291,7 +291,7 @@ contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
 
         // Step 4 (spell): Set maxExchangeRate for ERC4626 deposit
 
-        foreignController.setMaxExchangeRate(morphoUsdcVault, 1.2e18);
+        foreignController.setMaxExchangeRate(morphoUsdcVault, 1e18, 1.2e18);
 
         vm.stopPrank();
     }

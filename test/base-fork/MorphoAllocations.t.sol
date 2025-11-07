@@ -209,7 +209,7 @@ contract MorphoReallocateMorphoFailureTests is MorphoTestBase {
 
 contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
 
-    function test_reallocateMorpho() external {
+    function test_reallocateMorpho_xxx() external {
         vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressKey(
@@ -219,7 +219,7 @@ contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
-        foreignController.setMaxExchangeRate(address(morphoVault), IERC4626(address(morphoVault)).convertToAssets(1e18));
+        foreignController.setMaxExchangeRate(address(morphoVault), 1_000_000e6, morphoVault.convertToAssets(2_000_000e6));
         vm.stopPrank();
 
         // Refresh markets so calculations don't include interest

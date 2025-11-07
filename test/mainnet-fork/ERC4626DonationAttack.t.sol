@@ -86,7 +86,7 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
 
     function test_depositERC4626_donationAttackFailure() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(morphoVault), 1.2e18);
+        mainnetController.setMaxExchangeRate(address(morphoVault), 1e18, morphoVault.convertToAssets(1.2e18));
         vm.stopPrank();
 
         _doAttack();
@@ -99,7 +99,7 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
     function test_depositERC4626_donationAttackSuccess() external {
         // Set max exchange rate too high
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(morphoVault), type(uint256).max);
+        mainnetController.setMaxExchangeRate(address(morphoVault), 1, morphoVault.convertToAssets(1e24));
         vm.stopPrank();
 
         _doAttack();
