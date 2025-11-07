@@ -349,14 +349,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount)
         returns (uint256 shares)
     {
-        uint256 maxExchangeRate = maxExchangeRates[token];
-
-        require(maxExchangeRate != 0, "FC/max-exchange-rate-not-set");
-
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
         _approve(IERC4626(token).asset(), token, amount);
 
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares
+        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
             proxy.doCall(
                 token,
@@ -365,10 +361,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        require(
-            _getExchangeRate(shares, amount) <= maxExchangeRate,
-            "FC/exchange-rate-too-high"
-        );
+        require(_getExchangeRate(shares, amount) <= maxExchangeRates[token], "FC/exchange-rate-too-high");
     }
 
     function withdrawERC4626(address token, uint256 amount)

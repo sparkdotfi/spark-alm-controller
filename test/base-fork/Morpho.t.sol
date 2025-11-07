@@ -102,8 +102,8 @@ contract MorphoBaseTest is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
-        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, 1e18, usdsVault.convertToAssets(1e18));
-        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDC, 1e18, usdcVault.convertToAssets(1e18));
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, usdsVault.convertToShares(1e18), 1e18);
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDC, usdcVault.convertToShares(1e18), 1e18);
 
         vm.stopPrank();
     }
@@ -162,20 +162,11 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.depositERC4626(MORPHO_VAULT_USDC, 25_000_000e6);
     }
 
-    function test_morpho_deposit_maxExchangeRateNotSet() external {
-        vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, 0, 0);
-
-        vm.prank(relayer);
-        vm.expectRevert("FC/max-exchange-rate-not-set");
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18);
-    }
-
     function test_depositERC4626_exchangeRateBoundary() external {
         deal(Base.USDS, address(almProxy), 25_000_000e18);
 
         vm.startPrank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, 1e18, usdsVault.convertToAssets(1e18) - 1);
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, usdsVault.convertToShares(1e18) - 1, 1e18);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -183,7 +174,7 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18);
 
         vm.startPrank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, 1e18, usdsVault.convertToAssets(1e18));
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, usdsVault.convertToShares(1e18), 1e18);
         vm.stopPrank();
 
         vm.prank(relayer);

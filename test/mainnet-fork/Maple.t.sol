@@ -56,7 +56,7 @@ contract MapleTestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
         rateLimits.setRateLimitData(redeemKey,  1_000_000e6, uint256(1_000_000e6) / 1 days);
-        mainnetController.setMaxExchangeRate(address(syrup), 1e18, syrup.convertToAssets(1.2e18));
+        mainnetController.setMaxExchangeRate(address(syrup), syrup.convertToShares(1e18), 2e18);
         vm.stopPrank();
 
         // Maple onboarding process
@@ -126,20 +126,11 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
     }
 
-    function test_depositERC4626_maple_maxExchangeRateNotSet() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(syrup), 0, 0);
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/max-exchange-rate-not-set");
-        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
-    }
-
     function test_depositERC4626_maple_exchangeRateTooHigh() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(syrup), 1_000_000e6, syrup.convertToAssets(1_000_000e6));
+        mainnetController.setMaxExchangeRate(address(syrup), syrup.convertToShares(1_000_000e6), 1_000_000e6 - 1);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -147,7 +138,7 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
         mainnetController.depositERC4626(address(syrup), 1_000_000e6);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(syrup), 1_000_000e6, syrup.convertToAssets(1_000_001e6));
+        mainnetController.setMaxExchangeRate(address(syrup), syrup.convertToShares(1_000_000e6), 1_000_000e6);
         vm.stopPrank();
 
         vm.prank(relayer);

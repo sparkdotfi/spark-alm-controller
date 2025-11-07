@@ -28,7 +28,7 @@ contract SUSDSTestBase is ForkTestBase {
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 10_000_000e18, uint256(10_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        mainnetController.setMaxExchangeRate(address(susds), 1e18, susds.convertToAssets(1.2e18));
+        mainnetController.setMaxExchangeRate(address(susds), susds.convertToShares(1e18), 1.2e18);
         vm.stopPrank();
 
         SUSDS_CONVERTED_ASSETS = susds.convertToAssets(1e18);
@@ -86,21 +86,12 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         vm.stopPrank();
     }
 
-    function test_depositERC4626_maxExchangeRateNotSet() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(susds), 0, 0);
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/max-exchange-rate-not-set");
-        mainnetController.depositERC4626(address(susds), 1e18);
-    }
-
     function test_depositERC4626_exchangeRateBoundary() external {
         vm.prank(relayer);
         mainnetController.mintUSDS(5_000_000e18);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(susds), 5_000_000e18, susds.convertToAssets(5_000_000e18));
+        mainnetController.setMaxExchangeRate(address(susds), susds.convertToShares(5_000_000e18), 5_000_000e18 - 1);
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -108,7 +99,7 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(address(susds), 5_000_000e18);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(susds), 5_000_000e18, susds.convertToAssets(5_000_001e18));
+        mainnetController.setMaxExchangeRate(address(susds), susds.convertToShares(5_000_000e18), 5_000_000e18);
         vm.stopPrank();
 
         vm.prank(relayer);

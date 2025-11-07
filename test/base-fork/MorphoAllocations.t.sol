@@ -219,7 +219,7 @@ contract MorphoReallocateMorphoSuccessTests is MorphoTestBase {
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
-        foreignController.setMaxExchangeRate(address(morphoVault), 1_000_000e6, morphoVault.convertToAssets(2_000_000e6));
+        foreignController.setMaxExchangeRate(address(morphoVault), morphoVault.convertToShares(1_000_000e6), 1_100_000e6);
         vm.stopPrank();
 
         // Refresh markets so calculations don't include interest

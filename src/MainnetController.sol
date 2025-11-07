@@ -458,14 +458,10 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
         _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
-        uint256 maxExchangeRate = maxExchangeRates[token];
-
-        require(maxExchangeRate != 0, "MC/max-exchange-rate-not-set");
-
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
         _approve(IERC4626(token).asset(), token, amount);
 
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares
+        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
             proxy.doCall(
                 token,
@@ -474,10 +470,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        require(
-            _getExchangeRate(shares, amount) <= maxExchangeRate,
-            "MC/rate-too-high"
-        );
+        require(_getExchangeRate(shares, amount) <= maxExchangeRates[token], "MC/exchange-rate-too-high");
     }
 
     function withdrawERC4626(address token, uint256 amount)
