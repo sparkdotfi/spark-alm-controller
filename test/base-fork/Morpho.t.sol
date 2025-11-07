@@ -181,6 +181,17 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18);
     }
 
+    function test_morpho_usdc_deposit_zeroExchangeRate() external {
+        deal(Base.USDS, address(almProxy), 25_000_000e18);
+
+        vm.prank(Base.SPARK_EXECUTOR);
+        foreignController.setMaxExchangeRate(MORPHO_VAULT_USDS, 0, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("FC/exchange-rate-too-high");
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1e18);
+    }
+
 }
 
 contract MorphoDepositSuccessTests is MorphoBaseTest {

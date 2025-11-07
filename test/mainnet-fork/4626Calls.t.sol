@@ -106,6 +106,18 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(address(susds), 5_000_000e18);
     }
 
+    function test_depositERC4626_zeroExchangeRate() external {
+        vm.prank(relayer);
+        mainnetController.mintUSDS(5_000_000e18);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setMaxExchangeRate(address(susds), 0, 0);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/exchange-rate-too-high");
+        mainnetController.depositERC4626(address(susds), 5_000_000e18);
+    }
+
 }
 
 contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
