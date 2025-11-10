@@ -7,6 +7,8 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 
 import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
+import { Base } from "grove-address-registry/Base.sol";
+
 import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "spark-psm/src/PSM3.sol";
 
@@ -55,8 +57,9 @@ contract ForkTestBase is Test {
     address constant CCTP_TOKEN_MESSENGER = 0x1682Ae6375C4E4A97e4B583BC394c861A46D8962;
     address constant USDC_BASE            = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address constant PENDLE_ROUTER_BASE   = 0x888888888889758F76e7103c6CbF23ABbF58F946;
+    address constant GROVE_EXECUTOR       = Base.GROVE_EXECUTOR;
 
-    address GROVE_EXECUTOR = makeAddr("groveExecutor");
+    address relayer = Base.ALM_RELAYER;
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/

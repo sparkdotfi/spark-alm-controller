@@ -72,6 +72,7 @@ contract ForeignController is AccessControl {
     bytes32 public constant LIMIT_7540_REDEEM         = keccak256("LIMIT_7540_REDEEM");
     bytes32 public constant LIMIT_AAVE_DEPOSIT        = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW       = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_ASSET_TRANSFER      = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_CENTRIFUGE_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_PENDLE_PT_REDEEM    = keccak256("LIMIT_PENDLE_PT_REDEEM");
@@ -309,6 +310,21 @@ contract ForeignController is AccessControl {
             fee.nativeFee
         );
     }
+
+    /**********************************************************************************************/
+    /*** Relayer ERC20 functions                                                                ***/
+    /**********************************************************************************************/
+
+    function transferAsset(address asset, address destination, uint256 amount) external {
+        _checkRole(RELAYER);
+        _rateLimited(
+            RateLimitHelpers.makeAssetDestinationKey(LIMIT_ASSET_TRANSFER, asset, destination),
+            amount
+        );
+
+        ERC20Lib.transfer(proxy, asset, destination, amount);
+    }
+
 
     /**********************************************************************************************/
     /*** Relayer ERC4626 functions                                                              ***/
