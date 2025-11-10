@@ -6,8 +6,6 @@ import { IERC20Metadata }                from "../../lib/openzeppelin-contracts/
 import { IERC20 as OzIERC20, SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuard }               from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { OTC } from "src/MainnetController.sol";
-
 import { OTCBuffer } from "src/OTCBuffer.sol";
 
 import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
