@@ -6,7 +6,7 @@ import { IPool }   from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol"
 
 import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
-import { IALMProxy } from "../interfaces/IALMProxy.sol";
+import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";

@@ -22,6 +22,7 @@ import { ApproveLib }                     from "./libraries/ApproveLib.sol";
 import { AaveLib }                        from "./libraries/AaveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
+import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
@@ -132,8 +133,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
-
-    uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
 
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
@@ -304,7 +303,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         emit MaxExchangeRateSet(
             token,
-            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
+            maxExchangeRates[token] = ERC4626Lib.getExchangeRate(shares, maxExpectedAssets)
         );
     }
 
@@ -457,67 +456,49 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
-        // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        ApproveLib.approve(IERC4626(token).asset(), address(proxy), token, amount);
-
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
-        shares = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
-            ),
-            (uint256)
-        );
-
-        require(
-            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
-            "MC/exchange-rate-too-high"
-        );
+        return ERC4626Lib.deposit({
+            proxy           : address(proxy),
+            token           : token,
+            amount          : amount,
+            maxExchangeRate : maxExchangeRates[token],
+            rateLimits      : address(rateLimits),
+            rateLimitId     : LIMIT_4626_DEPOSIT
+        });
     }
 
     function withdrawERC4626(address token, uint256 amount)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount);
 
-        // Withdraw asset from a token, decode resulting shares.
-        // Assumes proxy has adequate token shares.
-        shares = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).withdraw, (amount, address(proxy), address(proxy)))
-            ),
-            (uint256)
-        );
-
-        _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), amount);
+        return ERC4626Lib.withdraw({
+            proxy               : address(proxy),
+            token               : token,
+            amount              : amount,
+            rateLimits          : address(rateLimits),
+            withdrawRateLimitId : LIMIT_4626_WITHDRAW,
+            depositRateLimitId  : LIMIT_4626_DEPOSIT
+        });
     }
 
-    // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares)
         external nonReentrant returns (uint256 assets)
     {
         _checkRole(RELAYER);
 
-        // Redeem shares for assets from the token, decode the resulting assets.
-        // Assumes proxy has adequate token shares.
-        assets = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).redeem, (shares, address(proxy), address(proxy)))
-            ),
-            (uint256)
-        );
+        return ERC4626Lib.redeem({
+            proxy               : address(proxy),
+            token               : token,
+            shares              : shares,
+            rateLimits          : address(rateLimits),
+            withdrawRateLimitId : LIMIT_4626_WITHDRAW,
+            depositRateLimitId  : LIMIT_4626_DEPOSIT
+        });
+    }
 
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
-            assets
-        );
-
-        _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), assets);
+    function EXCHANGE_RATE_PRECISION() external pure returns (uint256) {
+        return ERC4626Lib.EXCHANGE_RATE_PRECISION;
     }
 
     /**********************************************************************************************/
@@ -1051,20 +1032,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             rateLimits.getRateLimitData(key).maxAmount > 0,
             "MC/invalid-action"
         );
-    }
-
-    /**********************************************************************************************/
-    /*** Exchange rate helper functions                                                         ***/
-    /**********************************************************************************************/
-
-    function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
-        // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
-        if (assets == 0) return 0;
-
-        // Zero shares with non-zero assets is invalid (infinite exchange rate).
-        if (shares == 0) revert("MC/zero-shares");
-
-        return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }
