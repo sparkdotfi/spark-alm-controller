@@ -223,10 +223,7 @@ contract MainnetController is AccessControl {
         _cancelRateLimit(LIMIT_USDS_MINT, usdsAmount);
 
         // Transfer USDS from the proxy to the buffer
-        proxy.doCall(
-            address(usds),
-            abi.encodeCall(usds.transfer, (buffer, usdsAmount))
-        );
+        ERC20Lib.transfer(proxy, address(usds), buffer, usdsAmount);
 
         // Burn USDS from the buffer
         proxy.doCall(
@@ -246,10 +243,7 @@ contract MainnetController is AccessControl {
             amount
         );
 
-        proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
-        );
+        ERC20Lib.transfer(proxy, asset, destination, amount);
     }
 
     /**********************************************************************************************/

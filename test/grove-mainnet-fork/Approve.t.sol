@@ -12,37 +12,11 @@ import { IALMProxy } from "../../src/interfaces/IALMProxy.sol";
 
 import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
+import { ERC20ApproveFalseExistingAllowance, ERC20ApproveFalseNonZeroAmount } from "../unit/mocks/MockTokens.sol";
+
 interface IHarness {
     function approve(address token, address spender, uint256 amount) external;
     function approveCurve(address proxy, address token, address spender, uint256 amount) external;
-}
-
-contract ERC20ApproveFalseExistingAllowance is ERC20 {
-
-    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
-
-    function approve(address spender, uint256 value) public virtual override returns (bool) {
-        // USDT-like resetting to 0 required. but returns false instead of reverting
-        if ((value != 0) && (allowance(msg.sender, spender) != 0)) {
-            return false;
-        }
-
-        return super.approve(spender, value);
-    }
-
-}
-
-contract ERC20ApproveFalseNonZeroAmount is ERC20 {
-
-    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
-
-    function approve(address spender, uint256 value) public virtual override returns (bool) {
-        // Used to assert hitting second revert condition
-        if (value != 0) return false;
-
-        return super.approve(spender, value);
-    }
-
 }
 
 contract MainnetControllerHarness is MainnetController {
