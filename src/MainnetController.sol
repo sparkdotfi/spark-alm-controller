@@ -82,14 +82,6 @@ interface IWstETHLike {
     function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
 }
 
-struct OTC {
-    address buffer;
-    uint256 rechargeRate18;
-    uint256 sent18;
-    uint256 sentTimestamp;
-    uint256 claimed18;
-}
-
 contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     using OptionsBuilder for bytes;
