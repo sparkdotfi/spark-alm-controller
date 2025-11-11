@@ -9,6 +9,8 @@ import { ICCTPLike }   from "../interfaces/CCTPInterfaces.sol";
 
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
+import { ERC20Lib } from "./ERC20Lib.sol";
+
 library CCTPLib {
 
     /**********************************************************************************************/
@@ -54,7 +56,7 @@ library CCTPLib {
         require(params.mintRecipient != 0, "MainnetController/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        _approve(params.proxy, address(params.usdc), address(params.cctp), params.usdcAmount);
+        ERC20Lib.approve(params.proxy, address(params.usdc), address(params.cctp), params.usdcAmount);
 
         // If amount is larger than limit it must be split into multiple calls
         uint256 burnLimit = params.cctp.localMinter().burnLimitsPerMessage(address(params.usdc));
@@ -90,18 +92,6 @@ library CCTPLib {
     /**********************************************************************************************/
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
-
-    // NOTE: As USDC is the only asset transferred using CCTP, _forceApprove logic is unnecessary.
-    function _approve(
-        IALMProxy proxy,
-        address   token,
-        address   spender,
-        uint256   amount
-    )
-        internal
-    {
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
-    }
 
     function _initiateCCTPTransfer(
         IALMProxy proxy,

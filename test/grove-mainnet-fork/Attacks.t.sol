@@ -3,7 +3,6 @@ pragma solidity >=0.8.0;
 
 import "./ForkTestBase.t.sol";
 
-import { MainnetControllerBUIDLTestBase }  from "./Buidl.t.sol";
 import { MainnetControllerEthenaE2ETests } from "./Ethena.t.sol";
 
 interface IBuidlLike is IERC20 {

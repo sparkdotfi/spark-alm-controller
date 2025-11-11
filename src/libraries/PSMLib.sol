@@ -6,6 +6,8 @@ import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 import { IRateLimits }  from "../interfaces/IRateLimits.sol";
 import { IALMProxy }    from "../interfaces/IALMProxy.sol";
 
+import { ERC20Lib } from "./ERC20Lib.sol";
+
 interface IDaiUsdsLike {
     function dai() external view returns (address);
     function daiToUsds(address usr, uint256 wad) external;
@@ -60,7 +62,7 @@ library PSMLib {
         uint256 usdsAmount = params.usdcAmount * params.psmTo18ConversionFactor;
 
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        _approve(params.proxy, address(params.usds), address(params.daiUsds), usdsAmount);
+        ERC20Lib.approve(params.proxy, address(params.usds), address(params.daiUsds), usdsAmount);
 
         // Swap USDS to DAI 1:1
         params.proxy.doCall(
@@ -69,7 +71,7 @@ library PSMLib {
         );
 
         // Approve DAI to PSM from the proxy because conversion from USDS to DAI was 1:1
-        _approve(params.proxy, address(params.dai), address(params.psm), usdsAmount);
+        ERC20Lib.approve(params.proxy, address(params.dai), address(params.psm), usdsAmount);
 
         // Swap DAI to USDC through the PSM
         params.proxy.doCall(
@@ -82,7 +84,7 @@ library PSMLib {
         _cancelRateLimit(params.rateLimits, params.rateLimitId, params.usdcAmount);
 
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC)
-        _approve(params.proxy, address(params.usdc), address(params.psm), params.usdcAmount);
+        ERC20Lib.approve(params.proxy, address(params.usdc), address(params.psm), params.usdcAmount);
 
         // Max USDC that can be swapped to DAI in one call
         uint256 limit = params.dai.balanceOf(address(params.psm)) / params.psmTo18ConversionFactor;
@@ -113,7 +115,7 @@ library PSMLib {
         uint256 daiAmount = params.usdcAmount * params.psmTo18ConversionFactor;
 
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        _approve(params.proxy, address(params.dai), address(params.daiUsds), daiAmount);
+        ERC20Lib.approve(params.proxy, address(params.dai), address(params.daiUsds), daiAmount);
 
         // Swap DAI to USDS 1:1
         params.proxy.doCall(
@@ -125,19 +127,6 @@ library PSMLib {
     /**********************************************************************************************/
     /*** Helper functions                                                                       ***/
     /**********************************************************************************************/
-
-    // NOTE: As swaps are only done between USDC and USDS and vice versa, using `_forceApprove` 
-    //       is unnecessary.
-    function _approve(
-        IALMProxy proxy,
-        address   token,
-        address   spender,
-        uint256   amount
-    )
-        internal
-    {
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
-    }
 
     function _swapUSDCToDAI(IALMProxy proxy, IPSMLike psm, uint256 usdcAmount) internal {
         // Swap USDC to DAI through the PSM (1:1 since sellGemNoFee is used)

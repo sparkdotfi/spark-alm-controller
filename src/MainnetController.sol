@@ -258,7 +258,7 @@ contract MainnetController is AccessControl {
         IERC20 asset = IERC20(IERC4626(token).asset());
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
+        ERC20Lib.approve(proxy, address(asset), token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares
         shares = abi.decode(
@@ -317,7 +317,7 @@ contract MainnetController is AccessControl {
         IERC20 asset = IERC20(IERC7540(token).asset());
 
         // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
-        _approve(address(asset), token, amount);
+        ERC20Lib.approve(proxy, address(asset), token, amount);
 
         // Submit deposit request by transferring assets
         proxy.doCall(
@@ -426,7 +426,7 @@ contract MainnetController is AccessControl {
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        _approve(address(underlying), address(pool), amount);
+        ERC20Lib.approve(proxy, address(underlying), address(pool), amount);
 
         // Deposit underlying into Aave pool, proxy receives aTokens
         proxy.doCall(
@@ -558,13 +558,13 @@ contract MainnetController is AccessControl {
     function prepareUSDeMint(uint256 usdcAmount) external {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_USDE_MINT, usdcAmount);
-        _approve(address(usdc), address(ethenaMinter), usdcAmount);
+        ERC20Lib.approve(proxy, address(usdc), address(ethenaMinter), usdcAmount);
     }
 
     function prepareUSDeBurn(uint256 usdeAmount) external {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_USDE_BURN, usdeAmount);
-        _approve(address(usde), address(ethenaMinter), usdeAmount);
+        ERC20Lib.approve(proxy, address(usde), address(ethenaMinter), usdeAmount);
     }
 
     function cooldownAssetsSUSDe(uint256 usdeAmount) external {
@@ -635,7 +635,7 @@ contract MainnetController is AccessControl {
         onlyRole(RELAYER)
     {
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        _approve(address(usds), address(daiUsds), usdsAmount);
+        ERC20Lib.approve(proxy, address(usds), address(daiUsds), usdsAmount);
 
         // Swap USDS to DAI 1:1
         proxy.doCall(
@@ -649,7 +649,7 @@ contract MainnetController is AccessControl {
         onlyRole(RELAYER)
     {
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        _approve(address(dai), address(daiUsds), daiAmount);
+        ERC20Lib.approve(proxy, address(dai), address(daiUsds), daiAmount);
 
         // Swap DAI to USDS 1:1
         proxy.doCall(
@@ -716,7 +716,7 @@ contract MainnetController is AccessControl {
         //       approvalRequired == false. Add integration testing for this case before
         //       using in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
-            _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+            ERC20Lib.approve(proxy, ILayerZero(oftAddress).token(), oftAddress, amount);
         }
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
@@ -762,15 +762,6 @@ contract MainnetController is AccessControl {
             destinationDomain : destinationDomain,
             usdcAmount        : usdcAmount
         }));
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer helper functions                                                               ***/
-    /**********************************************************************************************/
-
-    // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
-    function _approve(address token, address spender, uint256 amount) internal {
-        ERC20Lib.approve(proxy, token, spender, amount);
     }
 
     /**********************************************************************************************/

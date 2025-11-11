@@ -114,12 +114,7 @@ library CurveLib {
             params.amountIn * rates[params.inputIndex] / 1e18
         );
 
-        _approve(
-            params.proxy,
-            curvePool.coins(params.inputIndex),
-            params.pool,
-            params.amountIn
-        );
+        ERC20Lib.approve(params.proxy, curvePool.coins(params.inputIndex), params.pool, params.amountIn);
 
         amountOut = abi.decode(
             params.proxy.doCall(
@@ -155,12 +150,7 @@ library CurveLib {
         // Aggregate the value of the deposited assets (e.g. USD)
         uint256 valueDeposited;
         for (uint256 i = 0; i < params.depositAmounts.length; i++) {
-            _approve(
-                params.proxy,
-                curvePool.coins(i),
-                params.pool,
-                params.depositAmounts[i]
-            );
+            ERC20Lib.approve(params.proxy, curvePool.coins(i), params.pool, params.depositAmounts[i]);
             valueDeposited += params.depositAmounts[i] * rates[i];
         }
         valueDeposited /= 1e18;
@@ -268,17 +258,6 @@ library CurveLib {
     /**********************************************************************************************/
     /*** Helper functions                                                                       ***/
     /**********************************************************************************************/
-
-    function _approve(
-        IALMProxy proxy,
-        address   token,
-        address   spender,
-        uint256   amount
-    )
-        internal
-    {
-        ERC20Lib.approve(proxy, token, spender, amount);
-    }
 
     function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : b - a;

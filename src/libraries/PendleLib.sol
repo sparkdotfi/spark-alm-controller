@@ -56,7 +56,7 @@ library PendleLib {
         // to avoid reverts due to potential rounding errors
         uint256 minTokenOut = params.pyAmountIn * 1e18 / pyIndexCurrent - 5;
 
-        _approve(params.proxy, pt, params.pendleRouter, params.pyAmountIn);
+        ERC20Lib.approve(params.proxy, pt, params.pendleRouter, params.pyAmountIn);
 
         uint256 tokenOutAmountBefore = IERC20(tokenOut).balanceOf(address(params.proxy));
 
@@ -81,17 +81,6 @@ library PendleLib {
             totalTokenOutAmount
         );
 
-    }
-
-    function _approve(
-        IALMProxy proxy,
-        address   token,
-        address   spender,
-        uint256   amount
-    )
-        internal
-    {
-        ERC20Lib.approve(proxy, token, spender, amount);
     }
 
 }
