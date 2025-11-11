@@ -214,6 +214,11 @@ library UniswapV4Lib {
 
     function _approvePositionManager(address proxy, address token, uint256 amount) internal {
         // Approve the Permit2 contract to spend none of the token (success is optional).
+        // NOTE: We don't care about the success of this call, since the only outcomes are:
+        //         - the allowance is 0 (it was reset or was already 0)
+        //         - the allowance is not 0, in which case the success of the overall set of
+        //           operations is dependent on the success of the subsequent calls.
+        //       In other words, this is a convenience call that may not even be needed for success.
         proxy.call(
             abi.encodeCall(
                 IALMProxy.doCall,
@@ -291,6 +296,8 @@ library UniswapV4Lib {
 
         // Account for the theoretical possibility of receiving tokens when adding liquidity by
         // using a clamped subtraction.
+        // NOTE: The limitation of this integration is the assumption that the tokens are valued
+        //       equally (i.e. 1.00000 USDC = 1.000000000000000000 USDS).
         rateLimitDecrease = _clampedSub(
             _getNormalizedBalance(token0, startingBalance0) +
             _getNormalizedBalance(token1, startingBalance1),
@@ -351,6 +358,8 @@ library UniswapV4Lib {
             "MC/amount1Min-too-small"
         );
 
+        // NOTE: The limitation of this integration is the assumption that the tokens are valued
+        //       equally (i.e. 1.00000 USDC = 1.000000000000000000 USDS).
         rateLimitDecrease =
             _getNormalizedBalance(token0, endingBalance0) +
             _getNormalizedBalance(token1, endingBalance1) -

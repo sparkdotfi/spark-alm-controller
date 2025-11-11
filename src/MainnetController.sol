@@ -651,13 +651,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         require(tickUpper <= limits.tickUpperMax, "MC/tickUpper-too-high");
 
         // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
-        //       160 bits of the id. It is possible, buit highly unliekly there us a collision.
+        //       160 bits of the id. It is possible, but highly unlikely there is a collision.
         UniswapV4Lib.mintPosition({
             commonParams: UniswapV4Lib.CommonParams({
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
-                // TODO: Use central state contract
                 maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
@@ -681,13 +680,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
 
         // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
-        //       160 bits of the id. It is possible, buit highly unliekly there us a collision.
+        //       160 bits of the id. It is possible, but highly unlikely there is a collision.
         UniswapV4Lib.increasePosition({
             commonParams: UniswapV4Lib.CommonParams({
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
-                // TODO: Use central state contract
                 maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
@@ -713,7 +711,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
-                // TODO: Use central state contract
                 maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
@@ -739,7 +736,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
-                // TODO: Use central state contract
                 maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
