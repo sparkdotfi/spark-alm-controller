@@ -88,6 +88,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     // Uniswap V4 USDC/USDT pool
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
 
+    address internal immutable _alice = makeAddr("alice");
     address internal immutable _unauthorized = makeAddr("unauthorized");
 
     function setUp() public virtual override  {
@@ -676,6 +677,62 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     }
 
     /**********************************************************************************************/
+    /*** Story Tests                                                                            ***/
+    /**********************************************************************************************/
+
+    function test_story_1() external {
+        // Setup the pool and the controller.
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
+        vm.stopPrank();
+
+        // 1. The user mints a position with 1,000,000 liquidity.
+
+        uint256 initialDepositLimit = rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY);
+
+        IncreasePositionResult memory increaseResult = _mintPosition(-10, 0, 1_000_000e6);
+
+        uint256 expectedDecrease = _to18From6Decimals(increaseResult.amount0Spent) + _to18From6Decimals(increaseResult.amount1Spent);
+        assertEq(initialDepositLimit - rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY), expectedDecrease);
+
+        // 2. 90 days elapse.
+        vm.warp(block.timestamp + 90 days);
+
+        // 3. The user increases the liquidity position by 50%.
+        increaseResult = _increasePosition(increaseResult.tokenId, 500_000e6);
+
+        expectedDecrease = _to18From6Decimals(increaseResult.amount0Spent) + _to18From6Decimals(increaseResult.amount1Spent);
+        assertEq(initialDepositLimit - rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY), expectedDecrease);
+
+        // 4. 90 days elapse.
+        vm.warp(block.timestamp + 90 days);
+
+        // 5. The user decreases the liquidity position by 50%.
+        uint256 initialWithdrawLimit = rateLimits.getCurrentRateLimit(_WITHDRAW_LIMIT_KEY);
+
+        DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 750_000e6);
+
+        expectedDecrease = _to18From6Decimals(decreaseResult.amount0Received) + _to18From6Decimals(decreaseResult.amount1Received);
+        assertEq(initialWithdrawLimit - rateLimits.getCurrentRateLimit(_WITHDRAW_LIMIT_KEY), expectedDecrease);
+
+        // 6. 90 days elapse.
+        vm.warp(block.timestamp + 90 days);
+
+        // 7. The user burns the remaining liquidity position.
+        decreaseResult = _burnPosition(increaseResult.tokenId);
+
+        expectedDecrease = _to18From6Decimals(decreaseResult.amount0Received) + _to18From6Decimals(decreaseResult.amount1Received);
+        assertEq(initialWithdrawLimit - rateLimits.getCurrentRateLimit(_WITHDRAW_LIMIT_KEY), expectedDecrease);
+
+        assertEq(
+            IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(decreaseResult.tokenId),
+            0
+        );
+    }
+
+    /**********************************************************************************************/
     /*** Helper Functions                                                                       ***/
     /**********************************************************************************************/
 
@@ -944,6 +1001,13 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
     function _getBlock() internal pure override returns (uint256) {
         return 23470490;  // September 29, 2025
+    }
+
+    function _swap(address tokenIn, address tokenOut, uint256 amountIn) internal {
+        deal(tokenIn, address(_alice), amountIn);
+
+        vm.prank(_alice);
+
     }
 
 }
