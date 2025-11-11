@@ -9,6 +9,9 @@ import { PositionInfo } from "../../lib/uniswap-v4-periphery/src/libraries/Posit
 import { FullMath }     from "../../lib/uniswap-v4-core/src/libraries/FullMath.sol";
 import { TickMath }     from "../../lib/uniswap-v4-core/src/libraries/TickMath.sol";
 
+import { Actions }   from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
+import { IV4Router } from "../../lib/uniswap-v4-periphery/src/interfaces/IV4Router.sol";
+
 import { IAccessControl } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
 import { UniswapV4Lib } from "../../src/libraries/UniswapV4Lib.sol";
@@ -40,6 +43,10 @@ interface IPermit2Like {
     ) external view returns (uint160 allowance, uint48 expiration, uint48 nonce);
 }
 
+interface IUniversalRouterLike {
+    function execute(bytes[] calldata commands, bytes[] calldata inputs, uint256 deadline) external;
+}
+
 interface IPositionManagerLike {
 
     function transferFrom(address from, address to, uint256 id) external;
@@ -53,6 +60,8 @@ interface IPositionManagerLike {
     function nextTokenId() external view returns (uint256 nextTokenId);
 
     function ownerOf(uint256 tokenId) external view returns (address owner);
+
+    function poolKeys(bytes25 poolId) external view returns (PoolKey memory poolKeys);
 }
 
 contract MainnetControllerUniswapV4Tests is ForkTestBase {
@@ -1003,11 +1012,37 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         return 23470490;  // September 29, 2025
     }
 
-    function _swap(address tokenIn, address tokenOut, uint256 amountIn) internal {
+    function _swap(address tokenIn, address tokenOut, uint256 amountIn) internal returns (uint256 amountOut) {
         deal(tokenIn, address(_alice), amountIn);
 
-        vm.prank(_alice);
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.SWAP_EXACT_IN_SINGLE),
+            uint8(Actions.SETTLE_ALL),
+            uint8(Actions.TAKE_ALL)
+        );
 
+        bytes[] memory params = new bytes[](3);
+
+        params[0] = abi.encode(
+            IV4Router.ExactInputSingleParams({
+                poolKey: IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(_POOL_ID)),
+                zeroForOne: true,
+                amountIn: amountIn,
+                amountOutMinimum: 0,
+                hookData: bytes("")
+            })
+        );
+
+        params[1] = abi.encode(tokenIn, amountIn);
+        params[2] = abi.encode(tokenOut, 0);
+
+        bytes[] memory inputs = new bytes[](1);
+
+        // Combine actions and params into inputs
+        inputs[0] = abi.encode(actions, params);
+
+        // Execute the swap
+        IUniversalRouterLike(_ROUTER).execute(actions, inputs, block.timestamp);
     }
 
 }

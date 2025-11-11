@@ -12,7 +12,7 @@ interface IPositionManagerLike {
         uint256 tokenId
     ) external view returns (PoolKey memory poolKey, PositionInfo info);
 
-    function poolKeys(bytes25 poolId) external view returns (PoolKey memory poolKeys);
+    function poolKeys(bytes25 poolId) external view returns (PoolKey memory poolKey);
 
     function modifyLiquidities(bytes calldata unlockData, uint256 deadline) external payable;
 
