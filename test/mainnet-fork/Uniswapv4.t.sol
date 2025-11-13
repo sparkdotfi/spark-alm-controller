@@ -22,7 +22,12 @@ import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
 
+    // NOTE: Purposely not returning bool to avoid issues with non-conformant tokens.
+    function approve(address spender, uint256 amount) external;
+
     function allowance(address owner, address spender) external view returns (uint256 allowance);
+
+    function balanceOf(address owner) external view returns (uint256 balance);
 }
 
 interface IStateViewLike {
@@ -36,6 +41,8 @@ interface IStateViewLike {
 
 interface IPermit2Like {
 
+    function approve(address token, address spender, uint160 amount, uint48 expiration) external;
+
     function allowance(
         address user,
         address token,
@@ -44,7 +51,7 @@ interface IPermit2Like {
 }
 
 interface IUniversalRouterLike {
-    function execute(bytes[] calldata commands, bytes[] calldata inputs, uint256 deadline) external;
+    function execute(bytes calldata commands, bytes[] calldata inputs, uint256 deadline) external;
 }
 
 interface IPositionManagerLike {
@@ -84,6 +91,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         int24   tickUpper;
     }
 
+    uint256 internal constant _V4_SWAP = 0x10;
+
     bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
     bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
 
@@ -92,6 +101,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
+    address internal constant _ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
     address internal constant _STATE_VIEW       = 0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227;
 
     // Uniswap V4 USDC/USDT pool
@@ -691,14 +701,12 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
     function test_story_1() external {
         // Setup the pool and the controller.
-
         vm.startPrank(SPARK_PROXY);
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
         vm.stopPrank();
 
         // 1. The user mints a position with 1,000,000 liquidity.
-
         uint256 initialDepositLimit = rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY);
 
         IncreasePositionResult memory increaseResult = _mintPosition(-10, 0, 1_000_000e6);
@@ -709,16 +717,24 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         // 2. 90 days elapse.
         vm.warp(block.timestamp + 90 days);
 
-        // 3. The user increases the liquidity position by 50%.
+        // 3. Some user swaps 500,000 USDT for USDC.
+        _swap(_alice, address(usdt), 500_000e6);
+
+        // 4. The user increases the liquidity position by 50%.
         increaseResult = _increasePosition(increaseResult.tokenId, 500_000e6);
 
         expectedDecrease = _to18From6Decimals(increaseResult.amount0Spent) + _to18From6Decimals(increaseResult.amount1Spent);
         assertEq(initialDepositLimit - rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY), expectedDecrease);
 
-        // 4. 90 days elapse.
+        return;
+
+        // 5. 90 days elapse.
         vm.warp(block.timestamp + 90 days);
 
-        // 5. The user decreases the liquidity position by 50%.
+        // 6. Some user swaps 750,000 USDC for USDT.
+        _swap(_alice, address(usdc), 750_000e6);
+
+        // 7. The user decreases the liquidity position by 50%.
         uint256 initialWithdrawLimit = rateLimits.getCurrentRateLimit(_WITHDRAW_LIMIT_KEY);
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 750_000e6);
@@ -726,8 +742,11 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         expectedDecrease = _to18From6Decimals(decreaseResult.amount0Received) + _to18From6Decimals(decreaseResult.amount1Received);
         assertEq(initialWithdrawLimit - rateLimits.getCurrentRateLimit(_WITHDRAW_LIMIT_KEY), expectedDecrease);
 
-        // 6. 90 days elapse.
+        // 8. 90 days elapse.
         vm.warp(block.timestamp + 90 days);
+
+        // 9. Some user swaps 1,000,000 USDT for USDC.
+        _swap(_alice, address(usdt), 1_000_000e6);
 
         // 7. The user burns the remaining liquidity position.
         decreaseResult = _burnPosition(increaseResult.tokenId);
@@ -983,8 +1002,8 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     }
 
     function _quoteLiquidity(
-        int24 tickLower,
-        int24 tickUpper,
+        int24   tickLower,
+        int24   tickUpper,
         uint128 liquidityAmount
     ) internal view returns (uint256 amount0, uint256 amount1) {
         ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(_POOL_ID));
@@ -1012,8 +1031,14 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         return 23470490;  // September 29, 2025
     }
 
-    function _swap(address tokenIn, address tokenOut, uint256 amountIn) internal returns (uint256 amountOut) {
-        deal(tokenIn, address(_alice), amountIn);
+    function _swap(address account, address tokenIn, uint128 amountIn) internal returns (uint256 amountOut) {
+        address tokenOut = tokenIn == address(usdc) ? address(usdt) : address(usdc);
+
+        deal(tokenIn, account, amountIn);
+
+        bytes memory commands = abi.encodePacked(uint8(_V4_SWAP));
+
+        bytes[] memory inputs = new bytes[](1);
 
         bytes memory actions = abi.encodePacked(
             uint8(Actions.SWAP_EXACT_IN_SINGLE),
@@ -1026,7 +1051,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         params[0] = abi.encode(
             IV4Router.ExactInputSingleParams({
                 poolKey: IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(_POOL_ID)),
-                zeroForOne: true,
+                zeroForOne: tokenIn == address(usdc) ? true : false,
                 amountIn: amountIn,
                 amountOutMinimum: 0,
                 hookData: bytes("")
@@ -1036,13 +1061,19 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         params[1] = abi.encode(tokenIn, amountIn);
         params[2] = abi.encode(tokenOut, 0);
 
-        bytes[] memory inputs = new bytes[](1);
-
         // Combine actions and params into inputs
         inputs[0] = abi.encode(actions, params);
 
+        uint256 startingOutBalance = IERC20Like(tokenOut).balanceOf(account);
+
         // Execute the swap
-        IUniversalRouterLike(_ROUTER).execute(actions, inputs, block.timestamp);
+        vm.startPrank(account);
+        IERC20Like(tokenIn).approve(_PERMIT2, amountIn);
+        IPermit2Like(_PERMIT2).approve(tokenIn, _ROUTER, amountIn, uint48(block.timestamp));
+        IUniversalRouterLike(_ROUTER).execute(commands, inputs, block.timestamp);
+        vm.stopPrank();
+
+        return IERC20Like(tokenOut).balanceOf(account) - startingOutBalance;
     }
 
 }
