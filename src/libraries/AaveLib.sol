@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import { IAToken } from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 import { IPool }   from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
