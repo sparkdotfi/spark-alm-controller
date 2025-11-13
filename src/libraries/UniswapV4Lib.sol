@@ -26,7 +26,6 @@ library UniswapV4Lib {
     // NOTE: From https://docs.uniswap.org/contracts/v4/deployments
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
-    address internal constant _STATE_VIEW       = 0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227;
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
@@ -281,7 +280,7 @@ library UniswapV4Lib {
         uint256 endingBalance0 = _getBalance(token0, commonParams.proxy);
         uint256 endingBalance1 = _getBalance(token1, commonParams.proxy);
 
-        // Ensure the amountMax is below the allowed worst case scenario (amount / maxSlippage).
+        // TODO: Better note.
         require(
             amount0Max * commonParams.maxSlippage <=
             _clampedSub(startingBalance0, endingBalance0) * 1e18,
@@ -347,7 +346,7 @@ library UniswapV4Lib {
         uint256 endingBalance0 = _getBalance(token0, commonParams.proxy);
         uint256 endingBalance1 = _getBalance(token1, commonParams.proxy);
 
-        // Ensure the amountMin is above the allowed worst case scenario (amount * maxSlippage).
+        // TODO: Better note.
         require(
             amount0Min * 1e18 >= (endingBalance0 - startingBalance0) * commonParams.maxSlippage,
             "MC/amount0Min-too-small"
