@@ -15,11 +15,12 @@ import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.s
 
 import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
 
-import { IALMProxy }   from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
-import { IRateLimits } from "./interfaces/IRateLimits.sol";
+import { IALMProxy }     from "./interfaces/IALMProxy.sol";
+import { ICCTPLike }     from "./interfaces/CCTPInterfaces.sol";
+import { IRateLimits }   from "./interfaces/IRateLimits.sol";
 import { IPendleMarket } from "./interfaces/PendleInterfaces.sol";
 
+import { CurveLib }  from "./libraries/CurveLib.sol";
 import { PendleLib } from "./libraries/PendleLib.sol";
 import { ERC20Lib }  from "./libraries/ERC20Lib.sol";
 
@@ -50,13 +51,10 @@ contract ForeignController is AccessControl {
         bytes32 indexed mintRecipient,
         uint256 usdcAmount
     );
-
     event CentrifugeRecipientSet(uint16 indexed destinationCentrifugeId, bytes32 recipient);
-
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
-
+    event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
-
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
@@ -74,6 +72,9 @@ contract ForeignController is AccessControl {
     bytes32 public constant LIMIT_AAVE_WITHDRAW       = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER      = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_CENTRIFUGE_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
+    bytes32 public constant LIMIT_CURVE_DEPOSIT       = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 public constant LIMIT_CURVE_SWAP          = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 public constant LIMIT_CURVE_WITHDRAW      = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = keccak256("LIMIT_LAYERZERO_TRANSFER");
     bytes32 public constant LIMIT_PENDLE_PT_REDEEM    = keccak256("LIMIT_PENDLE_PT_REDEEM");
     bytes32 public constant LIMIT_PSM_DEPOSIT         = keccak256("LIMIT_PSM_DEPOSIT");
@@ -87,14 +88,13 @@ contract ForeignController is AccessControl {
     ICCTPLike   public immutable cctp;
     IPSM3       public immutable psm;
     IRateLimits public immutable rateLimits;
+    IERC20      public immutable usdc;
+    address     public immutable pendleRouter;
 
-    IERC20 public immutable usdc;
-
-    address public immutable pendleRouter;
-
-    mapping(uint32 destinationDomain       => bytes32 mintRecipient)      public mintRecipients;
-    mapping(uint32 destinationEndpointId   => bytes32 layerZeroRecipient) public layerZeroRecipients;
-    mapping(uint16 destinationCentrifugeId => bytes32 recipient)          public centrifugeRecipients;
+    mapping(address pool                    => uint256 maxSlippage)        public maxSlippages;  // 1e18 precision
+    mapping(uint32  destinationDomain       => bytes32 mintRecipient)      public mintRecipients;
+    mapping(uint32  destinationEndpointId   => bytes32 layerZeroRecipient) public layerZeroRecipients;
+    mapping(uint16  destinationCentrifugeId => bytes32 recipient)          public centrifugeRecipients;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -159,6 +159,14 @@ contract ForeignController is AccessControl {
     {
         layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
         emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
+    }
+
+    function setMaxSlippage(address pool, uint256 maxSlippage)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        maxSlippages[pool] = maxSlippage;
+        emit MaxSlippageSet(pool, maxSlippage);
     }
 
     function setCentrifugeRecipient(uint16 destinationCentrifugeId, bytes32 recipient)
@@ -604,6 +612,75 @@ contract ForeignController is AccessControl {
             RateLimitHelpers.makeAssetKey(LIMIT_AAVE_WITHDRAW, aToken),
             amountWithdrawn
         );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Curve StableSwap functions                                                     ***/
+    /**********************************************************************************************/
+
+    function swapCurve(
+        address pool,
+        uint256 inputIndex,
+        uint256 outputIndex,
+        uint256 amountIn,
+        uint256 minAmountOut
+    )
+        external returns (uint256 amountOut)
+    {
+        _checkRole(RELAYER);
+
+        amountOut = CurveLib.swap(CurveLib.SwapCurveParams({
+            proxy        : proxy,
+            rateLimits   : rateLimits,
+            pool         : pool,
+            rateLimitId  : LIMIT_CURVE_SWAP,
+            inputIndex   : inputIndex,
+            outputIndex  : outputIndex,
+            amountIn     : amountIn,
+            minAmountOut : minAmountOut,
+            maxSlippage  : maxSlippages[pool]
+        }));
+    }
+
+    function addLiquidityCurve(
+        address pool,
+        uint256[] memory depositAmounts,
+        uint256 minLpAmount
+    )
+        external returns (uint256 shares)
+    {
+        _checkRole(RELAYER);
+
+        shares = CurveLib.addLiquidity(CurveLib.AddLiquidityParams({
+            proxy                   : proxy,
+            rateLimits              : rateLimits,
+            pool                    : pool,
+            addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
+            swapRateLimitId         : LIMIT_CURVE_SWAP,
+            minLpAmount             : minLpAmount,
+            maxSlippage             : maxSlippages[pool],
+            depositAmounts          : depositAmounts
+        }));
+    }
+
+    function removeLiquidityCurve(
+        address pool,
+        uint256 lpBurnAmount,
+        uint256[] memory minWithdrawAmounts
+    )
+        external returns (uint256[] memory withdrawnTokens)
+    {
+        _checkRole(RELAYER);
+
+        withdrawnTokens = CurveLib.removeLiquidity(CurveLib.RemoveLiquidityParams({
+            proxy              : proxy,
+            rateLimits         : rateLimits,
+            pool               : pool,
+            rateLimitId        : LIMIT_CURVE_WITHDRAW,
+            lpBurnAmount       : lpBurnAmount,
+            minWithdrawAmounts : minWithdrawAmounts,
+            maxSlippage        : maxSlippages[pool]
+        }));
     }
 
     /**********************************************************************************************/

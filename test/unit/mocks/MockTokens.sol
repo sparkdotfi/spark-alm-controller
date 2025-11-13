@@ -160,3 +160,13 @@ contract ERC20ApproveFalseNonZeroAmount is ERC20 {
     }
 
 }
+
+contract MockERC20Decimals is ERC20 {
+
+    uint8 public immutable _decimals;
+
+    constructor(string memory name, string memory symbol, uint8 decimals) ERC20(name, symbol) {
+        _decimals = decimals;
+    }
+
+}
