@@ -176,7 +176,7 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
 
-        assertEq(shares, 100.343092065533568746e18);  // Sanity check conversion at fork block
+        assertEq(shares, 107.379758710632697304e18);  // Sanity check conversion at fork block
 
         _assertState({
             token            : susdsBase,
@@ -377,7 +377,7 @@ contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBas
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
 
-        assertEq(shares, 100.343092065533568746e18);  // Sanity check conversion at fork block
+        assertEq(shares, 107.379758710632697304e18);  // Sanity check conversion at fork block
 
         _assertState({
             token            : susdsBase,

@@ -3,8 +3,6 @@ pragma solidity >=0.8.0;
 
 import "../../test/spark-base-fork/ForkTestBase.t.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
-
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 
@@ -67,7 +65,7 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
         checkAddresses = Init.CheckAddressParams({
             admin        : Base.SPARK_EXECUTOR,
             psm          : address(psmBase),
-            cctp         : Base.CCTP_TOKEN_MESSENGER,
+            cctp         : GroveBase.CCTP_TOKEN_MESSENGER_V2,
             usdc         : address(usdcBase),
             pendleRouter : PENDLE_ROUTER_BASE
             // susds : address(susdsBase),
@@ -132,7 +130,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             rateLimits   : address(rateLimits),
             psm          : address(psmBase),
             usdc         : address(usdcBase),
-            cctp         : Base.CCTP_TOKEN_MESSENGER,
+            cctp         : GroveBase.CCTP_TOKEN_MESSENGER_V2,
             pendleRouter : PENDLE_ROUTER_BASE
         }));
 
@@ -502,7 +500,7 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
             Base.SPARK_EXECUTOR,
             address(psmBase),
             address(usdcBase),
-            Base.CCTP_TOKEN_MESSENGER,
+            GroveBase.CCTP_TOKEN_MESSENGER_V2,
             PENDLE_ROUTER_BASE
         );
 
@@ -617,7 +615,7 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
             rateLimits   : address(rateLimits),
             psm          : address(psmBase),
             usdc         : address(usdcBase),
-            cctp         : Base.CCTP_TOKEN_MESSENGER,
+            cctp         : GroveBase.CCTP_TOKEN_MESSENGER_V2,
             pendleRouter : PENDLE_ROUTER_BASE
         }));
 

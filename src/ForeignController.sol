@@ -22,7 +22,8 @@ import { IPendleMarket } from "./interfaces/PendleInterfaces.sol";
 
 import { CurveLib }  from "./libraries/CurveLib.sol";
 import { PendleLib } from "./libraries/PendleLib.sol";
-import { ERC20Lib }  from "./libraries/ERC20Lib.sol";
+import { CCTPLib }   from "./libraries/CCTPLib.sol";
+import { ERC20Lib }  from "./libraries/common/ERC20Lib.sol";
 
 import { ICentrifugeV3VaultLike, IAsyncRedeemManagerLike, ISpokeLike } from "./interfaces/CentrifugeInterfaces.sol";
 
@@ -241,34 +242,20 @@ contract ForeignController is AccessControl {
     /*** Relayer bridging functions                                                             ***/
     /**********************************************************************************************/
 
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
-        external
-        onlyRole(RELAYER)
-        rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
-        rateLimited(
-            RateLimitHelpers.makeDomainKey(LIMIT_USDC_TO_DOMAIN, destinationDomain),
-            usdcAmount
-        )
-    {
-        bytes32 mintRecipient = mintRecipients[destinationDomain];
+    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external {
+        _checkRole(RELAYER);
 
-        require(mintRecipient != 0, "ForeignController/domain-not-configured");
-
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
-        ERC20Lib.approve(proxy, address(usdc), address(cctp), usdcAmount);
-
-        // If amount is larger than limit it must be split into multiple calls.
-        uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
-
-        while (usdcAmount > burnLimit) {
-            _initiateCCTPTransfer(burnLimit, destinationDomain, mintRecipient);
-            usdcAmount -= burnLimit;
-        }
-
-        // Send remaining amount (if any)
-        if (usdcAmount > 0) {
-            _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
-        }
+        CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
+            proxy             : proxy,
+            rateLimits        : rateLimits,
+            cctp              : cctp,
+            usdc              : usdc,
+            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
+            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
+            mintRecipient     : mintRecipients[destinationDomain],
+            destinationDomain : destinationDomain,
+            usdcAmount        : usdcAmount
+        }));
     }
 
     // NOTE: !!! This function was deployed without integration testing !!!
@@ -643,9 +630,9 @@ contract ForeignController is AccessControl {
     }
 
     function addLiquidityCurve(
-        address pool,
+        address   pool,
         uint256[] memory depositAmounts,
-        uint256 minLpAmount
+        uint256   minLpAmount
     )
         external returns (uint256 shares)
     {
@@ -664,8 +651,8 @@ contract ForeignController is AccessControl {
     }
 
     function removeLiquidityCurve(
-        address pool,
-        uint256 lpBurnAmount,
+        address   pool,
+        uint256   lpBurnAmount,
         uint256[] memory minWithdrawAmounts
     )
         external returns (uint256[] memory withdrawnTokens)
@@ -746,32 +733,6 @@ contract ForeignController is AccessControl {
     /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/
     /**********************************************************************************************/
-
-    function _initiateCCTPTransfer(
-        uint256 usdcAmount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient
-    )
-        internal
-    {
-        uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
-                abi.encodeCall(
-                    cctp.depositForBurn,
-                    (
-                        usdcAmount,
-                        destinationDomain,
-                        mintRecipient,
-                        address(usdc)
-                    )
-                )
-            ),
-            (uint64)
-        );
-
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
-    }
 
     function _rateLimited(bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);

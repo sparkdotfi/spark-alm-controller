@@ -8,11 +8,12 @@ import { IERC20 } from "forge-std/interfaces/IERC20.sol";
 import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
 import { Base } from "spark-address-registry/Base.sol";
+import { Base as GroveBase } from "grove-address-registry/Base.sol";
 
 import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "spark-psm/src/PSM3.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPv2Forwarder as CCTPForwarder } from "xchain-helpers/forwarders/CCTPv2Forwarder.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
@@ -49,7 +50,7 @@ contract ForkTestBase is Test {
     /**********************************************************************************************/
 
     address constant SPARK_EXECUTOR      = Base.SPARK_EXECUTOR;
-    address constant CCTP_MESSENGER_BASE = Base.CCTP_TOKEN_MESSENGER;
+    address constant CCTP_MESSENGER_BASE = GroveBase.CCTP_TOKEN_MESSENGER_V2;
     address constant USDC_BASE           = Base.USDC;
     address constant SSR_ORACLE          = Base.SSR_AUTH_ORACLE;
     // TODO: Get this from the registry after added there
@@ -132,7 +133,7 @@ contract ForkTestBase is Test {
         Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
             admin        : Base.SPARK_EXECUTOR,
             psm          : address(psmBase),
-            cctp         : Base.CCTP_TOKEN_MESSENGER,
+            cctp         : GroveBase.CCTP_TOKEN_MESSENGER_V2,
             usdc         : address(usdcBase),
             pendleRouter : PENDLE_ROUTER_BASE
             // susds : address(susdsBase),
@@ -190,7 +191,7 @@ contract ForkTestBase is Test {
 
     // Default configuration for the fork, can be overridden in inheriting tests
     function _getBlock() internal virtual pure returns (uint256) {
-        return 20782500;  // October 8, 2024
+        return 37589683;  // November 1, 2025
     }
 
 }

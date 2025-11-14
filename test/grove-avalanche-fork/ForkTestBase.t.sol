@@ -12,7 +12,7 @@ import { Avalanche } from "grove-address-registry/Avalanche.sol";
 import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "spark-psm/src/PSM3.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPv2Forwarder as CCTPForwarder } from "xchain-helpers/forwarders/CCTPv2Forwarder.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
@@ -53,7 +53,7 @@ contract ForkTestBase is Test {
 
     address constant ALM_FREEZER          = Avalanche.ALM_FREEZER;
     address constant ALM_RELAYER          = Avalanche.ALM_RELAYER;
-    address constant CCTP_TOKEN_MESSENGER = Avalanche.CCTP_TOKEN_MESSENGER;
+    address constant CCTP_TOKEN_MESSENGER = Avalanche.CCTP_TOKEN_MESSENGER_V2;
     address constant GROVE_EXECUTOR       = Avalanche.GROVE_EXECUTOR;
     address constant USDC_AVALANCHE       = Avalanche.USDC;
 

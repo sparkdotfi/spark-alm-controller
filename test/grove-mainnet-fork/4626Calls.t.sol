@@ -32,13 +32,13 @@ contract SUSDSTestBase is ForkTestBase {
 
         // Setting this value directly because susds.drip() fails in setUp with
         // StateChangeDuringStaticCall and it is unclear why, something related to foundry.
-        SUSDS_DRIP_AMOUNT = 849.454677397481388011e18;
+        SUSDS_DRIP_AMOUNT = 51.87160523081084142e18;
 
-        assertEq(SUSDS_CONVERTED_ASSETS, 1.003430776383974596e18);
-        assertEq(SUSDS_CONVERTED_SHARES, 0.996580953599671364e18);
+        assertEq(SUSDS_CONVERTED_ASSETS, 1.073777980370121329e18);
+        assertEq(SUSDS_CONVERTED_SHARES, 0.931291215019430047e18);
 
-        assertEq(SUSDS_TOTAL_ASSETS, 485_597_342.757158870618550128e18);
-        assertEq(SUSDS_TOTAL_SUPPLY, 483_937_062.910395855928183397e18);
+        assertEq(SUSDS_TOTAL_ASSETS, 3_096_961_050.229935401970647802e18);
+        assertEq(SUSDS_TOTAL_SUPPLY, 2_884_172_619.336486671521984122e18);
     }
 
 }
@@ -106,7 +106,7 @@ contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
         assertEq(usds.allowance(address(almProxy), address(susds)), 0);
 
         assertEq(susds.totalSupply(),                SUSDS_TOTAL_SUPPLY + shares);
-        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18);
+        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18 - 1);  // Rounding
         assertEq(susds.balanceOf(address(almProxy)), SUSDS_CONVERTED_SHARES);
     }
 
@@ -163,18 +163,18 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
         assertEq(usds.allowance(address(almProxy), address(susds)),  0);
 
         assertEq(susds.totalSupply(),                SUSDS_TOTAL_SUPPLY + SUSDS_CONVERTED_SHARES);
-        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18);
+        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18 - 1);  // Rounding
         assertEq(susds.balanceOf(address(almProxy)), SUSDS_CONVERTED_SHARES);
 
         // Max available with rounding
         vm.prank(relayer);
-        uint256 shares = mainnetController.withdrawERC4626(address(susds), 1e18 - 1);  // Rounding
+        uint256 shares = mainnetController.withdrawERC4626(address(susds), 1e18 - 2);  // Rounding
 
         assertEq(shares, SUSDS_CONVERTED_SHARES);
 
-        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 1);
+        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 2);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
-        assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1);  // Rounding
+        assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 2);  // Rounding
 
         assertEq(usds.allowance(address(buffer),   address(vault)), type(uint256).max);
         assertEq(usds.allowance(address(almProxy), address(susds)),  0);
@@ -260,17 +260,17 @@ contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
         assertEq(usds.allowance(address(almProxy), address(susds)),  0);
 
         assertEq(susds.totalSupply(),                SUSDS_TOTAL_SUPPLY + SUSDS_CONVERTED_SHARES);
-        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18);
+        assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS + 1e18 - 1);  // Rounding
         assertEq(susds.balanceOf(address(almProxy)), SUSDS_CONVERTED_SHARES);
 
         vm.prank(relayer);
         uint256 assets = mainnetController.redeemERC4626(address(susds), SUSDS_CONVERTED_SHARES);
 
-        assertEq(assets, 1e18 - 1);  // Rounding
+        assertEq(assets, 1e18 - 2);  // Rounding
 
-        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 1);  // Rounding
+        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 2);  // Rounding
         assertEq(usds.balanceOf(address(mainnetController)), 0);
-        assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1);  // Rounding
+        assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 2);  // Rounding
 
         assertEq(usds.allowance(address(buffer),   address(vault)), type(uint256).max);
         assertEq(usds.allowance(address(almProxy), address(susds)), 0);

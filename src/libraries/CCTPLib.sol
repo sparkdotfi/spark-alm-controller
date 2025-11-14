@@ -9,7 +9,7 @@ import { ICCTPLike }   from "../interfaces/CCTPInterfaces.sol";
 
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
-import { ERC20Lib } from "./ERC20Lib.sol";
+import { ERC20Lib } from "./common/ERC20Lib.sol";
 
 library CCTPLib {
 
@@ -35,7 +35,6 @@ library CCTPLib {
 
     // NOTE: This is used to track individual transfers for offchain processing of CCTP transactions
     event CCTPTransferInitiated(
-        uint64  indexed nonce,
         uint32  indexed destinationDomain,
         bytes32 indexed mintRecipient,
         uint256 usdcAmount
@@ -53,7 +52,7 @@ library CCTPLib {
             params.usdcAmount
         );
 
-        require(params.mintRecipient != 0, "MainnetController/domain-not-configured");
+        require(params.mintRecipient != 0, "CCTPLib/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
         ERC20Lib.approve(params.proxy, address(params.usdc), address(params.cctp), params.usdcAmount);
@@ -103,29 +102,29 @@ library CCTPLib {
     )
         internal
     {
-        uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
-                abi.encodeCall(
-                    cctp.depositForBurn,
-                    (
-                        usdcAmount,
-                        destinationDomain,
-                        mintRecipient,
-                        address(usdc)
-                    )
+        proxy.doCall(
+            address(cctp),
+            abi.encodeCall(
+                cctp.depositForBurn,
+                (
+                    usdcAmount,
+                    destinationDomain,
+                    mintRecipient,
+                    address(usdc),
+                    bytes32(0), // destinationCaller = 0 means anyone can relay
+                    0,          // maxFee = 0 for standard burns (no fast burn fee)
+                    2_000       // minFinalityThreshold = 2000 for standard (finalized) messages
                 )
-            ),
-            (uint64)
+            )
         );
 
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
+        emit CCTPTransferInitiated(destinationDomain, mintRecipient, usdcAmount);
     }
 
     /**********************************************************************************************/
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
-    
+
     function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
     }

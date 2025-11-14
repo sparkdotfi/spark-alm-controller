@@ -5,7 +5,7 @@ import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
-import { ERC20Lib }    from "../libraries/ERC20Lib.sol";
+import { ERC20Lib }    from "../libraries/common/ERC20Lib.sol";
 
 import {
     IPendleMarket,

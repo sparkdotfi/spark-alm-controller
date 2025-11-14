@@ -3,10 +3,10 @@ pragma solidity ^0.8.21;
 
 import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
-import { IALMProxy } from "../interfaces/IALMProxy.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 library ERC20Lib {
-    
+
     // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
     function approve(
         IALMProxy proxy,

@@ -12,7 +12,7 @@ import { Base } from "grove-address-registry/Base.sol";
 import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "spark-psm/src/PSM3.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPv2Forwarder as CCTPForwarder } from "xchain-helpers/forwarders/CCTPv2Forwarder.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
@@ -53,7 +53,7 @@ contract ForkTestBase is Test {
 
     address constant ALM_FREEZER          = Base.ALM_FREEZER;
     address constant ALM_RELAYER          = Base.ALM_RELAYER;
-    address constant CCTP_TOKEN_MESSENGER = Base.CCTP_TOKEN_MESSENGER;
+    address constant CCTP_TOKEN_MESSENGER = Base.CCTP_TOKEN_MESSENGER_V2;
     address constant GROVE_EXECUTOR       = Base.GROVE_EXECUTOR;
     address constant USDC_BASE            = Base.USDC;
     address constant PENDLE_ROUTER_BASE   = Base.PENDLE_ROUTER;
@@ -175,7 +175,7 @@ contract ForkTestBase is Test {
 
     // Default configuration for the fork, can be overridden in inheriting tests
     function _getBlock() internal virtual pure returns (uint256) {
-        return 36912750; //  October 16, 2025
+        return 37589683; //  November 1, 2025
     }
 
     function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {

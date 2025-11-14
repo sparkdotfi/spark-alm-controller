@@ -8,7 +8,7 @@ import { MainnetController } from "../../src/MainnetController.sol";
 
 import { CurveLib } from "../../src/libraries/CurveLib.sol";
 
-import { ERC20Lib } from "../../src/libraries/ERC20Lib.sol";
+import { ERC20Lib } from "../../src/libraries/common/ERC20Lib.sol";
 import { IALMProxy } from "../../src/interfaces/IALMProxy.sol";
 
 import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
