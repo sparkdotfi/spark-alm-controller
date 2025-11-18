@@ -12,11 +12,13 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
-            admin   : GROVE_PROXY,
-            vault   : vault,
-            psm     : PSM,
-            daiUsds : DAI_USDS,
-            cctp    : CCTP_MESSENGER
+            admin                    : GROVE_PROXY,
+            vault                    : vault,
+            psm                      : PSM,
+            daiUsds                  : DAI_USDS,
+            cctp                     : CCTP_MESSENGER,
+            uniswapV3Router          : UNISWAP_V3_ROUTER,
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
         });
 
         ALMProxy          newAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -36,13 +38,15 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         MainnetController newController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : GROVE_PROXY,
-            almProxy   : address(almProxy),
-            rateLimits : address(rateLimits),
-            vault      : vault,
-            psm        : PSM,
-            daiUsds    : DAI_USDS,
-            cctp       : CCTP_MESSENGER
+            admin                    : GROVE_PROXY,
+            almProxy                 : address(almProxy),
+            rateLimits               : address(rateLimits),
+            vault                    : vault,
+            psm                      : PSM,
+            daiUsds                  : DAI_USDS,
+            cctp                     : CCTP_MESSENGER,
+            uniswapV3Router          : UNISWAP_V3_ROUTER,
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
         }));
 
         _assertControllerInitState(newController, address(almProxy), address(rateLimits), vault, buffer);

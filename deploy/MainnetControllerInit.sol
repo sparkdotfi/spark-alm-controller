@@ -35,6 +35,8 @@ library MainnetControllerInit {
         address psm;
         address daiUsds;
         address cctp;
+        address uniswapV3Router;
+        address uniswapV3PositionManager;
     }
 
     struct ConfigAddressParams {
@@ -144,10 +146,12 @@ library MainnetControllerInit {
         require(address(newController.proxy())      == controllerInst.almProxy,   "MainnetControllerInit/incorrect-almProxy");
         require(address(newController.rateLimits()) == controllerInst.rateLimits, "MainnetControllerInit/incorrect-rateLimits");
 
-        require(address(newController.vault())   == checkAddresses.vault,   "MainnetControllerInit/incorrect-vault");
-        require(address(newController.psm())     == checkAddresses.psm,     "MainnetControllerInit/incorrect-psm");
-        require(address(newController.daiUsds()) == checkAddresses.daiUsds, "MainnetControllerInit/incorrect-daiUsds");
-        require(address(newController.cctp())    == checkAddresses.cctp,    "MainnetControllerInit/incorrect-cctp");
+        require(address(newController.vault())                    == checkAddresses.vault,                    "MainnetControllerInit/incorrect-vault");
+        require(address(newController.psm())                      == checkAddresses.psm,                      "MainnetControllerInit/incorrect-psm");
+        require(address(newController.daiUsds())                  == checkAddresses.daiUsds,                  "MainnetControllerInit/incorrect-daiUsds");
+        require(address(newController.cctp())                     == checkAddresses.cctp,                     "MainnetControllerInit/incorrect-cctp");
+        require(address(newController.uniswapV3Router())          == checkAddresses.uniswapV3Router,          "MainnetControllerInit/incorrect-uniswapV3Router");
+        require(address(newController.uniswapV3PositionManager()) == checkAddresses.uniswapV3PositionManager, "MainnetControllerInit/incorrect-uniswapV3PositionManager");
 
         require(newController.psmTo18ConversionFactor() == 1e12, "MainnetControllerInit/incorrect-psmTo18ConversionFactor");
 

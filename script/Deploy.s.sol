@@ -29,11 +29,13 @@ contract DeployMainnetFull is Script {
         string memory config = ScriptTools.loadConfig(fileSlug);
 
         ControllerInstance memory instance = MainnetControllerDeploy.deployFull({
-            admin   : config.readAddress(".admin"),
-            vault   : config.readAddress(".allocatorVault"),
-            psm     : config.readAddress(".psm"),
-            daiUsds : config.readAddress(".daiUsds"),
-            cctp    : config.readAddress(".cctpTokenMessenger")
+            admin                    : config.readAddress(".admin"),
+            vault                    : config.readAddress(".allocatorVault"),
+            psm                      : config.readAddress(".psm"),
+            daiUsds                  : config.readAddress(".daiUsds"),
+            cctp                     : config.readAddress(".cctpTokenMessenger"),
+            uniswapV3Router          : config.readAddress(".uniswapV3Router"),
+            uniswapV3PositionManager : config.readAddress(".uniswapV3PositionManager")
         });
 
         vm.stopBroadcast();
@@ -69,13 +71,15 @@ contract DeployMainnetController is Script {
         string memory config = ScriptTools.loadConfig(fileSlug);
 
         address controller = MainnetControllerDeploy.deployController({
-            admin      : config.readAddress(".admin"),
-            almProxy   : config.readAddress(".almProxy"),
-            rateLimits : config.readAddress(".rateLimits"),
-            vault      : config.readAddress(".allocatorVault"),
-            psm        : config.readAddress(".psm"),
-            daiUsds    : config.readAddress(".daiUsds"),
-            cctp       : config.readAddress(".cctpTokenMessenger")
+            admin                    : config.readAddress(".admin"),
+            almProxy                 : config.readAddress(".almProxy"),
+            rateLimits               : config.readAddress(".rateLimits"),
+            vault                    : config.readAddress(".allocatorVault"),
+            psm                      : config.readAddress(".psm"),
+            daiUsds                  : config.readAddress(".daiUsds"),
+            cctp                     : config.readAddress(".cctpTokenMessenger"),
+            uniswapV3Router          : config.readAddress(".uniswapV3Router"),
+            uniswapV3PositionManager : config.readAddress(".uniswapV3PositionManager")
         });
 
         vm.stopBroadcast();
@@ -133,11 +137,13 @@ contract DeployForeignFull is ForeignScript {
         vm.startBroadcast();
 
         ControllerInstance memory instance = ForeignControllerDeploy.deployFull({
-            admin        : config.readAddress(".admin"),
-            psm          : config.readAddress(".psm"),
-            usdc         : config.readAddress(".usdc"),
-            cctp         : config.readAddress(".cctpTokenMessenger"),
-            pendleRouter : config.readAddress(".pendleRouter")
+            admin                    : config.readAddress(".admin"),
+            psm                      : config.readAddress(".psm"),
+            usdc                     : config.readAddress(".usdc"),
+            cctp                     : config.readAddress(".cctpTokenMessenger"),
+            pendleRouter             : config.readAddress(".pendleRouter"),
+            uniswapV3Router          : config.readAddress(".uniswapV3Router"),
+            uniswapV3PositionManager : config.readAddress(".uniswapV3PositionManager")
         });
 
         vm.stopBroadcast();
@@ -175,13 +181,15 @@ contract DeployForeignController is ForeignScript {
         vm.startBroadcast();
 
         address controller = ForeignControllerDeploy.deployController({
-            admin        : config.readAddress(".admin"),
-            almProxy     : config.readAddress(".almProxy"),
-            rateLimits   : config.readAddress(".rateLimits"),
-            psm          : config.readAddress(".psm"),
-            usdc         : config.readAddress(".usdc"),
-            cctp         : config.readAddress(".cctpTokenMessenger"),
-            pendleRouter : config.readAddress(".pendleRouter")
+            admin                    : config.readAddress(".admin"),
+            almProxy                 : config.readAddress(".almProxy"),
+            rateLimits               : config.readAddress(".rateLimits"),
+            psm                      : config.readAddress(".psm"),
+            usdc                     : config.readAddress(".usdc"),
+            cctp                     : config.readAddress(".cctpTokenMessenger"),
+            pendleRouter             : config.readAddress(".pendleRouter"),
+            uniswapV3Router          : config.readAddress(".uniswapV3Router"),
+            uniswapV3PositionManager : config.readAddress(".uniswapV3PositionManager")
         });
 
         vm.stopBroadcast();

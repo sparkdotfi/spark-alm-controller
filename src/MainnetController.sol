@@ -13,10 +13,11 @@ import { IERC4626 } from "openzeppelin-contracts/contracts/interfaces/IERC4626.s
 
 import { Ethereum } from "grove-address-registry/Ethereum.sol";
 
-import { IALMProxy }     from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }     from "./interfaces/CCTPInterfaces.sol";
-import { IPendleMarket } from "./interfaces/PendleInterfaces.sol";
-import { IRateLimits }   from "./interfaces/IRateLimits.sol";
+import { IALMProxy }                                from "./interfaces/IALMProxy.sol";
+import { ICCTPLike }                                from "./interfaces/CCTPInterfaces.sol";
+import { IPendleMarket }                            from "./interfaces/PendleInterfaces.sol";
+import { IRateLimits }                              from "./interfaces/IRateLimits.sol";
+import { ISwapRouter, INonfungiblePositionManager } from "./interfaces/UniswapV3Interfaces.sol";
 
 import "./interfaces/ILayerZero.sol";
 
@@ -27,6 +28,7 @@ import { MerklLib }                       from "./libraries/MerklLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { PendleLib }                      from "./libraries/PendleLib.sol";
 import { ERC20Lib }                       from "./libraries/common/ERC20Lib.sol";
+import { UniswapV3Lib }                   from "./libraries/UniswapV3Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -66,6 +68,9 @@ contract MainnetController is AccessControl {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
+    event UniswapV3PoolMaxTickDeltaSet(address indexed pool, uint24 maxTickDelta);
+    event UniswapV3PoolLowerTickUpdated(address indexed pool, int24 lowerTick);
+    event UniswapV3PoolUpperTickUpdated(address indexed pool, int24 upperTick);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -94,18 +99,27 @@ contract MainnetController is AccessControl {
     bytes32 public LIMIT_USDE_MINT            = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT            = keccak256("LIMIT_USDS_MINT");
     bytes32 public LIMIT_USDS_TO_USDC         = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 public LIMIT_UNISWAP_V3_DEPOSIT   = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
+    bytes32 public LIMIT_UNISWAP_V3_SWAP      = keccak256("LIMIT_UNISWAP_V3_SWAP");
+    bytes32 public LIMIT_UNISWAP_V3_WITHDRAW  = keccak256("LIMIT_UNISWAP_V3_WITHDRAW");
 
     uint256 internal CENTRIFUGE_REQUEST_ID = 0;
 
+    // @dev https://github.com/uniswap/v4-core/blob/80311e34080fee64b6fc6c916e9a51a437d0e482/src/libraries/TickMath.sol#L20-L23
+    int24 internal constant MIN_TICK = -887_272;
+    int24 internal constant MAX_TICK =  887_272;
+
     address public buffer;
 
-    IALMProxy         public proxy;
-    ICCTPLike         public cctp;
-    IDaiUsdsLike      public daiUsds;
-    IEthenaMinterLike public ethenaMinter;
-    IPSMLike          public psm;
-    IRateLimits       public rateLimits;
-    IVaultLike        public vault;
+    IALMProxy                   public proxy;
+    ICCTPLike                   public cctp;
+    IDaiUsdsLike                public daiUsds;
+    IEthenaMinterLike           public ethenaMinter;
+    IPSMLike                    public psm;
+    IRateLimits                 public rateLimits;
+    IVaultLike                  public vault;
+    ISwapRouter                 public uniswapV3Router;
+    INonfungiblePositionManager public uniswapV3PositionManager;
 
     IERC20     public dai;
     IERC20     public usds;
@@ -116,6 +130,8 @@ contract MainnetController is AccessControl {
     uint256 public psmTo18ConversionFactor;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
+
+    mapping(address pool => UniswapV3Lib.UniswapV3PoolParams params) public uniswapV3PoolParams;
 
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
@@ -132,17 +148,21 @@ contract MainnetController is AccessControl {
         address vault_,
         address psm_,
         address daiUsds_,
-        address cctp_
+        address cctp_,
+        address uniswapV3Router_,
+        address uniswapV3PositionManager_
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
-        proxy      = IALMProxy(proxy_);
-        rateLimits = IRateLimits(rateLimits_);
-        vault      = IVaultLike(vault_);
-        buffer     = IVaultLike(vault_).buffer();
-        psm        = IPSMLike(psm_);
-        daiUsds    = IDaiUsdsLike(daiUsds_);
-        cctp       = ICCTPLike(cctp_);
+        proxy                    = IALMProxy(proxy_);
+        rateLimits               = IRateLimits(rateLimits_);
+        vault                    = IVaultLike(vault_);
+        buffer                   = IVaultLike(vault_).buffer();
+        psm                      = IPSMLike(psm_);
+        daiUsds                  = IDaiUsdsLike(daiUsds_);
+        cctp                     = ICCTPLike(cctp_);
+        uniswapV3Router          = ISwapRouter(uniswapV3Router_);
+        uniswapV3PositionManager = INonfungiblePositionManager(uniswapV3PositionManager_);
 
         ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
@@ -180,6 +200,36 @@ contract MainnetController is AccessControl {
         _checkRole(DEFAULT_ADMIN_ROLE);
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
+    }
+
+    function setUniswapV3PoolMaxTickDelta(address pool, uint24 maxTickDelta) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(
+            maxTickDelta > 0 &&
+            maxTickDelta <= UniswapV3Lib.MAX_TICK_DELTA,
+            "MainnetController/max-tick-delta-out-of-bounds"
+        );
+
+        UniswapV3Lib.UniswapV3PoolParams storage params = uniswapV3PoolParams[pool];
+        params.swapMaxTickDelta = maxTickDelta;
+        emit UniswapV3PoolMaxTickDeltaSet(pool, maxTickDelta);
+    }
+
+    function setUniswapV3AddLiquidityLowerTickBound(address pool, int24 lowerTickBound) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        UniswapV3Lib.UniswapV3PoolParams storage params = uniswapV3PoolParams[pool];
+        require(lowerTickBound >= MIN_TICK && lowerTickBound < params.addLiquidityTickBounds.upper, "MainnetController/lower-tick-out-of-bounds");
+
+        params.addLiquidityTickBounds.lower = lowerTickBound;
+        emit UniswapV3PoolLowerTickUpdated(pool, lowerTickBound);
+    }
+
+    function setUniswapV3AddLiquidityUpperTickBound(address pool, int24 upperTickBound) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        UniswapV3Lib.UniswapV3PoolParams storage params = uniswapV3PoolParams[pool];
+        require(upperTickBound > params.addLiquidityTickBounds.lower && upperTickBound <= MAX_TICK, "MainnetController/upper-tick-out-of-bounds");
+
+        params.addLiquidityTickBounds.upper = upperTickBound;
+        emit UniswapV3PoolUpperTickUpdated(pool, upperTickBound);
     }
 
     function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external {
@@ -514,8 +564,8 @@ contract MainnetController is AccessControl {
     }
 
     function removeLiquidityCurve(
-        address pool,
-        uint256 lpBurnAmount,
+        address   pool,
+        uint256   lpBurnAmount,
         uint256[] memory minWithdrawAmounts
     )
         external returns (uint256[] memory withdrawnTokens)
@@ -532,6 +582,105 @@ contract MainnetController is AccessControl {
             maxSlippage        : maxSlippages[pool]
         }));
     }
+    
+    /**********************************************************************************************/
+    /*** Relayer UniswapV3 functions                                                            ***/
+    /**********************************************************************************************/
+    function swapUniswapV3(
+        address pool,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        uint24  swapMaxTickDelta
+    )
+        external returns (uint256 amountOut)
+    {
+        _checkRole(RELAYER);
+
+        amountOut = UniswapV3Lib.swap(
+            UniswapV3Lib.UniV3Context({
+                proxy       : proxy,
+                rateLimits  : rateLimits,
+                rateLimitId : LIMIT_UNISWAP_V3_SWAP,
+                pool        : pool
+            }),
+            UniswapV3Lib.SwapParams({
+                router       : uniswapV3Router,
+                tokenIn      : tokenIn,
+                amountIn     : amountIn,
+                minAmountOut : minAmountOut,
+                maxSlippage  : maxSlippages[pool],
+                tickDelta    : swapMaxTickDelta,
+                poolParams   : uniswapV3PoolParams[pool]
+            })
+        );
+    }
+
+    function addLiquidityUniswapV3(
+        address                   pool,
+        uint256                   tokenId,
+        UniswapV3Lib.Tick         calldata tick,
+        UniswapV3Lib.TokenAmounts calldata target,
+        UniswapV3Lib.TokenAmounts calldata min,
+        uint256                   deadline
+    )
+        external
+        returns (uint256 tokenId_, uint128 liquidity_, uint256 amount0_, uint256 amount1_)
+    {
+        _checkRole(RELAYER);
+
+        UniswapV3Lib.UniswapV3PoolParams memory poolParams = uniswapV3PoolParams[pool];
+        uint256 maxSlippage                                = maxSlippages[pool];
+
+        (tokenId_, liquidity_, amount0_, amount1_) = UniswapV3Lib.addLiquidity(
+            UniswapV3Lib.UniV3Context({
+                proxy       : proxy,
+                rateLimits  : rateLimits,
+                rateLimitId : LIMIT_UNISWAP_V3_DEPOSIT,
+                pool        : pool
+            }),
+            UniswapV3Lib.AddLiquidityParams({
+                positionManager : uniswapV3PositionManager,
+                tokenId         : tokenId,
+                tick            : tick,
+                target          : target,
+                min             : min,
+                tickBounds      : poolParams.addLiquidityTickBounds,
+                maxSlippage     : maxSlippage,
+                deadline        : deadline
+            })
+        );
+    }
+
+    function removeLiquidityUniswapV3(
+        address                   pool,
+        uint256                   tokenId,
+        uint128                   liquidity,
+        UniswapV3Lib.TokenAmounts calldata min,
+        uint256                   deadline
+    )
+        external
+        onlyRole(RELAYER)
+        returns (uint256 amount0Collected, uint256 amount1Collected)
+    {
+        return UniswapV3Lib.removeLiquidity(
+            UniswapV3Lib.UniV3Context({
+                proxy       : proxy,
+                rateLimits  : rateLimits,
+                rateLimitId : LIMIT_UNISWAP_V3_WITHDRAW,
+                pool        : pool
+            }),
+            UniswapV3Lib.RemoveLiquidityParams({
+                positionManager : uniswapV3PositionManager,
+                tokenId         : tokenId,
+                liquidity       : liquidity,
+                min             : min,
+                maxSlippage     : maxSlippages[pool],
+                deadline        : deadline
+            })
+        );
+    }
+
 
     /**********************************************************************************************/
     /*** Relayer Ethena functions                                                               ***/

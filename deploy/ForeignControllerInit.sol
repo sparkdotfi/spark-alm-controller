@@ -28,6 +28,8 @@ library ForeignControllerInit {
         address cctp;
         address usdc;
         address pendleRouter;
+        address uniswapV3Router;
+        address uniswapV3PositionManager;
         // address susds;
         // address usds;
     }
@@ -126,10 +128,12 @@ library ForeignControllerInit {
         require(address(newController.proxy())      == controllerInst.almProxy,   "ForeignControllerInit/incorrect-almProxy");
         require(address(newController.rateLimits()) == controllerInst.rateLimits, "ForeignControllerInit/incorrect-rateLimits");
 
-        require(address(newController.psm())          == checkAddresses.psm,  "ForeignControllerInit/incorrect-psm");
-        require(address(newController.usdc())         == checkAddresses.usdc, "ForeignControllerInit/incorrect-usdc");
-        require(address(newController.cctp())         == checkAddresses.cctp, "ForeignControllerInit/incorrect-cctp");
-        require(address(newController.pendleRouter()) == checkAddresses.pendleRouter, "ForeignControllerInit/incorrect-pendleRouter");
+        require(address(newController.psm())                      == checkAddresses.psm,                      "ForeignControllerInit/incorrect-psm");
+        require(address(newController.usdc())                     == checkAddresses.usdc,                     "ForeignControllerInit/incorrect-usdc");
+        require(address(newController.cctp())                     == checkAddresses.cctp,                     "ForeignControllerInit/incorrect-cctp");
+        require(address(newController.pendleRouter())             == checkAddresses.pendleRouter,             "ForeignControllerInit/incorrect-pendleRouter");
+        require(address(newController.uniswapV3Router())          == checkAddresses.uniswapV3Router,          "ForeignControllerInit/incorrect-uniswapV3Router");
+        require(address(newController.uniswapV3PositionManager()) == checkAddresses.uniswapV3PositionManager, "ForeignControllerInit/incorrect-uniswapV3PositionManager");
 
         require(configAddresses.oldController != address(newController), "ForeignControllerInit/old-controller-is-new-controller");
 

@@ -222,11 +222,13 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
         /*** Step 3: Deploy and configure ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin        : SPARK_EXECUTOR,
-            psm          : address(psmBase),
-            usdc         : USDC_BASE,
-            cctp         : CCTP_MESSENGER_BASE,
-            pendleRouter : PENDLE_ROUTER_BASE
+            admin                    : SPARK_EXECUTOR,
+            psm                      : address(psmBase),
+            usdc                     : USDC_BASE,
+            cctp                     : CCTP_MESSENGER_BASE,
+            pendleRouter             : PENDLE_ROUTER_BASE,
+            uniswapV3Router          : address(0xdeadbeef),
+            uniswapV3PositionManager : address(0xdeadbeef)
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -243,13 +245,13 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
         });
 
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin        : Base.SPARK_EXECUTOR,
-            psm          : address(psmBase),
-            cctp         : GroveEthereum.CCTP_TOKEN_MESSENGER_V2,
-            usdc         : address(usdcBase),
-            pendleRouter : PENDLE_ROUTER_BASE
-            // susds : address(susdsBase),
-            // usds  : address(usdsBase)
+            admin                    : Base.SPARK_EXECUTOR,
+            psm                      : address(psmBase),
+            cctp                     : GroveEthereum.CCTP_TOKEN_MESSENGER_V2,
+            usdc                     : address(usdcBase),
+            pendleRouter             : PENDLE_ROUTER_BASE,
+            uniswapV3Router          : address(0xdeadbeef),
+            uniswapV3PositionManager : address(0xdeadbeef)
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);

@@ -93,12 +93,15 @@ contract ForkTestBase is DssTest {
 
     address constant LOG = 0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F;
 
-    address constant CCTP_MESSENGER = Ethereum.CCTP_TOKEN_MESSENGER_V2;
-    address constant DAI_USDS       = Ethereum.DAI_USDS;
-    address constant ETHENA_MINTER  = Ethereum.ETHENA_MINTER;
-    address constant PAUSE_PROXY    = Ethereum.PAUSE_PROXY;
-    address constant PSM            = Ethereum.PSM;
-    address constant GROVE_PROXY    = Ethereum.GROVE_PROXY;
+    address constant CCTP_MESSENGER              = Ethereum.CCTP_TOKEN_MESSENGER_V2;
+    address constant DAI_USDS                    = Ethereum.DAI_USDS;
+    address constant ETHENA_MINTER               = Ethereum.ETHENA_MINTER;
+    address constant PAUSE_PROXY                 = Ethereum.PAUSE_PROXY;
+    address constant PSM                         = Ethereum.PSM;
+    address constant GROVE_PROXY                 = Ethereum.GROVE_PROXY;
+    // TODO: add to grove-address-registry
+    address constant UNISWAP_V3_ROUTER           = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45;
+    address constant UNISWAP_V3_POSITION_MANAGER = 0xC36442b4a4522E871399CD717aBDD847Ab11FE88;
 
     IERC20 constant dai   = IERC20(Ethereum.DAI);
     IERC20 constant usdc  = IERC20(Ethereum.USDC);
@@ -204,11 +207,13 @@ contract ForkTestBase is DssTest {
         /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
-            admin   : Ethereum.GROVE_PROXY,
-            vault   : ilkInst.vault,
-            psm     : Ethereum.PSM,
-            daiUsds : Ethereum.DAI_USDS,
-            cctp    : Ethereum.CCTP_TOKEN_MESSENGER_V2
+            admin                    : Ethereum.GROVE_PROXY,
+            vault                    : ilkInst.vault,
+            psm                      : Ethereum.PSM,
+            daiUsds                  : Ethereum.DAI_USDS,
+            cctp                     : Ethereum.CCTP_TOKEN_MESSENGER_V2,
+            uniswapV3Router          : UNISWAP_V3_ROUTER,
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -231,13 +236,15 @@ contract ForkTestBase is DssTest {
 
         Init.CheckAddressParams memory checkAddresses
             = Init.CheckAddressParams({
-                admin      : Ethereum.GROVE_PROXY,
-                proxy      : address(almProxy),
-                rateLimits : address(rateLimits),
-                vault      : address(vault),
-                psm        : Ethereum.PSM,
-                daiUsds    : Ethereum.DAI_USDS,
-                cctp       : Ethereum.CCTP_TOKEN_MESSENGER_V2
+                admin                    : Ethereum.GROVE_PROXY,
+                proxy                    : address(almProxy),
+                rateLimits               : address(rateLimits),
+                vault                    : address(vault),
+                psm                      : Ethereum.PSM,
+                daiUsds                  : Ethereum.DAI_USDS,
+                cctp                     : Ethereum.CCTP_TOKEN_MESSENGER_V2,
+                uniswapV3Router          : UNISWAP_V3_ROUTER,
+                uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
             });
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
@@ -297,6 +304,7 @@ contract ForkTestBase is DssTest {
         vm.label(address(susds), "susds");
         vm.label(address(usdc),  "usdc");
         vm.label(address(usds),  "usds");
+        vm.label(address(dai),   "dai");
         vm.label(vault,          "vault");
     }
 

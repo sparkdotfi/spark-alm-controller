@@ -15,11 +15,13 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin        : Base.SPARK_EXECUTOR,
-            psm          : Base.PSM3,
-            usdc         : Base.USDC,
-            cctp         : GroveBase.CCTP_TOKEN_MESSENGER_V2,
-            pendleRouter : PENDLE_ROUTER
+            admin                    : Base.SPARK_EXECUTOR,
+            psm                      : Base.PSM3,
+            usdc                     : Base.USDC,
+            cctp                     : GroveBase.CCTP_TOKEN_MESSENGER_V2,
+            pendleRouter             : PENDLE_ROUTER,
+            uniswapV3Router          : address(0xDeadBeef), // unused
+            uniswapV3PositionManager : address(0xDeadBeef)  // unused
         });
 
         ALMProxy          newAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -39,13 +41,15 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         ForeignController newController = ForeignController(ForeignControllerDeploy.deployController({
-            admin        : Base.SPARK_EXECUTOR,
-            almProxy     : address(almProxy),
-            rateLimits   : address(rateLimits),
-            psm          : Base.PSM3,
-            usdc         : Base.USDC,
-            cctp         : GroveBase.CCTP_TOKEN_MESSENGER_V2,
-            pendleRouter : PENDLE_ROUTER
+            admin                    : Base.SPARK_EXECUTOR,
+            almProxy                 : address(almProxy),
+            rateLimits               : address(rateLimits),
+            psm                      : Base.PSM3,
+            usdc                     : Base.USDC,
+            cctp                     : GroveBase.CCTP_TOKEN_MESSENGER_V2,
+            pendleRouter             : PENDLE_ROUTER,
+            uniswapV3Router          : address(0xDeadBeef), // unused
+            uniswapV3PositionManager : address(0xDeadBeef)  // unused
         }));
 
         _assertControllerInitState(newController, address(almProxy), address(rateLimits));
@@ -55,11 +59,14 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, Base.SPARK_EXECUTOR), true);
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, address(this)),       false);  // Deployer never gets admin
 
-        assertEq(address(controller.proxy()),      almProxy);
-        assertEq(address(controller.rateLimits()), rateLimits);
-        assertEq(address(controller.psm()),        Base.PSM3);
-        assertEq(address(controller.usdc()),       Base.USDC);
-        assertEq(address(controller.cctp()),       GroveBase.CCTP_TOKEN_MESSENGER_V2);
+        assertEq(address(controller.proxy()),                    almProxy);
+        assertEq(address(controller.rateLimits()),               rateLimits);
+        assertEq(address(controller.psm()),                      Base.PSM3);
+        assertEq(address(controller.usdc()),                     Base.USDC);
+        assertEq(address(controller.cctp()),                     GroveBase.CCTP_TOKEN_MESSENGER_V2);
+        assertEq(address(controller.pendleRouter()),             PENDLE_ROUTER);
+        assertEq(address(controller.uniswapV3Router()),          address(0xDeadBeef));
+        assertEq(address(controller.uniswapV3PositionManager()), address(0xDeadBeef));
     }
 
 }

@@ -35,7 +35,9 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
             address(vault),
             address(psm),
             address(daiUsds),
-            makeAddr("cctp")
+            makeAddr("cctp"),
+            makeAddr("uniswapV3Router"),
+            makeAddr("uniswapV3PositionManager")
         );
     }
 
@@ -198,7 +200,9 @@ contract ForeignControllerAdminTestBase is UnitTestBase {
             makeAddr("psm"),
             makeAddr("usdc"),
             makeAddr("cctp"),
-            makeAddr("pendleRouter")
+            makeAddr("pendleRouter"),
+            makeAddr("uniswapV3Router"),
+            makeAddr("uniswapV3PositionManager")
         );
     }
 }

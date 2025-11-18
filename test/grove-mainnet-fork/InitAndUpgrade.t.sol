@@ -87,13 +87,15 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
         });
 
         checkAddresses = Init.CheckAddressParams({
-            admin      : Ethereum.GROVE_PROXY,
-            proxy      : address(almProxy),
-            rateLimits : address(rateLimits),
-            vault      : address(vault),
-            psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS,
-            cctp       : Ethereum.CCTP_TOKEN_MESSENGER_V2
+            admin                    : Ethereum.GROVE_PROXY,
+            proxy                    : address(almProxy),
+            rateLimits               : address(rateLimits),
+            vault                    : address(vault),
+            psm                      : Ethereum.PSM,
+            daiUsds                  : Ethereum.DAI_USDS,
+            cctp                     : Ethereum.CCTP_TOKEN_MESSENGER_V2,
+            uniswapV3Router          : UNISWAP_V3_ROUTER,
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
         });
 
         mintRecipients = new Init.MintRecipient[](1);
@@ -151,13 +153,15 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
         //       are already deployed. This is technically possible to do and works in the same way, it was
         //       done also for make testing easier.
         mainnetController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : Ethereum.GROVE_PROXY,
-            almProxy   : address(almProxy),
-            rateLimits : address(rateLimits),
-            vault      : address(vault),
-            psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS,
-            cctp       : Ethereum.CCTP_TOKEN_MESSENGER_V2
+            admin                    : Ethereum.GROVE_PROXY,
+            almProxy                 : address(almProxy),
+            rateLimits               : address(rateLimits),
+            vault                    : address(vault),
+            psm                      : Ethereum.PSM,
+            daiUsds                  : Ethereum.DAI_USDS,
+            cctp                     : Ethereum.CCTP_TOKEN_MESSENGER_V2,
+            uniswapV3Router          : UNISWAP_V3_ROUTER,
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
         }));
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
@@ -264,6 +268,16 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
     function test_initAlmSystem_upgradeController_incorrectCctp() external {
         checkAddresses.cctp = mismatchAddress;
         _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-cctp"));
+    }
+
+    function test_initAlmSystem_upgradeController_incorrectUniswapV3Router() external {
+        checkAddresses.uniswapV3Router = mismatchAddress;
+        _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-uniswapV3Router"));
+    }
+
+    function test_initAlmSystem_upgradeController_incorrectUniswapV3PositionManager() external {
+        checkAddresses.uniswapV3PositionManager = mismatchAddress;
+        _checkInitAndUpgradeFail(abi.encodePacked("MainnetControllerInit/incorrect-uniswapV3PositionManager"));
     }
 
     function test_initAlmSystem_upgradeController_oldControllerIsNewController() external {
@@ -381,7 +395,9 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
             address(vault),
             Ethereum.PSM,
             Ethereum.DAI_USDS,
-            Ethereum.CCTP_TOKEN_MESSENGER_V2
+            Ethereum.CCTP_TOKEN_MESSENGER_V2,
+            UNISWAP_V3_ROUTER,
+            UNISWAP_V3_POSITION_MANAGER
         );
 
         // Overwrite storage for all previous deployments in setUp and assert brand new deployment
@@ -514,13 +530,15 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         centrifugeRecipients.push(centrifugeRecipients_[0]);
 
         newController = MainnetController(MainnetControllerDeploy.deployController({
-            admin      : Ethereum.GROVE_PROXY,
-            almProxy   : address(almProxy),
-            rateLimits : address(rateLimits),
-            vault      : address(vault),
-            psm        : Ethereum.PSM,
-            daiUsds    : Ethereum.DAI_USDS,
-            cctp       : Ethereum.CCTP_TOKEN_MESSENGER_V2
+            admin                    : Ethereum.GROVE_PROXY,
+            almProxy                 : address(almProxy),
+            rateLimits               : address(rateLimits),
+            vault                    : address(vault),
+            psm                      : Ethereum.PSM,
+            daiUsds                  : Ethereum.DAI_USDS,
+            cctp                     : Ethereum.CCTP_TOKEN_MESSENGER_V2,
+            uniswapV3Router          : UNISWAP_V3_ROUTER,
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
         }));
 
         controllerInst = ControllerInstance({

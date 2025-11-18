@@ -131,11 +131,13 @@ contract PlasmaChainUSDTToLayerZeroTestBase is ForkTestBase {
          * Step 3: Deploy and configure ALM system **
          */
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin        : Ethereum.GROVE_PROXY,
-            psm          : address(psmPlasma),
-            usdc         : address(usdt0Plasma),
-            cctp         : address(0xDeadBeef), // unused
-            pendleRouter : address(0xDeadBeef) // unused
+            admin                    : Ethereum.GROVE_PROXY,
+            psm                      : address(psmPlasma),
+            usdc                     : address(usdt0Plasma),
+            cctp                     : address(0xDeadBeef), // unused
+            pendleRouter             : address(0xDeadBeef), // unused
+            uniswapV3Router          : address(0xDeadBeef), // unused
+            uniswapV3PositionManager : address(0xDeadBeef)  // unused
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -151,11 +153,13 @@ contract PlasmaChainUSDTToLayerZeroTestBase is ForkTestBase {
             ForeignControllerInit.ConfigAddressParams({freezer: freezer, relayers: relayers, oldController: address(0)});
 
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin        : Ethereum.GROVE_PROXY,
-            psm          : address(psmPlasma),
-            cctp         : address(0xDeadBeef), // unused
-            usdc         : address(usdt0Plasma),
-            pendleRouter : address(0xDeadBeef) // unused
+            admin                    : Ethereum.GROVE_PROXY,
+            psm                      : address(psmPlasma),
+            cctp                     : address(0xDeadBeef), // unused
+            usdc                     : address(usdt0Plasma),
+            pendleRouter             : address(0xDeadBeef), // unused
+            uniswapV3Router          : address(0xDeadBeef), // unused
+            uniswapV3PositionManager : address(0xDeadBeef)  // unused
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);

@@ -25,7 +25,9 @@ contract MainnetControllerConstructorTests is UnitTestBase {
             address(vault),
             address(psm),
             address(daiUsds),
-            makeAddr("cctp")
+            makeAddr("cctp"),
+            makeAddr("uniswapV3Router"),
+            makeAddr("uniswapV3PositionManager")
         );
 
         assertEq(mainnetController.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
@@ -40,6 +42,9 @@ contract MainnetControllerConstructorTests is UnitTestBase {
         assertEq(address(mainnetController.dai()),        makeAddr("dai"));   // Dai param in MockDaiUsds
         assertEq(address(mainnetController.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
 
+        assertEq(address(mainnetController.uniswapV3Router()),          makeAddr("uniswapV3Router"));
+        assertEq(address(mainnetController.uniswapV3PositionManager()), makeAddr("uniswapV3PositionManager"));
+
         assertEq(mainnetController.psmTo18ConversionFactor(), psm.to18ConversionFactor());
         assertEq(mainnetController.psmTo18ConversionFactor(), 1e12);
     }
@@ -48,12 +53,14 @@ contract MainnetControllerConstructorTests is UnitTestBase {
 
 contract ForeignControllerConstructorTests is UnitTestBase {
 
-    address almProxy     = makeAddr("almProxy");
-    address rateLimits   = makeAddr("rateLimits");
-    address cctp         = makeAddr("cctp");
-    address psm          = makeAddr("psm");
-    address usdc         = makeAddr("usdc");
-    address pendleRouter = makeAddr("pendleRouter");
+    address almProxy                 = makeAddr("almProxy");
+    address rateLimits               = makeAddr("rateLimits");
+    address cctp                     = makeAddr("cctp");
+    address psm                      = makeAddr("psm");
+    address usdc                     = makeAddr("usdc");
+    address pendleRouter             = makeAddr("pendleRouter");
+    address uniswapV3Router          = makeAddr("uniswapV3Router");
+    address uniswapV3PositionManager = makeAddr("uniswapV3PositionManager");
 
     function test_constructor() public {
         ForeignController foreignController = new ForeignController(
@@ -63,17 +70,21 @@ contract ForeignControllerConstructorTests is UnitTestBase {
             psm,
             usdc,
             cctp,
-            pendleRouter
+            pendleRouter,
+            uniswapV3Router,
+            uniswapV3PositionManager
         );
 
         assertEq(foreignController.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
 
-        assertEq(address(foreignController.proxy()),        almProxy);
-        assertEq(address(foreignController.rateLimits()),   rateLimits);
-        assertEq(address(foreignController.psm()),          psm);
-        assertEq(address(foreignController.usdc()),         usdc);   // asset1 param in MockPSM3
-        assertEq(address(foreignController.cctp()),         cctp);
-        assertEq(address(foreignController.pendleRouter()), pendleRouter);
+        assertEq(address(foreignController.proxy()),                    almProxy);
+        assertEq(address(foreignController.rateLimits()),               rateLimits);
+        assertEq(address(foreignController.psm()),                      psm);
+        assertEq(address(foreignController.usdc()),                     usdc);   // asset1 param in MockPSM3
+        assertEq(address(foreignController.cctp()),                     cctp);
+        assertEq(address(foreignController.pendleRouter()),             pendleRouter);
+        assertEq(address(foreignController.uniswapV3Router()),          uniswapV3Router);
+        assertEq(address(foreignController.uniswapV3PositionManager()), uniswapV3PositionManager);
     }
 
 }

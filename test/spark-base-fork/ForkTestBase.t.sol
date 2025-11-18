@@ -104,11 +104,13 @@ contract ForkTestBase is Test {
         /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin        : SPARK_EXECUTOR,
-            psm          : address(psmBase),
-            usdc         : USDC_BASE,
-            cctp         : CCTP_MESSENGER_BASE,
-            pendleRouter : PENDLE_ROUTER_BASE
+            admin                    : SPARK_EXECUTOR,
+            psm                      : address(psmBase),
+            usdc                     : USDC_BASE,
+            cctp                     : CCTP_MESSENGER_BASE,
+            pendleRouter             : PENDLE_ROUTER_BASE,
+            uniswapV3Router          : address(0xDeadBeef), // unused
+            uniswapV3PositionManager : address(0xDeadBeef)  // unused
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -131,13 +133,13 @@ contract ForkTestBase is Test {
         });
 
         Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
-            admin        : Base.SPARK_EXECUTOR,
-            psm          : address(psmBase),
-            cctp         : GroveBase.CCTP_TOKEN_MESSENGER_V2,
-            usdc         : address(usdcBase),
-            pendleRouter : PENDLE_ROUTER_BASE
-            // susds : address(susdsBase),
-            // usds  : address(usdsBase)
+            admin                    : Base.SPARK_EXECUTOR,
+            psm                      : address(psmBase),
+            cctp                     : GroveBase.CCTP_TOKEN_MESSENGER_V2,
+            usdc                     : address(usdcBase),
+            pendleRouter             : PENDLE_ROUTER_BASE,
+            uniswapV3Router          : address(0xDeadBeef), // unused
+            uniswapV3PositionManager : address(0xDeadBeef)  // unused
         });
 
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);

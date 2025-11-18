@@ -273,10 +273,12 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
             admin        : SPARK_EXECUTOR,
-            psm          : address(psmArb),
-            usdc         : USDC_ARB,
-            cctp         : CCTP_MESSENGER_ARB,
-            pendleRouter : PENDLE_ROUTER_ARB
+            psm                      : address(psmArb),
+            usdc                     : USDC_ARB,
+            cctp                     : CCTP_MESSENGER_ARB,
+            pendleRouter             : PENDLE_ROUTER_ARB,
+            uniswapV3Router          : address(0xdeadbeef),
+            uniswapV3PositionManager : address(0xdeadbeef)
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -293,13 +295,13 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
         });
 
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin        : SPARK_EXECUTOR,
-            psm          : address(psmArb),
-            cctp         : CCTP_MESSENGER_ARB,
-            usdc         : address(usdcArb),
-            pendleRouter : PENDLE_ROUTER_ARB
-            // susds : address(susdsArb),
-            // usds  : address(usdsArb)
+            admin                    : SPARK_EXECUTOR,
+            psm                      : address(psmArb),
+            cctp                     : CCTP_MESSENGER_ARB,
+            usdc                     : address(usdcArb),
+            pendleRouter             : PENDLE_ROUTER_ARB,
+            uniswapV3Router          : address(0xdeadbeef),
+            uniswapV3PositionManager : address(0xdeadbeef)
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);

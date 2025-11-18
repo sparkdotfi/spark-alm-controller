@@ -50,13 +50,15 @@ contract UpgradeMainnetController is Script {
         });
 
         MainnetInit.CheckAddressParams memory checkAddresses = MainnetInit.CheckAddressParams({
-            admin      : inputConfig.readAddress(".admin"),
-            proxy      : inputConfig.readAddress(".almProxy"),
-            rateLimits : inputConfig.readAddress(".rateLimits"),
-            vault      : inputConfig.readAddress(".allocatorVault"),
-            psm        : inputConfig.readAddress(".psm"),
-            daiUsds    : inputConfig.readAddress(".daiUsds"),
-            cctp       : inputConfig.readAddress(".cctpTokenMessenger")
+            admin                    : inputConfig.readAddress(".admin"),
+            proxy                    : inputConfig.readAddress(".almProxy"),
+            rateLimits               : inputConfig.readAddress(".rateLimits"),
+            vault                    : inputConfig.readAddress(".allocatorVault"),
+            psm                      : inputConfig.readAddress(".psm"),
+            daiUsds                  : inputConfig.readAddress(".daiUsds"),
+            cctp                     : inputConfig.readAddress(".cctpTokenMessenger"),
+            uniswapV3Router          : inputConfig.readAddress(".uniswapV3Router"),
+            uniswapV3PositionManager : inputConfig.readAddress(".uniswapV3PositionManager")
         });
 
         MainnetInit.MintRecipient[] memory mintRecipients = new MainnetInit.MintRecipient[](1);
@@ -126,13 +128,13 @@ contract UpgradeForeignController is Script {
         });
 
         ForeignInit.CheckAddressParams memory checkAddresses = ForeignInit.CheckAddressParams({
-            admin        : inputConfig.readAddress(".admin"),
-            psm          : inputConfig.readAddress(".psm"),
-            cctp         : inputConfig.readAddress(".cctpTokenMessenger"),
-            usdc         : inputConfig.readAddress(".usdc"),
-            pendleRouter : inputConfig.readAddress(".pendleRouter")
-            // susds : inputConfig.readAddress(".susds"),
-            // usds  : inputConfig.readAddress(".usds")
+            admin                    : inputConfig.readAddress(".admin"),
+            psm                      : inputConfig.readAddress(".psm"),
+            cctp                     : inputConfig.readAddress(".cctpTokenMessenger"),
+            usdc                     : inputConfig.readAddress(".usdc"),
+            pendleRouter             : inputConfig.readAddress(".pendleRouter"),
+            uniswapV3Router          : inputConfig.readAddress(".uniswapV3Router"),
+            uniswapV3PositionManager : inputConfig.readAddress(".uniswapV3PositionManager")
         });
 
         string memory mainnetInputConfig = ScriptTools.readInput(string(abi.encodePacked("mainnet-", vm.envString("ENV"))));

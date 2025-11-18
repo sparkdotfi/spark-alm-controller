@@ -51,12 +51,14 @@ contract ForkTestBase is Test {
     /*** Base addresses                                                                         ***/
     /**********************************************************************************************/
 
-    address constant ALM_FREEZER          = Base.ALM_FREEZER;
-    address constant ALM_RELAYER          = Base.ALM_RELAYER;
-    address constant CCTP_TOKEN_MESSENGER = Base.CCTP_TOKEN_MESSENGER_V2;
-    address constant GROVE_EXECUTOR       = Base.GROVE_EXECUTOR;
-    address constant USDC_BASE            = Base.USDC;
-    address constant PENDLE_ROUTER_BASE   = Base.PENDLE_ROUTER;
+    address constant ALM_FREEZER                 = Base.ALM_FREEZER;
+    address constant ALM_RELAYER                 = Base.ALM_RELAYER;
+    address constant CCTP_TOKEN_MESSENGER        = Base.CCTP_TOKEN_MESSENGER_V2;
+    address constant GROVE_EXECUTOR              = Base.GROVE_EXECUTOR;
+    address constant USDC_BASE                   = Base.USDC;
+    address constant PENDLE_ROUTER_BASE          = Base.PENDLE_ROUTER;
+    address constant UNISWAP_V3_ROUTER           = 0x2626664c2603336E57B271c5C0b26F421741e481;
+    address constant UNISWAP_V3_POSITION_MANAGER = 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1;
 
     address relayer = Base.ALM_RELAYER;
 
@@ -112,11 +114,13 @@ contract ForkTestBase is Test {
         /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin        : GROVE_EXECUTOR,
-            psm          : address(psmBase),
-            usdc         : USDC_BASE,
-            cctp         : CCTP_TOKEN_MESSENGER,
-            pendleRouter : PENDLE_ROUTER_BASE
+            admin                    : GROVE_EXECUTOR,
+            psm                      : address(psmBase),
+            usdc                     : USDC_BASE,
+            cctp                     : CCTP_TOKEN_MESSENGER,
+            pendleRouter             : PENDLE_ROUTER_BASE,
+            uniswapV3Router          : UNISWAP_V3_ROUTER, 
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER  
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -139,13 +143,13 @@ contract ForkTestBase is Test {
         });
 
         Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
-            admin        : GROVE_EXECUTOR,
-            psm          : address(psmBase),
-            cctp         : CCTP_TOKEN_MESSENGER,
-            usdc         : USDC_BASE,
-            pendleRouter : PENDLE_ROUTER_BASE
-            // susds : address(susdsBase),
-            // usds  : address(usdsBase)
+            admin                    : GROVE_EXECUTOR,
+            psm                      : address(psmBase),
+            cctp                     : CCTP_TOKEN_MESSENGER,
+            usdc                     : USDC_BASE,
+            pendleRouter             : PENDLE_ROUTER_BASE,
+            uniswapV3Router          : UNISWAP_V3_ROUTER,
+            uniswapV3PositionManager : UNISWAP_V3_POSITION_MANAGER
         });
 
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);

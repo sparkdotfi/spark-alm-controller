@@ -4,5 +4,7 @@
     "usdc": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
     "cctpTokenMessenger": "0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d",
     "almProxy": "0x7107DD8F56642327945294a18A4280C78e153644",
-    "rateLimits": "0x6ba2e6bCCe3d2A31F1e3e1d3e11CDffBaA002A21"
+    "rateLimits": "0x6ba2e6bCCe3d2A31F1e3e1d3e11CDffBaA002A21",
+    "uniswapV3Router": "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE",
+    "uniswapV3PositionManager": "0x655C406EBFa14EE2006250925e54ec43AD184f8B"
 }

@@ -205,11 +205,13 @@ contract ForkTestBase is DssTest {
         /*** Step 3: Deploy ALM system ***/
 
         ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
-            admin   : Ethereum.SPARK_PROXY,
-            vault   : ilkInst.vault,
-            psm     : Ethereum.PSM,
-            daiUsds : Ethereum.DAI_USDS,
-            cctp    : GroveEthereum.CCTP_TOKEN_MESSENGER_V2
+            admin                    : Ethereum.SPARK_PROXY,
+            vault                    : ilkInst.vault,
+            psm                      : Ethereum.PSM,
+            daiUsds                  : Ethereum.DAI_USDS,
+            cctp                     : GroveEthereum.CCTP_TOKEN_MESSENGER_V2,
+            uniswapV3Router          : address(0xDeadBeef), // unused
+            uniswapV3PositionManager : address(0xDeadBeef)  // unused
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -232,13 +234,15 @@ contract ForkTestBase is DssTest {
 
         Init.CheckAddressParams memory checkAddresses
             = Init.CheckAddressParams({
-                admin      : Ethereum.SPARK_PROXY,
-                proxy      : address(almProxy),
-                rateLimits : address(rateLimits),
-                vault      : address(vault),
-                psm        : Ethereum.PSM,
-                daiUsds    : Ethereum.DAI_USDS,
-                cctp       : GroveEthereum.CCTP_TOKEN_MESSENGER_V2
+                admin                    : Ethereum.SPARK_PROXY,
+                proxy                    : address(almProxy),
+                rateLimits               : address(rateLimits),
+                vault                    : address(vault),
+                psm                      : Ethereum.PSM,
+                daiUsds                  : Ethereum.DAI_USDS,
+                cctp                     : GroveEthereum.CCTP_TOKEN_MESSENGER_V2,
+                uniswapV3Router          : address(0xDeadBeef), // unused
+                uniswapV3PositionManager : address(0xDeadBeef)  // unused
             });
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);

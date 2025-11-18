@@ -17,18 +17,22 @@ library ForeignControllerDeploy {
         address psm,
         address usdc,
         address cctp,
-        address pendleRouter
+        address pendleRouter,
+        address uniswapV3Router,
+        address uniswapV3PositionManager
     )
         internal returns (address controller)
     {
         controller = address(new ForeignController({
-            admin_        : admin,
-            proxy_        : almProxy,
-            rateLimits_   : rateLimits,
-            psm_          : psm,
-            usdc_         : usdc,
-            cctp_         : cctp,
-            pendleRouter_ : pendleRouter
+            admin_                    : admin,
+            proxy_                    : almProxy,
+            rateLimits_               : rateLimits,
+            psm_                      : psm,
+            usdc_                     : usdc,
+            cctp_                     : cctp,
+            pendleRouter_             : pendleRouter,
+            uniswapV3Router_          : uniswapV3Router,
+            uniswapV3PositionManager_ : uniswapV3PositionManager
         }));
     }
 
@@ -37,7 +41,9 @@ library ForeignControllerDeploy {
         address psm,
         address usdc,
         address cctp,
-        address pendleRouter
+        address pendleRouter,
+        address uniswapV3Router,
+        address uniswapV3PositionManager
     )
         internal returns (ControllerInstance memory instance)
     {
@@ -45,13 +51,15 @@ library ForeignControllerDeploy {
         instance.rateLimits = address(new RateLimits(admin));
 
         instance.controller = address(new ForeignController({
-            admin_        : admin,
-            proxy_        : instance.almProxy,
-            rateLimits_   : instance.rateLimits,
-            psm_          : psm,
-            usdc_         : usdc,
-            cctp_         : cctp,
-            pendleRouter_ : pendleRouter
+            admin_                    : admin,
+            proxy_                    : instance.almProxy,
+            rateLimits_               : instance.rateLimits,
+            psm_                      : psm,
+            usdc_                     : usdc,
+            cctp_                     : cctp,
+            pendleRouter_             : pendleRouter,
+            uniswapV3Router_          : uniswapV3Router,
+            uniswapV3PositionManager_ : uniswapV3PositionManager
         }));
     }
 
@@ -66,18 +74,22 @@ library MainnetControllerDeploy {
         address vault,
         address psm,
         address daiUsds,
-        address cctp
+        address cctp,
+        address uniswapV3Router,
+        address uniswapV3PositionManager
     )
         internal returns (address controller)
     {
         controller = address(new MainnetController({
-            admin_      : admin,
-            proxy_      : almProxy,
-            rateLimits_ : rateLimits,
-            vault_      : vault,
-            psm_        : psm,
-            daiUsds_    : daiUsds,
-            cctp_       : cctp
+            admin_                    : admin,
+            proxy_                    : almProxy,
+            rateLimits_               : rateLimits,
+            vault_                    : vault,
+            psm_                      : psm,
+            daiUsds_                  : daiUsds,
+            cctp_                     : cctp,
+            uniswapV3Router_          : uniswapV3Router,
+            uniswapV3PositionManager_ : uniswapV3PositionManager
         }));
     }
 
@@ -86,7 +98,9 @@ library MainnetControllerDeploy {
         address vault,
         address psm,
         address daiUsds,
-        address cctp
+        address cctp,
+        address uniswapV3Router,
+        address uniswapV3PositionManager
     )
         internal returns (ControllerInstance memory instance)
     {
@@ -94,13 +108,15 @@ library MainnetControllerDeploy {
         instance.rateLimits = address(new RateLimits(admin));
 
         instance.controller = address(new MainnetController({
-            admin_      : admin,
-            proxy_      : instance.almProxy,
-            rateLimits_ : instance.rateLimits,
-            vault_      : vault,
-            psm_        : psm,
-            daiUsds_    : daiUsds,
-            cctp_       : cctp
+            admin_                    : admin,
+            proxy_                    : instance.almProxy,
+            rateLimits_               : instance.rateLimits,
+            vault_                    : vault,
+            psm_                      : psm,
+            daiUsds_                  : daiUsds,
+            cctp_                     : cctp,
+            uniswapV3Router_          : uniswapV3Router,
+            uniswapV3PositionManager_ : uniswapV3PositionManager
         }));
     }
 
