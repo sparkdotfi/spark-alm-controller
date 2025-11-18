@@ -336,3 +336,27 @@ contract ForeignControllerSetMaxSlippageTests is ForeignControllerAdminTestBase 
     }
 
 }
+
+contract ForeignControllerSetMerklDistributorTests is ForeignControllerAdminTestBase {
+
+    event MerklDistributorSet(address indexed merklDistributor);
+
+    function test_setMerklDistributor_unauthorizedAccount() public {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        foreignController.setMerklDistributor(makeAddr("merklDistributor"));
+    }
+
+    function test_setMerklDistributor() public {
+        assertEq(address(foreignController.merklDistributor()), address(0));
+
+        vm.prank(admin);
+        vm.expectEmit(address(foreignController));
+        emit MerklDistributorSet(makeAddr("merklDistributor"));
+        foreignController.setMerklDistributor(makeAddr("merklDistributor"));
+    }
+
+}

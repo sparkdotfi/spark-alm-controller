@@ -23,6 +23,7 @@ import "./interfaces/ILayerZero.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CentrifugeLib }                  from "./libraries/CentrifugeLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
+import { MerklLib }                       from "./libraries/MerklLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { PendleLib }                      from "./libraries/PendleLib.sol";
 import { ERC20Lib }                       from "./libraries/common/ERC20Lib.sol";
@@ -742,6 +743,20 @@ contract MainnetController is AccessControl {
             abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
             fee.nativeFee
         );
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Merkl functions                                                                ***/
+    /**********************************************************************************************/
+
+    function toggleOperatorMerkl(address operator) external {
+        _checkRole(RELAYER);
+
+        MerklLib.toggleOperator(MerklLib.MerklToggleOperatorParams({
+            proxy       : proxy,
+            distributor : Ethereum.MERKL_DISTRIBUTOR,
+            operator    : operator
+        }));
     }
 
     /**********************************************************************************************/
