@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { console } from "forge-std/console.sol";
+
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import "./ForkTestBase.t.sol";
@@ -61,6 +63,644 @@ contract CurveTestBase is ForkTestBase {
         return 22225000;  // April 8, 2025
     }
 
+}
+
+contract CurveAttackTests is CurveTestBase {
+
+    function test_curve_attack_version1() public {
+        /******************************************************************************************/
+        /*** Frontrun                                                                           ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), relayer, 20_000_000e6);
+        deal(address(usdt), relayer, 20_000_000e6);
+
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        assertEq(curvePool.get_virtual_price(), 1006466906046667279);
+
+        vm.prank(relayer);
+        usdc.approve(address(curvePool), 1_000_000e6);
+
+        vm.prank(relayer);
+        uint256 amountOut1 = curvePool.exchange(0, 1, 1_000_000e6, 0, relayer);
+
+        assertEq(curvePool.get_virtual_price(), 1006470313741246284);
+        assertEq(amountOut1, 1_000_088.486455e6);
+        assertEq(usdc.balanceOf(relayer), 19_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 + 1_000_088.486455e6);
+
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 1_000_000e6;
+        amounts[1] = 1_000_000e6;
+
+        uint256 minLpAmount = 1_947_399.712878065981630663e18; // 1_947_406.306381940636380660e18 originally
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_987_138.575693388588605502e18); // 1_987_199.361495730708108741e18 originally, so 60 LP lost
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 1_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_000_000e6);
+
+        /******************************************************************************************/
+        /*** Backrun                                                                            ***/
+        /******************************************************************************************/
+
+        vm.prank(relayer);
+        address(usdt).call(abi.encodeWithSelector(usdt.approve.selector, address(curvePool), 1_000_088.486455e6));
+
+        vm.prank(relayer);
+        uint256 amountOut2 = curvePool.exchange(1, 0, 1_000_088.486455e6, 0, relayer);
+
+        assertEq(curvePool.get_virtual_price(), 1006473256563648754);
+        assertEq(amountOut2, 999_990.393523e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6 - 1_000_000e6 + 999_990.393523e6); // Lost 9.606477 USDC.
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 455_742e6;   // 455_713e6 originally
+        minWithdrawAmounts[1] = 1_504_260e6; // 1_504_340e6 originally
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 465_047.753632e6);   // 465_059.586753e6 originally, lost 11.83 USDC
+        assertEq(assetsReceived[1], 1_534_974.124109e6); // 1_535_013.847298e6 originally, lost 39.72 USDT
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 1_000_000e6 + 465_047.753632e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_000_000e6 + 1_534_974.124109e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 2_000_021.877741e6); // gained 21.87 USD
+    }
+
+    function test_curve_attack_version2() public {
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 0;
+        amounts[1] = 2_000_000e6;
+
+        uint256 minLpAmount = 1_947_406.306381940636380660e18; // 1_947_406.306381940636380660e18 originally
+
+        assertEq(rateLimits.getCurrentRateLimit(curveDepositKey),  2_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),     1_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 3_000_000e18);
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_986_975.206903497192490252e18); // 1_987_199.361495730708108741e18 originally, so 224 LP lost
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 2_000_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(curveDepositKey),  0);
+        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),     783_071.676822666233298607e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 3_000_000e18);
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 212_535e6;   // 455_713e6 originally
+        minWithdrawAmounts[1] = 1_747_295e6; // 1_504_340e6 originally
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 216_881.038887e6);   // 465_059.586753e6 originally, lost 248_178.54 USDC
+        assertEq(assetsReceived[1], 1_783_024.392532e6); // 1_535_013.847298e6 originally, gained 248_010.54 USDT
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 + 216_881.038887e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 2_000_000e6 + 1_783_024.392532e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 1_999_905.431419e6); // lost 95 USD
+
+        assertEq(rateLimits.getCurrentRateLimit(curveDepositKey),  0);
+        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),     783_071.676822666233298607e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 1_000_094.568581000000000000e18);
+    }
+
+    function test_curve_attack_version3() public {
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 1_618_000e6;
+        amounts[1] = 382_000e6;
+
+        uint256 minLpAmount = 1_947_406.306381940636380660e18; // 1_947_406.306381940636380660e18 originally
+
+        assertEq(rateLimits.getCurrentRateLimit(curveDepositKey),  2_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),     1_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 3_000_000e18);
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_987_226.537202018359607936e18); // 1_987_199.361495730708108741e18 originally, so 27 LP gained
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 1_618_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 382_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(curveDepositKey),  0);
+        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),     382.415401564128831574e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 3_000_000e18);
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 606_057e6;   // 455_713e6 originally
+        minWithdrawAmounts[1] = 1_354_025e6; // 1_504_340e6 originally
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 618_428.230548e6);   // 465_059.586753e6 originally, gained 153_368.64 USDC
+        assertEq(assetsReceived[1], 1_381_663.399745e6); // 1_535_013.847298e6 originally, lost 153_350.44 USDT
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 1_618_000e6 + 618_428.230548e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 382_000e6 + 1_381_663.399745e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 2_000_091.630293e6); // gained 91.63 USD
+
+        assertEq(rateLimits.getCurrentRateLimit(curveDepositKey),  0);
+        assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),     382.415401564128831574e18);
+        assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 999_908.369707000000000000e18);
+    }
+
+    function test_curve_attack_version4() public {
+        /******************************************************************************************/
+        /*** Frontrun                                                                           ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), relayer, 20_000_000e6);
+        deal(address(usdt), relayer, 20_000_000e6);
+
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        assertEq(curvePool.get_virtual_price(), 1006466906046667279);
+
+        vm.prank(relayer);
+        usdc.approve(address(curvePool), 1_000_000e6);
+
+        vm.prank(relayer);
+        uint256 amountOut1 = curvePool.exchange(0, 1, 1_000_000e6, 0, relayer);
+
+        assertEq(curvePool.get_virtual_price(), 1006470313741246284);
+        assertEq(amountOut1, 1_000_088.486455e6);
+        assertEq(usdc.balanceOf(relayer), 19_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 + 1_000_088.486455e6);
+
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 0;
+        amounts[1] = 2_000_000e6;
+
+        uint256 minLpAmount = 1_947_399.712878065981630663e18; // 1_947_406.306381940636380660e18 originally
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_987_068.345041805699702946e18); // 1_987_199.361495730708108741e18 originally, so 131 LP lost
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 2_000_000e6);
+
+        /******************************************************************************************/
+        /*** Backrun                                                                            ***/
+        /******************************************************************************************/
+
+        vm.prank(relayer);
+        address(usdt).call(abi.encodeWithSelector(usdt.approve.selector, address(curvePool), 1_000_088.486455e6));
+
+        vm.prank(relayer);
+        uint256 amountOut2 = curvePool.exchange(1, 0, 1_000_088.486455e6, 0, relayer);
+
+        assertEq(curvePool.get_virtual_price(), 1006474621473752377);
+        assertEq(amountOut2, 999_800.627584e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6 - 1_000_000e6 + 999_800.627584e6); // Lost 199.3 USDC.
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 212_585e6;   // 455_713e6 originally
+        minWithdrawAmounts[1] = 1_747_351e6; // 1_504_340e6 originally
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 216_931.587180e6);   // 465_059.586753e6 originally, lost 248_127.99 USDC
+        assertEq(assetsReceived[1], 1_783_081.525597e6); // 1_535_013.847298e6 originally, gained 248_067.67 USDT
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 + 216_931.587180e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 2_000_000e6 + 1_783_081.525597e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 2_000_013.112777e6); // gained 13.11 USD
+    }
+
+    function test_curve_attack_version5() public {
+        console.log("controller address", address(mainnetController));
+
+        /******************************************************************************************/
+        /*** Frontrun                                                                           ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), relayer, 20_000_000e6);
+        deal(address(usdt), relayer, 20_000_000e6);
+
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        assertEq(curvePool.get_virtual_price(), 1006466906046667279);
+
+        vm.prank(relayer);
+        address(usdt).call(abi.encodeWithSelector(usdt.approve.selector, address(curvePool), 1_000_000e6));
+
+        vm.prank(relayer);
+        uint256 amountOut1 = curvePool.exchange(1, 0, 1_000_000e6, 0, relayer);
+
+        assertEq(curvePool.get_virtual_price(), 1006903604126951057);
+        assertEq(amountOut1, 872_197.443277e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6 + 872_197.443277e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 - 1_000_000e6);
+
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 590e6;
+        amounts[1] = 1_999_410e6;
+
+        uint256 minLpAmount = 1_946_561.708555451683121753e18; // 1_947_406.306381940636380660e18 originally
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_946_715.651565053667543837e18); // 1_987_199.361495730708108741e18 originally, so 40_483 LP lost
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 590e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_999_410e6);
+
+        /******************************************************************************************/
+        /*** Backrun                                                                            ***/
+        /******************************************************************************************/
+
+        vm.prank(relayer);
+        usdc.approve(address(curvePool), 872_197.443277e6);
+
+        vm.prank(relayer);
+        uint256 amountOut2 = curvePool.exchange(0, 1, 872_197.443277e6, 0, relayer);
+
+        assertEq(curvePool.get_virtual_price(), 1006910479335012507);
+        assertEq(amountOut2, 1_036_907.454469e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 - 1_000_000e6 + 1_036_907.454469e6); // Gained 36_907 USDT.
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 209_414e6;   // 455_713e6 originally
+        minWithdrawAmounts[1] = 1_711_552e6; // 1_504_340e6 originally
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 213_695.897540e6);   // 465_059.586753e6 originally, lost 251_363.68 USDC
+        assertEq(assetsReceived[1], 1_746_549.607831e6); // 1_535_013.847298e6 originally, gained 211_535.76 USDT
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 590e6 + 213_695.897540e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_999_410e6 + 1_746_549.607831e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 1_960_245.505371e6); // lost 39_755 USD
+    }
+
+    function test_curve_attack_version6() public {
+        vm.prank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(CURVE_POOL, 0.9985e18);
+
+        /******************************************************************************************/
+        /*** Frontrun                                                                           ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), relayer, 20_000_000e6);
+        deal(address(usdt), relayer, 20_000_000e6);
+
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        vm.prank(relayer);
+        address(usdt).call(abi.encodeWithSelector(usdt.approve.selector, address(curvePool), 1_000_000e6));
+
+        vm.prank(relayer);
+        uint256 amountOut1 = curvePool.exchange(1, 0, 1_000_000e6, 0, relayer);
+
+        assertEq(amountOut1, 872_197.443277e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6 + 872_197.443277e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 - 1_000_000e6);
+
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 1_320e6;
+        amounts[1] = 1_998_680e6;
+
+        uint256 minLpAmount = 1_983_308.026523080107752113e18;
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_983_441.702562241535597688e18);
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 1_320e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_998_680e6);
+
+        /******************************************************************************************/
+        /*** Backrun                                                                            ***/
+        /******************************************************************************************/
+
+        vm.prank(relayer);
+        usdc.approve(address(curvePool), 872_197.443277e6);
+
+        vm.prank(relayer);
+        uint256 amountOut2 = curvePool.exchange(0, 1, 872_197.443277e6, 0, relayer);
+
+        assertEq(amountOut2, 999_925.765504e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 - 1_000_000e6 + 999_925.765504e6); // Lost 74 USDT.
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 216_909e6;
+        minWithdrawAmounts[1] = 1_780_318e6;
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 216_909.255041e6);
+        assertEq(assetsReceived[1], 1_780_318.032944e6);
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 1_320e6 + 216_909.255041e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_998_680e6 + 1_780_318.032944e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 1_997_227.287985e6); // lost 2_773 USD
+    }
+
+    function test_curve_attack_version7() public {
+        vm.prank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(CURVE_POOL, 0.9985e18);
+
+        /******************************************************************************************/
+        /*** Frontrun                                                                           ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), relayer, 20_000_000e6);
+        deal(address(usdt), relayer, 20_000_000e6);
+
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        vm.prank(relayer);
+        address(usdt).call(abi.encodeWithSelector(usdt.approve.selector, address(curvePool), 500_000e6));
+
+        vm.prank(relayer);
+        uint256 amountOut1 = curvePool.exchange(1, 0, 500_000e6, 0, relayer);
+
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 0;
+        amounts[1] = 2_000_000e6;
+
+        uint256 minLpAmount = 1_984_162.887403014407480346e18;
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_986_706.230348967685918226e18);
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 2_000_000e6);
+
+        /******************************************************************************************/
+        /*** Backrun                                                                            ***/
+        /******************************************************************************************/
+
+        vm.prank(relayer);
+        usdc.approve(address(curvePool), amountOut1);
+
+        vm.prank(relayer);
+        uint256 amountOut2 = curvePool.exchange(0, 1, amountOut1, 0, relayer);
+
+        assertEq(amountOut2, 500_192.863108e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 - 500_000e6 + 500_192.863108e6); // Gained 192 USDT.
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 216_854e6;
+        minWithdrawAmounts[1] = 1_782_790e6;
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 216_854.905997e6);
+        assertEq(assetsReceived[1], 1_782_790.171400e6);
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 + 216_854.905997e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 2_000_000e6 + 1_782_790.171400e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 1_999_645.077397e6); // lost 354 USD
+    }
+
+    function test_curve_attack_version8() public {
+        vm.prank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(CURVE_POOL, 0.9985e18);
+
+        /******************************************************************************************/
+        /*** Frontrun                                                                           ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), relayer, 20_000_000e6);
+        deal(address(usdt), relayer, 20_000_000e6);
+
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6);
+
+        vm.prank(relayer);
+        address(usdt).call(abi.encodeWithSelector(usdt.approve.selector, address(curvePool), 825_000e6));
+
+        vm.prank(relayer);
+        uint256 amountOut1 = curvePool.exchange(1, 0, 825_000e6, 0, relayer);
+
+        /******************************************************************************************/
+        /*** Add Liquidity                                                                      ***/
+        /******************************************************************************************/
+
+        deal(address(usdc), address(almProxy), 20_000_000e6);
+        deal(address(usdt), address(almProxy), 20_000_000e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 2_010e6;
+        amounts[1] = 1_997_990e6;
+
+        uint256 minLpAmount = 1_984_156.278041340485389240e18;
+
+        vm.prank(relayer);
+        uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
+            CURVE_POOL,
+            amounts,
+            minLpAmount
+        );
+
+        assertEq(lpTokensReceived, 1_984_156.848933383618533805e18);
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 2_010e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_997_990e6);
+
+        /******************************************************************************************/
+        /*** Backrun                                                                            ***/
+        /******************************************************************************************/
+
+        vm.prank(relayer);
+        usdc.approve(address(curvePool), amountOut1);
+
+        vm.prank(relayer);
+        uint256 amountOut2 = curvePool.exchange(0, 1, amountOut1, 0, relayer);
+
+        assertEq(amountOut2, 827_678.482715e6);
+        assertEq(usdc.balanceOf(relayer), 20_000_000e6);
+        assertEq(usdt.balanceOf(relayer), 20_000_000e6 - 825_000e6 + 827_678.482715e6); // Gained 2_678 USDT.
+
+        /******************************************************************************************/
+        /*** Remove Liquidity                                                                   ***/
+        /******************************************************************************************/
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 217_139e6;
+        minWithdrawAmounts[1] = 1_779_950e6;
+
+        vm.prank(relayer);
+        uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
+            CURVE_POOL,
+            lpTokensReceived,
+            minWithdrawAmounts
+        );
+
+        assertEq(assetsReceived[0], 217_139.886836e6);
+        assertEq(assetsReceived[1], 1_779_950.196737e6);
+
+        assertEq(usdc.balanceOf(address(almProxy)), 20_000_000e6 - 2_010e6 + 217_139.886836e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 20_000_000e6 - 1_997_990e6 + 1_779_950.196737e6);
+
+        assertEq(assetsReceived[0] + assetsReceived[1], 1_997_090.083573e6); // lost 2_909 USD
+    }
 }
 
 contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
@@ -228,7 +868,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
         amounts[0] = 1_000_000e6;
         amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_950_000e18;
+        uint256 minLpAmount = 1_947_406.306381940636380660e18;
 
         uint256 startingUsdtBalance = usdt.balanceOf(CURVE_POOL);
         uint256 startingUsdcBalance = usdc.balanceOf(CURVE_POOL);
@@ -563,8 +1203,8 @@ contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
         assertEq(rateLimits.getCurrentRateLimit(curveWithdrawKey), 3_000_000e18);
 
         uint256[] memory minWithdrawAmounts = new uint256[](2);
-        minWithdrawAmounts[0] = 465_000e6;
-        minWithdrawAmounts[1] = 1_535_000e6;
+        minWithdrawAmounts[0] = 455_713e6;
+        minWithdrawAmounts[1] = 1_504_340e6;
 
         vm.record();
 
@@ -582,7 +1222,7 @@ contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
 
         uint256 sumAssetsReceived = (assetsReceived[0] + assetsReceived[1]) * 1e12;
 
-        assertApproxEqAbs(sumAssetsReceived, 2_000_000e18, 100e18);
+        assertEq(sumAssetsReceived, 2_000_073.434051e18);
 
         assertGe(sumAssetsReceived, 2_000_000e18);  // Pool is skewed so more value can be removed after balancing
 

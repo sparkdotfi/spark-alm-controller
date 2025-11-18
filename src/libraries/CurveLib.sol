@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { console } from "forge-std/console.sol";
+
 import { IERC20 } from "openzeppelin-contracts/contracts/interfaces/IERC20.sol";
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
@@ -166,6 +168,10 @@ library CurveLib {
         }
         valueDeposited /= 1e18;
 
+        console.log("left side ", params.minLpAmount);
+
+        console.log("right side", valueDeposited * params.maxSlippage / curvePool.get_virtual_price());
+
         // Ensure minimum LP amount expected is greater than max slippage amount.
         require(
             params.minLpAmount >= valueDeposited
@@ -232,6 +238,9 @@ library CurveLib {
             valueMinWithdrawn += params.minWithdrawAmounts[i] * rates[i];
         }
         valueMinWithdrawn /= 1e18;
+
+        console.log("left side ", valueMinWithdrawn);
+        console.log("right side", params.lpBurnAmount * curvePool.get_virtual_price() * params.maxSlippage / 1e36);
 
         // Check that the aggregated minimums are greater than the max slippage amount
         require(

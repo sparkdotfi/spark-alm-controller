@@ -280,7 +280,6 @@ library UniswapV4Lib {
         uint256 endingBalance0 = _getBalance(token0, commonParams.proxy);
         uint256 endingBalance1 = _getBalance(token1, commonParams.proxy);
 
-        // TODO: Better note.
         require(
             amount0Max * commonParams.maxSlippage <=
             _clampedSub(startingBalance0, endingBalance0) * 1e18,
