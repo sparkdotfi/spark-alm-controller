@@ -6,6 +6,8 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 import { PoolId }       from "../../lib/uniswap-v4-core/src/types/PoolId.sol";
 import { PoolKey }      from "../../lib/uniswap-v4-core/src/types/PoolKey.sol";
 import { PositionInfo } from "../../lib/uniswap-v4-periphery/src/libraries/PositionInfoLibrary.sol";
+import { Actions }      from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
+import { IV4Router }    from "../../lib/uniswap-v4-periphery/src/interfaces/IV4Router.sol";
 import { FullMath }     from "../../lib/uniswap-v4-core/src/libraries/FullMath.sol";
 import { TickMath }     from "../../lib/uniswap-v4-core/src/libraries/TickMath.sol";
 
@@ -17,9 +19,15 @@ import { MainnetController } from "../../src/MainnetController.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-interface IERC20Like {
+import { console } from "forge-std/console.sol";
 
+interface IERC20Like {
+    function approve(address spender, uint256 amount) external returns (bool);
     function allowance(address owner, address spender) external view returns (uint256 allowance);
+}
+
+interface IUniversalRouter {
+    function execute(bytes calldata commands, bytes[] calldata inputs, uint256 deadline) external payable;
 }
 
 interface IStateViewLike {
@@ -38,6 +46,13 @@ interface IPermit2Like {
         address token,
         address spender
     ) external view returns (uint160 allowance, uint48 expiration, uint48 nonce);
+
+    function approve(
+        address token,
+        address spender,
+        uint160 amount,
+        uint48 expiration
+    ) external;
 }
 
 interface IPositionManagerLike {
@@ -53,6 +68,8 @@ interface IPositionManagerLike {
     function nextTokenId() external view returns (uint256 nextTokenId);
 
     function ownerOf(uint256 tokenId) external view returns (address owner);
+
+    function poolKeys(bytes25 id) external view returns (PoolKey memory);
 }
 
 contract MainnetControllerUniswapV4Tests is ForkTestBase {
@@ -84,6 +101,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
     address internal constant _STATE_VIEW       = 0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227;
+    address internal constant _ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
 
     // Uniswap V4 USDC/USDT pool
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
@@ -259,6 +277,75 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         uint256 expectedDecrease = _to18From6Decimals(result.amount0Spent) + _to18From6Decimals(result.amount1Spent);
         assertEq(initialDepositLimit - rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY), expectedDecrease);
+    }
+
+    function test_mintPositionUniswapV4_attack_compromisedRelayer_manipulatingPoolPrice() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60);
+        vm.stopPrank();
+
+        uint256 initialDepositLimit = rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY);
+
+        // Compromised relayer manipulates the pool price
+        _manipulatePoolPrice();
+
+        // Mint a position with the compromised relayer
+        IncreasePositionResult memory result;
+        int24 tickLower = -10;
+        int24 tickUpper = 0;
+        uint128 liquidity = 1_000_000e6;
+
+        (uint256 amount0Forecasted, uint256 amount1Forecasted) = _quoteLiquidity(
+            tickLower,
+            tickUpper,
+            liquidity
+        );
+
+        console.log("amount0Forecasted", amount0Forecasted);    
+        console.log("amount1Forecasted", amount1Forecasted);
+
+        uint256 tokenIdToMint = IPositionManagerLike(_POSITION_MANAGER).nextTokenId();
+
+        uint256 usdcStarting = usdc.balanceOf(address(almProxy));
+        uint256 usdtStarting = usdt.balanceOf(address(almProxy));
+
+        deal(address(usdc), address(almProxy), usdcStarting + amount0Forecasted + 1);
+        deal(address(usdt), address(almProxy), usdtStarting + amount1Forecasted + 1);
+
+        uint256 usdcBeforeCall = usdc.balanceOf(address(almProxy));
+        uint256 usdtBeforeCall = usdt.balanceOf(address(almProxy));
+
+        uint256 maxSlippage = mainnetController.maxSlippages(address(uint160(uint256(_POOL_ID))));
+
+        vm.prank(relayer);
+        mainnetController.mintPositionUniswapV4({
+            poolId     : _POOL_ID,
+            tickLower  : tickLower,
+            tickUpper  : tickUpper,
+            liquidity  : liquidity,
+            amount0Max : (amount0Forecasted * 1e18) / maxSlippage,
+            amount1Max : (amount1Forecasted * 1e18) / maxSlippage
+        });
+
+        uint256 usdcAfterCall = usdc.balanceOf(address(almProxy));
+        uint256 usdtAfterCall = usdt.balanceOf(address(almProxy));
+
+        // result.tokenId           = tokenIdToMint;
+        // result.amount0Spent      = usdcBeforeCall - usdcAfterCall;
+        // result.amount1Spent      = usdtBeforeCall - usdtAfterCall;
+        // result.liquidityIncrease = liquidity;
+        // result.tickLower         = tickLower;
+        // result.tickUpper         = tickUpper;
+
+        assertEq(IPositionManagerLike(_POSITION_MANAGER).ownerOf(tokenIdToMint), address(almProxy));
+        assertEq(IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(tokenIdToMint), liquidity);
+
+        // _assertZeroAllowances(address(usdc));
+        // _assertZeroAllowances(address(usdt));
+
+        // uint256 expectedDecrease = _to18From6Decimals(result.amount0Spent) + _to18From6Decimals(result.amount1Spent);
+        // assertEq(initialDepositLimit - rateLimits.getCurrentRateLimit(_DEPOSIT_LIMIT_KEY), expectedDecrease);
     }
 
     /**********************************************************************************************/
@@ -940,6 +1027,74 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
     function _to18From6Decimals(uint256 amount) internal pure returns (uint256) {
         return amount * 1e12;
+    }
+
+    function _manipulatePoolPrice() internal {
+        // Get the pool key
+        PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(_POOL_ID));
+
+        // Perform a large swap to manipulate the price
+        // Swapping USDC for USDT (zeroForOne = true) to move price down
+        uint256 swapAmount = 100_000_000e6; // 100M USDC/USDT
+
+        address attacker = makeAddr("attacker");
+        deal(address(usdc), attacker, swapAmount);
+
+        vm.startPrank(attacker);
+        _approveTokenWithPermit2(address(usdc), uint160(swapAmount), uint48(block.timestamp + 1000));
+        _swapExactInputSingle(poolKey, uint128(swapAmount), 0);
+        vm.stopPrank();
+    }
+
+    function _swapExactInputSingle(
+        PoolKey memory key,
+        uint128 amountIn,
+        uint128 minAmountOut
+    ) internal {
+        uint256 V4_SWAP = 0x10;
+        bytes memory commands = abi.encodePacked(uint8(V4_SWAP));
+        bytes[] memory inputs = new bytes[](1);
+
+        // Encode V4Router actions
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.SWAP_EXACT_IN_SINGLE),
+            uint8(Actions.SETTLE_ALL),
+            uint8(Actions.TAKE_ALL)
+        );
+
+        // Prepare parameters for each action
+        bytes[] memory params = new bytes[](3);
+        params[0] = abi.encode(
+            IV4Router.ExactInputSingleParams({
+                poolKey          : key,
+                zeroForOne       : true,
+                amountIn         : amountIn,
+                amountOutMinimum : minAmountOut,
+                hookData         : bytes("")
+            })
+        );
+        params[1] = abi.encode(key.currency0, amountIn);
+        params[2] = abi.encode(key.currency1, minAmountOut);
+
+        // Combine actions and params into inputs
+        inputs[0] = abi.encode(actions, params);
+
+        // Execute the swap
+        uint256 deadline = block.timestamp + 10;
+        IUniversalRouter(_ROUTER).execute(commands, inputs, deadline);
+
+        // Verify and return the output amount
+        uint256 amountOut = key.currency1.balanceOf(address(this));
+        require(amountOut >= minAmountOut, "Insufficient output amount");
+    }
+
+    function _approveTokenWithPermit2(
+        address token,
+        uint160 amount,
+        uint48 expiration
+    ) internal {
+        IERC20Like(token).approve(_PERMIT2, type(uint256).max);
+        IPermit2Like(_PERMIT2).approve(token, _ROUTER, amount, expiration);
     }
 
     function _getBlock() internal pure override returns (uint256) {
