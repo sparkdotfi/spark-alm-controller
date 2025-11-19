@@ -19,7 +19,6 @@ library UniswapV4Lib {
         address proxy;
         address rateLimits;
         bytes32 rateLimitId;
-        uint256 maxSlippage;
         bytes32 poolId;  // the PoolId of the Uniswap V4 pool
     }
 
@@ -258,12 +257,10 @@ library UniswapV4Lib {
         bytes        memory   actions,
         bytes[]      memory   params
     ) internal returns (uint256 rateLimitDecrease) {
-        _requireNonZeroMaxSlippage(commonParams);
-
         _approvePositionManager(commonParams.proxy, token0, amount0Max);
         _approvePositionManager(commonParams.proxy, token1, amount1Max);
 
-        // Get token balances before mint.
+        // Get token balances before liquidity increase.
         uint256 startingBalance0 = _getBalance(token0, commonParams.proxy);
         uint256 startingBalance1 = _getBalance(token1, commonParams.proxy);
 
@@ -276,21 +273,9 @@ library UniswapV4Lib {
             )
         );
 
-        // Get token balances after mint.
+        // Get token balances after liquidity increase.
         uint256 endingBalance0 = _getBalance(token0, commonParams.proxy);
         uint256 endingBalance1 = _getBalance(token1, commonParams.proxy);
-
-        require(
-            amount0Max * commonParams.maxSlippage <=
-            _clampedSub(startingBalance0, endingBalance0) * 1e18,
-            "MC/amount0Max-too-high"
-        );
-
-        require(
-            amount1Max * commonParams.maxSlippage <=
-            _clampedSub(startingBalance1, endingBalance1) * 1e18,
-            "MC/amount1Max-too-high"
-        );
 
         // Account for the theoretical possibility of receiving tokens when adding liquidity by
         // using a clamped subtraction.
@@ -326,9 +311,7 @@ library UniswapV4Lib {
         bytes        memory   actions,
         bytes[]      memory   params
     ) internal returns (uint256 rateLimitDecrease) {
-        _requireNonZeroMaxSlippage(commonParams);
-
-        // Get token balances before mint.
+        // Get token balances before liquidity decrease.
         uint256 startingBalance0 = _getBalance(token0, commonParams.proxy);
         uint256 startingBalance1 = _getBalance(token1, commonParams.proxy);
 
@@ -341,28 +324,15 @@ library UniswapV4Lib {
             )
         );
 
-        // Get token balances after mint.
+        // Get token balances after liquidity decrease.
         uint256 endingBalance0 = _getBalance(token0, commonParams.proxy);
         uint256 endingBalance1 = _getBalance(token1, commonParams.proxy);
-
-        // TODO: Better note.
-        require(
-            amount0Min * 1e18 >= (endingBalance0 - startingBalance0) * commonParams.maxSlippage,
-            "MC/amount0Min-too-small"
-        );
-
-        require(
-            amount1Min * 1e18 >= (endingBalance1 - startingBalance1) * commonParams.maxSlippage,
-            "MC/amount1Min-too-small"
-        );
 
         // NOTE: The limitation of this integration is the assumption that the tokens are valued
         //       equally (i.e. 1.00000 USDC = 1.000000000000000000 USDS).
         rateLimitDecrease =
-            _getNormalizedBalance(token0, endingBalance0) +
-            _getNormalizedBalance(token1, endingBalance1) -
-            _getNormalizedBalance(token0, startingBalance0) -
-            _getNormalizedBalance(token1, startingBalance1);
+            _getNormalizedBalance(token0, endingBalance0 - startingBalance0) +
+            _getNormalizedBalance(token1, endingBalance1 - startingBalance1);
 
         // Perform rate limit decrease.
         IRateLimits(commonParams.rateLimits).triggerRateLimitDecrease(
@@ -392,10 +362,6 @@ library UniswapV4Lib {
 
     function _getPoolKey(bytes32 poolId) internal view returns (PoolKey memory poolKey) {
         return IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
-    }
-
-    function _requireNonZeroMaxSlippage(CommonParams calldata commonParams) internal pure {
-        require(commonParams.maxSlippage != 0, "MC/maxSlippage-not-set");
     }
 
     function _requirePoolIdMatch(bytes32 poolId, uint256 tokenId) internal view {

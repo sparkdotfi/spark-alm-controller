@@ -97,8 +97,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     struct UniswapV4Limits {
-        int24 tickLowerMin;
-        int24 tickUpperMax;
+        int24  tickLowerMin;
+        int24  tickUpperMax;
+        uint24 maxTickRange;
     }
 
     /**********************************************************************************************/
@@ -135,7 +136,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bool            isWhitelisted
     );
     event RelayerRemoved(address indexed relayer);
-    event UniswapV4TickLimitsSet(bytes32 indexed poolId, int24 tickLowerMin, int24 tickUpperMax);
+    event UniswapV4TickLimitsSet(bytes32 indexed poolId, int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickRange);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -322,7 +323,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setUniswapV4TickLimits(
         bytes32 poolId,
         int24   tickLowerMin,
-        int24   tickUpperMax
+        int24   tickUpperMax,
+        uint24  maxTickRange
     )
         external nonReentrant
     {
@@ -332,10 +334,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         uniswapV4Limits[poolId] = UniswapV4Limits({
             tickLowerMin : tickLowerMin,
-            tickUpperMax : tickUpperMax
+            tickUpperMax : tickUpperMax,
+            maxTickRange : maxTickRange
         });
 
-        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax);
+        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax, maxTickRange);
     }
 
     /**********************************************************************************************/
@@ -650,6 +653,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         require(tickLower >= limits.tickLowerMin, "MC/tickLower-too-low");
         require(tickUpper <= limits.tickUpperMax, "MC/tickUpper-too-high");
 
+        require(
+            uint256(int256(tickUpper) - int256(tickLower)) <= limits.maxTickRange,
+            "MC/tickRange-too-wide"
+        );
+
         // NOTE: `maxSlippages` is a mapping from address to uint256, so we have to take the lower
         //       160 bits of the id. It is possible, but highly unlikely there is a collision.
         UniswapV4Lib.mintPosition({
@@ -657,7 +665,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
-                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
             tickLower  : tickLower,
@@ -686,7 +693,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_DEPOSIT,
-                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
             tokenId           : tokenId,
@@ -711,7 +717,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
-                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
             tokenId    : tokenId,
@@ -736,7 +741,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
                 proxy       : address(proxy),
                 rateLimits  : address(rateLimits),
                 rateLimitId : LIMIT_UNISWAP_V4_WITHDRAW,
-                maxSlippage : maxSlippages[address(uint160(uint256(poolId)))],
                 poolId      : poolId
             }),
             tokenId           : tokenId,
