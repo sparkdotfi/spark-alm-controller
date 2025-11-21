@@ -45,6 +45,9 @@
     "rev": "1e91268374d2796abcbb1af2b75473b2af488265"
   },
   "lib/xchain-helpers": {
-    "rev": "235bce21fbe43a50f69d1baa09df55ae08116384"
+    "branch": {
+      "name": "master",
+      "rev": "03390e2146b88ca36785f24b7a4555ccd51f82d0"
+    }
   }
 }
