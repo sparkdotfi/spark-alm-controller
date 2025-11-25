@@ -431,9 +431,12 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         vm.record();
 
-        _mintPosition(-10, 0, 1_000_000e6, amount0Max, amount1Max);
+        IncreasePositionResult memory result = _mintPosition(-10, 0, 1_000_000e6, amount0Max, amount1Max);
 
         _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(result.amount0Spent, 340.756158e6);
+        assertEq(result.amount1Spent, 159.209953e6);
     }
 
     /**********************************************************************************************/
@@ -626,9 +629,12 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         vm.record();
 
-        _increasePosition(minted.tokenId, 1_000_000e6, amount0Max, amount1Max);
+        IncreasePositionResult memory result = _increasePosition(minted.tokenId, 1_000_000e6, amount0Max, amount1Max);
 
         _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(result.amount0Spent, 340.756158e6);
+        assertEq(result.amount1Spent, 159.209953e6);
     }
 
     /**********************************************************************************************/
@@ -807,9 +813,12 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         vm.record();
 
-        _decreasePosition(minted.tokenId, minted.liquidityIncrease / 2, amount0Min, amount1Min);
+        DecreasePositionResult memory result = _decreasePosition(minted.tokenId, minted.liquidityIncrease / 2, amount0Min, amount1Min);
 
         _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(result.amount0Received, 170.378078e6);
+        assertEq(result.amount1Received, 79.604976e6);
     }
 
     function test_decreaseLiquidityUniswapV4_all() external {
@@ -822,9 +831,12 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         vm.record();
 
-        _decreasePosition(minted.tokenId, minted.liquidityIncrease, amount0Min, amount1Min);
+        DecreasePositionResult memory result = _decreasePosition(minted.tokenId, minted.liquidityIncrease, amount0Min, amount1Min);
 
         _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(result.amount0Received, 340.756157e6);
+        assertEq(result.amount1Received, 159.209952e6);
     }
 
     /**********************************************************************************************/
