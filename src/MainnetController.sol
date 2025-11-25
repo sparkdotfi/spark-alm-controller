@@ -336,8 +336,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         uniswapV4TickLimits[poolId] = UniswapV4Lib.TickLimits({
-            tickLowerMin : tickLowerMin,
-            tickUpperMax : tickUpperMax,
+            tickLowerMin   : tickLowerMin,
+            tickUpperMax   : tickUpperMax,
             maxTickSpacing : maxTickSpacing
         });
 

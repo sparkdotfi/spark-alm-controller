@@ -47,7 +47,6 @@ library UniswapV4Lib {
     {
         _checkTickLimits(tickLimits[poolId], tickLower, tickUpper);
 
-        // Encode actions and params
         PoolKey memory poolKey = _getPoolKey(poolId);
 
         bytes memory callData = _getMintCalldata({
@@ -83,7 +82,7 @@ library UniswapV4Lib {
     )
         external
     {
-        // The proxy must be the position owner to retain ownership of the increased liquidity.
+        // Must not increase liquidity on a position that is not owned by the ALMProxy.
         require(
             IPositionManagerLike(_POSITION_MANAGER).ownerOf(tokenId) == proxy,
             "MC/non-proxy-position"
