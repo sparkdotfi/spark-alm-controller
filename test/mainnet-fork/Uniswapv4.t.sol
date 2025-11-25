@@ -910,7 +910,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
     }
 
     /**********************************************************************************************/
-    /*** Attack Tests                                                                           ***/
+    /*** Log Price And Ticks Tests                                                              ***/
     /**********************************************************************************************/
 
     function test_uniswapV4_logPriceAndTicks_increasingPrice() public {
@@ -939,7 +939,11 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         }
     }
 
-    function test_uniswapV4_attack_baseline_priceMid() public {
+    /**********************************************************************************************/
+    /*** Attack Tests (Current price is expected to be between the range)                       ***/
+    /**********************************************************************************************/
+
+    function test_uniswapV4_baseline_priceMid() public {
         // Setup the pool and the controller.
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -200, 200, 20);
@@ -996,9 +1000,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         IncreasePositionResult memory increaseResult = _mintPosition(-10, 10, 1_000_000_000e6, type(uint160).max, type(uint160).max);
 
-        assertEq(increaseResult.amount0Spent, 0); // Expected 840_606.192834e6
-        assertEq(increaseResult.amount1Spent, 999_950.044994e6); // Expected 159_209.952358e6
-        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_950.044994e6); // Expected 999_816.145192e6
+        assertEq(increaseResult.amount0Spent, 0); // Expected 840_606.192834e6 as per baseline
+        assertEq(increaseResult.amount1Spent, 999_950.044994e6); // Expected 159_209.952358e6 as per baseline
+        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_950.044994e6); // Expected 999_816.145192e6 as per baseline
 
         /******************************************************************************************/
         /*** Backrun                                                                            ***/
@@ -1020,9 +1024,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 1_000_000_000e6, 0, 0);
 
-        assertEq(decreaseResult.amount0Received, 819_742.888121e6); // Expected 840_606.192833e6
-        assertEq(decreaseResult.amount1Received, 180_067.672764e6); // Expected 159_209.952357e6
-        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_810.560885e6); // Expected 999_816.145190e6, and lost 139 USD.
+        assertEq(decreaseResult.amount0Received, 819_742.888121e6);
+        assertEq(decreaseResult.amount1Received, 180_067.672764e6);
+        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_810.560885e6); // Lost 139 USD from mint
     }
 
     function test_uniswapV4_attack_priceMidToBelow() public {
@@ -1049,9 +1053,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         IncreasePositionResult memory increaseResult = _mintPosition(-10, 10, 1_000_000_000e6, type(uint160).max, type(uint160).max);
 
-        assertEq(increaseResult.amount0Spent, 999_950.044994e6); // Expected 840_606.192834e6
-        assertEq(increaseResult.amount1Spent, 0); // Expected 159_209.952358e6
-        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_950.044994e6); // Expected 999_816.145192e6
+        assertEq(increaseResult.amount0Spent, 999_950.044994e6); // Expected 840_606.192834e6 as per baseline
+        assertEq(increaseResult.amount1Spent, 0); // Expected 159_209.952358e6 as per baseline
+        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_950.044994e6); // Expected 999_816.145192e6 as per baseline
 
         /******************************************************************************************/
         /*** Backrun                                                                            ***/
@@ -1073,12 +1077,16 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 1_000_000_000e6, 0, 0);
 
-        assertEq(decreaseResult.amount0Received, 844_561.661143e6); // Expected 840_606.192833e6
-        assertEq(decreaseResult.amount1Received, 155_258.746587e6); // Expected 159_209.952357e6
-        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_820.40773e6); // Expected 999_816.145190e6, and lost 129 USD.
+        assertEq(decreaseResult.amount0Received, 844_561.661143e6);
+        assertEq(decreaseResult.amount1Received, 155_258.746587e6);
+        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_820.40773e6); // Lost 129 USD from mint
     }
 
-    function test_uniswapV4_attackBaseline_priceBelow() public {
+    /**********************************************************************************************/
+    /*** Attack Tests (Current price is expected to be below the range)                         ***/
+    /**********************************************************************************************/
+
+    function test_uniswapV4_baseline_priceBelow() public {
         // Setup the pool and the controller.
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -200, 200, 20);
@@ -1135,9 +1143,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         IncreasePositionResult memory increaseResult = _mintPosition(-5, 15, 1_000_000_000e6, type(uint160).max, type(uint160).max);
 
-        assertEq(increaseResult.amount0Spent, 632_055.655046e6); // Expected 999_700.101224e6
-        assertEq(increaseResult.amount1Spent, 367_595.789859e6); // Expected 0
-        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_651.444905e6); // Expected 999_700.101224e6
+        assertEq(increaseResult.amount0Spent, 632_055.655046e6); // Expected 999_700.101224e6 as per baseline
+        assertEq(increaseResult.amount1Spent, 367_595.789859e6); // Expected 0 as per baseline
+        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_651.444905e6); // Expected 999_700.101224e6 as per baseline
 
         /******************************************************************************************/
         /*** Backrun                                                                            ***/
@@ -1159,9 +1167,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 1_000_000_000e6, 0, 0);
 
-        assertEq(decreaseResult.amount0Received, 999_703.777704e6); // Expected 999_700.101223e6
-        assertEq(decreaseResult.amount1Received, 0); // Expected 0
-        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_703.777704e6); // Expected 999_700.101223e6, and gained 52 USD.
+        assertEq(decreaseResult.amount0Received, 999_703.777704e6);
+        assertEq(decreaseResult.amount1Received, 0);
+        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_703.777704e6); // Gained 52 USD from mint.
     }
 
     function test_uniswapV4_attack_priceBelowToAbove() public {
@@ -1188,9 +1196,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         IncreasePositionResult memory increaseResult = _mintPosition(-5, 15, 1_000_000_000e6, type(uint160).max, type(uint160).max);
 
-        assertEq(increaseResult.amount0Spent, 0); // Expected 999_700.101224e6
-        assertEq(increaseResult.amount1Spent, 1_000_200.051255e6); // Expected 0
-        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 1_000_200.051255e6); // Expected 999_700.101224e6
+        assertEq(increaseResult.amount0Spent, 0); // Expected 999_700.101224e6 as per baseline
+        assertEq(increaseResult.amount1Spent, 1_000_200.051255e6); // Expected 0 as per baseline
+        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 1_000_200.051255e6); // Expected 999_700.101224e6 as per baseline
 
         /******************************************************************************************/
         /*** Backrun                                                                            ***/
@@ -1212,12 +1220,16 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 1_000_000_000e6, 0, 0);
 
-        assertEq(decreaseResult.amount0Received, 999_710.098327e6); // Expected 999_700.101223e6
-        assertEq(decreaseResult.amount1Received, 0); // Expected 0
-        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_710.098327e6); // Expected 999_700.101223e6, and lost 490 USD.
+        assertEq(decreaseResult.amount0Received, 999_710.098327e6);
+        assertEq(decreaseResult.amount1Received, 0);
+        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 999_710.098327e6); // Lost 490 USD from mint
     }
 
-    function test_uniswapV4_attackBaseline_priceAbove() public {
+    /**********************************************************************************************/
+    /*** Attack Tests (Current price is expected to be above the range)                         ***/
+    /**********************************************************************************************/
+
+    function test_uniswapV4_baseline_priceAbove() public {
         // Setup the pool and the controller.
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -200, 200, 20);
@@ -1274,9 +1286,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         IncreasePositionResult memory increaseResult = _mintPosition(-30, -10, 1_000_000_000e6, type(uint160).max, type(uint160).max);
 
-        assertEq(increaseResult.amount0Spent, 457_787.249555e6); // Expected 0
-        assertEq(increaseResult.amount1Spent, 541_830.090075e6); // Expected 998_950.644702e6
-        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_617.339630e6); // Expected 998_950.644702e6
+        assertEq(increaseResult.amount0Spent, 457_787.249555e6); // Expected 0 as per baseline
+        assertEq(increaseResult.amount1Spent, 541_830.090075e6); // Expected 998_950.644702e6 as per baseline
+        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 999_617.339630e6); // Expected 998_950.644702e6 as per baseline
 
         /******************************************************************************************/
         /*** Backrun                                                                            ***/
@@ -1298,9 +1310,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 1_000_000_000e6, 0, 0);
 
-        assertEq(decreaseResult.amount0Received, 0); // Expected 0
-        assertEq(decreaseResult.amount1Received, 998_955.215954e6); // Expected 998_950.644701e6
-        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 998_955.215954e6); // Expected 998_950.644701e6, and lost 662 USD.
+        assertEq(decreaseResult.amount0Received, 0);
+        assertEq(decreaseResult.amount1Received, 998_955.215954e6);
+        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 998_955.215954e6); // Lost 662 USD from mint
     }
 
     function test_uniswapV4_attack_priceAboveToBelow() public {
@@ -1327,9 +1339,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         IncreasePositionResult memory increaseResult = _mintPosition(-30, -10, 1_000_000_000e6, type(uint160).max, type(uint160).max);
 
-        assertEq(increaseResult.amount0Spent, 1_000_950.445137e6); // Expected 0
-        assertEq(increaseResult.amount1Spent, 0); // Expected 998_950.644702e6
-        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 1_000_950.445137e6); // Expected 998_950.644702e6
+        assertEq(increaseResult.amount0Spent, 1_000_950.445137e6); // Expected 0 as per baseline
+        assertEq(increaseResult.amount1Spent, 0); // Expected 998_950.644702e6 as per baseline
+        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 1_000_950.445137e6); // Expected 998_950.644702e6 as per baseline
 
         /******************************************************************************************/
         /*** Backrun                                                                            ***/
@@ -1351,9 +1363,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 1_000_000_000e6, 0, 0);
 
-        assertEq(decreaseResult.amount0Received, 0); // Expected 0
-        assertEq(decreaseResult.amount1Received, 998_960.634310e6); // Expected 998_950.644701e6
-        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 998_960.634310e6); // Expected 998_950.644701e6, and lost 1,989 USD.
+        assertEq(decreaseResult.amount0Received, 0);
+        assertEq(decreaseResult.amount1Received, 998_960.634310e6);
+        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 998_960.634310e6); // Lost 1,989 USD from mint
     }
 
     function test_uniswapV4_attack_priceAboveToBelow_defended() public {
@@ -1370,10 +1382,10 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         assertEq(_getCurrentTick(), -7);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _getIncreasePositionMaxAmounts(-30, -10, 1_000_000_000e6, 0.99e18);
-
-        uint256 amount0Max = (amount0Forecasted * 1e18) / 0.99e18;
-        uint256 amount1Max = (amount1Forecasted * 1e18) / 0.99e18;
+        // While recommended usage is to use max amounts that are exactly (or close to exactly) the
+        // forecasted amounts in production, however this shows that even a value of 0.99 is
+        // sufficient to prevent an attack.
+        ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(-30, -10, 1_000_000_000e6, 0.99e18);
 
         /******************************************************************************************/
         /*** Frontrun                                                                           ***/
@@ -1406,7 +1418,11 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_uniswapV4_attackBaseline_priceAbove_wideTicks() public {
+    /**********************************************************************************************/
+    /*** Attack Tests (Current price is expected to be above the range, with wide tick spacing) ***/
+    /**********************************************************************************************/
+
+    function test_uniswapV4_baseline_priceAbove_wideTicks() public {
         // Setup the pool and the controller.
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -200, 200, 200); // Allow wider tick range.
@@ -1463,9 +1479,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         IncreasePositionResult memory increaseResult = _mintPosition(-200, -10, 1_000_000_000e6, type(uint160).max, type(uint160).max);
 
-        assertEq(increaseResult.amount0Spent, 9_549_562.082877e6); // Expected 0
-        assertEq(increaseResult.amount1Spent, 0); // Expected 9_449_821.223798e6
-        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 9_549_562.082877e6); // Expected 9_449_821.223798e6
+        assertEq(increaseResult.amount0Spent, 9_549_562.082877e6); // Expected 0 as per baseline
+        assertEq(increaseResult.amount1Spent, 0); // Expected 9_449_821.223798e6 as per baseline
+        assertEq(increaseResult.amount1Spent + increaseResult.amount0Spent, 9_549_562.082877e6); // Expected 9_449_821.223798e6 as per baseline
 
         /******************************************************************************************/
         /*** Backrun                                                                            ***/
@@ -1487,9 +1503,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         DecreasePositionResult memory decreaseResult = _decreasePosition(increaseResult.tokenId, 1_000_000_000e6, 0, 0);
 
-        assertEq(decreaseResult.amount0Received, 6_528_153.154390e6); // Expected 0
-        assertEq(decreaseResult.amount1Received, 2_970_499.394905e6); // Expected 998_950.644701e6
-        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 9_498_652.549295e6); // Expected 998_950.644701e6, and lost 50,909 USD.
+        assertEq(decreaseResult.amount0Received, 6_528_153.154390e6);
+        assertEq(decreaseResult.amount1Received, 2_970_499.394905e6);
+        assertEq(decreaseResult.amount0Received + decreaseResult.amount1Received, 9_498_652.549295e6); // Lost 50,909 USD from mint
     }
 
     function test_uniswapV4_attack_priceAboveToBelow_defended_wideTicks() public {
