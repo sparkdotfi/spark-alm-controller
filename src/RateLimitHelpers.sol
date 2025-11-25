@@ -3,16 +3,20 @@ pragma solidity ^0.8.21;
 
 library RateLimitHelpers {
 
-    function makeAddressKey(bytes32 key, address asset) internal pure returns (bytes32) {
-        return keccak256(abi.encode(key, asset));
+    function makeAddressKey(bytes32 key, address a) internal pure returns (bytes32) {
+        return keccak256(abi.encode(key, a));
     }
 
-    function makeAddressAddressKey(bytes32 key, address asset, address destination) internal pure returns (bytes32) {
-        return keccak256(abi.encode(key, asset, destination));
+    function makeAddressAddressKey(bytes32 key, address a, address b) internal pure returns (bytes32) {
+        return keccak256(abi.encode(key, a, b));
     }
 
-    function makeUint32Key(bytes32 key, uint32 domain) internal pure returns (bytes32) {
-        return keccak256(abi.encode(key, domain));
+    function makeBytes32Key(bytes32 key, bytes32 a) internal pure returns (bytes32) {
+        return keccak256(abi.encode(key, a));
+    }
+
+    function makeUint32Key(bytes32 key, uint32 a) internal pure returns (bytes32) {
+        return keccak256(abi.encode(key, a));
     }
 
 }
