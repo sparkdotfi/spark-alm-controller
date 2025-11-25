@@ -85,6 +85,27 @@ interface IUniversalRouterLike {
 
 }
 
+interface IV4QuoterLike {
+
+    struct QuoteExactSingleParams {
+        PoolKey poolKey;
+        bool    zeroForOne;
+        uint128 exactAmount;
+        bytes   hookData;
+    }
+
+    function quoteExactInputSingle(QuoteExactSingleParams memory params)
+        external
+        returns (uint256 amountOut, uint256 gasEstimate);
+
+}
+
+interface IV4RouterLike {
+
+    error V4TooLittleReceived(uint256 minAmountOutReceived, uint256 amountReceived);
+
+}
+
 contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
     struct IncreasePositionResult {
@@ -109,14 +130,17 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
     bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
     bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
+    bytes32 internal constant _LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
 
     bytes32 internal constant _DEPOSIT_LIMIT_KEY  = keccak256(abi.encode(_LIMIT_DEPOSIT,  _POOL_ID));
     bytes32 internal constant _WITHDRAW_LIMIT_KEY = keccak256(abi.encode(_LIMIT_WITHDRAW, _POOL_ID));
+    bytes32 internal constant _SWAP_LIMIT_KEY     = keccak256(abi.encode(_LIMIT_SWAP,     _POOL_ID));
 
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
     address internal constant _ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
     address internal constant _STATE_VIEW       = 0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227;
+    address internal constant _V4_QUOTER        = 0x52F0E24D1c21C8A0cB1e5a5dD6198556BD9E1203;
 
     // Uniswap V4 USDC/USDT pool
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
@@ -837,6 +861,154 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         assertEq(result.amount0Received, 340.756157e6);
         assertEq(result.amount1Received, 159.209952e6);
+    }
+
+    /**********************************************************************************************/
+    /*** swapUniswapV4 Tests                                                                   ***/
+    /**********************************************************************************************/
+
+    function test_swapUniswapV4_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.swapUniswapV4(bytes32(0), address(0), 0, 0);
+    }
+
+    function test_swapUniswapV4_revertsForNonRelayer() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                mainnetController.RELAYER()
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.swapUniswapV4(bytes32(0), address(0), 0, 0);
+    }
+
+    function test_swapUniswapV4_revertsWhenMaxSlippageNotSet() external {
+        vm.prank(relayer);
+        vm.expectRevert("MC/max-slippage-not-set");
+        mainnetController.swapUniswapV4(_POOL_ID, address(0), 0, 0);
+    }
+
+    function test_swapUniswapV4_revertsWhenAmountOutMinTooLow() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amountOutMin-too-low");
+        mainnetController.swapUniswapV4(_POOL_ID, address(usdc), 1_000_000e6, 980_000e6 - 1);
+
+        vm.prank(relayer);
+        mainnetController.swapUniswapV4(_POOL_ID, address(usdc), 1_000_000e6, 980_000e6);
+    }
+
+    function test_swapUniswapV4_revertsWhenInputTokenNotForPool() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        vm.prank(relayer);
+        vm.expectRevert(IPoolManagerLike.CurrencyNotSettled.selector);
+        mainnetController.swapUniswapV4(_POOL_ID, address(dai), 1_000_000e6, 1_000_000e6);
+    }
+
+    function test_swapUniswapV4_revertsWhenAmountOutMinNotMet() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+
+        // V4TooLittleReceived
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IV4RouterLike.V4TooLittleReceived.selector,
+                999_280.652247e6 + 1,
+                999_280.652247e6
+            )
+        );
+
+        mainnetController.swapUniswapV4(_POOL_ID, address(usdc), 1_000_000e6, 999_280.652247e6 + 1);
+
+        vm.prank(relayer);
+        mainnetController.swapUniswapV4(_POOL_ID, address(usdc), 1_000_000e6, 999_280.652247e6);
+    }
+
+    function test_swapUniswapV4_revertsWhenRateLimitExceeded() external {
+        uint256 expectedDecrease = 1_000_000e18;
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, expectedDecrease - 1, 0);
+        vm.stopPrank();
+
+        uint128 amountOutMin = _getSwapAmountOutMin(address(usdc), 1_000_000e6, 0.99e18);
+
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.swapUniswapV4({
+            poolId       : _POOL_ID,
+            tokenIn      : address(usdc),
+            amountIn     : 1_000_000e6,
+            amountOutMin : amountOutMin
+        });
+
+        vm.prank(SPARK_PROXY);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, expectedDecrease, 0);
+
+        vm.prank(relayer);
+        mainnetController.swapUniswapV4({
+            poolId       : _POOL_ID,
+            tokenIn      : address(usdc),
+            amountIn     : 1_000_000e6,
+            amountOutMin : amountOutMin
+        });
+    }
+
+    function test_swapUniswapV4_token0toToken1() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        uint128 amountOutMin = _getSwapAmountOutMin(address(usdc), 1_000_000e6, 0.99e18);
+
+        vm.record();
+
+        uint256 amountOut = _swap(address(usdc), 1_000_000e6, amountOutMin);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(amountOut, 999_280.652247e6);
+    }
+
+    function test_swapUniswapV4_token1toToken0() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        uint128 amountOutMin = _getSwapAmountOutMin(address(usdt), 1_000_000e6, 0.99e18);
+
+        vm.record();
+
+        uint256 amountOut = _swap(address(usdt), 1_000_000e6, amountOutMin);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(amountOut, 1_000_646.141415e6);
     }
 
     /**********************************************************************************************/
@@ -1756,6 +1928,58 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         assertEq(IPositionManagerLike(_POSITION_MANAGER).ownerOf(result.tokenId), address(almProxy));
 
         assertEq(positionLiquidityAfterCall, positionLiquidityBeforeCall - result.liquidityDecrease);
+    }
+
+    function _getSwapAmountOutMin(
+        address tokenIn,
+        uint128 amountIn,
+        uint256 maxSlippage
+    ) internal returns (uint128 amountOutMin) {
+        IV4QuoterLike.QuoteExactSingleParams memory params = IV4QuoterLike.QuoteExactSingleParams({
+            poolKey     : IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(_POOL_ID)),
+            zeroForOne  : tokenIn == address(usdc),
+            exactAmount : amountIn,
+            hookData    : bytes("")
+        });
+
+        ( uint256 amountOut, ) = IV4QuoterLike(_V4_QUOTER).quoteExactInputSingle(params);
+
+        return uint128((amountOut * maxSlippage) / 1e18);
+    }
+
+    function _swap(
+        address tokenIn,
+        uint128 amountIn,
+        uint128 amountOutMin
+    ) internal returns (uint256 amountOut) {
+        address tokenOut = tokenIn == address(usdc) ? address(usdt) : address(usdc);
+
+        deal(tokenIn, address(almProxy), IERC20Like(tokenIn).balanceOf(address(almProxy)) + amountIn);
+
+        uint256 tokenInBeforeCall  = IERC20Like(tokenIn).balanceOf(address(almProxy));
+        uint256 tokenOutBeforeCall = IERC20Like(tokenOut).balanceOf(address(almProxy));
+
+        uint256 rateLimitBeforeCall = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
+
+        vm.prank(relayer);
+        mainnetController.swapUniswapV4({
+            poolId       : _POOL_ID,
+            tokenIn      : tokenIn,
+            amountIn     : amountIn,
+            amountOutMin : amountOutMin
+        });
+
+        uint256 tokenInAfterCall = IERC20Like(tokenIn).balanceOf(address(almProxy));
+        uint256 tokenOutAfterCall = IERC20Like(tokenOut).balanceOf(address(almProxy));
+
+        uint256 rateLimitAfterCall = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
+
+        assertEq(rateLimitBeforeCall - rateLimitAfterCall, _to18From6Decimals(amountIn));
+
+        _assertZeroAllowances(address(usdc));
+        _assertZeroAllowances(address(usdt));
+
+        return tokenOutAfterCall - tokenOutBeforeCall;
     }
 
     function _getAmount0ForLiquidity(
