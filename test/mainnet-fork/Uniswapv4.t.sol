@@ -908,6 +908,34 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.swapUniswapV4(_POOL_ID, address(usdc), 1_000_000e6, 980_000e6);
     }
 
+    function test_swapUniswapV4_revertsWhenRateLimitExceededBoundary() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
+        vm.stopPrank();
+
+        uint128 amountOutMin = _getSwapAmountOutMin(address(usdc), 1_000_000e6, 0.99e18);
+
+        deal(address(usdc), address(almProxy), 1_000_000e6 + 1);
+
+        vm.prank(relayer);
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.swapUniswapV4({
+            poolId       : _POOL_ID,
+            tokenIn      : address(usdc),
+            amountIn     : 1_000_000e6 + 1,
+            amountOutMin : amountOutMin
+        });
+
+        vm.prank(relayer);
+        mainnetController.swapUniswapV4({
+            poolId       : _POOL_ID,
+            tokenIn      : address(usdc),
+            amountIn     : 1_000_000e6,
+            amountOutMin : amountOutMin
+        });
+    }
+
     function test_swapUniswapV4_revertsWhenInputTokenNotForPool() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
@@ -941,34 +969,6 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         vm.prank(relayer);
         mainnetController.swapUniswapV4(_POOL_ID, address(usdc), 1_000_000e6, 999_280.652247e6);
-    }
-
-    function test_swapUniswapV4_revertsWhenRateLimitExceededBoundary() external {
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
-        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
-        vm.stopPrank();
-
-        uint128 amountOutMin = _getSwapAmountOutMin(address(usdc), 1_000_000e6, 0.99e18);
-
-        deal(address(usdc), address(almProxy), 1_000_000e6 + 1);
-
-        vm.prank(relayer);
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.swapUniswapV4({
-            poolId       : _POOL_ID,
-            tokenIn      : address(usdc),
-            amountIn     : 1_000_000e6 + 1,
-            amountOutMin : amountOutMin
-        });
-
-        vm.prank(relayer);
-        mainnetController.swapUniswapV4({
-            poolId       : _POOL_ID,
-            tokenIn      : address(usdc),
-            amountIn     : 1_000_000e6,
-            amountOutMin : amountOutMin
-        });
     }
 
     function test_swapUniswapV4_token0toToken1() external {
@@ -1967,6 +1967,9 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         uint256 tokenOutAfterCall = IERC20Like(tokenOut).balanceOf(address(almProxy));
 
         uint256 rateLimitAfterCall = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
+
+        assertEq(tokenInBeforeCall - tokenInAfterCall,   amountIn);
+        assertGe(tokenOutAfterCall - tokenOutBeforeCall, amountOutMin);
 
         assertEq(rateLimitBeforeCall - rateLimitAfterCall, _to18From6Decimals(amountIn));
 

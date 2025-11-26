@@ -171,6 +171,12 @@ library UniswapV4Lib {
 
         require(amountOutMin * 1e18 >= amountIn * maxSlippage, "MC/amountOutMin-too-low");
 
+        // Perform rate limit decrease.
+        IRateLimits(rateLimits).triggerRateLimitDecrease(
+            RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
+            _getNormalizedBalance(tokenIn, amountIn)
+        );
+
         PoolKey memory poolKey = _getPoolKey(poolId);
 
         bytes memory actions = abi.encodePacked(
@@ -198,7 +204,7 @@ library UniswapV4Lib {
         );
 
         params[1] = abi.encode(tokenIn,  amountIn);
-        params[2] = abi.encode(tokenOut, 0);
+        params[2] = abi.encode(tokenOut, amountOutMin);
 
         // Combine actions and params into inputs.
         bytes[] memory inputs = new bytes[](1);
@@ -214,12 +220,6 @@ library UniswapV4Lib {
                 IUniversalRouterLike.execute,
                 (abi.encodePacked(uint8(_V4_SWAP)), inputs, block.timestamp)
             )
-        );
-
-        // Perform rate limit decrease.
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
-            _getNormalizedBalance(tokenIn, amountIn)
         );
 
         // Reset approval of Permit2 in tokenIn.
