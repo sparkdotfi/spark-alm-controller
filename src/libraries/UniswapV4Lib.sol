@@ -4,12 +4,13 @@ pragma solidity ^0.8.21;
 import { Currency } from "../../lib/uniswap-v4-core/src/types/Currency.sol";
 import { PoolKey }  from "../../lib/uniswap-v4-core/src/types/PoolKey.sol";
 
+import { IV4Router } from "../../lib/uniswap-v4-periphery/src/interfaces/IV4Router.sol";
 import { Actions }   from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
 
-import { IERC20Like, IPermit2Like } from "../interfaces/Common.sol";
-import { IALMProxy }                from "../interfaces/IALMProxy.sol";
-import { IRateLimits }              from "../interfaces/IRateLimits.sol";
-import { IPositionManagerLike }     from "../interfaces/UniswapV4.sol";
+import { IERC20Like, IPermit2Like }                   from "../interfaces/Common.sol";
+import { IALMProxy }                                  from "../interfaces/IALMProxy.sol";
+import { IRateLimits }                                from "../interfaces/IRateLimits.sol";
+import { IPositionManagerLike, IUniversalRouterLike } from "../interfaces/UniswapV4.sol";
 
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
@@ -23,10 +24,14 @@ library UniswapV4Lib {
 
     bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
     bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
+    bytes32 public constant LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
 
-    // NOTE: From https://docs.uniswap.org/contracts/v4/deployments (Ethereum Mainnet)
+    uint256 internal constant _V4_SWAP = 0x10;
+
+    // NOTE: From https://docs.uniswap.org/contracts/v4/deployments (Ethereum Mainnet).
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
+    address internal constant _ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
@@ -151,6 +156,76 @@ library UniswapV4Lib {
         });
     }
 
+    function swap(
+        address proxy,
+        address rateLimits,
+        bytes32 poolId,
+        address tokenIn,
+        uint128 amountIn,
+        uint128 amountOutMin,
+        uint256 maxSlippage
+    )
+        external
+    {
+        require(maxSlippage != 0, "MC/max-slippage-not-set");
+
+        require(amountOutMin * 1e18 >= amountIn * maxSlippage, "MC/amountOutMin-too-low");
+
+        // Perform rate limit decrease.
+        IRateLimits(rateLimits).triggerRateLimitDecrease(
+            RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
+            _getNormalizedBalance(tokenIn, amountIn)
+        );
+
+        PoolKey memory poolKey = _getPoolKey(poolId);
+
+        bytes memory actions = abi.encodePacked(
+            uint8(Actions.SWAP_EXACT_IN_SINGLE),
+            uint8(Actions.SETTLE_ALL),
+            uint8(Actions.TAKE_ALL)
+        );
+
+        bool zeroForOne = tokenIn == Currency.unwrap(poolKey.currency0);
+
+        address tokenOut = zeroForOne
+            ? Currency.unwrap(poolKey.currency1)
+            : Currency.unwrap(poolKey.currency0);
+
+        bytes[] memory params = new bytes[](3);
+
+        params[0] = abi.encode(
+            IV4Router.ExactInputSingleParams({
+                poolKey          : poolKey,
+                zeroForOne       : zeroForOne,
+                amountIn         : amountIn,
+                amountOutMinimum : amountOutMin,
+                hookData         : bytes("")
+            })
+        );
+
+        params[1] = abi.encode(tokenIn,  amountIn);
+        params[2] = abi.encode(tokenOut, amountOutMin);
+
+        // Combine actions and params into inputs.
+        bytes[] memory inputs = new bytes[](1);
+
+        inputs[0] = abi.encode(actions, params);
+
+        _approveWithPermit2(proxy, tokenIn, _ROUTER, amountIn);
+
+        // Perform action.
+        IALMProxy(proxy).doCall(
+            _ROUTER,
+            abi.encodeCall(
+                IUniversalRouterLike.execute,
+                (abi.encodePacked(uint8(_V4_SWAP)), inputs, block.timestamp)
+            )
+        );
+
+        // Reset approval of Permit2 in tokenIn.
+        _approveWithPermit2(proxy, tokenIn, _ROUTER, 0);
+    }
+
     /**********************************************************************************************/
     /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
@@ -267,7 +342,7 @@ library UniswapV4Lib {
         uint256 startingBalance0 = _getBalance(token0, proxy);
         uint256 startingBalance1 = _getBalance(token1, proxy);
 
-        // Perform action
+        // Perform action.
         IALMProxy(proxy).doCall(_POSITION_MANAGER, callData);
 
         // Get token balances after liquidity decrease.

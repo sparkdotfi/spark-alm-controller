@@ -162,6 +162,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
+    bytes32 public LIMIT_UNISWAP_V4_SWAP         = UniswapV4Lib.LIMIT_SWAP;
     bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
@@ -705,6 +706,27 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             liquidityDecrease : liquidityDecrease,
             amount0Min        : amount0Min,
             amount1Min        : amount1Min
+        });
+    }
+
+    function swapUniswapV4(
+        bytes32 poolId,
+        address tokenIn,
+        uint128 amountIn,
+        uint128 amountOutMin
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.swap({
+            proxy        : address(proxy),
+            rateLimits   : address(rateLimits),
+            poolId       : poolId,
+            tokenIn      : tokenIn,
+            amountIn     : amountIn,
+            amountOutMin : amountOutMin,
+            maxSlippage  : maxSlippages[address(uint160(uint256(poolId)))]
         });
     }
 

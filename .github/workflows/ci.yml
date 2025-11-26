@@ -22,7 +22,7 @@ jobs:
       - name: Build contracts
         run: |
           forge --version
-          forge build --skip test --sizes
+          forge build --sizes ./src
 
   test:
     runs-on: ubuntu-latest

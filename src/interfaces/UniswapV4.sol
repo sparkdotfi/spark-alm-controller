@@ -19,3 +19,9 @@ interface IPositionManagerLike {
     function ownerOf(uint256 tokenId) external view returns (address owner);
 
 }
+
+interface IUniversalRouterLike {
+
+    function execute(bytes calldata commands, bytes[] calldata inputs, uint256 deadline) external;
+
+}
