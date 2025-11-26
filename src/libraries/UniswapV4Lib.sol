@@ -28,7 +28,7 @@ library UniswapV4Lib {
 
     uint256 internal constant _V4_SWAP = 0x10;
 
-    // NOTE: From https://docs.uniswap.org/contracts/v4/deployments (Ethereum Mainnet)
+    // NOTE: From https://docs.uniswap.org/contracts/v4/deployments (Ethereum Mainnet).
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
     address internal constant _ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
@@ -171,7 +171,6 @@ library UniswapV4Lib {
 
         require(amountOutMin * 1e18 >= amountIn * maxSlippage, "MC/amountOutMin-too-low");
 
-        // Encode actions and params
         PoolKey memory poolKey = _getPoolKey(poolId);
 
         bytes memory actions = abi.encodePacked(
@@ -180,7 +179,9 @@ library UniswapV4Lib {
             uint8(Actions.TAKE_ALL)
         );
 
-        address tokenOut = tokenIn == Currency.unwrap(poolKey.currency0)
+        bool zeroForOne = tokenIn == Currency.unwrap(poolKey.currency0);
+
+        address tokenOut = zeroForOne
             ? Currency.unwrap(poolKey.currency1)
             : Currency.unwrap(poolKey.currency0);
 
@@ -189,26 +190,27 @@ library UniswapV4Lib {
         params[0] = abi.encode(
             IV4Router.ExactInputSingleParams({
                 poolKey          : poolKey,
-                zeroForOne       : tokenIn == Currency.unwrap(poolKey.currency0),
+                zeroForOne       : zeroForOne,
                 amountIn         : amountIn,
                 amountOutMinimum : amountOutMin,
                 hookData         : bytes("")
             })
         );
 
-        params[1] = abi.encode(tokenIn, amountIn);
+        params[1] = abi.encode(tokenIn,  amountIn);
         params[2] = abi.encode(tokenOut, 0);
 
-        // Combine actions and params into inputs
+        // Combine actions and params into inputs.
         bytes[] memory inputs = new bytes[](1);
 
         inputs[0] = abi.encode(actions, params);
 
         _approveWithPermit2(proxy, tokenIn, _ROUTER, amountIn);
 
-        // Perform action
+        // Perform action.
         IALMProxy(proxy).doCall(
-            _ROUTER, abi.encodeCall(
+            _ROUTER,
+            abi.encodeCall(
                 IUniversalRouterLike.execute,
                 (abi.encodePacked(uint8(_V4_SWAP)), inputs, block.timestamp)
             )
@@ -219,6 +221,9 @@ library UniswapV4Lib {
             RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
             _getNormalizedBalance(tokenIn, amountIn)
         );
+
+        // Reset approval of Permit2 in tokenIn.
+        _approveWithPermit2(proxy, tokenIn, _ROUTER, 0);
     }
 
     /**********************************************************************************************/
@@ -337,7 +342,7 @@ library UniswapV4Lib {
         uint256 startingBalance0 = _getBalance(token0, proxy);
         uint256 startingBalance1 = _getBalance(token1, proxy);
 
-        // Perform action
+        // Perform action.
         IALMProxy(proxy).doCall(_POSITION_MANAGER, callData);
 
         // Get token balances after liquidity decrease.

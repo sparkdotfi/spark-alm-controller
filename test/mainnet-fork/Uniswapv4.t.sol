@@ -198,7 +198,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenTicksMisordered() external {
+    function test_mintPositionUniswapV4_revertsWhenTicksMisorderedBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -10, 0, 10);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -240,7 +240,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenTickLowerTooLow() external {
+    function test_mintPositionUniswapV4_revertsWhenTickLowerTooLowBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -10, 0, 10);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -271,7 +271,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenTickUpperTooHigh() external {
+    function test_mintPositionUniswapV4_revertsWhenTickUpperTooHighBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -10, 0, 10);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -302,7 +302,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenTickSpacingTooWide() external {
+    function test_mintPositionUniswapV4_revertsWhenTickSpacingTooWideBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -10, 10, 10);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -333,7 +333,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenAmount0MaxSurpassed() external {
+    function test_mintPositionUniswapV4_revertsWhenAmount0MaxSurpassedBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -370,7 +370,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenAmount1MaxSurpassed() external {
+    function test_mintPositionUniswapV4_revertsWhenAmount1MaxSurpassedBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -407,7 +407,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenRateLimitExceeded() external {
+    function test_mintPositionUniswapV4_revertsWhenRateLimitExceededBoundary() external {
         uint256 expectedDecrease = 499.966111e18;
 
         vm.startPrank(SPARK_PROXY);
@@ -529,7 +529,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_increaseLiquidityUniswapV4_revertsWhenAmount0MaxSurpassed() external {
+    function test_increaseLiquidityUniswapV4_revertsWhenAmount0MaxSurpassedBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity();
 
         vm.prank(SPARK_PROXY);
@@ -568,7 +568,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_increaseLiquidityUniswapV4_revertsWhenAmount1MaxSurpassed() external {
+    function test_increaseLiquidityUniswapV4_revertsWhenAmount1MaxSurpassedBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity();
 
         vm.prank(SPARK_PROXY);
@@ -607,7 +607,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_increaseLiquidityUniswapV4_revertsWhenRateLimitExceeded() external {
+    function test_increaseLiquidityUniswapV4_revertsWhenRateLimitExceededBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity();
 
         uint256 expectedDecrease = 499.966111e18;
@@ -710,7 +710,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_decreaseLiquidityUniswapV4_revertsWhenAmount0MinNotMet() external {
+    function test_decreaseLiquidityUniswapV4_revertsWhenAmount0MinNotMetBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity();
 
         vm.prank(SPARK_PROXY);
@@ -750,7 +750,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_decreaseLiquidityUniswapV4_revertsWhenAmount1MinNotMet() external {
+    function test_decreaseLiquidityUniswapV4_revertsWhenAmount1MinNotMetBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity();
 
         vm.prank(SPARK_PROXY);
@@ -790,7 +790,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         });
     }
 
-    function test_decreaseLiquidityUniswapV4_revertsWhenRateLimitExceeded() external {
+    function test_decreaseLiquidityUniswapV4_revertsWhenRateLimitExceededBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity();
 
         uint256 expectedDecrease = 249.983054e18;
@@ -892,7 +892,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.swapUniswapV4(_POOL_ID, address(0), 0, 0);
     }
 
-    function test_swapUniswapV4_revertsWhenAmountOutMinTooLow() external {
+    function test_swapUniswapV4_revertsWhenAmountOutMinTooLowBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
@@ -919,7 +919,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.swapUniswapV4(_POOL_ID, address(dai), 1_000_000e6, 1_000_000e6);
     }
 
-    function test_swapUniswapV4_revertsWhenAmountOutMinNotMet() external {
+    function test_swapUniswapV4_revertsWhenAmountOutMinNotMetBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
@@ -929,7 +929,6 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
 
         vm.prank(relayer);
 
-        // V4TooLittleReceived
         vm.expectRevert(
             abi.encodeWithSelector(
                 IV4RouterLike.V4TooLittleReceived.selector,
@@ -944,29 +943,24 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
         mainnetController.swapUniswapV4(_POOL_ID, address(usdc), 1_000_000e6, 999_280.652247e6);
     }
 
-    function test_swapUniswapV4_revertsWhenRateLimitExceeded() external {
-        uint256 expectedDecrease = 1_000_000e18;
-
+    function test_swapUniswapV4_revertsWhenRateLimitExceededBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
-        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, expectedDecrease - 1, 0);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
         vm.stopPrank();
 
         uint128 amountOutMin = _getSwapAmountOutMin(address(usdc), 1_000_000e6, 0.99e18);
 
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 1_000_000e6 + 1);
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.swapUniswapV4({
             poolId       : _POOL_ID,
             tokenIn      : address(usdc),
-            amountIn     : 1_000_000e6,
+            amountIn     : 1_000_000e6 + 1,
             amountOutMin : amountOutMin
         });
-
-        vm.prank(SPARK_PROXY);
-        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, expectedDecrease, 0);
 
         vm.prank(relayer);
         mainnetController.swapUniswapV4({
@@ -1969,7 +1963,7 @@ contract MainnetControllerUniswapV4Tests is ForkTestBase {
             amountOutMin : amountOutMin
         });
 
-        uint256 tokenInAfterCall = IERC20Like(tokenIn).balanceOf(address(almProxy));
+        uint256 tokenInAfterCall  = IERC20Like(tokenIn).balanceOf(address(almProxy));
         uint256 tokenOutAfterCall = IERC20Like(tokenOut).balanceOf(address(almProxy));
 
         uint256 rateLimitAfterCall = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
