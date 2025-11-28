@@ -169,8 +169,6 @@ library UniswapV4Lib {
     {
         require(maxSlippage != 0, "MC/max-slippage-not-set");
 
-        require(amountOutMin * 1e18 >= amountIn * maxSlippage, "MC/amountOutMin-too-low");
-
         // Perform rate limit decrease.
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
@@ -190,6 +188,12 @@ library UniswapV4Lib {
         address tokenOut = zeroForOne
             ? Currency.unwrap(poolKey.currency1)
             : Currency.unwrap(poolKey.currency0);
+
+        require(
+            _getNormalizedBalance(tokenOut, amountOutMin) * 1e18 >=
+            _getNormalizedBalance(tokenIn, amountIn) * maxSlippage,
+            "MC/amountOutMin-too-low"
+        );
 
         bytes[] memory params = new bytes[](3);
 
