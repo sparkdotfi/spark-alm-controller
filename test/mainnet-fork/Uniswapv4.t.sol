@@ -1648,6 +1648,99 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
     }
 
     /**********************************************************************************************/
+    /*** Fuzz Tests                                                                             ***/
+    /**********************************************************************************************/
+
+    function testFuzz_uniswapV4_mintAndDecreaseFullAmounts(
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity
+    ) external {
+        tickLower = int24(_bound(int256(tickLower), -10_000, 10_000 - 1));
+
+        int256 boundedUpperMax = int256(tickLower) + 1_000 > 10_000 ? int256(10_000) : int256(tickLower) + 1_000;
+
+        tickUpper = int24(_bound(int256(tickUpper), int256(tickLower) + 1, boundedUpperMax));
+        liquidity = uint128(_bound(uint256(liquidity), 1e6, 1_000_000_000e6));
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -10_000, 10_000, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY,  1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
+        vm.stopPrank();
+
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, liquidity, type(uint160).max, type(uint160).max);
+        DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, mintResult.liquidityIncrease, 0, 0);
+
+        uint256 valueDeposited = mintResult.amount0Spent        + mintResult.amount1Spent;
+        uint256 valueReceived  = decreaseResult.amount0Received + decreaseResult.amount1Received;
+
+        assertApproxEqAbs(valueReceived, valueDeposited, 2);
+    }
+
+    function testFuzz_uniswapV4_increaseAndDecreaseFullAmounts(
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 initialLiquidity
+    ) external {
+        tickLower = int24(_bound(int256(tickLower), -10_000, 10_000 - 1));
+
+        int256 boundedUpperMax = int256(tickLower) + 1_000 > 10_000 ? int256(10_000) : int256(tickLower) + 1_000;
+
+        tickUpper        = int24(_bound(int256(tickUpper), int256(tickLower) + 1, boundedUpperMax));
+        initialLiquidity = uint128(_bound(uint256(initialLiquidity), 1e6, 2_000_000e6));
+
+        uint128 additionalLiquidity = initialLiquidity / 2;
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -10_000, 10_000, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY,  2_000_000e18, uint256(2_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, uint256(2_000_000e18) / 1 days);
+        vm.stopPrank();
+
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, initialLiquidity, type(uint160).max, type(uint160).max);
+        IncreasePositionResult memory increaseResult = _increasePosition(mintResult.tokenId, additionalLiquidity, type(uint160).max, type(uint160).max);
+
+        uint256 valueBeforeIncrease = mintResult.amount0Spent     + mintResult.amount1Spent;
+        uint256 valueAdded          = increaseResult.amount0Spent + increaseResult.amount1Spent;
+        uint256 totalValueDeposited = valueBeforeIncrease + valueAdded;
+
+        uint128 totalLiquidity = mintResult.liquidityIncrease + increaseResult.liquidityIncrease;
+
+        DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, totalLiquidity, 0, 0);
+
+        uint256 valueReceived  = decreaseResult.amount0Received + decreaseResult.amount1Received;
+
+        assertApproxEqAbs(totalValueDeposited, valueReceived, 10);
+    }
+
+    function testFuzz_uniswapV4_swapUniswapV4_amounts(
+        uint128 amountIn,
+        bool    swapDirection  // true = USDC->USDT, false = USDT->USDC
+    ) external {
+        amountIn = uint128(_bound(uint256(amountIn), 1e6, 1_000_000e6));
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
+        vm.stopPrank();
+
+        address tokenIn = swapDirection ? address(usdc) : address(usdt);
+
+        uint128 amountOutMin = _getSwapAmountOutMin(_POOL_ID, tokenIn, amountIn, 0.99e18);
+
+        uint256 rateLimitBefore = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
+
+        uint256 amountOut = _swap(_POOL_ID, tokenIn, amountIn, amountOutMin);
+
+        assertEq(rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY), rateLimitBefore - _to18From6Decimals(amountIn));
+
+        assertGe(amountOut, amountOutMin);
+
+        assertApproxEqRel(amountIn, amountOut, 0.005e18);
+    }
+
+    /**********************************************************************************************/
     /*** Story Tests                                                                            ***/
     /**********************************************************************************************/
 
