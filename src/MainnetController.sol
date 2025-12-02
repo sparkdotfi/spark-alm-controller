@@ -720,13 +720,13 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
 
         UniswapV4Lib.swap({
-            proxy        : address(proxy),
-            rateLimits   : address(rateLimits),
-            poolId       : poolId,
-            tokenIn      : tokenIn,
-            amountIn     : amountIn,
-            amountOutMin : amountOutMin,
-            maxSlippage  : maxSlippages[address(uint160(uint256(poolId)))]
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            poolId            : poolId,
+            tokenIn           : tokenIn,
+            amountIn          : amountIn,
+            amountOutMin      : amountOutMin,
+            maxPriceDeviation : maxSlippages[address(uint160(uint256(poolId)))]
         });
     }
 

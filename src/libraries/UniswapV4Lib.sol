@@ -26,17 +26,23 @@ library UniswapV4Lib {
     bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
     bytes32 public constant LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
 
-    uint256 internal constant _V4_SWAP = 0x10;
-
     // NOTE: From https://docs.uniswap.org/contracts/v4/deployments (Ethereum Mainnet).
     address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
     address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
-    address internal constant _ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
+    /**
+     * @notice Mints a new position in the pool with ID `poolId` on Uniswap V4, to be owned by the
+     *         `proxy` account. The liquidity will be between the `tickLower` and `tickUpper` ticks.
+     *         The maximum amount of each respective token that can be used is specified by
+     *         `amount0Max` and `amount1Max`. The `rateLimits` contract will be called to record the
+     *         total expenditure of the tokens used to mint the position, making the assumption that
+     *         the tokens are valued equally (i.e. they are both worth more or less $1 USD), when
+     *         taking into account their respective number of decimals.
+     */
     function mintPosition(
         address proxy,
         address rateLimits,
@@ -52,10 +58,8 @@ library UniswapV4Lib {
     {
         _checkTickLimits(tickLimits[poolId], tickLower, tickUpper);
 
-        PoolKey memory poolKey = _getPoolKey(poolId);
-
         bytes memory callData = _getMintCalldata({
-            poolKey    : poolKey,
+            poolKey    : _getPoolKey(poolId),
             tickLower  : tickLower,
             tickUpper  : tickUpper,
             liquidity  : liquidity,
@@ -68,8 +72,8 @@ library UniswapV4Lib {
             proxy      : proxy,
             rateLimits : rateLimits,
             poolId     : poolId,
-            token0     : Currency.unwrap(poolKey.currency0),
-            token1     : Currency.unwrap(poolKey.currency1),
+            token0     : Currency.unwrap(_getPoolKey(poolId).currency0),
+            token1     : Currency.unwrap(_getPoolKey(poolId).currency1),
             amount0Max : amount0Max,
             amount1Max : amount1Max,
             callData   : callData
@@ -93,12 +97,8 @@ library UniswapV4Lib {
             "MC/non-proxy-position"
         );
 
-        _requirePoolIdMatch(poolId, tokenId);
-
-        PoolKey memory poolKey = _getPoolKey(poolId);
-
         bytes memory callData = _getIncreaseLiquidityCallData({
-            poolKey           : poolKey,
+            poolKey           : _getPoolKey(poolId),
             tokenId           : tokenId,
             liquidityIncrease : liquidityIncrease,
             amount0Max        : amount0Max,
@@ -109,14 +109,23 @@ library UniswapV4Lib {
             proxy      : proxy,
             rateLimits : rateLimits,
             poolId     : poolId,
-            token0     : Currency.unwrap(poolKey.currency0),
-            token1     : Currency.unwrap(poolKey.currency1),
-            amount0Max : amount0Max,
+            token0     : Currency.unwrap(_getPoolKey(poolId).currency0),
+            token1     : Currency.unwrap(_getPoolKey(poolId).currency1),
+            amount0Max : amount1Max,
             amount1Max : amount1Max,
             callData   : callData
         });
     }
 
+    /**
+     * @notice Decreases the liquidity of the position with ID `tokenId` in the pool with ID `poolId`
+     *         on Uniswap V4, sending the withdrawn tokens to the `proxy` account. The minimum
+     *         amount of each respective token that should be received is specified by `amount0Min`
+     *         and `amount1Min`. The `rateLimits` contract will be called to record the total
+     *         withdrawal of the tokens from the decrease of the position, making the assumption that
+     *         the tokens are valued equally (i.e. they are both worth more or less $1 USD), when
+     *         taking into account their respective number of decimals.
+     */
     function decreasePosition(
         address proxy,
         address rateLimits,
@@ -131,13 +140,13 @@ library UniswapV4Lib {
         // NOTE: No need to check the token ownership here, as the proxy will be defined as the
         //       recipient of the tokens, so the worst case is that another account's position is
         //       decreased or closed by the proxy.
-        _requirePoolIdMatch(poolId, tokenId);
 
-        PoolKey memory poolKey = _getPoolKey(poolId);
+        // Check that the tokenId is for the correct pool.
+        _requirePoolIdMatch(poolId, tokenId);
 
         bytes memory callData = _getDecreaseLiquidityCallData({
             proxy             : proxy,
-            poolKey           : poolKey,
+            poolKey           : _getPoolKey(poolId),
             tokenId           : tokenId,
             liquidityDecrease : liquidityDecrease,
             amount0Min        : amount0Min,
@@ -145,17 +154,28 @@ library UniswapV4Lib {
         });
 
         _decreaseLiquidity({
-            proxy      : proxy,
-            rateLimits : rateLimits,
-            poolId     : poolId,
-            token0     : Currency.unwrap(poolKey.currency0),
-            token1     : Currency.unwrap(poolKey.currency1),
-            amount0Min : amount0Min,
-            amount1Min : amount1Min,
-            callData   : callData
+            proxy: proxy,
+            rateLimits: rateLimits,
+            poolId: poolId,
+            token0: Currency.unwrap(_getPoolKey(poolId).currency0),
+            token1: Currency.unwrap(_getPoolKey(poolId).currency1),
+            amount0Min: amount0Min,
+            amount1Min: amount1Min,
+            callData: callData
         });
     }
 
+    /**
+     * @notice Swaps `amountIn` of `tokenIn` for `tokenOut` in the pool with ID `poolId` on Uniswap
+     *         V4, sending the output tokens to the `proxy` account. The minimum amount of
+     *         `tokenOut` that should be received is specified by `amountOutMin`. The `rateLimits`
+     *         contract will be called to record the total expenditure of the tokens used to swap.
+     *         The max deviation allowed is specified by `maxPriceDeviation` (which we can assume
+     *         comes from governance), scaled to 1e18 for precision. So a pre-scaled value of 0.98
+     *         implies that the `amountOutMin` should be at least 98% of the amount in, making the
+     *         assumption that the tokens are valued equally (i.e. they are both worth more or less
+     *         $1 USD), when taking into account their respective number of decimals.
+     */
     function swap(
         address proxy,
         address rateLimits,
@@ -163,19 +183,11 @@ library UniswapV4Lib {
         address tokenIn,
         uint128 amountIn,
         uint128 amountOutMin,
-        uint256 maxSlippage
+        uint256 maxPriceDeviation
     )
         external
     {
-        require(maxSlippage != 0, "MC/max-slippage-not-set");
-
-        // Perform rate limit decrease.
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
-            _getNormalizedBalance(tokenIn, amountIn)
-        );
-
-        PoolKey memory poolKey = _getPoolKey(poolId);
+        require(maxPriceDeviation != 0, "MC/max-deviation-not-set");
 
         bytes memory actions = abi.encodePacked(
             uint8(Actions.SWAP_EXACT_IN_SINGLE),
@@ -183,23 +195,19 @@ library UniswapV4Lib {
             uint8(Actions.TAKE_ALL)
         );
 
-        bool zeroForOne = tokenIn == Currency.unwrap(poolKey.currency0);
+        bool zeroForOne = tokenIn == Currency.unwrap(_getPoolKey(poolId).currency0);
 
         address tokenOut = zeroForOne
-            ? Currency.unwrap(poolKey.currency1)
-            : Currency.unwrap(poolKey.currency0);
+            ? Currency.unwrap(_getPoolKey(poolId).currency1)
+            : Currency.unwrap(_getPoolKey(poolId).currency0);
 
-        require(
-            _getNormalizedBalance(tokenOut, amountOutMin) * 1e18 >=
-            _getNormalizedBalance(tokenIn, amountIn) * maxSlippage,
-            "MC/amountOutMin-too-low"
-        );
+        require(amountOutMin * 1e18 >= amountIn * maxPriceDeviation, "MC/amountOutMin-too-low");
 
         bytes[] memory params = new bytes[](3);
 
         params[0] = abi.encode(
             IV4Router.ExactInputSingleParams({
-                poolKey          : poolKey,
+                poolKey          : _getPoolKey(poolId),
                 zeroForOne       : zeroForOne,
                 amountIn         : amountIn,
                 amountOutMinimum : amountOutMin,
@@ -215,19 +223,18 @@ library UniswapV4Lib {
 
         inputs[0] = abi.encode(actions, params);
 
-        _approveWithPermit2(proxy, tokenIn, _ROUTER, amountIn);
+        address router = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
 
-        // Perform action.
+        _approveWithPermit2(proxy, tokenIn, router, amountIn);
+
+        // Instruct proxy to call the router to perform the swap.
         IALMProxy(proxy).doCall(
-            _ROUTER,
+            router,
             abi.encodeCall(
                 IUniversalRouterLike.execute,
-                (abi.encodePacked(uint8(_V4_SWAP)), inputs, block.timestamp)
+                (abi.encodePacked(uint8(0x10)), inputs, block.timestamp)
             )
         );
-
-        // Reset approval of Permit2 in tokenIn.
-        _approveWithPermit2(proxy, tokenIn, _ROUTER, 0);
     }
 
     /**********************************************************************************************/
@@ -242,7 +249,8 @@ library UniswapV4Lib {
     )
         internal
     {
-        // Approve the Permit2 contract to spend none of the token (success is optional).
+        // Instruct proxy to approve the Permit2 contract to spend none of the token
+        // (success is optional).
         // NOTE: We don't care about the success of this call, since the only outcomes are:
         //         - the allowance is 0 (it was reset or was already 0)
         //         - the allowance is not 0, in which case the success of the overall set of
@@ -256,7 +264,8 @@ library UniswapV4Lib {
         );
 
         if (amount != 0) {
-            // Approve the Permit2 contract to spend the amount of token (success is mandatory).
+            // Instruct proxy to approve the Permit2 contract to spend the amount of token
+            // (success is mandatory).
             bytes memory approveResult = IALMProxy(proxy).doCall(
                 token,
                 abi.encodeCall(IERC20Like.approve, (_PERMIT2, amount))
@@ -269,7 +278,8 @@ library UniswapV4Lib {
             );
         }
 
-        // Finally, approve the Position Manager contract to spend the token via Permit2.
+        // Finally, instruct proxy to approve the Position Manager contract to spend the token
+        // via Permit2.
         IALMProxy(proxy).doCall(
             _PERMIT2,
             abi.encodeCall(
@@ -295,15 +305,15 @@ library UniswapV4Lib {
         _approveWithPermit2(proxy, token1, _POSITION_MANAGER, amount1Max);
 
         // Get token balances before liquidity increase.
-        uint256 startingBalance0 = _getBalance(token0, proxy);
-        uint256 startingBalance1 = _getBalance(token1, proxy);
+        uint256 startingBalance0 = IERC20Like(token0).balanceOf(proxy);
+        uint256 startingBalance1 = IERC20Like(token1).balanceOf(proxy);
 
-        // Perform action
+        // Instruct proxy to call the Position Manager to perform the liquidity increase.
         IALMProxy(proxy).doCall(_POSITION_MANAGER, callData);
 
         // Get token balances after liquidity increase.
-        uint256 endingBalance0 = _getBalance(token0, proxy);
-        uint256 endingBalance1 = _getBalance(token1, proxy);
+        uint256 endingBalance0 = IERC20Like(token0).balanceOf(proxy);
+        uint256 endingBalance1 = IERC20Like(token1).balanceOf(proxy);
 
         // Account for the theoretical possibility of receiving tokens when adding liquidity by
         // using a clamped subtraction.
@@ -321,13 +331,6 @@ library UniswapV4Lib {
             RateLimitHelpers.makeBytes32Key(LIMIT_DEPOSIT, poolId),
             rateLimitDecrease
         );
-
-        // Reset approval of Permit2 in token0 and token1
-        // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it
-        //       doesn't have allowance in the token at this point), but prudent so there isn't a
-        //       hanging unused approval.
-        _approveWithPermit2(proxy, token0, _POSITION_MANAGER, 0);
-        _approveWithPermit2(proxy, token1, _POSITION_MANAGER, 0);
     }
 
     function _decreaseLiquidity(
@@ -343,15 +346,15 @@ library UniswapV4Lib {
         internal
     {
         // Get token balances before liquidity decrease.
-        uint256 startingBalance0 = _getBalance(token0, proxy);
-        uint256 startingBalance1 = _getBalance(token1, proxy);
+        uint256 startingBalance0 = IERC20Like(token0).balanceOf(proxy);
+        uint256 startingBalance1 = IERC20Like(token1).balanceOf(proxy);
 
-        // Perform action.
+        // Instruct proxy to call the Position Manager to perform the liquidity decrease.
         IALMProxy(proxy).doCall(_POSITION_MANAGER, callData);
 
         // Get token balances after liquidity decrease.
-        uint256 endingBalance0 = _getBalance(token0, proxy);
-        uint256 endingBalance1 = _getBalance(token1, proxy);
+        uint256 endingBalance0 = IERC20Like(token0).balanceOf(proxy);
+        uint256 endingBalance1 = IERC20Like(token1).balanceOf(proxy);
 
         // NOTE: The limitation of this integration is the assumption that the tokens are valued
         //       equally (i.e. 1.00000 USDC = 1.000000000000000000 USDS).
@@ -370,7 +373,7 @@ library UniswapV4Lib {
     /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _checkTickLimits(TickLimits memory limits, int24 tickLower, int24 tickUpper)
+    function _checkTickLimits(TickLimits memory limits, int24 tickUpper, int24 tickLower)
         internal pure
     {
         require(limits.maxTickSpacing != 0,       "MC/tickLimits-not-set");
@@ -384,12 +387,9 @@ library UniswapV4Lib {
         );
     }
 
+    /// @dev Clamped subtraction to prevent underflow and limit result to a minimum of 0.
     function _clampedSub(uint256 a, uint256 b) internal pure returns (uint256 c) {
         return a > b ? a - b : 0;
-    }
-
-    function _getBalance(address token, address account) internal view returns (uint256 balance) {
-        return IERC20Like(token).balanceOf(account);
     }
 
     function _getMintCalldata(
@@ -455,9 +455,11 @@ library UniswapV4Lib {
         );
 
         params[1] = abi.encode(poolKey.currency0);
-        params[2] = abi.encode(poolKey.currency1);
 
-        return _getModifyLiquiditiesCallData(actions, params);
+        return abi.encodeCall(
+            IPositionManagerLike.modifyLiquidities,
+            (abi.encode(actions, params), block.timestamp)
+        );
     }
 
     function _getDecreaseLiquidityCallData(
@@ -475,7 +477,7 @@ library UniswapV4Lib {
             uint8(Actions.TAKE_PAIR)
         );
 
-        bytes[] memory params = new bytes[](2);
+        bytes[] memory params = new bytes[](3);
 
         params[0] = abi.encode(
             tokenId,            // Position to decrease
@@ -503,10 +505,8 @@ library UniswapV4Lib {
         );
     }
 
-    function _getNormalizedBalance(address token, uint256 balance)
-        internal view returns (uint256 normalizedBalance)
-    {
-        return balance * 1e18 / (10 ** IERC20Like(token).decimals());
+    function _getNormalizedBalance(address token, uint256 balance) internal view returns (uint256 normalizedBalance) {
+        return balance * (1e18 / (10 ** IERC20Like(token).decimals()));
     }
 
     function _getPoolKey(bytes32 poolId) internal view returns (PoolKey memory poolKey) {
