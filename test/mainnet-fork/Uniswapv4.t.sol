@@ -1661,6 +1661,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
     /*** Fuzz Tests                                                                             ***/
     /**********************************************************************************************/
 
+    /// forge-config: default.fuzz.runs = 100
     function testFuzz_uniswapV4_mintAndDecreaseFullAmounts(
         int24   tickLower,
         int24   tickUpper,
@@ -1690,6 +1691,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         assertApproxEqAbs(valueReceived, valueDeposited, 2);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testFuzz_uniswapV4_increaseAndDecreaseFullAmounts(
         int24   tickLower,
         int24   tickUpper,
@@ -1729,6 +1731,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
     }
 
     /// @param swapDirection true = USDC->USDT, false = USDT->USDC
+    /// forge-config: default.fuzz.runs = 100
     function testFuzz_uniswapV4_swapUniswapV4_amounts(uint128 amountIn, bool swapDirection)
         external
     {
@@ -3361,6 +3364,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
     /*** Fuzz Tests                                                                             ***/
     /**********************************************************************************************/
 
+    /// forge-config: default.fuzz.runs = 100
     function testFuzz_uniswapV4_mintAndDecreaseFullAmounts(
         int24   tickLower,
         int24   tickUpper,
@@ -3390,6 +3394,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         assertApproxEqAbs(valueReceived, valueDeposited, 2);
     }
 
+    /// forge-config: default.fuzz.runs = 100
     function testFuzz_uniswapV4_increaseAndDecreaseFullAmounts(
         int24   tickLower,
         int24   tickUpper,
@@ -3429,6 +3434,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
     }
 
     /// @param swapDirection true = USDT->USDS, false = USDS->USDT
+    /// forge-config: default.fuzz.runs = 100
     function testFuzz_uniswapV4_swapUniswapV4_amounts(uint128 amountIn, bool swapDirection)
         external
     {
