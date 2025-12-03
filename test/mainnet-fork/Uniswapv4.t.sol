@@ -144,12 +144,14 @@ contract UniswapV4TestBase is ForkTestBase {
     /*** Helper Functions                                                                       ***/
     /**********************************************************************************************/
 
-    function _setupLiquidity(bytes32 poolId, int24 tickLower, int24 tickUpper, uint128 liquidity) internal returns (IncreasePositionResult memory minted) {
-        bytes32 depositLimitKey  = keccak256(abi.encode(_LIMIT_DEPOSIT,  poolId));
+    function _setupLiquidity(bytes32 poolId, int24 tickLower, int24 tickUpper, uint128 liquidity)
+        internal returns (IncreasePositionResult memory minted)
+    {
+        bytes32 depositLimitKey = keccak256(abi.encode(_LIMIT_DEPOSIT,  poolId));
 
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(poolId, tickLower, tickUpper, uint24(uint256(int256(tickUpper) - int256(tickLower))));
-        rateLimits.setRateLimitData(depositLimitKey, 2_000_000e18, 0);
+        rateLimits.setRateLimitData(depositLimitKey, 200_000_000e18, 0);
         vm.stopPrank();
 
         ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(poolId, tickLower, tickUpper, liquidity, 0.9999e18);
@@ -168,7 +170,9 @@ contract UniswapV4TestBase is ForkTestBase {
         int24   tickUpper,
         uint128 liquidity,
         uint256 maxSlippage
-    ) internal returns (uint256 amount0Max, uint256 amount1Max) {
+    )
+        internal returns (uint256 amount0Max, uint256 amount1Max)
+    {
         ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
             poolId,
             tickLower,
@@ -187,7 +191,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 liquidity,
         uint256 amount0Max,
         uint256 amount1Max
-    ) internal returns (IncreasePositionResult memory result) {
+    )
+        internal returns (IncreasePositionResult memory result)
+    {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         deal(
@@ -246,7 +252,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 liquidityIncrease,
         uint256 amount0Max,
         uint256 amount1Max
-    ) internal returns (IncreasePositionResult memory result) {
+    )
+        internal returns (IncreasePositionResult memory result)
+    {
         (
             PoolKey memory poolKey,
             PositionInfo positionInfo
@@ -309,11 +317,9 @@ contract UniswapV4TestBase is ForkTestBase {
         _assertZeroAllowances(Currency.unwrap(poolKey.currency1));
     }
 
-    function _getDecreasePositionMinAmounts(
-        uint256 tokenId,
-        uint128 liquidity,
-        uint256 maxSlippage
-    ) internal returns (uint256 amount0Min, uint256 amount1Min) {
+    function _getDecreasePositionMinAmounts(uint256 tokenId, uint128 liquidity, uint256 maxSlippage)
+        internal returns (uint256 amount0Min, uint256 amount1Min)
+    {
         (
             PoolKey memory poolKey,
             PositionInfo positionInfo
@@ -335,7 +341,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 liquidityDecrease,
         uint256 amount0Min,
         uint256 amount1Min
-    ) internal returns (DecreasePositionResult memory result) {
+    )
+        internal returns (DecreasePositionResult memory result)
+    {
         (
             PoolKey memory poolKey,
             PositionInfo positionInfo
@@ -387,7 +395,9 @@ contract UniswapV4TestBase is ForkTestBase {
         address tokenIn,
         uint128 amountIn,
         uint256 maxSlippage
-    ) internal returns (uint128 amountOutMin) {
+    )
+        internal returns (uint128 amountOutMin)
+    {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         address token0 = Currency.unwrap(poolKey.currency0);
@@ -405,12 +415,9 @@ contract UniswapV4TestBase is ForkTestBase {
         return uint128((amountOut * maxSlippage) / 1e18);
     }
 
-    function _swap(
-        bytes32 poolId,
-        address tokenIn,
-        uint128 amountIn,
-        uint128 amountOutMin
-    ) internal returns (uint256 amountOut) {
+    function _swap(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
+        internal returns (uint256 amountOut)
+    {
         Currency currencyIn  = Currency.wrap(tokenIn);
         Currency currencyOut = _getCurrencyOut(poolId, tokenIn);
 
@@ -453,7 +460,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint160 sqrtPriceAX96,
         uint160 sqrtPriceBX96,
         uint128 liquidity
-    ) internal pure returns (uint256 amount0) {
+    )
+        internal pure returns (uint256 amount0)
+    {
         require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices-0");
 
         return FullMath.mulDiv(
@@ -467,7 +476,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint160 sqrtPriceAX96,
         uint160 sqrtPriceBX96,
         uint128 liquidity
-    ) internal pure returns (uint256 amount1) {
+    )
+        internal pure returns (uint256 amount1)
+    {
         require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices-1");
 
         return FullMath.mulDiv(liquidity, sqrtPriceBX96 - sqrtPriceAX96, 1 << 96);
@@ -478,7 +489,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint160 sqrtPriceAX96,
         uint160 sqrtPriceBX96,
         uint128 liquidity
-    ) internal pure returns (uint256 amount0, uint256 amount1) {
+    )
+        internal pure returns (uint256 amount0, uint256 amount1)
+    {
         require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices");
 
         if (sqrtPriceX96 <= sqrtPriceAX96) {
@@ -608,7 +621,9 @@ contract UniswapV4TestBase is ForkTestBase {
         int24   tickLower,
         int24   tickUpper,
         uint128 liquidityAmount
-    ) internal view returns (uint256 amount0, uint256 amount1) {
+    )
+        internal view returns (uint256 amount0, uint256 amount1)
+    {
         ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(poolId));
 
         return _getAmountsForLiquidity(
@@ -647,12 +662,9 @@ contract UniswapV4TestBase is ForkTestBase {
         return 23470490;  // September 29, 2025
     }
 
-    function _externalSwap(
-        bytes32 poolId,
-        address account,
-        address tokenIn,
-        uint128 amountIn
-    ) internal returns (uint256 amountOut) {
+    function _externalSwap(bytes32 poolId, address account, address tokenIn, uint128 amountIn)
+        internal returns (uint256 amountOut)
+    {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         address token0   = Currency.unwrap(poolKey.currency0);
@@ -701,17 +713,15 @@ contract UniswapV4TestBase is ForkTestBase {
         return IERC20Like(tokenOut).balanceOf(account) - startingOutBalance;
     }
 
-    function _getBalanceOf(
-        Currency currency,
-        address  account
-    ) internal view returns (uint256 balance) {
+    function _getBalanceOf(Currency currency, address  account)
+        internal view returns (uint256 balance)
+    {
         return IERC20Like(Currency.unwrap(currency)).balanceOf(account);
     }
 
-    function _getCurrencyOut(
-        bytes32 poolId,
-        address tokenIn
-    ) internal view returns (Currency currencyOut) {
+    function _getCurrencyOut(bytes32 poolId, address tokenIn)
+        internal view returns (Currency currencyOut)
+    {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         return tokenIn == Currency.unwrap(poolKey.currency0) ? poolKey.currency1 : poolKey.currency0;
@@ -1648,6 +1658,106 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
     }
 
     /**********************************************************************************************/
+    /*** Fuzz Tests                                                                             ***/
+    /**********************************************************************************************/
+
+    /// forge-config: default.fuzz.runs = 100
+    function testFuzz_uniswapV4_mintAndDecreaseFullAmounts(
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity
+    )
+        external
+    {
+        tickLower = int24(_bound(int256(tickLower), -10_000, 10_000 - 1));
+
+        int256 boundedUpperMax = int256(tickLower) + 1_000 > 10_000 ? int256(10_000) : int256(tickLower) + 1_000;
+
+        tickUpper = int24(_bound(int256(tickUpper), int256(tickLower) + 1, boundedUpperMax));
+        liquidity = uint128(_bound(uint256(liquidity), 1e6, 1_000_000_000e6));
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -10_000, 10_000, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY,  1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
+        vm.stopPrank();
+
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, liquidity, type(uint160).max, type(uint160).max);
+        DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, mintResult.liquidityIncrease, 0, 0);
+
+        uint256 valueDeposited = mintResult.amount0Spent        + mintResult.amount1Spent;
+        uint256 valueReceived  = decreaseResult.amount0Received + decreaseResult.amount1Received;
+
+        assertApproxEqAbs(valueReceived, valueDeposited, 2);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testFuzz_uniswapV4_increaseAndDecreaseFullAmounts(
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 initialLiquidity
+    )
+        external
+    {
+        tickLower = int24(_bound(int256(tickLower), -10_000, 10_000 - 1));
+
+        int256 boundedUpperMax = int256(tickLower) + 1_000 > 10_000 ? int256(10_000) : int256(tickLower) + 1_000;
+
+        tickUpper        = int24(_bound(int256(tickUpper), int256(tickLower) + 1, boundedUpperMax));
+        initialLiquidity = uint128(_bound(uint256(initialLiquidity), 1e6, 2_000_000e6));
+
+        uint128 additionalLiquidity = initialLiquidity / 2;
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -10_000, 10_000, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY,  2_000_000e18, uint256(2_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, uint256(2_000_000e18) / 1 days);
+        vm.stopPrank();
+
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, initialLiquidity, type(uint160).max, type(uint160).max);
+        IncreasePositionResult memory increaseResult = _increasePosition(mintResult.tokenId, additionalLiquidity, type(uint160).max, type(uint160).max);
+
+        uint256 valueBeforeIncrease = mintResult.amount0Spent     + mintResult.amount1Spent;
+        uint256 valueAdded          = increaseResult.amount0Spent + increaseResult.amount1Spent;
+        uint256 totalValueDeposited = valueBeforeIncrease + valueAdded;
+
+        uint128 totalLiquidity = mintResult.liquidityIncrease + increaseResult.liquidityIncrease;
+
+        DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, totalLiquidity, 0, 0);
+
+        uint256 valueReceived = decreaseResult.amount0Received + decreaseResult.amount1Received;
+
+        assertApproxEqAbs(totalValueDeposited, valueReceived, 10);
+    }
+
+    /// @param swapDirection true = USDC->USDT, false = USDT->USDC
+    /// forge-config: default.fuzz.runs = 100
+    function testFuzz_uniswapV4_swapUniswapV4_amounts(uint128 amountIn, bool swapDirection)
+        external
+    {
+        amountIn = uint128(_bound(uint256(amountIn), 1e6, 1_000_000e6));
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
+        vm.stopPrank();
+
+        address tokenIn = swapDirection ? address(usdc) : address(usdt);
+
+        uint128 amountOutMin = _getSwapAmountOutMin(_POOL_ID, tokenIn, amountIn, 0.99e18);
+
+        uint256 rateLimitBefore = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
+
+        uint256 amountOut = _swap(_POOL_ID, tokenIn, amountIn, amountOutMin);
+
+        assertEq(rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY), rateLimitBefore - _to18From6Decimals(amountIn));
+
+        assertGe(amountOut, amountOutMin);
+
+        assertApproxEqRel(amountIn, amountOut, 0.005e18);
+    }
+
+    /**********************************************************************************************/
     /*** Story Tests                                                                            ***/
     /**********************************************************************************************/
 
@@ -1659,7 +1769,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
      *      - The relayer decreases the liquidity position by 50% (to 3_000e12 liquidity).
      *      - The relayer decreases the remaining liquidity position (to 0 liquidity).
      */
-    function test_uniswapV4_story1_xxx() external {
+    function test_uniswapV4_story1() external {
         // Setup the pool and the controller.
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
@@ -3248,6 +3358,120 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(amountOut, 2_990.034994e6);
+    }
+
+    /**********************************************************************************************/
+    /*** Fuzz Tests                                                                             ***/
+    /**********************************************************************************************/
+
+    /// forge-config: default.fuzz.runs = 100
+    function testFuzz_uniswapV4_mintAndDecreaseFullAmounts(
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity
+    )
+        external
+    {
+        tickLower = int24(_bound(int256(tickLower), 100_000, 300_000 - 1));
+
+        int256 boundedUpperMax = int256(tickLower) + 1_000 > 400_000 ? int256(400_000) : int256(tickLower) + 1_000;
+
+        tickUpper = int24(_bound(int256(tickUpper), int256(tickLower) + 1, boundedUpperMax));
+        liquidity = uint128(_bound(uint256(liquidity), 1e6, 1_000_000_000e12));
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, 100_000, 400_000, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY,  1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
+        vm.stopPrank();
+
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, liquidity, type(uint160).max, type(uint160).max);
+        DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, mintResult.liquidityIncrease, 0, 0);
+
+        uint256 valueDeposited = mintResult.amount0Spent        + mintResult.amount1Spent;
+        uint256 valueReceived  = decreaseResult.amount0Received + decreaseResult.amount1Received;
+
+        assertApproxEqAbs(valueReceived, valueDeposited, 2);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testFuzz_uniswapV4_increaseAndDecreaseFullAmounts(
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 initialLiquidity
+    )
+        external
+    {
+        tickLower = int24(_bound(int256(tickLower), 100_000, 300_000 - 1));
+
+        int256 boundedUpperMax = int256(tickLower) + 1_000 > 400_000 ? int256(400_000) : int256(tickLower) + 1_000;
+
+        tickUpper        = int24(_bound(int256(tickUpper), int256(tickLower) + 1, boundedUpperMax));
+        initialLiquidity = uint128(_bound(uint256(initialLiquidity), 1e6, 2_000_000e12));
+
+        uint128 additionalLiquidity = initialLiquidity / 2;
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, 100_000, 400_000, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY,  2_000_000e18, uint256(2_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, uint256(2_000_000e18) / 1 days);
+        vm.stopPrank();
+
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, initialLiquidity, type(uint160).max, type(uint160).max);
+        IncreasePositionResult memory increaseResult = _increasePosition(mintResult.tokenId, additionalLiquidity, type(uint160).max, type(uint160).max);
+
+        uint256 valueBeforeIncrease = mintResult.amount0Spent     + mintResult.amount1Spent;
+        uint256 valueAdded          = increaseResult.amount0Spent + increaseResult.amount1Spent;
+        uint256 totalValueDeposited = valueBeforeIncrease + valueAdded;
+
+        uint128 totalLiquidity = mintResult.liquidityIncrease + increaseResult.liquidityIncrease;
+
+        DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, totalLiquidity, 0, 0);
+
+        uint256 valueReceived = decreaseResult.amount0Received + decreaseResult.amount1Received;
+
+        assertApproxEqAbs(totalValueDeposited, valueReceived, 10);
+    }
+
+    /// @param swapDirection true = USDT->USDS, false = USDS->USDT
+    /// forge-config: default.fuzz.runs = 100
+    function testFuzz_uniswapV4_swapUniswapV4_amounts(uint128 amountIn, bool swapDirection)
+        external
+    {
+        // Needed due to low liquidity currently in the pool.
+        _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000_000e12);
+
+        if (swapDirection) {
+            amountIn = uint128(_bound(uint256(amountIn), 1e6, 1_000_000e6));
+        } else {
+            amountIn = uint128(_bound(uint256(amountIn), 1e18, 1_000_000e18));
+        }
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
+        vm.stopPrank();
+
+        address tokenIn = swapDirection ? address(usdt) : address(usds);
+
+        uint128 amountOutMin = _getSwapAmountOutMin(_POOL_ID, tokenIn, amountIn, 0.99e18);
+
+        uint256 rateLimitBefore = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
+
+        uint256 amountOut = _swap(_POOL_ID, tokenIn, amountIn, amountOutMin);
+
+        assertEq(
+            rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY),
+            rateLimitBefore - (swapDirection ? _to18From6Decimals(amountIn) : amountIn)
+        );
+
+        assertGe(amountOut, amountOutMin);
+
+        if (swapDirection) {
+            assertApproxEqRel(_to18From6Decimals(amountIn), amountOut, 0.005e18);
+        } else {
+            assertApproxEqRel(amountIn, _to18From6Decimals(amountOut), 0.005e18);
+        }
     }
 
     /**********************************************************************************************/
