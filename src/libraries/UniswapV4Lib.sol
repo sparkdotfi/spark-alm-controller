@@ -4,8 +4,9 @@ pragma solidity ^0.8.21;
 import { Currency } from "../../lib/uniswap-v4-core/src/types/Currency.sol";
 import { PoolKey }  from "../../lib/uniswap-v4-core/src/types/PoolKey.sol";
 
-import { IV4Router } from "../../lib/uniswap-v4-periphery/src/interfaces/IV4Router.sol";
-import { Actions }   from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
+import { IV4Router }    from "../../lib/uniswap-v4-periphery/src/interfaces/IV4Router.sol";
+import { Actions }      from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
+import { PositionInfo } from "../../lib/uniswap-v4-periphery/src/libraries/PositionInfoLibrary.sol";
 
 import { IERC20Like, IPermit2Like }                   from "../interfaces/Common.sol";
 import { IALMProxy }                                  from "../interfaces/IALMProxy.sol";
@@ -83,7 +84,8 @@ library UniswapV4Lib {
         uint256 tokenId,
         uint128 liquidityIncrease,
         uint256 amount0Max,
-        uint256 amount1Max
+        uint256 amount1Max,
+        mapping(bytes32 poolId => TickLimits tickLimits) storage tickLimits
     )
         external
     {
@@ -93,9 +95,14 @@ library UniswapV4Lib {
             "MC/non-proxy-position"
         );
 
-        _requirePoolIdMatch(poolId, tokenId);
+        (
+            PoolKey memory poolKey,
+            PositionInfo info
+        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
 
-        PoolKey memory poolKey = _getPoolKey(poolId);
+        _requirePoolIdMatch(poolId, poolKey);
+
+        _checkTickLimits(tickLimits[poolId], info.tickLower(), info.tickUpper());
 
         bytes memory callData = _getIncreaseLiquidityCallData({
             poolKey           : poolKey,
@@ -131,9 +138,12 @@ library UniswapV4Lib {
         // NOTE: No need to check the token ownership here, as the proxy will be defined as the
         //       recipient of the tokens, so the worst case is that another account's position is
         //       decreased or closed by the proxy.
-        _requirePoolIdMatch(poolId, tokenId);
+        (
+            PoolKey memory poolKey,
+            // PositionInfo info
+        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
 
-        PoolKey memory poolKey = _getPoolKey(poolId);
+        _requirePoolIdMatch(poolId, poolKey);
 
         bytes memory callData = _getDecreaseLiquidityCallData({
             proxy             : proxy,
@@ -513,12 +523,7 @@ library UniswapV4Lib {
         return IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
     }
 
-    function _requirePoolIdMatch(bytes32 poolId, uint256 tokenId) internal view {
-        (
-            PoolKey memory poolKey,
-            // PositionInfo not needed
-        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
-
+    function _requirePoolIdMatch(bytes32 poolId, PoolKey memory poolKey) internal view {
         require(keccak256(abi.encode(poolKey)) == poolId, "MC/tokenId-poolId-mismatch");
     }
 
