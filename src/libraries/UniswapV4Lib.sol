@@ -102,6 +102,9 @@ library UniswapV4Lib {
 
         _requirePoolIdMatch(poolId, poolKey);
 
+        // Since funds are being added to the position, we need to check the tick range since its
+        // possible the position was transferred to the proxy, and its tick range may not match the
+        // tick constraints that would have been applied if it were minted by the proxy.
         _checkTickLimits(tickLimits[poolId], info.tickLower(), info.tickUpper());
 
         bytes memory callData = _getIncreaseLiquidityCallData({
@@ -135,15 +138,12 @@ library UniswapV4Lib {
     )
         external
     {
+        PoolKey memory poolKey = _getPoolKey(poolId);
+
         // NOTE: No need to check the token ownership here, as the proxy will be defined as the
         //       recipient of the tokens, so the worst case is that another account's position is
         //       decreased or closed by the proxy.
-        (
-            PoolKey memory poolKey,
-            // PositionInfo info
-        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
-
-        _requirePoolIdMatch(poolId, poolKey);
+        _requirePoolIdMatch(poolId, tokenId);
 
         bytes memory callData = _getDecreaseLiquidityCallData({
             proxy             : proxy,
@@ -523,7 +523,16 @@ library UniswapV4Lib {
         return IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
     }
 
-    function _requirePoolIdMatch(bytes32 poolId, PoolKey memory poolKey) internal view {
+    function _requirePoolIdMatch(bytes32 poolId, uint256 tokenId) internal view {
+        (
+            PoolKey memory poolKey,
+            // PositionInfo not needed
+        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
+
+        _requirePoolIdMatch(poolId, poolKey);
+    }
+
+    function _requirePoolIdMatch(bytes32 poolId, PoolKey memory poolKey) internal pure {
         require(keccak256(abi.encode(poolKey)) == poolId, "MC/tokenId-poolId-mismatch");
     }
 
