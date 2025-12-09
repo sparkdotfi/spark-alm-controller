@@ -683,7 +683,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             tokenId           : tokenId,
             liquidityIncrease : liquidityIncrease,
             amount0Max        : amount0Max,
-            amount1Max        : amount1Max
+            amount1Max        : amount1Max,
+            tickLimits        : uniswapV4TickLimits
         });
     }
 
