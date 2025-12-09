@@ -102,9 +102,9 @@ library UniswapV4Lib {
 
         _requirePoolIdMatch(poolId, poolKey);
 
-        // Since funds are being added to the position, we need to check the tick range since its
-        // possible the position was transferred to the proxy, and its tick range may not match the
-        // tick constraints that would have been applied if it were minted by the proxy.
+        // Since funds are being added to the position, the tick of the positions need to be checked
+        // since it's possible the position was transferred to the proxy, and its tick range may not
+        // adhere to the constraints that would have been applied if it were minted by the proxy.
         _checkTickLimits(tickLimits[poolId], info.tickLower(), info.tickUpper());
 
         bytes memory callData = _getIncreaseLiquidityCallData({

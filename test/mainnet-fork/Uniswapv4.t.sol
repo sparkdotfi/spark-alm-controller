@@ -735,7 +735,7 @@ contract MainnetController_UniswapV4_Tests is UniswapV4TestBase {
     /*** mintPositionUniswapV4 Tests                                                            ***/
     /**********************************************************************************************/
 
-    function test_mintPositionUniswapV4_reentrancy_xxx() external {
+    function test_mintPositionUniswapV4_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
         mainnetController.mintPositionUniswapV4({
