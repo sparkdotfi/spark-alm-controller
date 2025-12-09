@@ -65,6 +65,7 @@ contract ForeignController is AccessControl {
     event UniswapV3PoolLowerTickUpdated(address indexed pool, int24 lowerTick);
     event UniswapV3PoolUpperTickUpdated(address indexed pool, int24 upperTick);
     event UniswapV3PoolMaxTickDeltaSet(address indexed pool, uint24 maxTickDelta);
+    event UniswapV3PoolTwapSecondsAgoUpdated(address indexed pool, uint32 twapSecondsAgo);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -215,7 +216,7 @@ contract ForeignController is AccessControl {
         UniswapV3Lib.UniswapV3PoolParams storage params = uniswapV3PoolParams[pool];
         params.swapMaxTickDelta = maxTickDelta;
         emit UniswapV3PoolMaxTickDeltaSet(pool, maxTickDelta);
-    }   
+    }
 
     function setUniswapV3AddLiquidityLowerTickBound(address pool, int24 lowerTickBound) external onlyRole(DEFAULT_ADMIN_ROLE) {
         UniswapV3Lib.UniswapV3PoolParams storage params = uniswapV3PoolParams[pool];
@@ -231,6 +232,15 @@ contract ForeignController is AccessControl {
 
         params.addLiquidityTickBounds.upper = upperTickBound;
         emit UniswapV3PoolUpperTickUpdated(pool, upperTickBound);
+    }
+
+    function setUniswapV3TwapSecondsAgo(address pool, uint32 twapSecondsAgo) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        UniswapV3Lib.UniswapV3PoolParams storage params = uniswapV3PoolParams[pool];
+        // Required due to casting in UniswapV3OracleLibrary.consult
+        // Limits twapSecondsAgo to approximately 68 years
+        require(twapSecondsAgo < uint32(type(int32).max), "ForeignController/twap-seconds-ago-out-of-bounds");
+        params.twapSecondsAgo = twapSecondsAgo;
+        emit UniswapV3PoolTwapSecondsAgoUpdated(pool, twapSecondsAgo);
     }
 
     function setMerklDistributor(address merklDistributor_)
@@ -872,7 +882,8 @@ contract ForeignController is AccessControl {
                 min             : min,
                 tickBounds      : poolParams.addLiquidityTickBounds,
                 maxSlippage     : maxSlippage,
-                deadline        : deadline
+                deadline        : deadline,
+                twapSecondsAgo  : poolParams.twapSecondsAgo
             })
         );
     }

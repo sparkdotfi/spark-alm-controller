@@ -20,6 +20,9 @@ remappings = [
     'forge-std/=lib/forge-std/src/'
 ]
 
+[profile.ci]
+# inherit the default by creating an empty CI profiile
+
 [fuzz]
 runs = 1000
 
