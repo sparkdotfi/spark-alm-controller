@@ -62,6 +62,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
     function test_transferTokenLayerZero_zeroMaxAmount() external {
         vm.startPrank(SPARK_PROXY);
+
         rateLimits.setRateLimitData(
             keccak256(abi.encode(
                 mainnetController.LIMIT_LAYERZERO_TRANSFER(),
@@ -71,6 +72,11 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
             0,
             0
         );
+        mainnetController.setLayerZeroRecipient(
+            destinationEndpointId,
+            bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))))
+        );
+
         vm.stopPrank();
 
         vm.prank(relayer);
@@ -419,6 +425,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
     function test_transferTokenLayerZero_zeroMaxAmount() external {
         vm.startPrank(SPARK_EXECUTOR);
+
         foreignRateLimits.setRateLimitData(
             keccak256(abi.encode(
                 foreignController.LIMIT_LAYERZERO_TRANSFER(),
@@ -428,6 +435,11 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
             0,
             0
         );
+        foreignController.setLayerZeroRecipient(
+            destinationEndpointId,
+            bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))))
+        );
+
         vm.stopPrank();
 
         vm.prank(relayer);
