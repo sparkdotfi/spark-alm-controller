@@ -712,7 +712,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function swapUniswapV4(
         bytes32 poolId,
-        address tokenIn,
+        bool    zeroForOne,
         uint128 amountIn,
         uint128 amountOutMin
     )
@@ -724,7 +724,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy        : address(proxy),
             rateLimits   : address(rateLimits),
             poolId       : poolId,
-            tokenIn      : tokenIn,
+            zeroForOne   : zeroForOne,
             amountIn     : amountIn,
             amountOutMin : amountOutMin,
             maxSlippage  : maxSlippages[address(uint160(uint256(poolId)))]

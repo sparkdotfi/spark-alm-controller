@@ -167,7 +167,7 @@ library UniswapV4Lib {
         address proxy,
         address rateLimits,
         bytes32 poolId,
-        address tokenIn,
+        bool    zeroForOne,
         uint128 amountIn,
         uint128 amountOutMin,
         uint256 maxSlippage
@@ -175,12 +175,6 @@ library UniswapV4Lib {
         external
     {
         require(maxSlippage != 0, "MC/max-slippage-not-set");
-
-        // Perform rate limit decrease.
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
-            _getNormalizedBalance(tokenIn, amountIn)
-        );
 
         PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
 
@@ -190,11 +184,9 @@ library UniswapV4Lib {
             uint8(Actions.TAKE_ALL)
         );
 
-        bool zeroForOne = tokenIn == Currency.unwrap(poolKey.currency0);
-
-        address tokenOut = zeroForOne
-            ? Currency.unwrap(poolKey.currency1)
-            : Currency.unwrap(poolKey.currency0);
+        ( address tokenIn, address tokenOut ) = zeroForOne
+            ? (Currency.unwrap(poolKey.currency0), Currency.unwrap(poolKey.currency1))
+            : (Currency.unwrap(poolKey.currency1), Currency.unwrap(poolKey.currency0));
 
         require(
             _getNormalizedBalance(tokenOut, amountOutMin) * 1e18 >=
@@ -231,6 +223,12 @@ library UniswapV4Lib {
                 IUniversalRouterLike.execute,
                 (abi.encodePacked(uint8(_V4_SWAP)), inputs, block.timestamp)
             )
+        );
+
+        // Perform rate limit decrease.
+        IRateLimits(rateLimits).triggerRateLimitDecrease(
+            RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
+            _getNormalizedBalance(tokenIn, amountIn)
         );
 
         // Reset approval of Permit2 in tokenIn.
