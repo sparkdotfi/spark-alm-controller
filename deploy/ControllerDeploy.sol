@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { StdCheatsSafe } from "lib/forge-std/src/StdCheats.sol";
+
 import { ALMProxy }          from "../src/ALMProxy.sol";
 import { ForeignController } from "../src/ForeignController.sol";
 import { MainnetController } from "../src/MainnetController.sol";
@@ -20,14 +22,10 @@ library ForeignControllerDeploy {
     )
         internal returns (address controller)
     {
-        controller = address(new ForeignController({
-            admin_      : admin,
-            proxy_      : almProxy,
-            rateLimits_ : rateLimits,
-            psm_        : psm,
-            usdc_       : usdc,
-            cctp_       : cctp
-        }));
+        controller = StdCheatsSafe.deployCode(
+            "ForeignController.sol:ForeignController",
+            abi.encode(admin, almProxy, rateLimits, psm, usdc, cctp)
+        );
     }
 
     function deployFull(
@@ -38,17 +36,13 @@ library ForeignControllerDeploy {
     )
         internal returns (ControllerInstance memory instance)
     {
-        instance.almProxy   = address(new ALMProxy(admin));
-        instance.rateLimits = address(new RateLimits(admin));
+        instance.almProxy   = StdCheatsSafe.deployCode("ALMProxy.sol:ALMProxy",     abi.encode(admin));
+        instance.rateLimits = StdCheatsSafe.deployCode("RateLimits.sol:RateLimits", abi.encode(admin));
 
-        instance.controller = address(new ForeignController({
-            admin_      : admin,
-            proxy_      : instance.almProxy,
-            rateLimits_ : instance.rateLimits,
-            psm_        : psm,
-            usdc_       : usdc,
-            cctp_       : cctp
-        }));
+        instance.controller = StdCheatsSafe.deployCode(
+            "ForeignController.sol:ForeignController",
+            abi.encode(admin, instance.almProxy, instance.rateLimits, psm, usdc, cctp)
+        );
     }
 
 }
@@ -66,15 +60,10 @@ library MainnetControllerDeploy {
     )
         internal returns (address controller)
     {
-        controller = address(new MainnetController({
-            admin_      : admin,
-            proxy_      : almProxy,
-            rateLimits_ : rateLimits,
-            vault_      : vault,
-            psm_        : psm,
-            daiUsds_    : daiUsds,
-            cctp_       : cctp
-        }));
+        controller = StdCheatsSafe.deployCode(
+            "MainnetController.sol:MainnetController",
+            abi.encode(admin, almProxy, rateLimits, vault, psm, daiUsds, cctp)
+        );
     }
 
     function deployFull(
@@ -86,18 +75,13 @@ library MainnetControllerDeploy {
     )
         internal returns (ControllerInstance memory instance)
     {
-        instance.almProxy   = address(new ALMProxy(admin));
-        instance.rateLimits = address(new RateLimits(admin));
+        instance.almProxy   = StdCheatsSafe.deployCode("ALMProxy.sol:ALMProxy",     abi.encode(admin));
+        instance.rateLimits = StdCheatsSafe.deployCode("RateLimits.sol:RateLimits", abi.encode(admin));
 
-        instance.controller = address(new MainnetController({
-            admin_      : admin,
-            proxy_      : instance.almProxy,
-            rateLimits_ : instance.rateLimits,
-            vault_      : vault,
-            psm_        : psm,
-            daiUsds_    : daiUsds,
-            cctp_       : cctp
-        }));
+        instance.controller = StdCheatsSafe.deployCode(
+            "MainnetController.sol:MainnetController",
+            abi.encode(admin, instance.almProxy, instance.rateLimits, vault, psm, daiUsds, cctp)
+        );
     }
 
 }
