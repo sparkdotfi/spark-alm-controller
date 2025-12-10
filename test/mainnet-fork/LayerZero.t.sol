@@ -131,6 +131,49 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         );
     }
 
+    function test_transferTokenLayerZero_recipientNotSet() external {
+        // Set up rate limit, but forget to set recipient
+        vm.startPrank(SPARK_PROXY);
+
+        rateLimits.setRateLimitData(
+            keccak256(abi.encode(
+                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+                USDT_OFT,
+                destinationEndpointId
+            )),
+            10_000_000e6,
+            0
+        );
+
+        vm.stopPrank();
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : target,
+            amountLD     : 10_000_000e6,
+            minAmountLD  : 10_000_000e6,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        deal(relayer, fee.nativeFee);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/recipient-not-set");
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6,
+            destinationEndpointId
+        );
+    }
+
 }
 
 contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLayerZeroTestBase {
@@ -441,6 +484,49 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         );
 
         vm.prank(relayer);
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6,
+            destinationEndpointId
+        );
+    }
+
+    function test_transferTokenLayerZero_recipientNotSet() external {
+        // Set up rate limit, but forget to set recipient
+        vm.startPrank(SPARK_EXECUTOR);
+
+        foreignRateLimits.setRateLimitData(
+            keccak256(abi.encode(
+                foreignController.LIMIT_LAYERZERO_TRANSFER(),
+                USDT_OFT,
+                destinationEndpointId
+            )),
+            10_000_000e6,
+            0
+        );
+
+        vm.stopPrank();
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : target,
+            amountLD     : 10_000_000e6,
+            minAmountLD  : 10_000_000e6,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        deal(relayer, fee.nativeFee);
+
+        vm.prank(relayer);
+        vm.expectRevert("FC/recipient-not-set");
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,

@@ -926,6 +926,10 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             amount
         );
 
+        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
+
+        require(recipient != bytes32(0), "MC/recipient-not-set");
+
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before
         //       using in production.
@@ -937,7 +941,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         SendParam memory sendParams = SendParam({
             dstEid       : destinationEndpointId,
-            to           : layerZeroRecipients[destinationEndpointId],
+            to           : recipient,
             amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,
