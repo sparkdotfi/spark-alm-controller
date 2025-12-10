@@ -181,6 +181,11 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
         assertEq(mainnetController.maxSlippages(pool), 0.02e18);
     }
 
+    function test_setMaxSlippage_outOfBounds() public {
+        vm.prank(admin);
+        vm.expectRevert("MainnetController/max-slippage-out-of-bounds");
+        mainnetController.setMaxSlippage(makeAddr("pool"), 1e18 + 1);
+    }
 }
 
 contract MainnetControllerSetUniswapV3PoolMaxTickDeltaTests is MainnetControllerAdminTestBase {
@@ -605,6 +610,11 @@ contract ForeignControllerSetMaxSlippageTests is ForeignControllerAdminTestBase 
         assertEq(foreignController.maxSlippages(pool), 0.02e18);
     }
 
+    function test_setMaxSlippage_outOfBounds() public {
+        vm.prank(admin);
+        vm.expectRevert("ForeignController/max-slippage-out-of-bounds");
+        foreignController.setMaxSlippage(makeAddr("pool"), 1e18 + 1);
+    }
 }
 
 contract ForeignControllerSetUniswapV3PoolMaxTickDeltaTests is ForeignControllerAdminTestBase {

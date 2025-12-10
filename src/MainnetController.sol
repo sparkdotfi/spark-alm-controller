@@ -199,6 +199,7 @@ contract MainnetController is AccessControl {
 
     function setMaxSlippage(address pool, uint256 maxSlippage) external {
         _checkRole(DEFAULT_ADMIN_ROLE);
+        require(maxSlippage <= 1e18, "MainnetController/max-slippage-out-of-bounds");
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
     }

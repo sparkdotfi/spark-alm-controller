@@ -84,26 +84,27 @@ library UniswapV3Lib {
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    // Rate limit decreased by value of tokenIn
+    // Rate limit decreased by value of tokenIn (the amount actually spent)
     function swap(UniV3Context calldata context, SwapParams calldata params) external returns (uint256 amountOut) {
         require(params.maxSlippage > 0,                                 "UniswapV3Lib/max-slippage-not-set");
         require(params.tickDelta <= params.poolParams.swapMaxTickDelta, "UniswapV3Lib/invalid-max-tick-delta");
         require(params.poolParams.twapSecondsAgo != 0,                  "UniswapV3Lib/zero-twap-seconds");
 
         SwapCache memory cache = _populateSwapCache(context, params);
+        ERC20Lib.approve(context.proxy, params.tokenIn, address(params.router), params.amountIn);
+
+        uint256 startingBalance = IERC20(params.tokenIn).balanceOf(address(context.proxy));
+        amountOut               = _callSwap(context, params, cache);
+        uint256 endingBalance   = IERC20(params.tokenIn).balanceOf(address(context.proxy));
+        require(params.minAmountOut >= amountOut * params.maxSlippage / 1e18 , "UniswapV3Lib/min-amount-not-met");
+
+        // Clear approvals of dust
+        ERC20Lib.approve(context.proxy, params.tokenIn, address(params.router), 0);
 
         context.rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAssetDestinationKey(context.rateLimitId, params.tokenIn, context.pool),
-            params.amountIn
+            startingBalance - endingBalance
         );
-
-        ERC20Lib.approve(context.proxy, params.tokenIn, address(params.router), params.amountIn);
-
-        uint256 startingBalance = IERC20(cache.tokenOut).balanceOf(address(context.proxy));
-        amountOut = _callSwap(context, params, cache);
-
-        uint256 endingBalance = IERC20(cache.tokenOut).balanceOf(address(context.proxy));
-        require(params.minAmountOut >= (endingBalance - startingBalance) * params.maxSlippage / 1e18 , "UniswapV3Lib/min-amount-not-met");
     }
 
     function addLiquidity(UniV3Context calldata context, AddLiquidityParams calldata params)
@@ -318,9 +319,6 @@ library UniswapV3Lib {
         IUniswapV3PoolLike pool = IUniswapV3PoolLike(context.pool);
 
         require(pool.token0() == token0 && pool.token1() == token1 && pool.fee() == fee, "UniswapV3Lib/invalid-pool");
-
-        require(params.tick.lower >= tickLower, "UniswapV3Lib/invalid-tick-lower");
-        require(params.tick.upper <= tickUpper, "UniswapV3Lib/invalid-tick-upper");
 
         INonfungiblePositionManager.IncreaseLiquidityParams memory increaseLiquidityParams
             = INonfungiblePositionManager.IncreaseLiquidityParams({

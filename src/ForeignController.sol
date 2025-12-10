@@ -192,6 +192,7 @@ contract ForeignController is AccessControl {
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(maxSlippage <= 1e18, "ForeignController/max-slippage-out-of-bounds");
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
     }
