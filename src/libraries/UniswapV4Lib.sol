@@ -184,6 +184,12 @@ library UniswapV4Lib {
 
         PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
 
+        require(
+            tokenIn == Currency.unwrap(poolKey.currency0) ||
+            tokenIn == Currency.unwrap(poolKey.currency1),
+            "MC/invalid-tokenIn"
+        );
+
         bytes memory actions = abi.encodePacked(
             uint8(Actions.SWAP_EXACT_IN_SINGLE),
             uint8(Actions.SETTLE_ALL),
