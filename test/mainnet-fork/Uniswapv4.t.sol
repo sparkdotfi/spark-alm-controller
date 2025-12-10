@@ -37,11 +37,8 @@ interface IPermit2Like {
 
     function approve(address token, address spender, uint160 amount, uint48 expiration) external;
 
-    function allowance(
-        address user,
-        address token,
-        address spender
-    ) external view returns (uint160 allowance, uint48 expiration, uint48 nonce);
+    function allowance(address user, address token, address spender)
+        external view returns (uint160 amount, uint48 expiration, uint48 nonce);
 
 }
 
@@ -55,9 +52,8 @@ interface IPositionManagerLike {
 
     function transferFrom(address from, address to, uint256 id) external;
 
-    function getPoolAndPositionInfo(
-        uint256 tokenId
-    ) external view returns (PoolKey memory poolKey, PositionInfo info);
+    function getPoolAndPositionInfo(uint256 tokenId)
+        external view returns (PoolKey memory poolKey, PositionInfo info);
 
     function getPositionLiquidity(uint256 tokenId) external view returns (uint128 liquidity);
 
@@ -72,9 +68,7 @@ interface IPositionManagerLike {
 interface IStateViewLike {
 
     function getSlot0(PoolId poolId)
-        external
-        view
-        returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee);
+        external view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee);
 
 }
 
@@ -94,8 +88,7 @@ interface IV4QuoterLike {
     }
 
     function quoteExactInputSingle(QuoteExactSingleParams memory params)
-        external
-        returns (uint256 amountOut, uint256 gasEstimate);
+        external returns (uint256 amountOut, uint256 gasEstimate);
 
 }
 
@@ -1707,7 +1700,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         vm.stopPrank();
 
         vm.prank(relayer);
-        vm.expectRevert(IPoolManagerLike.CurrencyNotSettled.selector);
+        vm.expectRevert("MC/invalid-tokenIn");
         mainnetController.swapUniswapV4(_POOL_ID, address(dai), 1_000_000e6, 1_000_000e6);
     }
 
@@ -3560,15 +3553,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         vm.stopPrank();
 
         vm.prank(relayer);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IV4RouterLike.V4TooLittleReceived.selector,
-                10_000e6,
-                0
-            )
-        );
-
+        vm.expectRevert("MC/invalid-tokenIn");
         mainnetController.swapUniswapV4(_POOL_ID, address(dai), 10_000e6, 10_000e6);
     }
 

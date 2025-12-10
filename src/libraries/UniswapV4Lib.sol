@@ -176,13 +176,19 @@ library UniswapV4Lib {
     {
         require(maxSlippage != 0, "MC/max-slippage-not-set");
 
+        PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
+
+        require(
+            tokenIn == Currency.unwrap(poolKey.currency0) ||
+            tokenIn == Currency.unwrap(poolKey.currency1),
+            "MC/invalid-tokenIn"
+        );
+
         // Perform rate limit decrease.
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
             _getNormalizedBalance(tokenIn, amountIn)
         );
-
-        PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
 
         bytes memory actions = abi.encodePacked(
             uint8(Actions.SWAP_EXACT_IN_SINGLE),
