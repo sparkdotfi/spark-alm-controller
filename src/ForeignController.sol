@@ -304,7 +304,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         bytes32 recipient = layerZeroRecipients[destinationEndpointId];
 
-        require(recipient != 0, "FC/recipient-not-set");
+        require(recipient != bytes32(0), "FC/recipient-not-set");
 
         _rateLimited(
             keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
