@@ -65,6 +65,7 @@ contract MainnetController is AccessControl {
 
     event CentrifugeRecipientSet(uint16 indexed centrifugeId, bytes32 recipient);
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
+    event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
     event RelayerRemoved(address indexed relayer);
@@ -76,6 +77,8 @@ contract MainnetController is AccessControl {
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
+
+    uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
 
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
@@ -137,6 +140,9 @@ contract MainnetController is AccessControl {
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
     mapping(uint16 centrifugeId          => bytes32 recipient)          public centrifugeRecipients;
+
+    // ERC4626 exchange rate thresholds (1e36 precision)
+    mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -249,6 +255,17 @@ contract MainnetController is AccessControl {
         emit CentrifugeRecipientSet(centrifugeId, recipient);
     }
 
+    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(token != address(0), "MainnetController/token-zero-address");
+
+        emit MaxExchangeRateSet(
+            token,
+            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
+        );
+    }
+
     /**********************************************************************************************/
     /*** Freezer functions                                                                      ***/
     /**********************************************************************************************/
@@ -329,6 +346,11 @@ contract MainnetController is AccessControl {
                 abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
             ),
             (uint256)
+        );
+
+        require(
+            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
+            "MainnetController/exchange-rate-too-high"
         );
     }
 
@@ -484,8 +506,12 @@ contract MainnetController is AccessControl {
         _checkRole(RELAYER);
         _rateLimitedAsset(LIMIT_AAVE_DEPOSIT, aToken, amount);
 
+        require(maxSlippages[aToken] != 0, "MainnetController/max-slippage-not-set");
+
         IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
         IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
+
+        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
         ERC20Lib.approve(proxy, address(underlying), address(pool), amount);
@@ -494,6 +520,13 @@ contract MainnetController is AccessControl {
         proxy.doCall(
             address(pool),
             abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
+        );
+
+        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
+
+        require(
+            newATokens >= amount * maxSlippages[aToken] / 1e18,
+            "MainnetController/slippage-too-high"
         );
     }
 
@@ -992,6 +1025,20 @@ contract MainnetController is AccessControl {
             rateLimitId : LIMIT_7540_REDEEM,
             requestId   : CENTRIFUGE_REQUEST_ID
         });
+    }
+
+    /**********************************************************************************************/
+    /*** Exchange rate helper functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
+        // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
+        if (assets == 0) return 0;
+
+        // Zero shares with non-zero assets is invalid (infinite exchange rate).
+        if (shares == 0) revert("MainnetController/zero-shares");
+
+        return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }

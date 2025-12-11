@@ -589,6 +589,8 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(mintKey,     5_000_000e6,  uint256(1_000_000e6)  / 4 hours);
 
+        mainnetController.setMaxExchangeRate(address(susde), susde.convertToShares(1e18), 1.2e18);
+
         vm.stopPrank();
     }
 
