@@ -89,21 +89,12 @@ contract AaveV3BaseMarketDepositFailureTests is AaveV3BaseMarketTestBase {
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
     }
 
+    // Note: Do we still need this test if the slippage boundary is 100%?
     function test_depositAave_usdcSlippageBoundary() external {
         deal(Base.USDC, address(almProxy), 1_000_000e6);
 
-        // Positive slippage because of no rounding error
-        // 1e6 * 1_000_000e6 / 1e18 = 1
-        // (1e6 - 1) * 1_000_000e6 / 1e18 = 0
         vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 + 1e6);
-
-        vm.prank(relayer);
-        vm.expectRevert("ForeignController/slippage-too-high");
-        foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
-
-        vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 + 1e6 - 1);
+        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18);
 
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
