@@ -301,6 +301,11 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         external payable nonReentrant
     {
         _checkRole(RELAYER);
+
+        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
+
+        require(recipient != bytes32(0), "FC/recipient-not-set");
+
         _rateLimited(
             keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
             amount
@@ -317,7 +322,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         SendParam memory sendParams = SendParam({
             dstEid       : destinationEndpointId,
-            to           : layerZeroRecipients[destinationEndpointId],
+            to           : recipient,
             amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,

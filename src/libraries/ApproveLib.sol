@@ -15,9 +15,11 @@ library ApproveLib {
         ( bool success, bytes memory data )
             = proxy.call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
 
+        bytes memory returnData;
+
         if (success) {
             // Decode the ABI-encoding of the approve call bytes return data first.
-            bytes memory returnData = abi.decode(data, (bytes));
+            returnData = abi.decode(data, (bytes));
 
             // Approve was successful if 1) no return value or 2) true return value.
             if (returnData.length == 0 || abi.decode(returnData, (bool))) return;
@@ -26,7 +28,7 @@ library ApproveLib {
         // If call was unsuccessful, set to zero and try again.
         IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
 
-        bytes memory returnData = IALMProxy(proxy).doCall(token, approveData);
+        returnData = IALMProxy(proxy).doCall(token, approveData);
 
         // Revert if approve returns false.
         require(returnData.length == 0 || abi.decode(returnData, (bool)), "MC/approve-failed");
