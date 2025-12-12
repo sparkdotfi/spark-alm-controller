@@ -314,7 +314,7 @@ library UniswapV3Lib {
     {
         require(params.positionManager.ownerOf(params.tokenId) == address(context.proxy), "UniswapV3Lib/proxy-does-not-own-token-id");
 
-        (address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, ) = _fetchPositionData(params.tokenId, params.positionManager);
+        (address token0, address token1, uint24 fee, , , ) = _fetchPositionData(params.tokenId, params.positionManager);
 
         IUniswapV3PoolLike pool = IUniswapV3PoolLike(context.pool);
 
@@ -344,14 +344,14 @@ library UniswapV3Lib {
 
     // Fetches only the position data that we need
     function _fetchPositionData(
-        uint256 tokenId,
+        uint256                     tokenId,
         INonfungiblePositionManager positionManager
     ) internal view returns (
         address payable token0,
         address payable token1,
-        uint24 fee,
-        int24 tickLower,
-        int24 tickUpper,
+        uint24  fee,
+        int24   tickLower,
+        int24   tickUpper,
         uint128 liquidity
     ) {
         bytes memory positionData = abi.encodeCall(
@@ -474,12 +474,12 @@ library UniswapV3Lib {
     }
 
     function _decreaseLiquidityCall(
-        IALMProxy           proxy,
-        address             positionManager,
-        uint256             tokenId,
-        uint128             liquidity,
+        IALMProxy    proxy,
+        address      positionManager,
+        uint256      tokenId,
+        uint128      liquidity,
         TokenAmounts memory min,
-        uint256             deadline
+        uint256      deadline
     )
         internal
     {

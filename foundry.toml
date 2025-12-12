@@ -19,6 +19,8 @@ remappings = [
     'solidity-bytes-utils/=lib/solidity-bytes-utils/',
     'forge-std/=lib/forge-std/src/'
 ]
+# all files should explicitly opt-into this
+no_match_coverage = 'src/libraries/uniswap-v3/UniV3OracleLib.sol|src/libraries/uniswap-v3/UniV3UtilsLib.sol'
 
 [profile.ci]
 # inherit the default by creating an empty CI profiile

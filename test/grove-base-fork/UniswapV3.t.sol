@@ -956,7 +956,7 @@ contract ForeignControllerAddLiquidityE2EUniswapV3Test is UniswapV3TestBase {
         assertEq(token1RateLimitBefore - token1RateLimitAfter, amount1Used, "token1 rate limit delta mismatch");
     }
 
-    function _e2e_addLiquidityUniswapV3(uint256 addAmount0, uint256 addAmount1, int24 lowerTickDelta, int24 upperTickDelta, bytes32 token0RateLimitKey, bytes32 token1RateLimitKey) internal returns (uint256 tokenId, uint128 liquidity, uint256 amount0Used, uint256 amount1Used) {
+    function _e2e_addLiquidityUniswapV3(uint256 addAmount0, uint256 addAmount1, int24 lowerTickDelta, int24 upperTickDelta, bytes32 token0RateLimitKey, bytes32 token1RateLimitKey) internal {
         uint256 amount0 = addAmount0;
         uint256 amount1 = addAmount1;
 
@@ -967,6 +967,11 @@ contract ForeignControllerAddLiquidityE2EUniswapV3Test is UniswapV3TestBase {
             lower : initTick + lowerTickDelta,
             upper : initTick + upperTickDelta
         });
+
+        uint256 tokenId;
+        uint128 liquidity;
+        uint256 amount0Used;
+        uint256 amount1Used;
 
         (tokenId, liquidity, amount0Used, amount1Used) = _addLiquidityAndValidate(
             0,
@@ -1088,14 +1093,12 @@ contract ForeignControllerRemoveLiquidityFailureTests is UniswapV3TestBase {
     }
 
     function _defaultDesiredPosition() internal view returns (UniswapV3Lib.TokenAmounts memory) {
-        uint256 amount0 = 1_000 * 10 ** uint256(token0Decimals);
         uint8 token1Decimals = IERC20Metadata(address(token1)).decimals();
-        uint256 amount1 = 1_000 * 10 ** uint256(token1Decimals);
 
-        return UniswapV3Lib.TokenAmounts({ amount0: amount0, amount1: amount1 });
+        return UniswapV3Lib.TokenAmounts({ amount0: 1_000 * 10 ** uint256(token0Decimals), amount1: 1_000 * 10 ** uint256(token1Decimals) });
     }
 
-    function _mintProxyPosition() internal returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) {
+    function _mintProxyPosition() internal returns (uint256 tokenId_, uint128 liquidity_, uint256 amount0_, uint256 amount1_) {
         UniswapV3Lib.TokenAmounts memory desired = _defaultDesiredPosition();
         UniswapV3Lib.Tick memory tick = _defaultTickRange();
 
@@ -1105,7 +1108,7 @@ contract ForeignControllerRemoveLiquidityFailureTests is UniswapV3TestBase {
         vm.startPrank(address(almProxy));
         token0.approve(UNISWAP_V3_POSITION_MANAGER, desired.amount0);
         token1.approve(UNISWAP_V3_POSITION_MANAGER, desired.amount1);
-        (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(UNISWAP_V3_POSITION_MANAGER).mint(
+        (tokenId_, liquidity_, amount0_, amount1_) = INonfungiblePositionManager(UNISWAP_V3_POSITION_MANAGER).mint(
             INonfungiblePositionManager.MintParams({
                 token0         : address(token0),
                 token1         : address(token1),
@@ -1123,7 +1126,7 @@ contract ForeignControllerRemoveLiquidityFailureTests is UniswapV3TestBase {
         vm.stopPrank();
     }
 
-    function _mintExternalPosition() internal returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) {
+    function _mintExternalPosition() internal returns (uint256 tokenId_, uint128 liquidity_, uint256 amount0_, uint256 amount1_) {
         UniswapV3Lib.TokenAmounts memory desired = _defaultDesiredPosition();
 
         deal(address(token0), stranger, desired.amount0);
@@ -1132,7 +1135,7 @@ contract ForeignControllerRemoveLiquidityFailureTests is UniswapV3TestBase {
         vm.startPrank(stranger);
         token0.approve(UNISWAP_V3_POSITION_MANAGER, desired.amount0);
         token1.approve(UNISWAP_V3_POSITION_MANAGER, desired.amount1);
-        (tokenId, liquidity, amount0, amount1) = INonfungiblePositionManager(UNISWAP_V3_POSITION_MANAGER).mint(
+        (tokenId_, liquidity_, amount0_, amount1_) = INonfungiblePositionManager(UNISWAP_V3_POSITION_MANAGER).mint(
             INonfungiblePositionManager.MintParams({
                 token0         : address(token0),
                 token1         : address(token1),
@@ -1169,15 +1172,15 @@ contract ForeignControllerRemoveLiquidityFailureTests is UniswapV3TestBase {
     }
 
     function test_removeLiquidityUniswapV3_proxyDoesNotOwnTokenId() public {
-        (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1) = _mintExternalPosition();
+        (uint256 tokenId_, uint128 liquidity_, , ) = _mintExternalPosition();
 
         vm.warp(block.timestamp + 1 hours);
         vm.startPrank(ALM_RELAYER);
         vm.expectRevert("UniswapV3Lib/proxy-does-not-own-token-id");
         foreignController.removeLiquidityUniswapV3(
             _getPool(),
-            tokenId,
-            liquidity,
+            tokenId_,
+            liquidity_,
             UniswapV3Lib.TokenAmounts({ amount0: defaultMinAmount0, amount1: defaultMinAmount1 }),
             block.timestamp + 1 hours
         );
@@ -1296,11 +1299,11 @@ contract ForeignControllerRemoveLiquidityE2EUniswapV3Test is UniswapV3TestBase {
         );
     }
 
-    function _addLiquidity(uint256 addAmount0, uint256 addAmount1, UniswapV3Lib.Tick memory addTickDelta) internal returns (uint256 tokenId, uint128 liquidity, uint256 amount0Used, uint256 amount1Used) {
+    function _addLiquidity(uint256 addAmount0, uint256 addAmount1, UniswapV3Lib.Tick memory addTickDelta) internal returns (uint256 tokenId_, uint128 liquidity_, uint256 amount0Used_, uint256 amount1Used_) {
         deal(address(token0), address(almProxy), addAmount0);
         deal(address(token1), address(almProxy), addAmount1);
 
-        (tokenId, liquidity, amount0Used, amount1Used) = _addLiquidity(
+        (tokenId_, liquidity_, amount0Used_, amount1Used_) = _addLiquidity(
             0,
             UniswapV3Lib.Tick({lower : initTick + addTickDelta.lower, upper : initTick + addTickDelta.upper}),
             UniswapV3Lib.TokenAmounts({ amount0: addAmount0, amount1: addAmount1 }),
@@ -1310,28 +1313,28 @@ contract ForeignControllerRemoveLiquidityE2EUniswapV3Test is UniswapV3TestBase {
         vm.warp(block.timestamp + 2 hours); // Advance sufficient time for twap
     }
 
-    function _removeLiquidityAndValidate(uint256 tokenId, uint128 liquidity, uint256 minAmount0, uint256 minAmount1, bytes32 token0RateLimitKey, bytes32 token1RateLimitKey) internal returns (uint256 amount0Used, uint256 amount1Used) {
-        uint256 token0RateLimitBefore = rateLimits.getCurrentRateLimit(token0RateLimitKey);
-        uint256 token1RateLimitBefore = rateLimits.getCurrentRateLimit(token1RateLimitKey);
+    function _removeLiquidityAndValidate(uint256 _tokenId, uint128 _liquidity, uint256 _minAmount0, uint256 _minAmount1, bytes32 _token0RateLimitKey, bytes32 _token1RateLimitKey) internal returns (uint256 amount0Used, uint256 amount1Used) {
+        uint256 token0RateLimitBefore = rateLimits.getCurrentRateLimit(_token0RateLimitKey);
+        uint256 token1RateLimitBefore = rateLimits.getCurrentRateLimit(_token1RateLimitKey);
 
         vm.startPrank(ALM_RELAYER);
         (amount0Used, amount1Used) = foreignController.removeLiquidityUniswapV3(
             _getPool(),
-            tokenId,
-            liquidity,
-            UniswapV3Lib.TokenAmounts({ amount0: minAmount0, amount1: minAmount1 }),
+            _tokenId,
+            _liquidity,
+            UniswapV3Lib.TokenAmounts({ amount0: _minAmount0, amount1: _minAmount1 }),
             block.timestamp + 1 hours
         );
         vm.stopPrank();
 
-        assertGe(amount0Used, minAmount0, "amount0Used should be greater than or equal to minAmount0");
-        assertGe(amount1Used, minAmount1, "amount1Used should be greater than or equal to minAmount1");
+        assertGe(amount0Used, _minAmount0, "amount0Used should be greater than or equal to minAmount0");
+        assertGe(amount1Used, _minAmount1, "amount1Used should be greater than or equal to minAmount1");
 
-        assertApproxEqRel(amount0Used, amount0Added * liquidity / totalLiquidity, .0001e18, "amount0Used should be within 0.01% of amount0Added * liquidity / totalLiquidity");
-        assertApproxEqRel(amount1Used, amount1Added * liquidity / totalLiquidity, .0001e18, "amount1Used should be within 0.01% of amount1Added * liquidity / totalLiquidity");
+        assertApproxEqRel(amount0Used, amount0Added * _liquidity / totalLiquidity, .0001e18, "amount0Used should be within 0.01% of amount0Added * liquidity / totalLiquidity");
+        assertApproxEqRel(amount1Used, amount1Added * _liquidity / totalLiquidity, .0001e18, "amount1Used should be within 0.01% of amount1Added * liquidity / totalLiquidity");
 
-        uint256 token0RateLimitAfter = rateLimits.getCurrentRateLimit(token0RateLimitKey);
-        uint256 token1RateLimitAfter = rateLimits.getCurrentRateLimit(token1RateLimitKey);
+        uint256 token0RateLimitAfter = rateLimits.getCurrentRateLimit(_token0RateLimitKey);
+        uint256 token1RateLimitAfter = rateLimits.getCurrentRateLimit(_token1RateLimitKey);
 
         assertEq(token0RateLimitBefore - token0RateLimitAfter, amount0Used, "token0 rate limit delta mismatch");
         assertEq(token1RateLimitBefore - token1RateLimitAfter, amount1Used, "token1 rate limit delta mismatch");
