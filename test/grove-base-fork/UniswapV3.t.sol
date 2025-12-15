@@ -654,6 +654,8 @@ contract ForeignControllerAddLiquidityFailureTests is UniswapV3TestBase {
             block.timestamp + 1 hours
         );
 
+        vm.warp(block.timestamp + 2 hours);
+
         // Change tick bounds
         vm.prank(GROVE_EXECUTOR);
         foreignController.setUniswapV3AddLiquidityLowerTickBound(_getPool(), tick.lower + 100);
@@ -686,6 +688,8 @@ contract ForeignControllerAddLiquidityFailureTests is UniswapV3TestBase {
             _minLiquidityPosition(desired.amount0, desired.amount1),
             block.timestamp + 1 hours
         );
+
+        vm.warp(block.timestamp + 2 hours);
 
         // Change tick bounds
         vm.prank(GROVE_EXECUTOR);

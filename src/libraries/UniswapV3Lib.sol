@@ -119,9 +119,6 @@ library UniswapV3Lib {
         require(params.maxSlippage > 0,     "UniswapV3Lib/max-slippage-not-set");
         require(params.twapSecondsAgo != 0, "UniswapV3Lib/zero-twap-seconds");
 
-        require(params.tick.lower >= params.tickBounds.lower, "UniswapV3Lib/lower-tick-outside-bounds");
-        require(params.tick.upper <= params.tickBounds.upper, "UniswapV3Lib/upper-tick-outside-bounds");
-
         IUniswapV3PoolLike pool = IUniswapV3PoolLike(context.pool);
 
         address token0 = pool.token0();
@@ -273,6 +270,9 @@ library UniswapV3Lib {
         internal
         returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)
     {
+        // Check user input is within governance bounds
+        require(params.tick.lower >= params.tickBounds.lower, "UniswapV3Lib/lower-tick-outside-bounds");
+        require(params.tick.upper <= params.tickBounds.upper, "UniswapV3Lib/upper-tick-outside-bounds");
 
         IUniswapV3PoolLike pool = IUniswapV3PoolLike(context.pool);
 
@@ -314,11 +314,15 @@ library UniswapV3Lib {
     {
         require(params.positionManager.ownerOf(params.tokenId) == address(context.proxy), "UniswapV3Lib/proxy-does-not-own-token-id");
 
-        (address token0, address token1, uint24 fee, , , ) = _fetchPositionData(params.tokenId, params.positionManager);
+        (address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, ) = _fetchPositionData(params.tokenId, params.positionManager);
 
         IUniswapV3PoolLike pool = IUniswapV3PoolLike(context.pool);
 
         require(pool.token0() == token0 && pool.token1() == token1 && pool.fee() == fee, "UniswapV3Lib/invalid-pool");
+
+        // Check that existing position's bounds are still within governance set range
+        require(tickLower >= params.tickBounds.lower, "UniswapV3Lib/lower-tick-outside-bounds");
+        require(tickUpper <= params.tickBounds.upper, "UniswapV3Lib/upper-tick-outside-bounds");
 
         INonfungiblePositionManager.IncreaseLiquidityParams memory increaseLiquidityParams
             = INonfungiblePositionManager.IncreaseLiquidityParams({
