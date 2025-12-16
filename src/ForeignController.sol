@@ -161,10 +161,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
-        external nonReentrant
+        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _checkRole(DEFAULT_ADMIN_ROLE);
-
         require(token != address(0), "FC/token-zero-address");
 
         emit MaxExchangeRateSet(
@@ -189,7 +187,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     function transferAsset(address asset, address destination, uint256 amount)
         external nonReentrant onlyRole(RELAYER)
     {
-        _rateLimited(
+        rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
         );
@@ -298,15 +296,13 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         uint256 amount,
         uint32  destinationEndpointId
     )
-        external payable nonReentrant
+        external payable nonReentrant onlyRole(RELAYER)
     {
-        _checkRole(RELAYER);
-
         bytes32 recipient = layerZeroRecipients[destinationEndpointId];
 
         require(recipient != bytes32(0), "FC/recipient-not-set");
 
-        _rateLimited(
+        rateLimits.triggerRateLimitDecrease(
             keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
             amount
         );
@@ -600,10 +596,6 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
-    }
-
-    function _rateLimited(bytes32 key, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
     /**********************************************************************************************/
