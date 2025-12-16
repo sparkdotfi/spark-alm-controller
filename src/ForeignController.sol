@@ -185,13 +185,14 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function transferAsset(address asset, address destination, uint256 amount)
-        external nonReentrant onlyRole(RELAYER)
-    {
-        rateLimits.triggerRateLimitDecrease(
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        rateLimited(
             RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
-        );
-
+        )
+    {
         bytes memory returnData = proxy.doCall(
             asset,
             abi.encodeCall(IERC20(asset).transfer, (destination, amount))
@@ -296,16 +297,18 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         uint256 amount,
         uint32  destinationEndpointId
     )
-        external payable nonReentrant onlyRole(RELAYER)
+        external
+        payable
+        nonReentrant
+        onlyRole(RELAYER)
+        rateLimited(
+            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
+            amount
+        )
     {
         bytes32 recipient = layerZeroRecipients[destinationEndpointId];
 
         require(recipient != bytes32(0), "FC/recipient-not-set");
-
-        rateLimits.triggerRateLimitDecrease(
-            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
-            amount
-        );
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == true. Add integration testing for this case before
