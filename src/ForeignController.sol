@@ -793,43 +793,6 @@ contract ForeignController is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Relayer Morpho functions                                                               ***/
-    /**********************************************************************************************/
-
-    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
-        );
-    }
-
-    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
-        );
-    }
-
-    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
-        external
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAssetKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
-        );
-    }
-
-    /**********************************************************************************************/
     /*** Relayer Pendle functions                                                               ***/
     /**********************************************************************************************/
 
