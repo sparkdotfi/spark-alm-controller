@@ -484,46 +484,6 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     /**********************************************************************************************/
-    /*** Relayer Morpho functions                                                               ***/
-    /**********************************************************************************************/
-
-    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
-        );
-    }
-
-    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
-        );
-    }
-
-    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
-        );
-    }
-
-    /**********************************************************************************************/
     /*** Spark Vault functions                                                                  ***/
     /**********************************************************************************************/
 
