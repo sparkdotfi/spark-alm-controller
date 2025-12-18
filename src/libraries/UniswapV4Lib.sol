@@ -100,8 +100,8 @@ library UniswapV4Lib {
         _requirePoolIdMatch(poolId, poolKey);
 
         // Since funds are being added to the position, the ticks of the position need to be checked
-        // since it's possible the position was transferred to the proxy, and its tick range may not
-        // adhere to the constraints that would have been applied if it were minted by the proxy.
+        // against the current constraints, since it's possible the position was minted under
+        // outdated tick limits, or was transferred to the proxy.
         _checkTickLimits(tickLimits[poolId], info.tickLower(), info.tickUpper());
 
         bytes memory callData = _getIncreaseLiquidityCallData({
@@ -185,6 +185,7 @@ library UniswapV4Lib {
         );
 
         // Perform rate limit decrease.
+        // NOTE: Rate limit decrease does not account for the net amount of tokenIn actually taken.
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
             _getNormalizedBalance(tokenIn, amountIn)
@@ -282,7 +283,7 @@ library UniswapV4Lib {
             );
         }
 
-        // Finally, approve the Position Manager contract to spend the token via Permit2.
+        // Finally, approve the spender to spend the token via Permit2.
         IALMProxy(proxy).doCall(
             _PERMIT2,
             abi.encodeCall(
@@ -321,7 +322,7 @@ library UniswapV4Lib {
         // Account for the theoretical possibility of receiving tokens when adding liquidity by
         // using a clamped subtraction.
         // NOTE: The limitation of this integration is the assumption that the tokens are valued
-        //       equally (i.e. 1.00000 USDC = 1.000000000000000000 USDS).
+        //       equally (i.e. 1.000000 USDC = 1.000000000000000000 USDS).
         uint256 rateLimitDecrease = _clampedSub(
             _getNormalizedBalance(token0, startingBalance0) +
             _getNormalizedBalance(token1, startingBalance1),
@@ -330,15 +331,13 @@ library UniswapV4Lib {
         );
 
         // Perform rate limit decrease.
+        // NOTE: Rate limit decrease is net of any token0 or token1 received due to fees.
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeBytes32Key(LIMIT_DEPOSIT, poolId),
             rateLimitDecrease
         );
 
-        // Reset approval of Permit2 in token0 and token1
-        // NOTE: It's not necessary to reset the Position Manager approval in Permit2 (as it
-        //       doesn't have allowance in the token at this point), but prudent so there isn't a
-        //       hanging unused approval.
+        // Reset approvals for token0 and token1.
         _approveWithPermit2(proxy, token0, _POSITION_MANAGER, 0);
         _approveWithPermit2(proxy, token1, _POSITION_MANAGER, 0);
     }
@@ -367,12 +366,13 @@ library UniswapV4Lib {
         uint256 endingBalance1 = _getBalance(token1, proxy);
 
         // NOTE: The limitation of this integration is the assumption that the tokens are valued
-        //       equally (i.e. 1.00000 USDC = 1.000000000000000000 USDS).
+        //       equally (i.e. 1.000000 USDC = 1.000000000000000000 USDS).
         uint256 rateLimitDecrease =
             _getNormalizedBalance(token0, endingBalance0 - startingBalance0) +
             _getNormalizedBalance(token1, endingBalance1 - startingBalance1);
 
         // Perform rate limit decrease.
+        // NOTE: Rate limit decrease includes any token0 or token1 received due to fees.
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeBytes32Key(LIMIT_WITHDRAW, poolId),
             rateLimitDecrease
