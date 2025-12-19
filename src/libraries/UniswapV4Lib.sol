@@ -135,7 +135,7 @@ library UniswapV4Lib {
     )
         external
     {
-        PoolKey memory poolKey = getPoolKeyFromTokenId(tokenId);
+        PoolKey memory poolKey = _getPoolKeyFromTokenId(tokenId);
 
         // NOTE: No need to check the token ownership here, as the proxy will be defined as the
         //       recipient of the tokens, so the worst case is that another account's position is
@@ -532,8 +532,8 @@ library UniswapV4Lib {
         return IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
     }
 
-    function getPoolKeyFromTokenId(uint256 tokenId)
-        public view returns (PoolKey memory poolKey)
+    function _getPoolKeyFromTokenId(uint256 tokenId)
+        internal view returns (PoolKey memory poolKey)
     {
         (poolKey, ) = _getPoolKeyAndPositionInfo(tokenId);
     }
