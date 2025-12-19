@@ -478,6 +478,14 @@ contract MainnetControllerSetUniswapV4TickLimitsTests is MainnetControllerAdminT
 
         vm.prank(admin);
         mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0); // maxTickSpacing can only be 0 if all 0
+
+        vm.prank(admin);
+        vm.expectRevert("MC/invalid-ticks");
+        mainnetController.setUniswapV4TickLimits(bytes32(0), -887273, 60, 20); // Reverts when tickLowerMin is less than MIN_TICK
+
+        vm.prank(admin);
+        vm.expectRevert("MC/invalid-ticks");
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 60, 887273, 20); // Reverts when tickUpperMax is greater than MAX_TICK
     }
 
     function test_setUniswapV4TickLimits() external {

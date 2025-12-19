@@ -10,6 +10,8 @@ import { IERC20 }         from "../lib/openzeppelin-contracts/contracts/token/ER
 import { IERC20Metadata } from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IERC4626 }       from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
+import { TickMath } from "../lib/uniswap-v4-core/src/libraries/TickMath.sol";
+
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
@@ -330,9 +332,21 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
+        // Require either:
+        //   - all zeros (disabling the pool)
+        //   - tick spacing is positive, and ticks are correctly orders, and ticks are within bounds
         require(
-            ((tickLowerMin == 0) && (tickUpperMax == 0) && (maxTickSpacing == 0)) ||
-            ((maxTickSpacing > 0) && (tickLowerMin < tickUpperMax)),
+            (
+                (tickLowerMin == 0) &&
+                (tickUpperMax == 0) &&
+                (maxTickSpacing == 0)
+            ) ||
+            (
+                (maxTickSpacing > 0) &&
+                (tickLowerMin < tickUpperMax) &&
+                (tickLowerMin >= TickMath.MIN_TICK) &&
+                (tickUpperMax <= TickMath.MAX_TICK)
+            ),
             "MC/invalid-ticks"
         );
 
