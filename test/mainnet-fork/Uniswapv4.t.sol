@@ -1017,7 +1017,49 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenAmount0MaxSurpassedBoundary() external {
+    function test_mintPositionUniswapV4_revertsWhenAmount0MaxTooLargeForPermit2Boundary() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.mintPositionUniswapV4({
+            poolId     : _POOL_ID,
+            tickLower  : -10,
+            tickUpper  : 0,
+            liquidity  : 1_000_000e6,
+            amount0Max : uint256(type(uint160).max) + 1,
+            amount1Max : uint256(type(uint160).max)
+        });
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.mintPositionUniswapV4({
+            poolId     : _POOL_ID,
+            tickLower  : -10,
+            tickUpper  : 0,
+            liquidity  : 1_000_000e6,
+            amount0Max : uint256(type(uint160).max),
+            amount0Max : uint256(type(uint160).max) + 1
+        });
+
+        vm.prank(relayer);
+        mainnetController.mintPositionUniswapV4({
+            poolId     : _POOL_ID,
+            tickLower  : -10,
+            tickUpper  : 0,
+            liquidity  : 1_000_000e6,
+            amount0Max : uint256(type(uint160).max),
+            amount1Max : uint256(type(uint160).max)
+        });
+    }
+
+    function test_mintPositionUniswapV4_revertsWhenMaxAmountsSurpassedBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -1045,31 +1087,6 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             amount0Max : amount0Forecasted - 1,
             amount1Max : amount1Forecasted
         });
-
-        vm.prank(relayer);
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : -10,
-            tickUpper  : 0,
-            liquidity  : 1_000_000e6,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
-        });
-    }
-
-    function test_mintPositionUniswapV4_revertsWhenAmount1MaxSurpassedBoundary() external {
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
-
-        amount0Forecasted += 1; // Quote is off by 1
-        amount1Forecasted += 1; // Quote is off by 1
-
-        deal(address(usdc), address(almProxy), amount0Forecasted);
-        deal(address(usdt), address(almProxy), amount1Forecasted);
 
         vm.prank(relayer);
 
@@ -1300,7 +1317,48 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_increaseLiquidityUniswapV4_revertsWhenAmount0MaxSurpassedBoundary() external {
+    function test_increaseLiquidityUniswapV4_revertsWhenAmountsTooLargeForPermit2Boundary() external {
+        IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -10, 0, 10);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdt), address(almProxy), 1_000_000e6);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : _POOL_ID,
+            tokenId           : minted.tokenId,
+            liquidityIncrease : 1_000_000e6,
+            amount0Max        : uint256(type(uint160).max) + 1,
+            amount1Max        : uint256(type(uint160).max)
+        });
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : _POOL_ID,
+            tokenId           : minted.tokenId,
+            liquidityIncrease : 1_000_000e6,
+            amount0Max        : uint256(type(uint160).max),
+            amount1Max        : uint256(type(uint160).max) + 1
+        });
+
+        vm.prank(relayer);
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : _POOL_ID,
+            tokenId           : minted.tokenId,
+            liquidityIncrease : 1_000_000e6,
+            amount0Max        : uint256(type(uint160).max),
+            amount1Max        : uint256(type(uint160).max)
+        });
+    }
+
+    function test_increaseLiquidityUniswapV4_revertsWhenMaxAmountsSurpassedBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
         vm.startPrank(SPARK_PROXY);
@@ -1334,37 +1392,6 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             amount0Max        : amount0Forecasted - 1,
             amount1Max        : amount1Forecasted
         });
-
-        vm.prank(relayer);
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e6,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
-        });
-    }
-
-    function test_increaseLiquidityUniswapV4_revertsWhenAmount1MaxSurpassedBoundary() external {
-        IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
-
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, -10, 0, 10);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
-            _POOL_ID,
-            minted.tickLower,
-            minted.tickUpper,
-            1_000_000e6
-        );
-
-        amount0Forecasted += 1; // Quote is off by 1
-        amount1Forecasted += 1; // Quote is off by 1
-
-        deal(address(usdc), address(almProxy), amount0Forecasted);
-        deal(address(usdt), address(almProxy), amount1Forecasted);
 
         vm.prank(relayer);
 
@@ -2840,7 +2867,49 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenAmount0MaxSurpassedBoundary() external {
+    function test_mintPositionUniswapV4_revertsWhenMaxAmountsTooLargeForPermit2Boundary() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, 270_000, 280_000, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(address(usdt), address(almProxy), 1_000_000e6);
+        deal(address(usds), address(almProxy), 1_000_000e18);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.mintPositionUniswapV4({
+            poolId     : _POOL_ID,
+            tickLower  : 276_300,
+            tickUpper  : 276_400,
+            liquidity  : 1_000_000e12,
+            amount0Max : uint256(type(uint160).max) + 1,
+            amount1Max : uint256(type(uint160).max)
+        });
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.mintPositionUniswapV4({
+            poolId     : _POOL_ID,
+            tickLower  : 276_300,
+            tickUpper  : 276_400,
+            liquidity  : 1_000_000e12,
+            amount0Max : uint256(type(uint160).max),
+            amount1Max : uint256(type(uint160).max) + 1
+        });
+
+        vm.prank(relayer);
+        mainnetController.mintPositionUniswapV4({
+            poolId     : _POOL_ID,
+            tickLower  : 276_300,
+            tickUpper  : 276_400,
+            liquidity  : 1_000_000e12,
+            amount0Max : uint256(type(uint160).max),
+            amount1Max : uint256(type(uint160).max)
+        });
+    }
+
+    function test_mintPositionUniswapV4_revertsWhenMaxAmountsSurpassedBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, 270_000, 280_000, 1_000);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
@@ -2868,31 +2937,6 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             amount0Max : amount0Forecasted - 1,
             amount1Max : amount1Forecasted
         });
-
-        vm.prank(relayer);
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : 276_300,
-            tickUpper  : 276_400,
-            liquidity  : 1_000_000e12,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
-        });
-    }
-
-    function test_mintPositionUniswapV4_revertsWhenAmount1MaxSurpassedBoundary() external {
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, 270_000, 280_000, 1_000);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, 276_300, 276_400, 1_000_000e12);
-
-        amount0Forecasted += 1; // Quote is off by 1
-        amount1Forecasted += 1; // Quote is off by 1
-
-        deal(address(usdt), address(almProxy), amount0Forecasted);
-        deal(address(usds), address(almProxy), amount1Forecasted);
 
         vm.prank(relayer);
 
@@ -3153,7 +3197,48 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_increaseLiquidityUniswapV4_revertsWhenAmount0MaxSurpassedBoundary() external {
+    function test_increaseLiquidityUniswapV4_revertsWhenMaxAmountsTooLargeForPermit2Boundary() external {
+        IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
+
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, 276_000, 276_600, 1_000);
+        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(address(usdt), address(almProxy), 1_000_000e6);
+        deal(address(usds), address(almProxy), 1_000_000e18);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : _POOL_ID,
+            tokenId           : minted.tokenId,
+            liquidityIncrease : 1_000_000e12,
+            amount0Max        : uint256(type(uint160).max) + 1,
+            amount1Max        : uint256(type(uint160).max)
+        });
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/amount-too-large-for-permit2");
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : _POOL_ID,
+            tokenId           : minted.tokenId,
+            liquidityIncrease : 1_000_000e12,
+            amount0Max        : uint256(type(uint160).max),
+            amount1Max        : uint256(type(uint160).max) + 1
+        });
+
+        vm.prank(relayer);
+        mainnetController.increaseLiquidityUniswapV4({
+            poolId            : _POOL_ID,
+            tokenId           : minted.tokenId,
+            liquidityIncrease : 1_000_000e12,
+            amount0Max        : uint256(type(uint160).max),
+            amount1Max        : uint256(type(uint160).max)
+        });
+    }
+
+    function test_increaseLiquidityUniswapV4_revertsWhenMaxAmountsMaxSurpassedBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
         vm.startPrank(SPARK_PROXY);
@@ -3187,37 +3272,6 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             amount0Max        : amount0Forecasted - 1,
             amount1Max        : amount1Forecasted
         });
-
-        vm.prank(relayer);
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
-        });
-    }
-
-    function test_increaseLiquidityUniswapV4_revertsWhenAmount1MaxSurpassedBoundary() external {
-        IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
-
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, 276_000, 276_600, 1_000);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
-            _POOL_ID,
-            minted.tickLower,
-            minted.tickUpper,
-            1_000_000e12
-        );
-
-        amount0Forecasted += 1; // Quote is off by 1
-        amount1Forecasted += 1; // Quote is off by 1
-
-        deal(address(usdt), address(almProxy), amount0Forecasted);
-        deal(address(usds), address(almProxy), amount1Forecasted);
 
         vm.prank(relayer);
 
