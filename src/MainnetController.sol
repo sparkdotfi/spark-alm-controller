@@ -790,7 +790,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        rateLimits.triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
+        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
     }
 
     function unstakeSUSDe() external nonReentrant {
