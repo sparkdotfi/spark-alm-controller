@@ -55,6 +55,8 @@ library UniswapV4Lib {
 
         PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
 
+        _requirePoolIdMatch(poolId, poolKey);
+
         bytes memory callData = _getMintCalldata({
             poolKey    : poolKey,
             tickLower  : tickLower,
@@ -175,6 +177,8 @@ library UniswapV4Lib {
         require(maxSlippage != 0, "MC/max-slippage-not-set");
 
         PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
+
+        _requirePoolIdMatch(poolId, poolKey);
 
         require(
             tokenIn == Currency.unwrap(poolKey.currency0) ||
