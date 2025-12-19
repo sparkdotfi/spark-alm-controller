@@ -10,6 +10,8 @@ import { IERC20 }         from "../lib/openzeppelin-contracts/contracts/token/ER
 import { IERC20Metadata } from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IERC4626 }       from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
+import { PoolKey } from "../lib/uniswap-v4-core/src/types/PoolKey.sol";
+
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
@@ -329,6 +331,10 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         external nonReentrant
     {
         _checkRole(DEFAULT_ADMIN_ROLE);
+
+        PoolKey memory poolKey = UniswapV4Lib.getPoolKeyFromPoolId(poolId);
+
+        require(address(poolKey.hooks) == address(0), "MC/pool-has-hooks");
 
         require(
             ((tickLowerMin == 0) && (tickUpperMax == 0) && (maxTickSpacing == 0)) ||

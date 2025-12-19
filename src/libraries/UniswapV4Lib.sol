@@ -53,7 +53,7 @@ library UniswapV4Lib {
     {
         _checkTickLimits(tickLimits[poolId], tickLower, tickUpper);
 
-        PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
+        PoolKey memory poolKey = getPoolKeyFromPoolId(poolId);
 
         bytes memory callData = _getMintCalldata({
             poolKey    : poolKey,
@@ -135,7 +135,7 @@ library UniswapV4Lib {
     )
         external
     {
-        PoolKey memory poolKey = _getPoolKeyFromTokenId(tokenId);
+        PoolKey memory poolKey = getPoolKeyFromTokenId(tokenId);
 
         // NOTE: No need to check the token ownership here, as the proxy will be defined as the
         //       recipient of the tokens, so the worst case is that another account's position is
@@ -176,7 +176,7 @@ library UniswapV4Lib {
     {
         require(maxSlippage != 0, "MC/max-slippage-not-set");
 
-        PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
+        PoolKey memory poolKey = getPoolKeyFromPoolId(poolId);
 
         require(
             tokenIn == Currency.unwrap(poolKey.currency0) ||
@@ -241,6 +241,10 @@ library UniswapV4Lib {
 
         // Reset approval of Permit2 in tokenIn.
         _approveWithPermit2(proxy, tokenIn, _ROUTER, 0);
+    }
+
+    function getPoolKeyFromPoolId(bytes32 poolId) public view returns (PoolKey memory poolKey) {
+        return IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
     }
 
     /**********************************************************************************************/
@@ -528,12 +532,8 @@ library UniswapV4Lib {
         return IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
     }
 
-    function _getPoolKeyFromPoolId(bytes32 poolId) internal view returns (PoolKey memory poolKey) {
-        return IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
-    }
-
-    function _getPoolKeyFromTokenId(uint256 tokenId)
-        internal view returns (PoolKey memory poolKey)
+    function getPoolKeyFromTokenId(uint256 tokenId)
+        public view returns (PoolKey memory poolKey)
     {
         (poolKey, ) = _getPoolKeyAndPositionInfo(tokenId);
     }
