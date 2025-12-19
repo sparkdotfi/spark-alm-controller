@@ -1017,7 +1017,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenAmount0MaxTooLargeForPermit2Boundary() external {
+    function test_mintPositionUniswapV4_revertsWhenMaxAmountsTooLargeForPermit2Boundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
