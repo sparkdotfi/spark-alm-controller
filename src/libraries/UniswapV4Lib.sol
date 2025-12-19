@@ -157,8 +157,6 @@ library UniswapV4Lib {
             poolId     : poolId,
             token0     : Currency.unwrap(poolKey.currency0),
             token1     : Currency.unwrap(poolKey.currency1),
-            amount0Min : amount0Min,
-            amount1Min : amount1Min,
             callData   : callData
         });
     }
@@ -348,8 +346,6 @@ library UniswapV4Lib {
         bytes32        poolId,
         address        token0,
         address        token1,
-        uint256        amount0Min,
-        uint256        amount1Min,
         bytes   memory callData
     )
         internal
