@@ -1045,7 +1045,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
             amount0Max : uint256(type(uint160).max),
-            amount0Max : uint256(type(uint160).max) + 1
+            amount1Max : uint256(type(uint160).max) + 1
         });
 
         vm.prank(relayer);
