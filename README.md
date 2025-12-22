@@ -140,12 +140,15 @@ Below are all stated trust assumptions for using this contract in production:
 - Assume that the funds return to the OTC Buffer contract via transfer. This is to accommodate most exchanges/OTC desks that only have the ability to complete the swap by sending token to an address (i.e. not being able to make any arbitrary contracts calls outside of the ERC20 spec).
 - The maximum loss by the protocol is limited to the single outstanding OTC swap amount for a given exchange.
 - The recharge rate is configured to be low enough that the system will not practically allow for multiple swaps in a row without receiving material funds from the exchange.
+- Ethena's delegated signer role can be set by the RELAYER. The delegated signer role can technically be set my a malicious relayer to be a malicious actor. Ethena's API's [Order Validity Checks](https://docs.ethena.fi/solution-design/minting-usde/order-validity-checks) is trusted to prevent attacks in this scenario.
+
 
 ## Operational Requirements
 
 - All ERC-4626 vaults that are onboarded MUST have an initial burned shares amount that prevents rounding-based frontrunning attacks. These shares have to be unrecoverable so that they cannot be removed at a later date.
 - All ERC-20 tokens are to be non-rebasing with sufficiently high decimal precision.
 - Rate limits must be configured for specific ERC-4626 vaults and AAVE aTokens (vaults without rate limits set will revert). Unlimited rate limits can be used as an onboarding tool.
+- All Uniswap V4 pool onboardings are to be done with 1:1 assets.
 - Rate limits must take into account:
   - Risk tolerance for a given protocol
   - Griefing attacks (e.g., repetitive transactions with high slippage by malicious relayer).
