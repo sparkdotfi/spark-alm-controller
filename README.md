@@ -140,8 +140,7 @@ Below are all stated trust assumptions for using this contract in production:
 - Assume that the funds return to the OTC Buffer contract via transfer. This is to accommodate most exchanges/OTC desks that only have the ability to complete the swap by sending token to an address (i.e. not being able to make any arbitrary contracts calls outside of the ERC20 spec).
 - The maximum loss by the protocol is limited to the single outstanding OTC swap amount for a given exchange.
 - The recharge rate is configured to be low enough that the system will not practically allow for multiple swaps in a row without receiving material funds from the exchange.
-- Ethena's delegated signer role can be set by the RELAYER. The delegated signer role can technically be set my a malicious relayer to be a malicious actor. Ethena's API's [Order Validity Checks](https://docs.ethena.fi/solution-design/minting-usde/order-validity-checks) is trusted to prevent attacks in this scenario.
-
+- Ethena's delegated signer role can be set by the RELAYER. The delegated signer role can technically be set by a malicious relayer to be a malicious actor. Ethena's API's [Order Validity Checks](https://docs.ethena.fi/solution-design/minting-usde/order-validity-checks) is trusted to prevent attacks in this scenario.
 
 ## Operational Requirements
 
