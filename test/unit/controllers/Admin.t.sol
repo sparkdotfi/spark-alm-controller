@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import { IERC20Metadata }  from "../../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IERC4626 }        from "../../../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
@@ -434,6 +435,67 @@ contract MainnetControllerSetMaxExchangeRateTests is MainnetControllerAdminTestB
         mainnetController.setMaxExchangeRate(token, 1e6, 1e18);
 
         assertEq(mainnetController.maxExchangeRates(token), 1e48);
+    }
+
+}
+
+contract MainnetControllerSetUniswapV4TickLimitsTests is MainnetControllerAdminTestBase {
+
+    bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
+
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setUniswapV4TickLimits_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0);
+    }
+
+    function test_setUniswapV4TickLimits_revertsForNonAdmin() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                mainnetController.DEFAULT_ADMIN_ROLE()
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0);
+    }
+
+    function test_setUniswapV4TickLimits_revertsWhenInvalidTicks() external {
+        vm.prank(admin);
+        vm.expectRevert("MC/invalid-ticks");
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 1, 1, 1); // Reverts when lower >= upper
+
+        vm.prank(admin);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 1); // lower must be less than upper
+
+        vm.prank(admin);
+        vm.expectRevert("MC/invalid-ticks");
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 0); // Reverts when maxTickSpacing is zero
+
+        vm.prank(admin);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0); // maxTickSpacing can only be 0 if all 0
+    }
+
+    function test_setUniswapV4TickLimits() external {
+        vm.expectEmit(address(mainnetController));
+        emit MainnetController.UniswapV4TickLimitsSet(_POOL_ID, -60, 60, 20);
+
+        vm.record();
+
+        vm.prank(admin);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing ) = mainnetController.uniswapV4TickLimits(_POOL_ID);
+
+        assertEq(tickLowerMin,   -60);
+        assertEq(tickUpperMax,   60);
+        assertEq(maxTickSpacing, 20);
     }
 
 }

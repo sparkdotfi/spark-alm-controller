@@ -161,10 +161,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
-        external nonReentrant
+        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        _checkRole(DEFAULT_ADMIN_ROLE);
-
         require(token != address(0), "FC/token-zero-address");
 
         emit MaxExchangeRateSet(
@@ -187,13 +185,14 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function transferAsset(address asset, address destination, uint256 amount)
-        external nonReentrant onlyRole(RELAYER)
-    {
-        _rateLimited(
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        rateLimited(
             RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
             amount
-        );
-
+        )
+    {
         bytes memory returnData = proxy.doCall(
             asset,
             abi.encodeCall(IERC20(asset).transfer, (destination, amount))
@@ -298,13 +297,18 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         uint256 amount,
         uint32  destinationEndpointId
     )
-        external payable nonReentrant
-    {
-        _checkRole(RELAYER);
-        _rateLimited(
+        external
+        payable
+        nonReentrant
+        onlyRole(RELAYER)
+        rateLimited(
             keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
             amount
-        );
+        )
+    {
+        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
+
+        require(recipient != bytes32(0), "FC/recipient-not-set");
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == true. Add integration testing for this case before
@@ -317,7 +321,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         SendParam memory sendParams = SendParam({
             dstEid       : destinationEndpointId,
-            to           : layerZeroRecipients[destinationEndpointId],
+            to           : recipient,
             amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,
@@ -479,46 +483,6 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     /**********************************************************************************************/
-    /*** Relayer Morpho functions                                                               ***/
-    /**********************************************************************************************/
-
-    function setSupplyQueueMorpho(address morphoVault, Id[] memory newSupplyQueue)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).setSupplyQueue, (newSupplyQueue))
-        );
-    }
-
-    function updateWithdrawQueueMorpho(address morphoVault, uint256[] calldata indexes)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).updateWithdrawQueue, (indexes))
-        );
-    }
-
-    function reallocateMorpho(address morphoVault, MarketAllocation[] calldata allocations)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, morphoVault))
-    {
-        proxy.doCall(
-            morphoVault,
-            abi.encodeCall(IMetaMorpho(morphoVault).reallocate, (allocations))
-        );
-    }
-
-    /**********************************************************************************************/
     /*** Spark Vault functions                                                                  ***/
     /**********************************************************************************************/
 
@@ -595,10 +559,6 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
-    }
-
-    function _rateLimited(bytes32 key, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(key, amount);
     }
 
     /**********************************************************************************************/

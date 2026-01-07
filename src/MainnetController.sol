@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
+import { IAToken } from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
@@ -17,11 +16,15 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import  "./interfaces/ILayerZero.sol";
+import { ILayerZero, SendParam, OFTReceipt, MessagingFee } from "./interfaces/ILayerZero.sol";
 
+import { ApproveLib }                     from "./libraries/ApproveLib.sol";
+import { AaveLib }                        from "./libraries/AaveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
+import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -81,17 +84,17 @@ interface IWstETHLike {
     function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
 }
 
-struct OTC {
-    address buffer;
-    uint256 rechargeRate18;
-    uint256 sent18;
-    uint256 sentTimestamp;
-    uint256 claimed18;
-}
-
 contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     using OptionsBuilder for bytes;
+
+    struct OTC {
+        address buffer;
+        uint256 rechargeRate18;
+        uint256 sent18;
+        uint256 sentTimestamp;
+        uint256 claimed18;
+    }
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -127,12 +130,16 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bool            isWhitelisted
     );
     event RelayerRemoved(address indexed relayer);
+    event UniswapV4TickLimitsSet(
+        bytes32 indexed poolId,
+        int24           tickLowerMin,
+        int24           tickUpperMax,
+        uint24          maxTickSpacing
+    );
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
-
-    uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
 
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
@@ -153,6 +160,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
+    bytes32 public LIMIT_UNISWAP_V4_SWAP         = UniswapV4Lib.LIMIT_SWAP;
     bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
@@ -193,6 +203,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     // ERC4626 exchange rate thresholds (1e36 precision)
     mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
+
+    // Uniswap V4 tick ranges
+    mapping(bytes32 poolId => UniswapV4Lib.TickLimits tickLimits) public uniswapV4TickLimits;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -303,8 +316,33 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         emit MaxExchangeRateSet(
             token,
-            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
+            maxExchangeRates[token] = ERC4626Lib.getExchangeRate(shares, maxExpectedAssets)
         );
+    }
+
+    function setUniswapV4TickLimits(
+        bytes32 poolId,
+        int24   tickLowerMin,
+        int24   tickUpperMax,
+        uint24  maxTickSpacing
+    )
+        external nonReentrant
+    {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+
+        require(
+            ((tickLowerMin == 0) && (tickUpperMax == 0) && (maxTickSpacing == 0)) ||
+            ((maxTickSpacing > 0) && (tickLowerMin < tickUpperMax)),
+            "MC/invalid-ticks"
+        );
+
+        uniswapV4TickLimits[poolId] = UniswapV4Lib.TickLimits({
+            tickLowerMin   : tickLowerMin,
+            tickUpperMax   : tickUpperMax,
+            maxTickSpacing : maxTickSpacing
+        });
+
+        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax, maxTickSpacing);
     }
 
     /**********************************************************************************************/
@@ -456,67 +494,49 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_4626_DEPOSIT, token, amount);
 
-        // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(IERC4626(token).asset(), token, amount);
-
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
-        shares = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).deposit, (amount, address(proxy)))
-            ),
-            (uint256)
-        );
-
-        require(
-            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
-            "MC/exchange-rate-too-high"
-        );
+        return ERC4626Lib.deposit({
+            proxy           : address(proxy),
+            token           : token,
+            amount          : amount,
+            maxExchangeRate : maxExchangeRates[token],
+            rateLimits      : address(rateLimits),
+            rateLimitId     : LIMIT_4626_DEPOSIT
+        });
     }
 
     function withdrawERC4626(address token, uint256 amount)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_4626_WITHDRAW, token, amount);
 
-        // Withdraw asset from a token, decode resulting shares.
-        // Assumes proxy has adequate token shares.
-        shares = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).withdraw, (amount, address(proxy), address(proxy)))
-            ),
-            (uint256)
-        );
-
-        _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), amount);
+        return ERC4626Lib.withdraw({
+            proxy               : address(proxy),
+            token               : token,
+            amount              : amount,
+            rateLimits          : address(rateLimits),
+            withdrawRateLimitId : LIMIT_4626_WITHDRAW,
+            depositRateLimitId  : LIMIT_4626_DEPOSIT
+        });
     }
 
-    // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares)
         external nonReentrant returns (uint256 assets)
     {
         _checkRole(RELAYER);
 
-        // Redeem shares for assets from the token, decode the resulting assets.
-        // Assumes proxy has adequate token shares.
-        assets = abi.decode(
-            proxy.doCall(
-                token,
-                abi.encodeCall(IERC4626(token).redeem, (shares, address(proxy), address(proxy)))
-            ),
-            (uint256)
-        );
+        return ERC4626Lib.redeem({
+            proxy               : address(proxy),
+            token               : token,
+            shares              : shares,
+            rateLimits          : address(rateLimits),
+            withdrawRateLimitId : LIMIT_4626_WITHDRAW,
+            depositRateLimitId  : LIMIT_4626_DEPOSIT
+        });
+    }
 
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
-            assets
-        );
-
-        _cancelRateLimit(RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token), assets);
+    function EXCHANGE_RATE_PRECISION() external pure returns (uint256) {
+        return ERC4626Lib.EXCHANGE_RATE_PRECISION;
     }
 
     /**********************************************************************************************/
@@ -525,62 +545,30 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function depositAave(address aToken, uint256 amount) external nonReentrant {
         _checkRole(RELAYER);
-        _rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount);
 
-        require(maxSlippages[aToken] != 0, "MC/max-slippage-not-set");
-
-        IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
-        IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
-
-        // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        _approve(address(underlying), address(pool), amount);
-
-        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
-
-        // Deposit underlying into Aave pool, proxy receives aTokens
-        proxy.doCall(
-            address(pool),
-            abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
-        );
-
-        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
-
-        require(
-            newATokens >= amount * maxSlippages[aToken] / 1e18,
-            "MC/slippage-too-high"
-        );
+        AaveLib.deposit({
+            proxy       : address(proxy),
+            aToken      : aToken,
+            amount      : amount,
+            maxSlippage : maxSlippages[aToken],
+            rateLimits  : address(rateLimits),
+            rateLimitId : LIMIT_AAVE_DEPOSIT
+        });
     }
 
-    // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
         external nonReentrant returns (uint256 amountWithdrawn)
     {
         _checkRole(RELAYER);
 
-        IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
-
-        // Withdraw underlying from Aave pool, decode resulting amount withdrawn.
-        // Assumes proxy has adequate aTokens.
-        amountWithdrawn = abi.decode(
-            proxy.doCall(
-                address(pool),
-                abi.encodeCall(
-                    pool.withdraw,
-                    (IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS(), amount, address(proxy))
-                )
-            ),
-            (uint256)
-        );
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_WITHDRAW, aToken),
-            amountWithdrawn
-        );
-
-        _cancelRateLimit(
-            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_DEPOSIT, aToken),
-            amountWithdrawn
-        );
+        return AaveLib.withdraw({
+            proxy               : address(proxy),
+            aToken              : aToken,
+            amount              : amount,
+            rateLimits          : address(rateLimits),
+            rateLimitWithdrawId : LIMIT_AAVE_WITHDRAW,
+            rateLimitDepositId  : LIMIT_AAVE_DEPOSIT
+        });
     }
 
     /**********************************************************************************************/
@@ -649,6 +637,101 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     /**********************************************************************************************/
+    /*** Uniswap V4 functions                                                                   ***/
+    /**********************************************************************************************/
+
+    function mintPositionUniswapV4(
+        bytes32 poolId,
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.mintPosition({
+            proxy      : address(proxy),
+            rateLimits : address(rateLimits),
+            poolId     : poolId,
+            tickLower  : tickLower,
+            tickUpper  : tickUpper,
+            liquidity  : liquidity,
+            amount0Max : amount0Max,
+            amount1Max : amount1Max,
+            tickLimits : uniswapV4TickLimits
+        });
+    }
+
+    function increaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint256 amount0Max,
+        uint256 amount1Max
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.increasePosition({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            poolId            : poolId,
+            tokenId           : tokenId,
+            liquidityIncrease : liquidityIncrease,
+            amount0Max        : amount0Max,
+            amount1Max        : amount1Max,
+            tickLimits        : uniswapV4TickLimits
+        });
+    }
+
+    function decreaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint256 amount0Min,
+        uint256 amount1Min
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.decreasePosition({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            poolId            : poolId,
+            tokenId           : tokenId,
+            liquidityDecrease : liquidityDecrease,
+            amount0Min        : amount0Min,
+            amount1Min        : amount1Min
+        });
+    }
+
+    function swapUniswapV4(
+        bytes32 poolId,
+        address tokenIn,
+        uint128 amountIn,
+        uint128 amountOutMin
+    )
+        external nonReentrant
+    {
+        _checkRole(RELAYER);
+
+        UniswapV4Lib.swap({
+            proxy        : address(proxy),
+            rateLimits   : address(rateLimits),
+            poolId       : poolId,
+            tokenIn      : tokenIn,
+            amountIn     : amountIn,
+            amountOutMin : amountOutMin,
+            maxSlippage  : maxSlippages[address(uint160(uint256(poolId)))]
+        });
+    }
+
+    /**********************************************************************************************/
     /*** Relayer Ethena functions                                                               ***/
     /**********************************************************************************************/
 
@@ -674,13 +757,13 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function prepareUSDeMint(uint256 usdcAmount) external nonReentrant {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_USDE_MINT, usdcAmount);
-        _approve(address(usdc), address(ethenaMinter), usdcAmount);
+        ApproveLib.approve(address(usdc), address(proxy), address(ethenaMinter), usdcAmount);
     }
 
     function prepareUSDeBurn(uint256 usdeAmount) external nonReentrant {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_USDE_BURN, usdeAmount);
-        _approve(address(usde), address(ethenaMinter), usdeAmount);
+        ApproveLib.approve(address(usde), address(proxy), address(ethenaMinter), usdeAmount);
     }
 
     function cooldownAssetsSUSDe(uint256 usdeAmount) external nonReentrant {
@@ -707,7 +790,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        rateLimits.triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
+        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
     }
 
     function unstakeSUSDe() external nonReentrant {
@@ -755,7 +838,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount);
 
-        _approve(address(usdc), address(ustb), usdcAmount);
+        ApproveLib.approve(address(usdc), address(proxy), address(ustb), usdcAmount);
 
         proxy.doCall(
             address(ustb),
@@ -769,7 +852,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function swapUSDSToDAI(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER) {
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        _approve(address(usds), address(daiUsds), usdsAmount);
+        ApproveLib.approve(address(usds), address(proxy), address(daiUsds), usdsAmount);
 
         // Swap USDS to DAI 1:1
         proxy.doCall(
@@ -780,7 +863,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function swapDAIToUSDS(uint256 daiAmount) external nonReentrant onlyRole(RELAYER) {
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        _approve(address(dai), address(daiUsds), daiAmount);
+        ApproveLib.approve(address(dai), address(proxy), address(daiUsds), daiAmount);
 
         // Swap DAI to USDS 1:1
         proxy.doCall(
@@ -843,18 +926,22 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             amount
         );
 
+        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
+
+        require(recipient != bytes32(0), "MC/recipient-not-set");
+
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before
         //       using in production.
         if (ILayerZero(oftAddress).approvalRequired()) {
-            _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
+            ApproveLib.approve(ILayerZero(oftAddress).token(), address(proxy), oftAddress, amount);
         }
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
         SendParam memory sendParams = SendParam({
             dstEid       : destinationEndpointId,
-            to           : layerZeroRecipients[destinationEndpointId],
+            to           : recipient,
             amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,
@@ -863,7 +950,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         });
 
         // Query the min amount received on the destination chain and set it.
-        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
@@ -908,7 +995,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             usdsAmount
         );
 
-        _approve(address(usds), farm, usdsAmount);
+        ApproveLib.approve(address(usds), address(proxy), farm, usdsAmount);
 
         proxy.doCall(
             farm,
@@ -1032,38 +1119,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
 
-    // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
-    function _approve(address token, address spender, uint256 amount) internal {
-        bytes memory approveData = abi.encodeCall(IERC20.approve, (spender, amount));
-
-        // Call doCall on proxy to approve the token
-        ( bool success, bytes memory data )
-            = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
-
-        bytes memory approveCallReturnData;
-
-        if (success) {
-            // Data is the ABI-encoding of the approve call bytes return data, need to
-            // decode it first
-            approveCallReturnData = abi.decode(data, (bytes));
-            // Approve was successful if 1) no return value or 2) true return value
-            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
-                return;
-            }
-        }
-
-        // If call was unsuccessful, set to zero and try again
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
-
-        approveCallReturnData = proxy.doCall(token, approveData);
-
-        // Revert if approve returns false
-        require(
-            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
-            "MC/approve-failed"
-        );
-    }
-
     function _transfer(address asset, address destination, uint256 amount) internal {
         bytes memory returnData = proxy.doCall(
             asset,
@@ -1114,20 +1169,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             rateLimits.getRateLimitData(key).maxAmount > 0,
             "MC/invalid-action"
         );
-    }
-
-    /**********************************************************************************************/
-    /*** Exchange rate helper functions                                                         ***/
-    /**********************************************************************************************/
-
-    function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
-        // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
-        if (assets == 0) return 0;
-
-        // Zero shares with non-zero assets is invalid (infinite exchange rate).
-        if (shares == 0) revert("MC/zero-shares");
-
-        return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }
 
 }
