@@ -144,15 +144,15 @@ library WeETHLib {
     }
 
     function claimWithdrawal(ClaimWithdrawalParams calldata params) external returns (uint256 ethReceived) {
-        _rateLimited(params.rateLimits, params.rateLimitId, params.requestId);
-
-        return abi.decode(
+        ethReceived =  abi.decode(
             params.proxy.doCall(
                 params.weEthModule,
                 abi.encodeCall(IWeEthModule(params.weEthModule).claimWithdrawal, (params.requestId))
             ),
             (uint256)
         );
+
+        _rateLimited(params.rateLimits, params.rateLimitId, ethReceived);
     }
 
     /**********************************************************************************************/
@@ -161,10 +161,6 @@ library WeETHLib {
 
     function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
-    }
-
-    function _cancelRateLimit(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
-        rateLimits.triggerRateLimitIncrease(key, amount);
     }
 
 }

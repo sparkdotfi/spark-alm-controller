@@ -7,7 +7,7 @@ import { SafeERC20 }                from "openzeppelin-contracts/contracts/token
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
-import { IEETH, ILiquidityPool, IWETH, IWEETHLike } from "../src/libraries/WeETHLib.sol";
+import { IEETH, ILiquidityPool, IWETH, IWEETHLike } from "./libraries/WeETHLib.sol";
 
 interface IWithdrawRequestNFT {
     function claimWithdraw(uint256 requestId) external;
@@ -26,7 +26,7 @@ contract WeEthModule is AccessControlEnumerable {
     /**********************************************************************************************/
 
     constructor(address admin, address _almProxy) {
-        require(_almProxy != address(0), "OTCBuffer/invalid-alm-proxy");
+        require(_almProxy != address(0), "WeEthModule/invalid-alm-proxy");
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
@@ -64,7 +64,7 @@ contract WeEthModule is AccessControlEnumerable {
         IERC20(Ethereum.WETH).transfer(almProxy, ethReceived);
     }
 
-    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) external returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
         return this.onERC721Received.selector;
     }
 

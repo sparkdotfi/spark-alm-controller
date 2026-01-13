@@ -243,7 +243,7 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
         mainnetController.claimWithdrawalFromWeETH(weEthModule, 1);
     }
 
-    function test_claimWithdrawalFromWstETH_notRelayer() external {
+    function test_claimWithdrawalFromWeETH_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
