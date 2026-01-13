@@ -25,6 +25,7 @@ import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
+import { WeETHLib }                       from "./libraries/WeETHLib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
@@ -169,6 +170,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
     bytes32 public LIMIT_USDS_TO_USDC            = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
+    bytes32 public LIMIT_WEETH_DEPOSIT           = keccak256("LIMIT_WEETH_DEPOSIT");
+    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
@@ -484,6 +488,55 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             "",
             ethReceived
         );
+    }
+
+    /**********************************************************************************************/
+    /*** weETH Integration                                                                      ***/
+    /**********************************************************************************************/
+
+    function depositToWeETH(uint256 amount) external nonReentrant returns (uint256 shares) {
+        _checkRole(RELAYER);
+
+        return WeETHLib.deposit(WeETHLib.DepositParams({
+            proxy       : proxy,
+            rateLimits  : rateLimits,
+            amount      : amount,
+            rateLimitId : LIMIT_WEETH_DEPOSIT
+        }));
+    }
+
+    function requestWithdrawFromWeETH(
+        address weEthModule,
+        uint256 amount
+    ) external nonReentrant returns (uint256 requestId) {
+        _checkRole(RELAYER);
+
+        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weEthModule);
+
+        return WeETHLib.requestWithdraw(WeETHLib.WithdrawParams({
+            proxy       : proxy,
+            rateLimits  : rateLimits,
+            amount      : amount,
+            rateLimitId : key,
+            weEthModule : weEthModule
+        }));
+    }
+
+    function claimWithdrawalFromWeETH(
+        address weEthModule,
+        uint256 requestId
+    ) external nonReentrant returns (uint256 ethReceived) {
+        _checkRole(RELAYER);
+
+        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weEthModule);
+
+        return WeETHLib.claimWithdrawal(WeETHLib.ClaimWithdrawalParams({
+            proxy       : proxy,
+            rateLimits  : rateLimits,
+            requestId   : requestId,
+            weEthModule : weEthModule,
+            rateLimitId : key
+        }));
     }
 
     /**********************************************************************************************/
