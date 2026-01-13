@@ -7,8 +7,8 @@ import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
 
-import { IRateLimits }  from "../interfaces/IRateLimits.sol";
-import { IALMProxy }    from "../interfaces/IALMProxy.sol";
+import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
 interface IEETH {
     function liquidityPool() external view returns (address);
