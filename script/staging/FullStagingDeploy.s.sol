@@ -386,8 +386,8 @@ contract FullStagingDeploy is Script {
         _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDC_SPTOKEN,    maxAmount6,  slope6);
         _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDT_SPTOKEN,    maxAmount6,  slope6);
 
-        _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_SUSDSUSDT,   0.98e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
-        _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_WEETHWETHNG, 0.98e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
+        _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_SUSDSUSDT,   0.9985e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
+        _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_WEETHWETHNG, 0.9985e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
 
         _onboardERC4626Token(mainnet, mainnetInst, Ethereum.SUSDE,                maxAmount18, slope18);
         _onboardERC4626Token(mainnet, mainnetInst, Ethereum.SUSDS,                maxAmount18, slope18);
