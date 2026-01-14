@@ -43,6 +43,10 @@ interface IVatLike {
     function can(address, address) external view returns (uint256);
 }
 
+interface ICurvePoolLike {
+    function get_virtual_price() external view returns (uint256);
+}
+
 interface IMapleTokenExtended is IERC4626 {
     function manager() external view returns (address);
 }
@@ -54,6 +58,15 @@ interface IWithdrawalManagerLike {
 interface IPoolManagerLike {
     function withdrawalManager() external view returns (IWithdrawalManagerLike);
     function poolDelegate() external view returns (address);
+}
+
+interface IPermissionManagerLike {
+    function admin() external view returns (address);
+    function setLenderAllowlist(
+        address            poolManager_,
+        address[] calldata lenders_,
+        bool[]    calldata booleans_
+    ) external;
 }
 
 contract StagingDeploymentTestBase is Test {
@@ -121,8 +134,8 @@ contract StagingDeploymentTestBase is Test {
         vm.setEnv("FOUNDRY_ROOT_CHAINID", "1");
 
         // Domains and bridge
-        mainnet    = getChain("mainnet").createSelectFork(23376311);  // September 16, 2025
-        base       = getChain("base").createFork(35619788);           // September 16, 2025
+        mainnet    = getChain("mainnet").createSelectFork(24233639);  // Jan 14, 2026
+        base       = getChain("base").createFork(40806397);           // Jan 14, 2026
 
         cctpBridgeBase     = CCTPBridgeTesting.createCircleBridge(mainnet, base);
 
@@ -313,32 +326,103 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         assertEq(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);
     }
 
-    // TODO: Get Maple team to whitelist staging almProxy for testing when needed
-    // function test_mintDepositWithdrawSyrupUsdc() public {
-    //     vm.startPrank(relayerSafe);
-    //     mainnetController.mintUSDS(10e18);
-    //     mainnetController.swapUSDSToUSDC(10e6);
-    //     vm.stopPrank();
+    function test_mintDepositWithdrawSyrupUsdc() public {
+        // --- Maple onboarding process ---
 
-    //     uint256 startingBalance = usdc.balanceOf(address(almProxy));
+        IPermissionManagerLike permissionManager
+            = IPermissionManagerLike(0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3);
 
-    //     vm.startPrank(relayerSafe);
-    //     uint256 shares = mainnetController.depositERC4626(Ethereum.SYRUP_USDC, 10e6);
+        IMapleTokenExtended syrupUsdc = IMapleTokenExtended(Ethereum.SYRUP_USDC);
 
-    //     skip(1 days);
+        address poolManager = syrupUsdc.manager();
 
-    //     mainnetController.requestMapleRedemption(Ethereum.SYRUP_USDC, shares);
+        address[] memory lenders  = new address[](1);
+        bool[]    memory booleans = new bool[](1);
 
-    //     IMapleTokenExtended syrup = IMapleTokenExtended(Ethereum.SYRUP_USDC);
+        lenders[0]  = address(almProxy);
+        booleans[0] = true;
 
-    //     IWithdrawalManagerLike withdrawManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
-    //     vm.startPrank(IPoolManagerLike(syrup.manager()).poolDelegate());
-    //     withdrawManager.processRedemptions(shares);
-    //     vm.stopPrank();
+        vm.startPrank(permissionManager.admin());
+        permissionManager.setLenderAllowlist(
+            poolManager,
+            lenders,
+            booleans
+        );
+        vm.stopPrank();
 
-    //     assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
-    // }
+        // --- Maple onboarding process ---
 
+        vm.startPrank(relayerSafe);
+        mainnetController.mintUSDS(10e18);
+        mainnetController.swapUSDSToUSDC(10e6);
+        vm.stopPrank();
+
+        uint256 startingBalance = usdc.balanceOf(address(almProxy));
+
+        vm.startPrank(relayerSafe);
+        uint256 shares = mainnetController.depositERC4626(Ethereum.SYRUP_USDC, 10e6);
+
+        skip(1 days);
+
+        mainnetController.requestMapleRedemption(Ethereum.SYRUP_USDC, shares);
+
+        IMapleTokenExtended syrup = IMapleTokenExtended(Ethereum.SYRUP_USDC);
+
+        IWithdrawalManagerLike withdrawManager = IPoolManagerLike(poolManager).withdrawalManager();
+        vm.startPrank(IPoolManagerLike(poolManager).poolDelegate());
+        withdrawManager.processRedemptions(shares);
+        vm.stopPrank();
+
+        assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
+    }
+
+    function test_depositSwapWithdrawCurve() public {
+        skip(1 days); // Recharge rate limits
+
+        uint256 startingBalance = usdc.balanceOf(address(almProxy));
+
+        vm.startPrank(relayerSafe);
+        mainnetController.mintUSDS(10e18);
+        uint256 shares     = mainnetController.depositERC4626(Ethereum.SUSDS, 10e18);
+        uint256 usdtAmount = mainnetController.swapCurve(Ethereum.CURVE_SUSDSUSDT, 0, 1, shares, 9.99e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 0;
+        amounts[1] = usdtAmount;
+
+        uint256 lpPrice = ICurvePoolLike(Ethereum.CURVE_SUSDSUSDT).get_virtual_price();
+
+        uint256 lpTokens = mainnetController.addLiquidityCurve(Ethereum.CURVE_SUSDSUSDT, amounts, usdtAmount * 1e12 * 0.9999e18 / lpPrice);
+
+        uint256 lpTokenValue = lpTokens * lpPrice / 1e18;
+
+        // --- Get withdrawal amounts by simulating a no slippage withdrawal
+
+        uint256 snapshot = vm.snapshotState();
+
+        vm.stopPrank();
+
+        vm.prank(admin);
+        mainnetController.setMaxSlippage(Ethereum.CURVE_SUSDSUSDT, 1);
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 100;
+        minWithdrawAmounts[1] = 100;
+
+        vm.prank(relayerSafe);
+
+        uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(Ethereum.CURVE_SUSDSUSDT, lpTokens, minWithdrawAmounts);
+
+        // --- Revert back to non-zero maxSlippage state and do real withdrawal
+
+        vm.revertToState(snapshot);
+
+        minWithdrawAmounts[0] = withdrawnAmounts[0];
+        minWithdrawAmounts[1] = withdrawnAmounts[1];
+
+        vm.startPrank(relayerSafe);
+        mainnetController.removeLiquidityCurve(Ethereum.CURVE_SUSDSUSDT, lpTokens, minWithdrawAmounts);
+    }
 
     /**********************************************************************************************/
     /**** Helper functions                                                                      ***/

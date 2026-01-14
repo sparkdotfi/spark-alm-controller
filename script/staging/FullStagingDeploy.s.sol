@@ -5,28 +5,30 @@ import {
     AllocatorDeploy,
     AllocatorIlkInstance,
     AllocatorSharedInstance
-} from "dss-allocator/deploy/AllocatorDeploy.sol";
+} from "lib/dss-allocator/deploy/AllocatorDeploy.sol";
 
 import {
     BufferLike,
     RegistryLike,
     RolesLike,
     VaultLike
-} from "dss-allocator/deploy/AllocatorInit.sol";
+} from "lib/dss-allocator/deploy/AllocatorInit.sol";
 
-import { AllocatorBuffer } from "dss-allocator/src/AllocatorBuffer.sol";
-import { AllocatorVault }  from "dss-allocator/src/AllocatorVault.sol";
+import { AllocatorBuffer } from "lib/dss-allocator/src/AllocatorBuffer.sol";
+import { AllocatorVault }  from "lib/dss-allocator/src/AllocatorVault.sol";
 
-import { ScriptTools } from "dss-test/ScriptTools.sol";
+import { ScriptTools } from "lib/dss-test/src/ScriptTools.sol";
 
-import { IERC20 }  from "forge-std/interfaces/IERC20.sol";
-import { Script }  from "forge-std/Script.sol";
-import { stdJson } from "forge-std/StdJson.sol";
+import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
+import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+import { Script }   from "forge-std/Script.sol";
+import { stdJson }  from "forge-std/StdJson.sol";
 
-import { Base }     from "lib/spark-address-registry/src/Base.sol";
-import { Ethereum } from "lib/spark-address-registry/src/Ethereum.sol";
+import { Base }      from "lib/spark-address-registry/src/Base.sol";
+import { Ethereum }  from "lib/spark-address-registry/src/Ethereum.sol";
+import { SparkLend } from "lib/spark-address-registry/src/SparkLend.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPForwarder } from "lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
 import {
     ControllerInstance,
@@ -59,23 +61,6 @@ contract FullStagingDeploy is Script {
 
     using stdJson     for string;
     using ScriptTools for string;
-
-    /**********************************************************************************************/
-    /*** Deployed contracts                                                                     ***/
-    /**********************************************************************************************/
-
-    address constant AUSDS  = 0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259;
-    address constant AUSDC  = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
-    address constant SPUSDC = Ethereum.USDC_SPTOKEN;  // SparkLend spUSDC
-
-    address constant FLUID_SUSDS_VAULT      = 0x2BBE31d63E6813E3AC858C04dae43FB2a72B0D11;
-    address constant FLUID_SUSDS_VAULT_BASE = 0xf62e339f21d8018940f188F6987Bcdf02A849619;
-
-    address constant SYRUP_USDC = 0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b;
-
-    address constant AUSDC_BASE             = 0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB;
-    address constant MORPHO_BASE            = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
-    address constant MORPHO_VAULT_USDC_BASE = 0x305E03Ed9ADaAB22F4A58c24515D79f2B1E2FD5D;
 
     /**********************************************************************************************/
     /*** Mainnet existing/mock deployments                                                      ***/
@@ -396,20 +381,24 @@ contract FullStagingDeploy is Script {
 
         IRateLimits rateLimits = IRateLimits(mainnetInst.rateLimits);
 
-        _onboardAAVEToken(mainnet, mainnetInst, AUSDC,  maxAmount6,  slope6);
-        _onboardAAVEToken(mainnet, mainnetInst, AUSDS,  maxAmount18, slope18);
-        _onboardAAVEToken(mainnet, mainnetInst, SPUSDC, maxAmount6,  slope6);
+        _onboardAAVEToken(mainnet, mainnetInst, Ethereum.ATOKEN_CORE_USDC, maxAmount6,  slope6);
+        _onboardAAVEToken(mainnet, mainnetInst, Ethereum.ATOKEN_CORE_USDS, maxAmount18, slope18);
+        _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDC_SPTOKEN,    maxAmount6,  slope6);
+        _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDT_SPTOKEN,    maxAmount6,  slope6);
 
-        _onboardERC4626Token(mainnet, mainnetInst, address(controller.susde()), maxAmount18, slope18);
-        _onboardERC4626Token(mainnet, mainnetInst, Ethereum.SUSDS,              maxAmount18, slope18);
-        _onboardERC4626Token(mainnet, mainnetInst, FLUID_SUSDS_VAULT,           maxAmount18, slope18);
+        _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_SUSDSUSDT,   0.98e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
+        _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_WEETHWETHNG, 0.98e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
+
+        _onboardERC4626Token(mainnet, mainnetInst, Ethereum.SUSDE,                maxAmount18, slope18);
+        _onboardERC4626Token(mainnet, mainnetInst, Ethereum.SUSDS,                maxAmount18, slope18);
+        _onboardERC4626Token(mainnet, mainnetInst, Ethereum.MORPHO_VAULT_USDC_BC, maxAmount6, slope6);
 
         vm.startBroadcast();
 
-        bytes32 susdeDepositKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), address(controller.susde()));
+        bytes32 susdeDepositKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), Ethereum.SUSDE);
 
-        bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), SYRUP_USDC);
-        bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_MAPLE_REDEEM(), SYRUP_USDC);
+        bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), Ethereum.SYRUP_USDC);
+        bytes32 syrupUsdcWithdrawKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_MAPLE_REDEEM(), Ethereum.SYRUP_USDC);
 
         bytes32 domainKeyArbitrum = RateLimitHelpers.makeUint32Key(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
         bytes32 domainKeyBase     = RateLimitHelpers.makeUint32Key(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
@@ -461,7 +450,7 @@ contract FullStagingDeploy is Script {
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(psmWithdrawKey, usdc),  maxAmount6,  slope6);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(psmDepositKey,  usds),  maxAmount18, slope18);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(psmDepositKey,  susds), maxAmount18, slope18);
-        
+
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(psmWithdrawKey, usds));
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(psmWithdrawKey, susds));
 
@@ -479,9 +468,8 @@ contract FullStagingDeploy is Script {
     function _setBaseRateLimits() internal {
         _setForeignControllerRateLimits(base, baseInst);
 
-        _onboardAAVEToken(base, baseInst, AUSDC_BASE, maxAmount6, slope6);
+        _onboardAAVEToken(base, baseInst, Base.ATOKEN_USDC, maxAmount6, slope6);
 
-        _onboardERC4626Token(base, baseInst, FLUID_SUSDS_VAULT_BASE,  maxAmount6, slope6);
         _onboardERC4626Token(base, baseInst, Base.MORPHO_VAULT_SUSDC, maxAmount6, slope6);
     }
 
@@ -534,7 +522,63 @@ contract FullStagingDeploy is Script {
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  token), maxAmount,         slope);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, token), type(uint256).max, 0);
 
+        MainnetController(controllerInst.controller).setMaxExchangeRate(
+            token,
+            1  * 10 ** IERC20(token).decimals(),
+            10 * 10 ** IERC20(IERC4626(token).asset()).decimals()
+        );
+
         vm.stopBroadcast();
+    }
+
+    function _onboardCurvePool(
+        Domain memory domain,
+        ControllerInstance memory controllerInst,
+        address pool,
+        uint256 maxSlippage,
+        uint256 swapMax,
+        uint256 swapSlope,
+        uint256 depositMax,
+        uint256 depositSlope,
+        uint256 withdrawMax,
+        uint256 withdrawSlope
+    )
+        internal
+    {
+        MainnetController(controllerInst.controller).setMaxSlippage(pool, maxSlippage);
+
+        if (swapMax != 0) {
+            IRateLimits(controllerInst.rateLimits).setRateLimitData(
+                RateLimitHelpers.makeAddressKey(
+                    MainnetController(controllerInst.controller).LIMIT_CURVE_SWAP(),
+                    pool
+                ),
+                swapMax,
+                swapSlope
+            );
+        }
+
+        if (depositMax != 0) {
+            IRateLimits(controllerInst.rateLimits).setRateLimitData(
+                RateLimitHelpers.makeAddressKey(
+                    MainnetController(controllerInst.controller).LIMIT_CURVE_DEPOSIT(),
+                    pool
+                ),
+                depositMax,
+                depositSlope
+            );
+        }
+
+        if (withdrawMax != 0) {
+            IRateLimits(controllerInst.rateLimits).setRateLimitData(
+                RateLimitHelpers.makeAddressKey(
+                    MainnetController(controllerInst.controller).LIMIT_CURVE_WITHDRAW(),
+                    pool
+                ),
+                withdrawMax,
+                withdrawSlope
+            );
+        }
     }
 
     /**********************************************************************************************/
