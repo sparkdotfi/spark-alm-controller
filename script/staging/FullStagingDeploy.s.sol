@@ -581,6 +581,31 @@ contract FullStagingDeploy is Script {
         }
     }
 
+    function _transferAdminControls(
+        Domain             memory domain,
+        ControllerInstance memory controllerInst
+    )
+        internal
+    {
+        address admin    = domain.input.readAddress(".admin");
+        address deployer = msg.sender;
+
+        vm.selectFork(domain.forkId);
+        vm.startBroadcast();
+
+        // Casting to MainnetController because both controllers share the same grantRole interface
+        MainnetController controller = MainnetController(controllerInst.controller);
+        RateLimits        rateLimits = IRateLimits(controllerInst.rateLimits);
+
+        controller.grantRole(controller.DEFAULT_ADMIN_ROLE(), admin);
+        rateLimits.grantRole(rateLimits.DEFAULT_ADMIN_ROLE(), admin);
+
+        controller.revokeRole(controller.DEFAULT_ADMIN_ROLE(), deployer);
+        rateLimits.revokeRole(rateLimits.DEFAULT_ADMIN_ROLE(), deployer);
+
+        vm.stopBroadcast();
+    }
+
     /**********************************************************************************************/
     /*** Script running functions                                                               ***/
     /**********************************************************************************************/
@@ -641,11 +666,21 @@ contract FullStagingDeploy is Script {
         _setArbitrumRateLimits();
         _setBaseRateLimits();
 
+        // Step 4: Transfer admin controls
+
+        _transferAdminControls(mainnet,  mainnetInst);
+        _transferAdminControls(arbitrum, arbitrumInst);
+        _transferAdminControls(base,     baseInst);
+
         // Step 4: Export deployer address
 
-        ScriptTools.exportContract(mainnet.output,  "admin", deployer);
-        ScriptTools.exportContract(arbitrum.output, "admin", deployer);
-        ScriptTools.exportContract(base.output,     "admin", deployer);
+        ScriptTools.exportContract(mainnet.output,  "deployer", deployer);
+        ScriptTools.exportContract(arbitrum.output, "deployer", deployer);
+        ScriptTools.exportContract(base.output,     "deployer", deployer);
+
+        ScriptTools.exportContract(mainnet.output,  "admin", mainnet.input.readAddress(".admin"));
+        ScriptTools.exportContract(arbitrum.output, "admin", arbitrum.input.readAddress(".admin"));
+        ScriptTools.exportContract(base.output,     "admin", base.input.readAddress(".admin"));
     }
 
 }
