@@ -16,18 +16,15 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { ILayerZero, SendParam, OFTReceipt, MessagingFee } from "./interfaces/ILayerZero.sol";
-
 import { ApproveLib }                     from "./libraries/ApproveLib.sol";
 import { AaveLib }                        from "./libraries/AaveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
+import { LzLib }                          from "./libraries/LzLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 import { WeETHLib }                       from "./libraries/WeETHLib.sol";
-
-import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -86,8 +83,6 @@ interface IWstETHLike {
 }
 
 contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
-
-    using OptionsBuilder for bytes;
 
     struct OTC {
         address buffer;
@@ -971,45 +966,16 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         external payable nonReentrant
     {
         _checkRole(RELAYER);
-        _rateLimited(
-            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
-            amount
-        );
 
-        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
-
-        require(recipient != bytes32(0), "MC/recipient-not-set");
-
-        // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == false. Add integration testing for this case before
-        //       using in production.
-        if (ILayerZero(oftAddress).approvalRequired()) {
-            ApproveLib.approve(ILayerZero(oftAddress).token(), address(proxy), oftAddress, amount);
-        }
-
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        SendParam memory sendParams = SendParam({
-            dstEid       : destinationEndpointId,
-            to           : recipient,
-            amountLD     : amount,
-            minAmountLD  : 0,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        // Query the min amount received on the destination chain and set it.
-        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
-        sendParams.minAmountLD = receipt.amountReceivedLD;
-
-        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
-
-        proxy.doCallWithValue{value: fee.nativeFee}(
-            oftAddress,
-            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
-            fee.nativeFee
-        );
+        LzLib.transferTokenLayerZero(LzLib.TransferTokenLayerZeroParams({
+            proxy                 : proxy,
+            rateLimits            : rateLimits,
+            oftAddress            : oftAddress,
+            amount                : amount,
+            destinationEndpointId : destinationEndpointId,
+            rateLimitId           : LIMIT_LAYERZERO_TRANSFER,
+            layerZeroRecipient    : layerZeroRecipients[destinationEndpointId]
+        }));
     }
 
     /**********************************************************************************************/
