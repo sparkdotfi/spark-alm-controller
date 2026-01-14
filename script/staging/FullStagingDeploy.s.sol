@@ -45,10 +45,10 @@ import { IRateLimits } from "../../src/interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-import { MockJug }          from "./mocks/MockJug.sol";
-import { MockUsdsJoin }     from "./mocks/MockUsdsJoin.sol";
-import { MockVat }          from "./mocks/MockVat.sol";
-import { PSMWrapper }       from "./mocks/PSMWrapper.sol";
+import { MockJug }      from "./mocks/MockJug.sol";
+import { MockUsdsJoin } from "./mocks/MockUsdsJoin.sol";
+import { MockVat }      from "./mocks/MockVat.sol";
+import { PSMWrapper }   from "./mocks/PSMWrapper.sol";
 
 struct Domain {
     string  input;
@@ -116,6 +116,8 @@ contract FullStagingDeploy is Script {
     uint256 maxAmount6;
     uint256 slope18;
     uint256 slope6;
+
+    bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
 
     /**********************************************************************************************/
     /*** Mainnet dependency helper functions                                                    ***/
@@ -381,10 +383,10 @@ contract FullStagingDeploy is Script {
 
         IRateLimits rateLimits = IRateLimits(mainnetInst.rateLimits);
 
-        _onboardAAVEToken(mainnet, mainnetInst, Ethereum.ATOKEN_CORE_USDC, maxAmount6,  slope6);
-        _onboardAAVEToken(mainnet, mainnetInst, Ethereum.ATOKEN_CORE_USDS, maxAmount18, slope18);
-        _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDC_SPTOKEN,    maxAmount6,  slope6);
-        _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDT_SPTOKEN,    maxAmount6,  slope6);
+        _onboardAAVEToken(mainnet, mainnetInst, Ethereum.ATOKEN_CORE_USDC, 0.9999e18, maxAmount6,  slope6);
+        _onboardAAVEToken(mainnet, mainnetInst, Ethereum.ATOKEN_CORE_USDS, 0.9999e18, maxAmount18, slope18);
+        _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDC_SPTOKEN,    0.9999e18, maxAmount6,  slope6);
+        _onboardAAVEToken(mainnet, mainnetInst, SparkLend.USDT_SPTOKEN,    0.9999e18, maxAmount6,  slope6);
 
         _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_SUSDSUSDT,   0.9985e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
         _onboardCurvePool(mainnet, mainnetInst, Ethereum.CURVE_WEETHWETHNG, 0.9985e18, maxAmount18, slope18, maxAmount18, slope18, maxAmount18, slope18);
@@ -393,8 +395,6 @@ contract FullStagingDeploy is Script {
         _onboardERC4626Token(mainnet, mainnetInst, Ethereum.SUSDS,                maxAmount18, slope18);
         _onboardERC4626Token(mainnet, mainnetInst, Ethereum.MORPHO_VAULT_USDC_BC, maxAmount6, slope6);
 
-        vm.startBroadcast();
-
         bytes32 susdeDepositKey = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), Ethereum.SUSDE);
 
         bytes32 syrupUsdcDepositKey  = RateLimitHelpers.makeAddressKey(controller.LIMIT_4626_DEPOSIT(), Ethereum.SYRUP_USDC);
@@ -402,6 +402,8 @@ contract FullStagingDeploy is Script {
 
         bytes32 domainKeyArbitrum = RateLimitHelpers.makeUint32Key(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
         bytes32 domainKeyBase     = RateLimitHelpers.makeUint32Key(controller.LIMIT_USDC_TO_DOMAIN(), CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+
+        vm.startBroadcast();
 
         // USDS mint/burn and cross-chain transfer rate limits
         rateLimits.setRateLimitData(domainKeyBase,                   maxAmount6,  slope6);
@@ -468,7 +470,7 @@ contract FullStagingDeploy is Script {
     function _setBaseRateLimits() internal {
         _setForeignControllerRateLimits(base, baseInst);
 
-        _onboardAAVEToken(base, baseInst, Base.ATOKEN_USDC, maxAmount6, slope6);
+        _onboardAAVEToken(base, baseInst, Base.ATOKEN_USDC, 0.9999e18, maxAmount6, slope6);
 
         _onboardERC4626Token(base, baseInst, Base.MORPHO_VAULT_SUSDC, maxAmount6, slope6);
     }
@@ -481,6 +483,7 @@ contract FullStagingDeploy is Script {
         Domain memory             domain,
         ControllerInstance memory controllerInst,
         address                   aToken,
+        uint256                   maxSlippage,
         uint256                   maxAmount,
         uint256                   slope
     )
@@ -488,6 +491,8 @@ contract FullStagingDeploy is Script {
     {
         vm.selectFork(domain.forkId);
         vm.startBroadcast();
+
+        MainnetController(controllerInst.controller).setMaxSlippage(aToken, maxSlippage);
 
         // NOTE: MainnetController and ForeignController both have the same LIMIT constants for this
         bytes32 depositKey  = MainnetController(controllerInst.controller).LIMIT_AAVE_DEPOSIT();
@@ -545,6 +550,9 @@ contract FullStagingDeploy is Script {
     )
         internal
     {
+        vm.selectFork(domain.forkId);
+        vm.startBroadcast();
+
         MainnetController(controllerInst.controller).setMaxSlippage(pool, maxSlippage);
 
         if (swapMax != 0) {
@@ -579,6 +587,8 @@ contract FullStagingDeploy is Script {
                 withdrawSlope
             );
         }
+
+        vm.stopBroadcast();
     }
 
     function _transferAdminControls(
@@ -595,13 +605,13 @@ contract FullStagingDeploy is Script {
 
         // Casting to MainnetController because both controllers share the same grantRole interface
         MainnetController controller = MainnetController(controllerInst.controller);
-        RateLimits        rateLimits = IRateLimits(controllerInst.rateLimits);
+        IRateLimits       rateLimits = IRateLimits(controllerInst.rateLimits);
 
-        controller.grantRole(controller.DEFAULT_ADMIN_ROLE(), admin);
-        rateLimits.grantRole(rateLimits.DEFAULT_ADMIN_ROLE(), admin);
+        controller.grantRole(DEFAULT_ADMIN_ROLE, admin);
+        rateLimits.grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        controller.revokeRole(controller.DEFAULT_ADMIN_ROLE(), deployer);
-        rateLimits.revokeRole(rateLimits.DEFAULT_ADMIN_ROLE(), deployer);
+        controller.revokeRole(DEFAULT_ADMIN_ROLE, deployer);
+        rateLimits.revokeRole(DEFAULT_ADMIN_ROLE, deployer);
 
         vm.stopBroadcast();
     }

@@ -1,5 +1,7 @@
 # Staging Full Deployment with Dependencies
 deploy-staging-full :; forge script script/staging/FullStagingDeploy.s.sol:FullStagingDeploy --sender ${ETH_FROM} --broadcast --verify --multi
+deploy-staging-full-dry-run :; forge script script/staging/FullStagingDeploy.s.sol:FullStagingDeploy --sender ${ETH_FROM} --multi --rpc-url ${MAINNET_RPC_URL} -vvvvvvvv
+
 
 # Staging Deployments
 deploy-mainnet-staging-controller :; ENV=staging forge script script/Deploy.s.sol:DeployMainnetController --sender ${ETH_FROM} --broadcast --verify
