@@ -114,8 +114,8 @@ contract UpgradeMainnetController is Script {
         _setMaxExchangeRate(newController, Ethereum.SUSDE);
 
         _onboardCurvePool({
-            controller    : newController,
-            rateLimits    : controllerInst.rateLimits,
+            controller_   : newController,
+            rateLimits_   : controllerInst.rateLimits,
             pool          : Ethereum.CURVE_WEETHWETHNG,
             maxSlippage   : 0.9985e18,
             swapMax       : 0.1e18,
@@ -143,8 +143,8 @@ contract UpgradeMainnetController is Script {
     }
 
     function _onboardCurvePool(
-        address controller,
-        address rateLimits,
+        address controller_,
+        address rateLimits_,
         address pool,
         uint256 maxSlippage,
         uint256 swapMax,
@@ -156,8 +156,8 @@ contract UpgradeMainnetController is Script {
     )
         internal
     {
-        RateLimits        rateLimits = RateLimits(rateLimits);
-        MainnetController controller = MainnetController(controller);
+        MainnetController controller = MainnetController(controller_);
+        RateLimits        rateLimits = RateLimits(rateLimits_);
 
         controller.setMaxSlippage(pool, maxSlippage);
 
@@ -262,8 +262,8 @@ contract UpgradeBaseController is Script {
 
         ForeignController(newController).setMaxExchangeRate(
             Base.MORPHO_VAULT_SUSDC,
-            1  * 10 ** IERC20(Base.ATOKEN_USDC).decimals(),
-            10 * 10 ** IERC20(IERC4626(Base.ATOKEN_USDC).asset()).decimals()
+            1  * 10 ** IERC20(Base.MORPHO_VAULT_SUSDC).decimals(),
+            10 * 10 ** IERC20(IERC4626(Base.MORPHO_VAULT_SUSDC).asset()).decimals()
         );
 
         vm.stopBroadcast();
@@ -321,9 +321,7 @@ contract TransferAdminRoles is Script {
 
         vm.stopBroadcast();
 
-        ScriptTools.exportContract(fileSlug, "admin",      newAdmin);
-        ScriptTools.exportContract(fileSlug, "rateLimits", newAdmin);
-        ScriptTools.exportContract(fileSlug, "almProxy",   newAdmin);
+        ScriptTools.exportContract(fileSlug, "admin", newAdmin);
     }
 
 }
