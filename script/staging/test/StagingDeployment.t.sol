@@ -19,6 +19,7 @@ import { SUsds } from "sdai/src/SUsds.sol";
 
 import { Base }     from "spark-address-registry/Base.sol";
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { SparkLend } from "spark-address-registry/SparkLend.sol";
 
 import { PSM3 } from "spark-psm/src/PSM3.sol";
 
@@ -134,8 +135,8 @@ contract StagingDeploymentTestBase is Test {
         vm.setEnv("FOUNDRY_ROOT_CHAINID", "1");
 
         // Domains and bridge
-        mainnet    = getChain("mainnet").createSelectFork(24233639);  // Jan 14, 2026
-        base       = getChain("base").createFork(40806397);           // Jan 14, 2026
+        mainnet    = getChain("mainnet").createSelectFork(24241584);  // Jan 15, 2026
+        base       = getChain("base").createFork(40854261);           // Jan 15, 2026
 
         cctpBridgeBase     = CCTPBridgeTesting.createCircleBridge(mainnet, base);
 

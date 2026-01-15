@@ -23,3 +23,5 @@ deploy-optimism-production-controller :; CHAIN=optimism ENV=production forge scr
 
 upgrade-mainnet-staging :; forge script script/staging/Upgrade.s.sol:UpgradeMainnetController --sender ${ETH_FROM} --broadcast --verify --slow --skip-simulation
 upgrade-base-staging    :; forge script script/staging/Upgrade.s.sol:UpgradeBaseController --sender ${ETH_FROM} --broadcast --verify --slow --skip-simulation
+
+transfer-staging-admin-roles :; forge script script/staging/Upgrade.s.sol:TransferAdminRoles --sender ${ETH_FROM} --broadcast --verify --slow --skip-simulation --multi

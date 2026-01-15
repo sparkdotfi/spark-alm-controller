@@ -23,8 +23,9 @@ import { IERC20 }  from "forge-std/interfaces/IERC20.sol";
 import { Script }  from "forge-std/Script.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
-import { Base }     from "lib/spark-address-registry/src/Base.sol";
-import { Ethereum } from "lib/spark-address-registry/src/Ethereum.sol";
+import { Base }      from "lib/spark-address-registry/src/Base.sol";
+import { Ethereum }  from "lib/spark-address-registry/src/Ethereum.sol";
+import { SparkLend } from "lib/spark-address-registry/src/SparkLend.sol";
 
 import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
