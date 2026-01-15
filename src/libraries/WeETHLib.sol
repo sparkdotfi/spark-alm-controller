@@ -79,8 +79,8 @@ library WeETHLib {
             abi.encodeCall(IWETH(Ethereum.WETH).withdraw, (params.amount))
         );
 
-        // Deposit ETH to EETH
-        address eETH = IWEETHLike(Ethereum.WEETH).eETH();
+        // Deposit ETH to eETH
+        address eETH          = IWEETHLike(Ethereum.WEETH).eETH();
         address liquidityPool = IEETH(eETH).liquidityPool();
 
         uint256 eEthReceived = abi.decode(
@@ -92,7 +92,7 @@ library WeETHLib {
             (uint256)
         );
 
-        // Deposit EETH to weETH
+        // Deposit eETH to weETH
         ApproveLib.approve(eETH, address(params.proxy), Ethereum.WEETH, eEthReceived);
 
         shares = abi.decode(
@@ -104,13 +104,20 @@ library WeETHLib {
         );
     }
 
-    function requestWithdraw(WithdrawParams calldata params) external returns (uint256 requestId) {
+    function requestWithdraw(
+        WithdrawParams calldata params
+    )
+        external returns (uint256 requestId)
+    {
         IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
+
+        address eETH = weETH.eETH();
+        address liquidityPool = IEETH(eETH).liquidityPool();
 
         _rateLimited(
             params.rateLimits,
             params.rateLimitId,
-            weETH.getEETHByWeETH(params.amount)
+            ILiquidityPool(liquidityPool).amountForShare(weETH.getEETHByWeETH(params.amount))
         );
 
         // Withdraw from weETH (returns eETH)
@@ -126,9 +133,6 @@ library WeETHLib {
         );
 
         // Request withdrawal of ETH from EETH
-        address eETH          = weETH.eETH();
-        address liquidityPool = IEETH(eETH).liquidityPool();
-
         ApproveLib.approve(eETH, address(params.proxy), liquidityPool, eEthWithdrawn);
 
         requestId = abi.decode(
@@ -143,7 +147,11 @@ library WeETHLib {
         );
     }
 
-    function claimWithdrawal(ClaimWithdrawalParams calldata params) external returns (uint256 ethReceived) {
+    function claimWithdrawal(
+        ClaimWithdrawalParams calldata params
+    )
+        external returns (uint256 ethReceived)
+    {
         ethReceived =  abi.decode(
             params.proxy.doCall(
                 params.weEthModule,

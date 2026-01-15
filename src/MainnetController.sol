@@ -508,7 +508,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function requestWithdrawFromWeETH(
         address weEthModule,
         uint256 amount
-    ) external nonReentrant returns (uint256 requestId) {
+    )
+        external nonReentrant returns (uint256 requestId) 
+    {
         _checkRole(RELAYER);
 
         bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weEthModule);
@@ -525,7 +527,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function claimWithdrawalFromWeETH(
         address weEthModule,
         uint256 requestId
-    ) external nonReentrant returns (uint256 ethReceived) {
+    )
+        external nonReentrant returns (uint256 ethReceived)
+    {
         _checkRole(RELAYER);
 
         bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weEthModule);
