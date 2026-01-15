@@ -505,6 +505,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         }));
     }
 
+    // NOTE: weEthModule is enforced to be correct by the rate limit key
     function requestWithdrawFromWeETH(
         address weEthModule,
         uint256 amount
@@ -524,6 +525,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         }));
     }
 
+    // NOTE: weEthModule is enforced to be correct by the rate limit key
     function claimWithdrawalFromWeETH(
         address weEthModule,
         uint256 requestId

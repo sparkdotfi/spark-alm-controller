@@ -10,8 +10,9 @@ import { ApproveLib } from "./ApproveLib.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
-interface IEETH {
+interface IEETH is IERC20 {
     function liquidityPool() external view returns (address);
+    function shares(address account) external view returns (uint256);
 }
 
 interface ILiquidityPool {
@@ -83,7 +84,7 @@ library WeETHLib {
         address eETH          = IWEETHLike(Ethereum.WEETH).eETH();
         address liquidityPool = IEETH(eETH).liquidityPool();
 
-        uint256 eEthReceived = abi.decode(
+        uint256 eETHShares = abi.decode(
             params.proxy.doCallWithValue(
                 liquidityPool,
                 abi.encodeCall(ILiquidityPool(liquidityPool).deposit, ()),
@@ -91,14 +92,15 @@ library WeETHLib {
             ),
             (uint256)
         );
+        uint256 eETHAmount = ILiquidityPool(liquidityPool).amountForShare(eETHShares);
 
         // Deposit eETH to weETH
-        ApproveLib.approve(eETH, address(params.proxy), Ethereum.WEETH, eEthReceived);
+        ApproveLib.approve(eETH, address(params.proxy), Ethereum.WEETH, eETHAmount);
 
         shares = abi.decode(
             params.proxy.doCall(
                 Ethereum.WEETH,
-                abi.encodeCall(IWEETHLike(Ethereum.WEETH).wrap, (eEthReceived))
+                abi.encodeCall(IWEETHLike(Ethereum.WEETH).wrap, (eETHAmount))
             ),
             (uint256)
         );
@@ -121,7 +123,7 @@ library WeETHLib {
         );
 
         // Withdraw from weETH (returns eETH)
-        uint256 eEthWithdrawn = abi.decode(
+        uint256 eETHAmount = abi.decode(
             params.proxy.doCall(
                 Ethereum.WEETH,
                 abi.encodeCall(
@@ -133,14 +135,14 @@ library WeETHLib {
         );
 
         // Request withdrawal of ETH from EETH
-        ApproveLib.approve(eETH, address(params.proxy), liquidityPool, eEthWithdrawn);
+        ApproveLib.approve(eETH, address(params.proxy), liquidityPool, eETHAmount);
 
         requestId = abi.decode(
             params.proxy.doCall(
                 liquidityPool,
                 abi.encodeCall(
                     ILiquidityPool(liquidityPool).requestWithdraw,
-                    (address(params.weEthModule), eEthWithdrawn)
+                    (address(params.weEthModule), eETHAmount)
                 )
             ),
             (uint256)
