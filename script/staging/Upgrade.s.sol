@@ -20,6 +20,12 @@ import { Base }      from "spark-address-registry/Base.sol";
 import { Ethereum }  from "spark-address-registry/Ethereum.sol";
 import { SparkLend } from "spark-address-registry/SparkLend.sol";
 
+interface IAccessControlLike {
+    function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
+    function grantRole(bytes32 role, address account) external;
+    function revokeRole(bytes32 role, address account) external;
+}
+
 contract UpgradeMainnetController is Script {
 
     using stdJson     for string;
@@ -201,7 +207,7 @@ contract UpgradeBaseController is Script {
         address newController = vm.envAddress("NEW_CONTROLLER");
         address oldController = vm.envAddress("OLD_CONTROLLER");
 
-        vm.createSelectFork(getChain(chainName).rpcUrl);
+        vm.createSelectFork(getChain("base").rpcUrl);
 
         console.log(string(abi.encodePacked("Upgrading base controller...")));
 
@@ -264,6 +270,49 @@ contract UpgradeBaseController is Script {
         console.log("RateLimits upgraded at      ", controllerInst.rateLimits);
         console.log("Controller upgraded at      ", newController);
         console.log("Old controller deprecated at", oldController);
+    }
+
+}
+
+contract TransferAdminRoles is Script {
+
+    function run() external {
+        vm.setEnv("FOUNDRY_ROOT_CHAINID",             "1");
+        vm.setEnv("FOUNDRY_EXPORTS_OVERWRITE_LATEST", "true");
+
+        _transferRoles("mainnet");
+        _transferRoles("base");
+    }
+
+    function _transferRoles(string memory chainName) internal {
+        vm.createSelectFork(getChain(chainName).rpcUrl);
+
+        console.log(string(abi.encodePacked("Transferring ", chainName, " admin roles to SAFE...")));
+
+        string memory fileSlug = string(abi.encodePacked(chainName, "-staging"));
+
+        vm.startBroadcast();
+
+        string memory inputConfig = ScriptTools.readInput(fileSlug);
+
+        IAccessControlLike controller = IAccessControlLike(inputConfig.readAddress(".controller"));
+        IAccessControlLike rateLimits = IAccessControlLike(inputConfig.readAddress(".rateLimits"));
+        IAccessControlLike almProxy   = IAccessControlLike(inputConfig.readAddress(".almProxy"));
+
+        address oldAdmin = inputConfig.readAddress(".admin");
+        address newAdmin = 0xb52991d5d29f371f493910c36f5A849b3748Cc28;
+
+        controller.grantRole(DEFAULT_ADMIN_ROLE, admin);
+        rateLimits.grantRole(DEFAULT_ADMIN_ROLE, admin);
+
+        controller.revokeRole(DEFAULT_ADMIN_ROLE, deployer);
+        rateLimits.revokeRole(DEFAULT_ADMIN_ROLE, deployer);
+
+        vm.stopBroadcast();
+
+        ScriptTools.exportContract(fileSlug, "admin",      newAdmin);
+        ScriptTools.exportContract(fileSlug, "rateLimits", newAdmin);
+        ScriptTools.exportContract(fileSlug, "almProxy",   newAdmin);
     }
 
 }
