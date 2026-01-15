@@ -281,7 +281,9 @@ contract TransferAdminRoles is Script {
     using stdJson     for string;
     using ScriptTools for string;
 
-    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+    bytes32 internal constant DEFAULT_ADMIN_ROLE = 0x00;
+
+    address internal constant STAGING_SAFE = 0xb52991d5d29f371f493910c36f5A849b3748Cc28;
 
     function run() external {
         vm.setEnv("FOUNDRY_ROOT_CHAINID",             "1");
@@ -307,7 +309,7 @@ contract TransferAdminRoles is Script {
         IAccessControlLike almProxy   = IAccessControlLike(inputConfig.readAddress(".almProxy"));
 
         address oldAdmin = inputConfig.readAddress(".admin");
-        address newAdmin = 0xb52991d5d29f371f493910c36f5A849b3748Cc28;
+        address newAdmin = STAGING_SAFE;
 
         controller.grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         rateLimits.grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
