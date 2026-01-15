@@ -22,5 +22,5 @@ deploy-unichain-production-controller :; CHAIN=unichain ENV=production forge scr
 deploy-optimism-production-full       :; CHAIN=optimism ENV=production forge script script/Deploy.s.sol:DeployForeignFull --sender ${ETH_FROM} --broadcast --verify
 deploy-optimism-production-controller :; CHAIN=optimism ENV=production forge script script/Deploy.s.sol:DeployForeignController --sender ${ETH_FROM} --broadcast --verify
 
-upgrade-mainnet-staging :; ENV=staging forge script script/Upgrade.s.sol:UpgradeMainnetController --sender ${ETH_FROM} --broadcast --verify --slow --skip-simulation
-upgrade-base-staging    :; CHAIN=base ENV=staging forge script script/Upgrade.s.sol:UpgradeForeignController --sender ${ETH_FROM} --broadcast --verify --slow --skip-simulation
+upgrade-mainnet-staging :; forge script script/staging/Upgrade.s.sol:UpgradeMainnetController --sender ${ETH_FROM} #--broadcast --verify --slow --skip-simulation
+upgrade-base-staging    :; forge script script/staging/Upgrade.s.sol:UpgradeBaseController --sender ${ETH_FROM} --broadcast --verify --slow --skip-simulation

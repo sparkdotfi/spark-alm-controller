@@ -14,14 +14,16 @@ import { ControllerInstance }                   from "../../deploy/ControllerIns
 import { ForeignControllerInit as ForeignInit } from "../../deploy/ForeignControllerInit.sol";
 import { MainnetControllerInit as MainnetInit } from "../../deploy/MainnetControllerInit.sol";
 
+import { ForeignController } from "src/ForeignController.sol";
 import { MainnetController } from "src/MainnetController.sol";
+import { RateLimitHelpers }  from "src/RateLimitHelpers.sol";
+import { RateLimits }        from "src/RateLimits.sol";
 
 import { Base }      from "spark-address-registry/Base.sol";
 import { Ethereum }  from "spark-address-registry/Ethereum.sol";
 import { SparkLend } from "spark-address-registry/SparkLend.sol";
 
 interface IAccessControlLike {
-    function DEFAULT_ADMIN_ROLE() external view returns (bytes32);
     function grantRole(bytes32 role, address account) external;
     function revokeRole(bytes32 role, address account) external;
 }
@@ -101,17 +103,19 @@ contract UpgradeMainnetController is Script {
         });
         maxSlippageParams[4] = MainnetInit.MaxSlippageParams({
             pool        : Ethereum.CURVE_SUSDSUSDT,
-            maxSlippage : MainnetController(oldController).maxSlippages(pool)
+            maxSlippage : MainnetController(oldController).maxSlippages(Ethereum.CURVE_SUSDSUSDT)
         });
 
         vm.startBroadcast();
         MainnetInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams);
 
-        _setMaxExchangeRate(Ethereum.SUSDS);
-        _setMaxExchangeRate(Ethereum.SYRUP_USDC);
-        _setMaxExchangeRate(Ethereum.SUSDE);
+        _setMaxExchangeRate(newController, Ethereum.SUSDS);
+        _setMaxExchangeRate(newController, Ethereum.SYRUP_USDC);
+        _setMaxExchangeRate(newController, Ethereum.SUSDE);
 
         _onboardCurvePool({
+            controller    : newController,
+            rateLimits    : controllerInst.rateLimits,
             pool          : Ethereum.CURVE_WEETHWETHNG,
             maxSlippage   : 0.9985e18,
             swapMax       : 0.1e18,
@@ -130,8 +134,8 @@ contract UpgradeMainnetController is Script {
         console.log("Old Controller deprecated at", oldController);
     }
 
-    function _setMaxExchangeRate(address vault) internal {
-        MainnetController(newController).setMaxExchangeRate(
+    function _setMaxExchangeRate(address controller, address vault) internal {
+        MainnetController(controller).setMaxExchangeRate(
             vault,
             1  * 10 ** IERC20(vault).decimals(),
             10 * 10 ** IERC20(IERC4626(vault).asset()).decimals()
@@ -139,6 +143,8 @@ contract UpgradeMainnetController is Script {
     }
 
     function _onboardCurvePool(
+        address controller,
+        address rateLimits,
         address pool,
         uint256 maxSlippage,
         uint256 swapMax,
@@ -150,10 +156,8 @@ contract UpgradeMainnetController is Script {
     )
         internal
     {
-        IRateLimits       rateLimits = IRateLimits(controllerInst.rateLimits);
-        MainnetController controller = MainnetController(newController);
-
-        vm.startBroadcast();
+        RateLimits        rateLimits = RateLimits(rateLimits);
+        MainnetController controller = MainnetController(controller);
 
         controller.setMaxSlippage(pool, maxSlippage);
 
@@ -189,8 +193,6 @@ contract UpgradeMainnetController is Script {
                 withdrawSlope
             );
         }
-
-        vm.stopBroadcast();
     }
 
 }
@@ -276,6 +278,11 @@ contract UpgradeBaseController is Script {
 
 contract TransferAdminRoles is Script {
 
+    using stdJson     for string;
+    using ScriptTools for string;
+
+    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
+
     function run() external {
         vm.setEnv("FOUNDRY_ROOT_CHAINID",             "1");
         vm.setEnv("FOUNDRY_EXPORTS_OVERWRITE_LATEST", "true");
@@ -302,11 +309,13 @@ contract TransferAdminRoles is Script {
         address oldAdmin = inputConfig.readAddress(".admin");
         address newAdmin = 0xb52991d5d29f371f493910c36f5A849b3748Cc28;
 
-        controller.grantRole(DEFAULT_ADMIN_ROLE, admin);
-        rateLimits.grantRole(DEFAULT_ADMIN_ROLE, admin);
+        controller.grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        rateLimits.grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        almProxy.grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
 
-        controller.revokeRole(DEFAULT_ADMIN_ROLE, deployer);
-        rateLimits.revokeRole(DEFAULT_ADMIN_ROLE, deployer);
+        controller.revokeRole(DEFAULT_ADMIN_ROLE, oldAdmin);
+        rateLimits.revokeRole(DEFAULT_ADMIN_ROLE, oldAdmin);
+        almProxy.revokeRole(DEFAULT_ADMIN_ROLE, oldAdmin);
 
         vm.stopBroadcast();
 
