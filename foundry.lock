@@ -44,6 +44,12 @@
       "rev": "8f1442ad5094d1ddd48c95d390dee6cd6c164133"
     }
   },
+  "lib/uniswap-v4-core": {
+    "rev": "e50237c43811bd9b526eff40f26772152a42daba"
+  },
+  "lib/uniswap-v4-periphery": {
+    "rev": "3779387e5d296f39df543d23524b050f89a62917"
+  },
   "lib/usds": {
     "rev": "1e91268374d2796abcbb1af2b75473b2af488265"
   },

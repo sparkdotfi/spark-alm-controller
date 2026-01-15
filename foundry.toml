@@ -21,6 +21,18 @@ remappings = [
     '@uniswap/v4-core/=lib/uniswap-v4-core/'
 ]
 
+[profile.library-deploys]
+# v1.9.0 libraries
+libraries = [
+    "src/libraries/AaveLib.sol:AaveLib:0x6ea2323fE0Eaa598BB964761cbc1852F4f278877",
+    "src/libraries/ApproveLib.sol:ApproveLib:0xBa228a78d4eac46BE2B37e657fB70bA06d9ca7fA",
+    "src/libraries/CCTPLib.sol:CCTPLib:0xD99bc211330eEc0B5CE2E1601d8E552d65F1A182",
+    "src/libraries/CurveLib.sol:CurveLib:0x69E1183aeBB4282900C72ADF76E2Eda25193F41f",
+    "src/libraries/ERC4626Lib.sol:ERC4626Lib:0x2be15e3eE47179a3E843C49bcaDC8f2b838Ad497",
+    "src/libraries/PSMLib.sol:PSMLib:0x917afFB389c60d005e5e9Bd623fe665Fbb8346EC",
+    "src/libraries/UniswapV4Lib.sol:UniswapV4Lib:0x8a0277d540E42368E43e262A03A6D40A3E1b424D"
+]
+
 [fuzz]
 runs = 1000
 
