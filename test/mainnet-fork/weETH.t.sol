@@ -426,18 +426,22 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
 
         vm.record();
 
-        assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), 0);
+        assertEq(address(almProxy).balance,            0);
+        assertEq(weth.balanceOf(address(almProxy)),    0);
+        assertEq(address(weETHModule).balance,         0);
+        assertEq(weth.balanceOf(address(weETHModule)), 0);
 
         vm.prank(relayer);
         uint256 ethReceived = mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), eEthAmount);
+        assertEq(address(almProxy).balance,            0);
+        assertEq(weth.balanceOf(address(almProxy)),    eEthAmount);
+        assertEq(address(weETHModule).balance,         0);
+        assertEq(weth.balanceOf(address(weETHModule)), 0);
+        assertEq(ethReceived,                          eEthAmount);
 
-        assertApproxEqAbs(ethReceived, eEthAmount, 1);
     }
 
 }
