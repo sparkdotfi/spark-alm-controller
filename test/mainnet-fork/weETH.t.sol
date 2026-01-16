@@ -16,6 +16,7 @@ interface IWithdrawRequestNFTLike {
     function isFinalized(uint256 requestId) external view returns (bool);
     function isValid(uint256 requestId) external view returns (bool);
     function invalidateRequest(uint256 requestId) external;
+    function ownerOf(uint256 requestId) external view returns (address);
     function roleRegistry() external view returns (address);
 }
 
@@ -196,33 +197,12 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey), 1_000e18);
-
-        uint256 initialLiquidityPoolBalance = address(liquidityPool).balance;
-
-        assertEq(address(almProxy).balance,          0);
-        assertEq(weth.balanceOf(address(almProxy)),  1_000e18);
-        assertEq(eETH.balanceOf(address(almProxy)),  0);
-        assertEq(weETH.balanceOf(address(almProxy)), 0);
-        assertEq(address(liquidityPool).balance,     initialLiquidityPoolBalance);
-
         vm.prank(relayer);
-        uint256 shares = mainnetController.depositToWeETH(1_000e18);
+        mainnetController.depositToWeETH(1_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey),         0);
-        assertEq(rateLimits.getCurrentRateLimit(requestWithdrawKey), 1_000e18);
+        uint256 initialWeETHBalance = weETH.balanceOf(address(almProxy));
 
-        assertEq(eETH.allowance(address(almProxy), address(weETH)), 0);
-
-        assertEq(shares, weETH.balanceOf(address(almProxy)));
-
-        assertEq(address(almProxy).balance,          0);
-        assertEq(weth.balanceOf(address(almProxy)),  0);
-        assertEq(weETH.balanceOf(address(almProxy)), 927.715236537415314851e18);
-        assertEq(address(liquidityPool).balance,     initialLiquidityPoolBalance + 1_000e18);
-
-        assertApproxEqAbs(eETH.balanceOf(address(almProxy)),                                0,        1);
-        assertApproxEqAbs(liquidityPool.amountForShare(weETH.balanceOf(address(almProxy))), 1_000e18, 2);
+        assertEq(initialWeETHBalance, 927.715236537415314851e18);
 
         vm.record();
 
@@ -231,7 +211,7 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(weETH.balanceOf(address(almProxy)), 427.715236537415314851e18);
+        assertEq(weETH.balanceOf(address(almProxy)), initialWeETHBalance - 500e18);
 
         assertEq(
             rateLimits.getCurrentRateLimit(requestWithdrawKey),
@@ -245,9 +225,11 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
 
         vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
         IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
-
+        
         assertEq(withdrawRequestNFT.isFinalized(requestId),        true);
         assertEq(withdrawRequestNFT.getClaimableAmount(requestId), 538.958486729386273829e18);  // Amount of eEth claimable
+
+        assertEq(withdrawRequestNFT.ownerOf(requestId), address(weETHModule));
     }
 
 }
@@ -419,31 +401,8 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(depositKey), 1_000e18);
-
-        uint256 initialLiquidityPoolBalance = address(liquidityPool).balance;
-
-        assertEq(address(almProxy).balance,          0);
-        assertEq(weth.balanceOf(address(almProxy)),  1_000e18);
-        assertEq(eETH.balanceOf(address(almProxy)),  0);
-        assertEq(weETH.balanceOf(address(almProxy)), 0);
-        assertEq(address(liquidityPool).balance,     initialLiquidityPoolBalance);
-
         vm.prank(relayer);
-        uint256 shares = mainnetController.depositToWeETH(1_000e18);
-
-        assertEq(rateLimits.getCurrentRateLimit(depositKey),         0);
-        assertEq(rateLimits.getCurrentRateLimit(requestWithdrawKey), 1_000e18);
-
-        assertEq(shares, weETH.balanceOf(address(almProxy)));
-
-        assertEq(address(almProxy).balance,          0);
-        assertEq(weth.balanceOf(address(almProxy)),  0);
-        assertEq(weETH.balanceOf(address(almProxy)), 927.715236537415314851e18);
-        assertEq(address(liquidityPool).balance,     initialLiquidityPoolBalance + 1_000e18);
-
-        assertApproxEqAbs(eETH.balanceOf(address(almProxy)),                                0,        1);
-        assertApproxEqAbs(liquidityPool.amountForShare(weETH.balanceOf(address(almProxy))), 1_000e18, 2);
+        mainnetController.depositToWeETH(1_000e18);
 
         vm.record();
 
@@ -452,23 +411,14 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(weETH.balanceOf(address(almProxy)), 427.715236537415314851e18);
-
-        assertEq(
-            rateLimits.getCurrentRateLimit(requestWithdrawKey),
-            1_000e18 - weETH.getEETHByWeETH(500e18)
-        );
-
         IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
-
-        assertEq(withdrawRequestNFT.isValid(requestId),     true);
-        assertEq(withdrawRequestNFT.isFinalized(requestId), false);
 
         vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
         IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
 
-        assertEq(withdrawRequestNFT.isFinalized(requestId),        true);
-        assertEq(withdrawRequestNFT.getClaimableAmount(requestId), 538.958486729386273829e18);
+        uint256 eEthAmount = 538.958486729386273829e18;
+
+        assertEq(withdrawRequestNFT.getClaimableAmount(requestId), eEthAmount);
 
         vm.record();
 
@@ -476,12 +426,17 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
         assertEq(weth.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
-        mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
+        uint256 ethReceived = mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), 538.958486729386273829e18);
+        uint256 wethAmount = weth.balanceOf(address(almProxy));
+
+        assertEq(address(almProxy).balance, 0);
+        assertEq(eEthAmount,                wethAmount);
+        assertEq(wethAmount,                538.958486729386273829e18);
+
+        assertApproxEqAbs(ethReceived, wethAmount, 1);
     }
 
 }
