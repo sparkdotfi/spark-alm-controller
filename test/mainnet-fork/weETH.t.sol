@@ -441,7 +441,6 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
         assertEq(address(weETHModule).balance,         0);
         assertEq(weth.balanceOf(address(weETHModule)), 0);
         assertEq(ethReceived,                          eEthAmount);
-
     }
 
 }
