@@ -3,7 +3,6 @@ pragma solidity ^0.8.21;
 
 import { AccessControlEnumerable }  from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { SafeERC20 }                from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
@@ -16,8 +15,6 @@ interface IWithdrawRequestNFTLike {
 }
 
 contract WeEthModule is AccessControlEnumerable {
-
-    using SafeERC20 for IERC20;
 
     address public immutable almProxy;
 
