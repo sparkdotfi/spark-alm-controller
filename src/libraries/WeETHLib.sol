@@ -96,7 +96,7 @@ library WeETHLib {
         uint256     weETHShares,
         address     weETHModule
     )
-        external returns (uint256)
+        external returns (uint256 requestId)
     {
         IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
 
@@ -125,7 +125,7 @@ library WeETHLib {
         // Request withdrawal of ETH from EETH.
         ApproveLib.approve(eETH, address(proxy), liquidityPool, eETHAmount);
 
-        return abi.decode(
+        requestId = abi.decode(
             proxy.doCall(
                 liquidityPool,
                 abi.encodeCall(
