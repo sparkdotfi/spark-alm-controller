@@ -503,7 +503,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         address weETHModule,
         uint256 weETHShares
     )
-        external nonReentrant returns (uint256 requestId) 
+        external nonReentrant returns (uint256 requestId)
     {
         _checkRole(RELAYER);
 

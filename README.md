@@ -141,7 +141,7 @@ Below are all stated trust assumptions for using this contract in production:
 - The maximum loss by the protocol is limited to the single outstanding OTC swap amount for a given exchange.
 - The recharge rate is configured to be low enough that the system will not practically allow for multiple swaps in a row without receiving material funds from the exchange.
 - Ethena's delegated signer role can be set by the RELAYER. The delegated signer role can technically be set by a malicious relayer to be a malicious actor. Ethena's API's [Order Validity Checks](https://docs.ethena.fi/solution-design/minting-usde/order-validity-checks) is trusted to prevent attacks in this scenario.
-- Request for withdrawal of funds can be invalided by admin of etherfi without returning the funds but also can be revalided again.
+- Request for withdrawal of funds can be invalidated by admin of etherfi without returning the funds but also can be revalidated again.
 
 ## Operational Requirements
 
