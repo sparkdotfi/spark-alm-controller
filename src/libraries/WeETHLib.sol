@@ -7,6 +7,8 @@ import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
 
+import { RateLimitHelpers } from "../RateLimitHelpers.sol";
+
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
@@ -40,44 +42,25 @@ interface IWETHLike {
 
 library WeETHLib {
 
-    /**********************************************************************************************/
-    /*** Structs                                                                                ***/
-    /**********************************************************************************************/
-
-    struct DepositParams {
-        IALMProxy   proxy;
-        IRateLimits rateLimits;
-        uint256     amount;
-        bytes32     rateLimitId;
-    }
-
-    struct WithdrawParams {
-        IALMProxy   proxy;
-        IRateLimits rateLimits;
-        uint256     weETHShares;
-        bytes32     rateLimitId;
-        address     weETHModule;
-    }
-
-    struct ClaimWithdrawalParams {
-        IALMProxy   proxy;
-        IRateLimits rateLimits;
-        uint256     requestId;
-        address     weETHModule;
-        bytes32     rateLimitId;
-    }
+    bytes32 public constant LIMIT_WEETH_CLAIM_WITHDRAW   = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
+    bytes32 public constant LIMIT_WEETH_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
+    bytes32 public constant LIMIT_WEETH_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
 
     /**********************************************************************************************/
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function deposit(DepositParams calldata params) external returns (uint256 shares) {
-        _rateLimited(params.rateLimits, params.rateLimitId, params.amount);
+    function deposit(
+        IALMProxy   proxy,
+        IRateLimits rateLimits,
+        uint256     amount
+    ) external returns (uint256 shares) {
+        _rateLimited(rateLimits, LIMIT_WEETH_DEPOSIT, amount);
 
         // Unwrap WETH to ETH.
-        params.proxy.doCall(
+        proxy.doCall(
             Ethereum.WETH,
-            abi.encodeCall(IWETHLike(Ethereum.WETH).withdraw, (params.amount))
+            abi.encodeCall(IWETHLike(Ethereum.WETH).withdraw, (amount))
         );
 
         // Deposit ETH to eETH.
@@ -85,10 +68,10 @@ library WeETHLib {
         address liquidityPool = IEETHLike(eETH).liquidityPool();
 
         uint256 eETHShares = abi.decode(
-            params.proxy.doCallWithValue(
+            proxy.doCallWithValue(
                 liquidityPool,
                 abi.encodeCall(ILiquidityPoolLike(liquidityPool).deposit, ()),
-                params.amount
+                amount
             ),
             (uint256)
         );
@@ -96,10 +79,10 @@ library WeETHLib {
         uint256 eETHAmount = ILiquidityPoolLike(liquidityPool).amountForShare(eETHShares);
 
         // Deposit eETH to weETH.
-        ApproveLib.approve(eETH, address(params.proxy), Ethereum.WEETH, eETHAmount);
+        ApproveLib.approve(eETH, address(proxy), Ethereum.WEETH, eETHAmount);
 
         shares = abi.decode(
-            params.proxy.doCall(
+            proxy.doCall(
                 Ethereum.WEETH,
                 abi.encodeCall(IWEETHLike(Ethereum.WEETH).wrap, (eETHAmount))
             ),
@@ -108,7 +91,10 @@ library WeETHLib {
     }
 
     function requestWithdraw(
-        WithdrawParams calldata params
+        IALMProxy   proxy,
+        IRateLimits rateLimits,
+        uint256     weETHShares,
+        address     weETHModule
     )
         external returns (uint256)
     {
@@ -119,27 +105,32 @@ library WeETHLib {
 
         // Withdraw from weETH (returns eETH).
         uint256 eETHAmount = abi.decode(
-            params.proxy.doCall(
+            proxy.doCall(
                 Ethereum.WEETH,
                 abi.encodeCall(
                     weETH.unwrap,
-                    (params.weETHShares)
+                    (weETHShares)
                 )
             ),
             (uint256)
         );
 
-        _rateLimited(params.rateLimits, params.rateLimitId, eETHAmount);
+        // NOTE: weETHModule is enforced to be correct by the rate limit key
+        _rateLimited(
+            rateLimits,
+            RateLimitHelpers.makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule),
+            eETHAmount
+        );
 
         // Request withdrawal of ETH from EETH.
-        ApproveLib.approve(eETH, address(params.proxy), liquidityPool, eETHAmount);
+        ApproveLib.approve(eETH, address(proxy), liquidityPool, eETHAmount);
 
         return abi.decode(
-            params.proxy.doCall(
+            proxy.doCall(
                 liquidityPool,
                 abi.encodeCall(
                     ILiquidityPoolLike(liquidityPool).requestWithdraw,
-                    (address(params.weETHModule), eETHAmount)
+                    (weETHModule, eETHAmount)
                 )
             ),
             (uint256)
@@ -147,19 +138,27 @@ library WeETHLib {
     }
 
     function claimWithdrawal(
-        ClaimWithdrawalParams calldata params
+        IALMProxy   proxy,
+        IRateLimits rateLimits,
+        uint256     requestId,
+        address     weETHModule
     )
         external returns (uint256 ethReceived)
     {
         ethReceived =  abi.decode(
-            params.proxy.doCall(
-                params.weETHModule,
-                abi.encodeCall(IWeEthModuleLike(params.weETHModule).claimWithdrawal, (params.requestId))
+            proxy.doCall(
+                weETHModule,
+                abi.encodeCall(IWeEthModuleLike(weETHModule).claimWithdrawal, (requestId))
             ),
             (uint256)
         );
 
-        _rateLimited(params.rateLimits, params.rateLimitId, ethReceived);
+        // NOTE: weETHModule is enforced to be correct by the rate limit key
+        _rateLimited(
+            rateLimits,
+            RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule),
+            ethReceived
+        );
     }
 
     /**********************************************************************************************/

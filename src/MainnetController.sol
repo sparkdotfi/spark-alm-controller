@@ -170,9 +170,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
     bytes32 public LIMIT_USDS_TO_USDC            = keccak256("LIMIT_USDS_TO_USDC");
-    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
-    bytes32 public LIMIT_WEETH_DEPOSIT           = keccak256("LIMIT_WEETH_DEPOSIT");
-    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
+    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = WeETHLib.LIMIT_WEETH_CLAIM_WITHDRAW;
+    bytes32 public LIMIT_WEETH_DEPOSIT           = WeETHLib.LIMIT_WEETH_DEPOSIT;
+    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WeETHLib.LIMIT_WEETH_REQUEST_WITHDRAW;
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
@@ -497,12 +497,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function depositToWeETH(uint256 amount) external nonReentrant returns (uint256 shares) {
         _checkRole(RELAYER);
 
-        return WeETHLib.deposit(WeETHLib.DepositParams({
+        return WeETHLib.deposit({
             proxy       : proxy,
             rateLimits  : rateLimits,
-            amount      : amount,
-            rateLimitId : LIMIT_WEETH_DEPOSIT
-        }));
+            amount      : amount
+        });
     }
 
     function requestWithdrawFromWeETH(
@@ -513,16 +512,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(RELAYER);
 
-        // NOTE: weETHModule is enforced to be correct by the rate limit key
-        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule);
-
-        return WeETHLib.requestWithdraw(WeETHLib.WithdrawParams({
+        return WeETHLib.requestWithdraw({
             proxy       : proxy,
             rateLimits  : rateLimits,
             weETHShares : weETHShares,
-            rateLimitId : key,
             weETHModule : weETHModule
-        }));
+        });
     }
 
     function claimWithdrawalFromWeETH(
@@ -533,16 +528,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(RELAYER);
 
-        // NOTE: weETHModule is enforced to be correct by the rate limit key
-        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule);
-
-        return WeETHLib.claimWithdrawal(WeETHLib.ClaimWithdrawalParams({
+        return WeETHLib.claimWithdrawal({
             proxy       : proxy,
             rateLimits  : rateLimits,
             requestId   : requestId,
-            weETHModule : weETHModule,
-            rateLimitId : key
-        }));
+            weETHModule : weETHModule
+        });
     }
 
     /**********************************************************************************************/
