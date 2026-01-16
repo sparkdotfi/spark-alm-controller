@@ -9,7 +9,7 @@ import { ApproveLib } from "./ApproveLib.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
-library LzLib {
+library LayerZeroLib {
 
     using OptionsBuilder for bytes;
     
@@ -34,7 +34,13 @@ library LzLib {
     function transferTokenLayerZero(TransferTokenLayerZeroParams calldata params) external {
         _rateLimited(
             params.rateLimits,
-            keccak256(abi.encode(params.rateLimitId, params.oftAddress, params.destinationEndpointId)),
+            keccak256(
+                abi.encode(
+                    params.rateLimitId,
+                    params.oftAddress,
+                    params.destinationEndpointId
+                )
+            ),
             params.amount
         );
 

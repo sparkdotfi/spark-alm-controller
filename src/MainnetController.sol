@@ -21,7 +21,7 @@ import { AaveLib }                        from "./libraries/AaveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
-import { LzLib }                          from "./libraries/LzLib.sol";
+import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 import { WeETHLib }                       from "./libraries/WeETHLib.sol";
@@ -967,7 +967,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(RELAYER);
 
-        LzLib.transferTokenLayerZero(LzLib.TransferTokenLayerZeroParams({
+        LayerZeroLib.transferTokenLayerZero(LayerZeroLib.TransferTokenLayerZeroParams({
             proxy                 : proxy,
             rateLimits            : rateLimits,
             oftAddress            : oftAddress,
