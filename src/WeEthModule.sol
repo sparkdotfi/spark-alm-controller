@@ -7,9 +7,9 @@ import { SafeERC20 }                from "openzeppelin-contracts/contracts/token
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
-import { IEETH, ILiquidityPool, IWETH, IWEETHLike } from "./libraries/WeETHLib.sol";
+import { IEETHLike, ILiquidityPoolLike, IWETHLike, IWEETHLike } from "./libraries/WeETHLib.sol";
 
-interface IWithdrawRequestNFT {
+interface IWithdrawRequestNFTLike {
     function claimWithdraw(uint256 requestId) external;
     function isFinalized(uint256 requestId) external view returns (bool);
     function isValid(uint256 requestId) external view returns (bool);
@@ -41,26 +41,26 @@ contract WeEthModule is AccessControlEnumerable {
         require(msg.sender == almProxy, "WeEthModule/invalid-sender");
 
         address eETH               = IWEETHLike(Ethereum.WEETH).eETH();
-        address liquidityPool      = IEETH(eETH).liquidityPool();
-        address withdrawRequestNFT = ILiquidityPool(liquidityPool).withdrawRequestNFT();
+        address liquidityPool      = IEETHLike(eETH).liquidityPool();
+        address withdrawRequestNFT = ILiquidityPoolLike(liquidityPool).withdrawRequestNFT();
 
         require(
-            IWithdrawRequestNFT(withdrawRequestNFT).isValid(requestId),
+            IWithdrawRequestNFTLike(withdrawRequestNFT).isValid(requestId),
             "WeEthModule/invalid-request-id"
         );
+
         require(
-            IWithdrawRequestNFT(withdrawRequestNFT).isFinalized(requestId),
+            IWithdrawRequestNFTLike(withdrawRequestNFT).isFinalized(requestId),
             "WeEthModule/request-not-finalized"
         );
 
-        uint256 ethBalanceBefore = address(this).balance;
-        IWithdrawRequestNFT(withdrawRequestNFT).claimWithdraw(requestId);
-        ethReceived = address(this).balance - ethBalanceBefore;
+        IWithdrawRequestNFTLike(withdrawRequestNFT).claimWithdraw(requestId);
 
-        // Wrap ETH to WETH
-        IWETH(Ethereum.WETH).deposit{value: ethReceived}();
+        ethReceived = address(this).balance;
 
-        // Transfer WETH to almProxy
+        // Wrap ETH to WETH.
+        IWETHLike(Ethereum.WETH).deposit{value: ethReceived}();
+
         IERC20(Ethereum.WETH).transfer(almProxy, ethReceived);
     }
 

@@ -3,17 +3,13 @@ pragma solidity >=0.8.0;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IWEETHLike, ILiquidityPool, IEETH } from "../../src/libraries/WeETHLib.sol";
+import { IWEETHLike, ILiquidityPoolLike, IEETHLike } from "../../src/libraries/WeETHLib.sol";
 
 import { WeEthModule } from "../../src/WeEthModule.sol";
 
 import "./ForkTestBase.t.sol";
 
-interface IRoleRegistry {
-    function grantRole(bytes32 role, address account) external;
-}
-
-interface IWithdrawRequestNFT {
+interface IWithdrawRequestNFTLike {
     function finalizeRequests(uint256 requestId) external;
     function getClaimableAmount(uint256 requestId) external view returns (uint256);
     function isClaimed(uint256 requestId) external view returns (bool);
@@ -28,18 +24,19 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
     IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
     IERC20     weth  = IERC20(Ethereum.WETH);
 
-    ILiquidityPool liquidityPool;
+    ILiquidityPoolLike liquidityPool;
 
-    IEETH eETH;
+    IEETHLike eETH;
+
     address weETHModule;
 
-    address constant withdrawRequestNFTAdmin = 0xcD425f44758a08BaAB3C4908f3e3dE5776e45d7a;
+    address constant WITHDRAW_REQUEST_NFT_ADMIN = 0xcD425f44758a08BaAB3C4908f3e3dE5776e45d7a;
 
     function setUp() public override {
         super.setUp();
 
-        eETH          = IEETH(address(IWEETHLike(Ethereum.WEETH).eETH()));
-        liquidityPool = ILiquidityPool(IEETH(eETH).liquidityPool());
+        eETH          = IEETHLike(address(IWEETHLike(Ethereum.WEETH).eETH()));
+        liquidityPool = ILiquidityPoolLike(IEETHLike(eETH).liquidityPool());
 
         weETHModule = address(new WeEthModule(Ethereum.SPARK_PROXY, address(almProxy)));
     }
@@ -241,13 +238,13 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
             1_000e18 - weETH.getEETHByWeETH(500e18)
         );
 
-        IWithdrawRequestNFT withdrawRequestNFT = IWithdrawRequestNFT(liquidityPool.withdrawRequestNFT());
+        IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
         assertEq(withdrawRequestNFT.isValid(requestId),     true);
         assertEq(withdrawRequestNFT.isFinalized(requestId), false);
 
-        vm.prank(withdrawRequestNFTAdmin);
-        IWithdrawRequestNFT(withdrawRequestNFT).finalizeRequests(requestId);
+        vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
+        IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
 
         assertEq(withdrawRequestNFT.isFinalized(requestId),        true);
         assertEq(withdrawRequestNFT.getClaimableAmount(requestId), 538.958486729386273829e18);  // Amount of eEth claimable
@@ -301,10 +298,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         _assertReentrancyGuardWrittenToTwice();
 
-        IWithdrawRequestNFT withdrawRequestNFT = IWithdrawRequestNFT(liquidityPool.withdrawRequestNFT());
+        IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
-        vm.prank(withdrawRequestNFTAdmin);
-        IWithdrawRequestNFT(withdrawRequestNFT).finalizeRequests(requestId);
+        vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
+        IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
 
         vm.record();
 
@@ -348,10 +345,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         _assertReentrancyGuardWrittenToTwice();
 
-        IWithdrawRequestNFT withdrawRequestNFT = IWithdrawRequestNFT(liquidityPool.withdrawRequestNFT());
+        IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
-        vm.prank(withdrawRequestNFTAdmin);
-        IWithdrawRequestNFT(withdrawRequestNFT).invalidateRequest(requestId);
+        vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
+        IWithdrawRequestNFTLike(withdrawRequestNFT).invalidateRequest(requestId);
     
         vm.prank(relayer);
         vm.expectRevert("WeEthModule/invalid-request-id");
@@ -389,7 +386,7 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         _assertReentrancyGuardWrittenToTwice();
 
-        IWithdrawRequestNFT withdrawRequestNFT = IWithdrawRequestNFT(liquidityPool.withdrawRequestNFT());
+        IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
         assertEq(withdrawRequestNFT.isValid(requestId),     true);
         assertEq(withdrawRequestNFT.isFinalized(requestId), false);
@@ -462,13 +459,13 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
             1_000e18 - weETH.getEETHByWeETH(500e18)
         );
 
-        IWithdrawRequestNFT withdrawRequestNFT = IWithdrawRequestNFT(liquidityPool.withdrawRequestNFT());
+        IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
         assertEq(withdrawRequestNFT.isValid(requestId),     true);
         assertEq(withdrawRequestNFT.isFinalized(requestId), false);
 
-        vm.prank(withdrawRequestNFTAdmin);
-        IWithdrawRequestNFT(withdrawRequestNFT).finalizeRequests(requestId);
+        vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
+        IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
 
         assertEq(withdrawRequestNFT.isFinalized(requestId),        true);
         assertEq(withdrawRequestNFT.getClaimableAmount(requestId), 538.958486729386273829e18);

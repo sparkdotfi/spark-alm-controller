@@ -10,12 +10,12 @@ import { ApproveLib } from "./ApproveLib.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
-interface IEETH is IERC20 {
+interface IEETHLike is IERC20 {
     function liquidityPool() external view returns (address);
     function shares(address account) external view returns (uint256);
 }
 
-interface ILiquidityPool {
+interface ILiquidityPoolLike {
     function amountForShare(uint256 shareAmount) external view returns (uint256);
     function deposit() external;
     function requestWithdraw(address receiver,uint256 amount) external returns (uint256 requestId);
@@ -29,11 +29,11 @@ interface IWEETHLike is IERC20 {
     function wrap(uint256 amount) external returns (uint256);
 }
 
-interface IWeEthModule {
+interface IWeEthModuleLike {
     function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceived);
 }
 
-interface IWETH {
+interface IWETHLike {
     function deposit() external payable;
     function withdraw(uint256 amount) external;
 }
@@ -74,27 +74,28 @@ library WeETHLib {
     function deposit(DepositParams calldata params) external returns (uint256 shares) {
         _rateLimited(params.rateLimits, params.rateLimitId, params.amount);
 
-        // Unwrap WETH to ETH
+        // Unwrap WETH to ETH.
         params.proxy.doCall(
             Ethereum.WETH,
-            abi.encodeCall(IWETH(Ethereum.WETH).withdraw, (params.amount))
+            abi.encodeCall(IWETHLike(Ethereum.WETH).withdraw, (params.amount))
         );
 
-        // Deposit ETH to eETH
+        // Deposit ETH to eETH.
         address eETH          = IWEETHLike(Ethereum.WEETH).eETH();
-        address liquidityPool = IEETH(eETH).liquidityPool();
+        address liquidityPool = IEETHLike(eETH).liquidityPool();
 
         uint256 eETHShares = abi.decode(
             params.proxy.doCallWithValue(
                 liquidityPool,
-                abi.encodeCall(ILiquidityPool(liquidityPool).deposit, ()),
+                abi.encodeCall(ILiquidityPoolLike(liquidityPool).deposit, ()),
                 params.amount
             ),
             (uint256)
         );
-        uint256 eETHAmount = ILiquidityPool(liquidityPool).amountForShare(eETHShares);
 
-        // Deposit eETH to weETH
+        uint256 eETHAmount = ILiquidityPoolLike(liquidityPool).amountForShare(eETHShares);
+
+        // Deposit eETH to weETH.
         ApproveLib.approve(eETH, address(params.proxy), Ethereum.WEETH, eETHAmount);
 
         shares = abi.decode(
@@ -109,14 +110,14 @@ library WeETHLib {
     function requestWithdraw(
         WithdrawParams calldata params
     )
-        external returns (uint256 requestId)
+        external returns (uint256)
     {
         IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
 
         address eETH          = weETH.eETH();
-        address liquidityPool = IEETH(eETH).liquidityPool();
+        address liquidityPool = IEETHLike(eETH).liquidityPool();
 
-        // Withdraw from weETH (returns eETH)
+        // Withdraw from weETH (returns eETH).
         uint256 eETHAmount = abi.decode(
             params.proxy.doCall(
                 Ethereum.WEETH,
@@ -130,14 +131,14 @@ library WeETHLib {
 
         _rateLimited(params.rateLimits, params.rateLimitId, eETHAmount);
 
-        // Request withdrawal of ETH from EETH
+        // Request withdrawal of ETH from EETH.
         ApproveLib.approve(eETH, address(params.proxy), liquidityPool, eETHAmount);
 
-        requestId = abi.decode(
+        return abi.decode(
             params.proxy.doCall(
                 liquidityPool,
                 abi.encodeCall(
-                    ILiquidityPool(liquidityPool).requestWithdraw,
+                    ILiquidityPoolLike(liquidityPool).requestWithdraw,
                     (address(params.weETHModule), eETHAmount)
                 )
             ),
@@ -153,7 +154,7 @@ library WeETHLib {
         ethReceived =  abi.decode(
             params.proxy.doCall(
                 params.weETHModule,
-                abi.encodeCall(IWeEthModule(params.weETHModule).claimWithdrawal, (params.requestId))
+                abi.encodeCall(IWeEthModuleLike(params.weETHModule).claimWithdrawal, (params.requestId))
             ),
             (uint256)
         );
