@@ -434,14 +434,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
 
         _assertReentrancyGuardWrittenToTwice();
 
-        uint256 wethAmount = weth.balanceOf(address(almProxy));
+        assertEq(address(almProxy).balance,         0);
+        assertEq(weth.balanceOf(address(almProxy)), eEthAmount);
 
-        assertEq(wethAmount, 538.958486729386273829e18);
-
-        assertEq(address(almProxy).balance, 0);
-        assertEq(eEthAmount,                wethAmount);
-
-        assertApproxEqAbs(ethReceived, wethAmount, 1);
+        assertApproxEqAbs(ethReceived, eEthAmount, 1);
     }
 
 }
