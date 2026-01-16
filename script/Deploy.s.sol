@@ -62,8 +62,6 @@ contract DeployMainnetController is Script {
         vm.setEnv("FOUNDRY_ROOT_CHAINID",             "1");
         vm.setEnv("FOUNDRY_EXPORTS_OVERWRITE_LATEST", "true");
 
-        vm.createSelectFork(getChain("mainnet").rpcUrl);
-
         console.log("Deploying Mainnet Controller...");
 
         string memory fileSlug = string(abi.encodePacked("mainnet-", vm.envString("ENV")));
