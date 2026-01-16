@@ -505,42 +505,42 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         }));
     }
 
-    // NOTE: weEthModule is enforced to be correct by the rate limit key
     function requestWithdrawFromWeETH(
-        address weEthModule,
-        uint256 amount
+        address weETHModule,
+        uint256 weETHShares
     )
         external nonReentrant returns (uint256 requestId) 
     {
         _checkRole(RELAYER);
 
-        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weEthModule);
+        // NOTE: weETHModule is enforced to be correct by the rate limit key
+        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule);
 
         return WeETHLib.requestWithdraw(WeETHLib.WithdrawParams({
             proxy       : proxy,
             rateLimits  : rateLimits,
-            amount      : amount,
+            weETHShares : weETHShares,
             rateLimitId : key,
-            weEthModule : weEthModule
+            weETHModule : weETHModule
         }));
     }
 
-    // NOTE: weEthModule is enforced to be correct by the rate limit key
     function claimWithdrawalFromWeETH(
-        address weEthModule,
+        address weETHModule,
         uint256 requestId
     )
         external nonReentrant returns (uint256 ethReceived)
     {
         _checkRole(RELAYER);
 
-        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weEthModule);
+        // NOTE: weETHModule is enforced to be correct by the rate limit key
+        bytes32 key = RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule);
 
         return WeETHLib.claimWithdrawal(WeETHLib.ClaimWithdrawalParams({
             proxy       : proxy,
             rateLimits  : rateLimits,
             requestId   : requestId,
-            weEthModule : weEthModule,
+            weETHModule : weETHModule,
             rateLimitId : key
         }));
     }
