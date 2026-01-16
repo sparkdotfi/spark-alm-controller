@@ -213,9 +213,13 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
 
         assertEq(weETH.balanceOf(address(almProxy)), initialWeETHBalance - 500e18);
 
+        uint256 expectedEEthBalance = weETH.getEETHByWeETH(500e18);
+
+        assertEq(expectedEEthBalance, 538.958486729386273830e18);
+
         assertEq(
             rateLimits.getCurrentRateLimit(requestWithdrawKey),
-            1_000e18 - weETH.getEETHByWeETH(500e18)
+            1_000e18 - expectedEEthBalance
         );
 
         IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
@@ -227,7 +231,7 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
         IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
         
         assertEq(withdrawRequestNFT.isFinalized(requestId),        true);
-        assertEq(withdrawRequestNFT.getClaimableAmount(requestId), 538.958486729386273829e18);  // Amount of eEth claimable
+        assertEq(withdrawRequestNFT.getClaimableAmount(requestId), expectedEEthBalance - 1);  // Rounding error
 
         assertEq(withdrawRequestNFT.ownerOf(requestId), address(weETHModule));
     }
@@ -432,9 +436,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
 
         uint256 wethAmount = weth.balanceOf(address(almProxy));
 
+        assertEq(wethAmount, 538.958486729386273829e18);
+
         assertEq(address(almProxy).balance, 0);
         assertEq(eEthAmount,                wethAmount);
-        assertEq(wethAmount,                538.958486729386273829e18);
 
         assertApproxEqAbs(ethReceived, wethAmount, 1);
     }
