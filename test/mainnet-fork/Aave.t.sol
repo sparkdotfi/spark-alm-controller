@@ -8,6 +8,8 @@ import { IPoolConfigurator }  from "aave-v3-origin/src/core/contracts/interfaces
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+import { SparkLend } from "lib/spark-address-registry/src/SparkLend.sol";
+
 import "./ForkTestBase.t.sol";
 
 contract AaveV3MainMarketBaseTest is ForkTestBase {
@@ -509,8 +511,8 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
 contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
 
-    IAToken apyusd = IAToken(Ethereum.PYUSD_SPTOKEN);
-    IERC20  pyusd  = IERC20(0x6c3ea9036406852006290770BEdFcAbA0e23A0e8);
+    IAToken apyusd = IAToken(SparkLend.PYUSD_SPTOKEN);
+    IERC20  pyusd  = IERC20(Ethereum.PYUSD);
 
     function setUp() public override {
         super.setUp();
@@ -520,7 +522,7 @@ contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressKey(
                 mainnetController.LIMIT_AAVE_DEPOSIT(),
-                Ethereum.PYUSD_SPTOKEN
+                SparkLend.PYUSD_SPTOKEN
             ),
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
@@ -529,17 +531,17 @@ contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
         rateLimits.setRateLimitData(
             RateLimitHelpers.makeAddressKey(
                 mainnetController.LIMIT_AAVE_WITHDRAW(),
-                Ethereum.PYUSD_SPTOKEN
+                SparkLend.PYUSD_SPTOKEN
             ),
             10_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
 
         // Empty the PYUSD pool.
-        IAavePool(Ethereum.POOL).withdraw(address(pyusd), apyusd.balanceOf(Ethereum.SPARK_PROXY), Ethereum.SPARK_PROXY);
+        IAavePool(SparkLend.POOL).withdraw(address(pyusd), apyusd.balanceOf(Ethereum.SPARK_PROXY), Ethereum.SPARK_PROXY);
 
         // Set premium for flash loans to 0.09%
-        IPoolConfigurator(Ethereum.POOL_CONFIGURATOR).updateFlashloanPremiumTotal(9);
+        IPoolConfigurator(SparkLend.POOL_CONFIGURATOR).updateFlashloanPremiumTotal(9);
 
         vm.stopPrank();
     }
@@ -554,7 +556,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
 
     function test_depositAave_liquidityIndexInflationAttackFailure() public {
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(Ethereum.PYUSD_SPTOKEN, 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setMaxSlippage(SparkLend.PYUSD_SPTOKEN, 1e18 - 1e4);  // Rounding slippage
 
         _doInflationAttack();
 
@@ -563,12 +565,12 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
 
         vm.prank(relayer);
         vm.expectRevert("MC/slippage-too-high");
-        mainnetController.depositAave(Ethereum.PYUSD_SPTOKEN, 100_000e6);
+        mainnetController.depositAave(SparkLend.PYUSD_SPTOKEN, 100_000e6);
     }
 
     function test_depositAave_liquidityIndexInflationAttackSuccess() public {
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(Ethereum.PYUSD_SPTOKEN, 1);
+        mainnetController.setMaxSlippage(SparkLend.PYUSD_SPTOKEN, 1);
 
         _doInflationAttack();
 
@@ -579,14 +581,14 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         assertEq(apyusd.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
-        mainnetController.depositAave(Ethereum.PYUSD_SPTOKEN, 100_000e6);
+        mainnetController.depositAave(SparkLend.PYUSD_SPTOKEN, 100_000e6);
 
         // Amount of aPYUSD received is less than the deposited amount due to slippage
         assertEq(pyusd.balanceOf(address(almProxy)),  0);
         assertEq(apyusd.balanceOf(address(almProxy)), 99_000.000011e6);
 
         // Attacker withdraws their share
-        IAavePool(Ethereum.POOL).withdraw(address(pyusd), apyusd.balanceOf(address(this)), address(this));
+        IAavePool(SparkLend.POOL).withdraw(address(pyusd), apyusd.balanceOf(address(this)), address(this));
 
         // User withdraws getting less than what they deposited
 
@@ -594,7 +596,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         assertEq(apyusd.balanceOf(address(almProxy)), 99_000.000011e6);
 
         vm.prank(relayer);
-        mainnetController.withdrawAave(Ethereum.PYUSD_SPTOKEN, 99_000.000011e6);
+        mainnetController.withdrawAave(SparkLend.PYUSD_SPTOKEN, 99_000.000011e6);
 
         assertEq(pyusd.balanceOf(address(almProxy)),  99_000.000011e6);
         assertEq(apyusd.balanceOf(address(almProxy)), 0);
@@ -607,17 +609,17 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         assertEq(pyusd.balanceOf(address(apyusd)), 0);
 
         // Get initial liquidity index (should be 1 RAY = 1e27)
-        DataTypes.ReserveDataLegacy memory reserveData = IAavePool(Ethereum.POOL).getReserveData(address(pyusd));
+        DataTypes.ReserveDataLegacy memory reserveData = IAavePool(SparkLend.POOL).getReserveData(address(pyusd));
         uint256 initialLiquidityIndex = uint256(reserveData.liquidityIndex);
         assertEq(initialLiquidityIndex, 1e27);
 
         // Step 2: Attacker deposits funds into empty pool
         uint256 flashLoanAmount = 10_000_000e6;
         deal(address(pyusd), address(this), flashLoanAmount);
-        pyusd.approve(Ethereum.POOL, flashLoanAmount);
+        pyusd.approve(SparkLend.POOL, flashLoanAmount);
 
         // Deposit to get aTokens and establish exchange rate
-        IAavePool(Ethereum.POOL).supply(address(pyusd), flashLoanAmount, address(this), 0);
+        IAavePool(SparkLend.POOL).supply(address(pyusd), flashLoanAmount, address(this), 0);
 
         // Step 3: Attacker takes second flash loan for entire deposited amount
         // This will empty the aToken balance but keep totalSupply and liquidityIndex unchanged
@@ -631,7 +633,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         interestRateModes[0] = 0;
 
         // Flash loan callback will handle the attack
-        IAavePool(Ethereum.POOL).flashLoan(
+        IAavePool(SparkLend.POOL).flashLoan(
             address(this),
             assets,
             amounts,
@@ -643,7 +645,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
 
         // Step 4: Verify the attack results
         // Check that liquidity index has been inflated
-        DataTypes.ReserveDataLegacy memory finalReserveData = IAavePool(Ethereum.POOL).getReserveData(address(pyusd));
+        DataTypes.ReserveDataLegacy memory finalReserveData = IAavePool(SparkLend.POOL).getReserveData(address(pyusd));
         uint256 finalLiquidityIndex = uint256(finalReserveData.liquidityIndex);
 
         // The liquidity index should be much higher than 1 RAY due to the attack
@@ -658,7 +660,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         address,
         bytes calldata
     ) external returns (bool) {
-        require(msg.sender == Ethereum.POOL, "Only pool can call this");
+        require(msg.sender == SparkLend.POOL, "Only pool can call this");
 
         uint256 flashLoanAmount = amounts[0];
 
@@ -672,7 +674,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
         uint256 withdrawAmount = aTokenBalance - 1; // Leave 1 aToken
 
         if (withdrawAmount > 0) {
-            IAavePool(Ethereum.POOL).withdraw(address(pyusd), withdrawAmount, address(this));
+            IAavePool(SparkLend.POOL).withdraw(address(pyusd), withdrawAmount, address(this));
         }
 
         // Verify we have exactly 1 aToken left
@@ -686,7 +688,7 @@ contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAt
 
         // We need to have enough PYUSD to repay
         deal(address(pyusd), address(this), totalRepayAmount);
-        pyusd.approve(Ethereum.POOL, totalRepayAmount);
+        pyusd.approve(SparkLend.POOL, totalRepayAmount);
 
         return true;
     }
