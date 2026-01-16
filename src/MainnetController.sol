@@ -494,7 +494,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** weETH Integration                                                                      ***/
     /**********************************************************************************************/
 
-    function depositToWeETH(uint256 amount) external nonReentrant returns (uint256 shares) {
+    function depositToWeETH(uint256 amount) external nonReentrant returns (uint256) {
         _checkRole(RELAYER);
 
         return WeETHLib.deposit({
@@ -508,7 +508,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         address weETHModule,
         uint256 weETHShares
     )
-        external nonReentrant returns (uint256 requestId) 
+        external nonReentrant returns (uint256) 
     {
         _checkRole(RELAYER);
 
@@ -524,7 +524,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         address weETHModule,
         uint256 requestId
     )
-        external nonReentrant returns (uint256 ethReceived)
+        external nonReentrant returns (uint256)
     {
         _checkRole(RELAYER);
 
