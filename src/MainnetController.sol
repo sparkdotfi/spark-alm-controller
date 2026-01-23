@@ -690,8 +690,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         int24   tickLower,
         int24   tickUpper,
         uint128 liquidity,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         external nonReentrant
     {
@@ -714,8 +714,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityIncrease,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         external nonReentrant
     {
@@ -737,8 +737,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityDecrease,
-        uint256 amount0Min,
-        uint256 amount1Min
+        uint128 amount0Min,
+        uint128 amount1Min
     )
         external nonReentrant
     {
