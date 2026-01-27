@@ -694,9 +694,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bytes32 poolId,
         int24   tickLower,
         int24   tickUpper,
-        uint128 liquidity,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint256 liquidity,
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         external nonReentrant
     {
@@ -718,9 +718,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function increaseLiquidityUniswapV4(
         bytes32 poolId,
         uint256 tokenId,
-        uint128 liquidityIncrease,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint256 liquidityIncrease,
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         external nonReentrant
     {
@@ -741,9 +741,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function decreaseLiquidityUniswapV4(
         bytes32 poolId,
         uint256 tokenId,
-        uint128 liquidityDecrease,
-        uint256 amount0Min,
-        uint256 amount1Min
+        uint256 liquidityDecrease,
+        uint128 amount0Min,
+        uint128 amount1Min
     )
         external nonReentrant
     {

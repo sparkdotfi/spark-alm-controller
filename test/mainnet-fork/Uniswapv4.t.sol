@@ -211,9 +211,9 @@ contract UniswapV4TestBase is ForkTestBase {
             poolId     : poolId,
             tickLower  : tickLower,
             tickUpper  : tickUpper,
-            liquidity  : liquidity,
-            amount0Max : amount0Max,
-            amount1Max : amount1Max
+            liquidity  : uint256(liquidity),
+            amount0Max : uint128(amount0Max),
+            amount1Max : uint128(amount1Max)
         });
 
         result.tokenId           = IPositionManagerLike(_POSITION_MANAGER).nextTokenId() - 1;
@@ -278,9 +278,9 @@ contract UniswapV4TestBase is ForkTestBase {
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : poolId,
             tokenId           : tokenId,
-            liquidityIncrease : liquidityIncrease,
-            amount0Max        : amount0Max,
-            amount1Max        : amount1Max
+            liquidityIncrease : uint256(liquidityIncrease),
+            amount0Max        : uint128(amount0Max),
+            amount1Max        : uint128(amount1Max)
         });
 
         result.tokenId           = tokenId;
@@ -354,9 +354,9 @@ contract UniswapV4TestBase is ForkTestBase {
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : poolId,
             tokenId           : tokenId,
-            liquidityDecrease : liquidityDecrease,
-            amount0Min        : amount0Min,
-            amount1Min        : amount1Min
+            liquidityDecrease : uint256(liquidityDecrease),
+            amount0Min        : uint128(amount0Min),
+            amount1Min        : uint128(amount1Min)
         });
 
         result.tokenId           = tokenId;
@@ -1033,8 +1033,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : uint256(type(uint160).max) + 1,
-            amount1Max : uint256(type(uint160).max)
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max - 1
         });
 
         vm.prank(relayer);
@@ -1044,8 +1044,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max) + 1
+            amount0Max : type(uint128).max - 1,
+            amount1Max : type(uint128).max
         });
 
         vm.prank(relayer);
@@ -1054,8 +1054,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max)
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
     }
 
@@ -1084,8 +1084,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : amount0Forecasted - 1,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted - 1),
+            amount1Max : uint128(amount1Forecasted)
         });
 
         vm.prank(relayer);
@@ -1099,8 +1099,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted - 1
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted - 1)
         });
 
         vm.prank(relayer);
@@ -1109,8 +1109,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted)
         });
     }
 
@@ -1137,8 +1137,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -1150,8 +1150,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted)
         });
     }
 
@@ -1170,8 +1170,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 1_000_000e6,
-            amount0Max : amount0Max,
-            amount1Max : amount1Max
+            amount0Max : uint128(amount0Max),
+            amount1Max : uint128(amount1Max)
         });
 
         _assertReentrancyGuardWrittenToTwice();
@@ -1334,8 +1334,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : uint256(type(uint160).max) + 1,
-            amount1Max        : uint256(type(uint160).max)
+            amount0Max        : type(uint128).max,
+            amount1Max        : type(uint128).max - 1
         });
 
         vm.prank(relayer);
@@ -1344,8 +1344,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max) + 1
+            amount0Max        : type(uint128).max - 1,
+            amount1Max        : type(uint128).max
         });
 
         vm.prank(relayer);
@@ -1353,8 +1353,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max)
+            amount0Max        : type(uint128).max,
+            amount1Max        : type(uint128).max
         });
     }
 
@@ -1389,8 +1389,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : amount0Forecasted - 1,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted - 1),
+            amount1Max        : uint128(amount1Forecasted)
         });
 
         vm.prank(relayer);
@@ -1403,8 +1403,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted - 1
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted - 1)
         });
 
         vm.prank(relayer);
@@ -1412,8 +1412,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
     }
 
@@ -1446,8 +1446,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -1458,8 +1458,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e6,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
     }
 
@@ -1539,8 +1539,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted + 1,
-            amount1Min        : amount1Forecasted
+            amount0Min        : uint128(amount0Forecasted + 1),
+            amount1Min        : uint128(amount1Forecasted)
         });
 
         vm.prank(relayer);
@@ -1548,8 +1548,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
     }
 
@@ -1580,8 +1580,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted + 1
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted + 1)
         });
 
         vm.prank(relayer);
@@ -1589,8 +1589,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
     }
 
@@ -1615,8 +1615,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -1627,8 +1627,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
     }
 
@@ -2561,8 +2561,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -30,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : amount0Max,
-            amount1Max : amount1Max
+            amount0Max : uint128(amount0Max),
+            amount1Max : uint128(amount1Max)
         });
     }
 
@@ -2699,8 +2699,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -200,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
     }
 
@@ -2883,8 +2883,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_300,
             tickUpper  : 276_400,
             liquidity  : 1_000_000e12,
-            amount0Max : uint256(type(uint160).max) + 1,
-            amount1Max : uint256(type(uint160).max)
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max - 1
         });
 
         vm.prank(relayer);
@@ -2894,8 +2894,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_300,
             tickUpper  : 276_400,
             liquidity  : 1_000_000e12,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max) + 1
+            amount0Max : type(uint128).max - 1,
+            amount1Max : type(uint128).max
         });
 
         vm.prank(relayer);
@@ -2904,8 +2904,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_300,
             tickUpper  : 276_400,
             liquidity  : 1_000_000e12,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max)
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
     }
 
@@ -2934,8 +2934,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_300,
             tickUpper  : 276_400,
             liquidity  : 1_000_000e12,
-            amount0Max : amount0Forecasted - 1,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted - 1),
+            amount1Max : uint128(amount1Forecasted)
         });
 
         vm.prank(relayer);
@@ -2949,8 +2949,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_300,
             tickUpper  : 276_400,
             liquidity  : 1_000_000e12,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted - 1
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted - 1)
         });
 
         vm.prank(relayer);
@@ -2959,8 +2959,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_300,
             tickUpper  : 276_400,
             liquidity  : 1_000_000e12,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted)
         });
     }
 
@@ -2987,8 +2987,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_000,
             tickUpper  : 276_600,
             liquidity  : 1_000_000e12,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -3000,8 +3000,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_000,
             tickUpper  : 276_600,
             liquidity  : 1_000_000e12,
-            amount0Max : amount0Forecasted,
-            amount1Max : amount1Forecasted
+            amount0Max : uint128(amount0Forecasted),
+            amount1Max : uint128(amount1Forecasted)
         });
     }
 
@@ -3092,8 +3092,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -3104,8 +3104,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
     }
 
@@ -3136,8 +3136,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -3148,8 +3148,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
     }
 
@@ -3180,8 +3180,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -3192,8 +3192,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
     }
 
@@ -3214,8 +3214,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : uint256(type(uint160).max) + 1,
-            amount1Max        : uint256(type(uint160).max)
+            amount0Max        : type(uint128).max,
+            amount1Max        : type(uint128).max - 1
         });
 
         vm.prank(relayer);
@@ -3224,8 +3224,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max) + 1
+            amount0Max        : type(uint128).max - 1,
+            amount1Max        : type(uint128).max
         });
 
         vm.prank(relayer);
@@ -3233,8 +3233,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max)
+            amount0Max        : type(uint128).max,
+            amount1Max        : type(uint128).max
         });
     }
 
@@ -3269,8 +3269,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted - 1,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted - 1),
+            amount1Max        : uint128(amount1Forecasted)
         });
 
         vm.prank(relayer);
@@ -3283,8 +3283,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted - 1
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted - 1)
         });
 
         vm.prank(relayer);
@@ -3292,8 +3292,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
     }
 
@@ -3326,8 +3326,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -3338,8 +3338,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
             liquidityIncrease : 1_000_000e12,
-            amount0Max        : amount0Forecasted,
-            amount1Max        : amount1Forecasted
+            amount0Max        : uint128(amount0Forecasted),
+            amount1Max        : uint128(amount1Forecasted)
         });
     }
 
@@ -3418,18 +3418,18 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted + 1,
-            amount1Min        : amount1Forecasted
+            liquidityDecrease : uint256(minted.liquidityIncrease / 2),
+            amount0Min        : uint128(amount0Forecasted + 1),
+            amount1Min        : uint128(amount1Forecasted)
         });
 
         vm.prank(relayer);
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            liquidityDecrease : uint256(minted.liquidityIncrease / 2),
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
     }
 
@@ -3459,18 +3459,18 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted + 1
+            liquidityDecrease : uint256(minted.liquidityIncrease / 2),
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted + 1)
         });
 
         vm.prank(relayer);
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            liquidityDecrease : uint256(minted.liquidityIncrease / 2),
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
     }
 
@@ -3494,9 +3494,9 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            liquidityDecrease : uint256(minted.liquidityIncrease / 2),
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
 
         vm.prank(SPARK_PROXY);
@@ -3506,9 +3506,9 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
             tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0Min        : amount0Forecasted,
-            amount1Min        : amount1Forecasted
+            liquidityDecrease : uint256(minted.liquidityIncrease / 2),
+            amount0Min        : uint128(amount0Forecasted),
+            amount1Min        : uint128(amount1Forecasted)
         });
     }
 

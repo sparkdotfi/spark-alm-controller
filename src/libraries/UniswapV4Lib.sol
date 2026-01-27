@@ -44,9 +44,9 @@ library UniswapV4Lib {
         bytes32 poolId,
         int24   tickLower,
         int24   tickUpper,
-        uint128 liquidity,
-        uint256 amount0Max,
-        uint256 amount1Max,
+        uint256 liquidity,
+        uint128 amount0Max,
+        uint128 amount1Max,
         mapping(bytes32 poolId => TickLimits tickLimits) storage tickLimits
     )
         external
@@ -84,9 +84,9 @@ library UniswapV4Lib {
         address rateLimits,
         bytes32 poolId,
         uint256 tokenId,
-        uint128 liquidityIncrease,
-        uint256 amount0Max,
-        uint256 amount1Max,
+        uint256 liquidityIncrease,
+        uint128 amount0Max,
+        uint128 amount1Max,
         mapping(bytes32 poolId => TickLimits tickLimits) storage tickLimits
     )
         external
@@ -131,9 +131,9 @@ library UniswapV4Lib {
         address rateLimits,
         bytes32 poolId,
         uint256 tokenId,
-        uint128 liquidityDecrease,
-        uint256 amount0Min,
-        uint256 amount1Min
+        uint256 liquidityDecrease,
+        uint128 amount0Min,
+        uint128 amount1Min
     )
         external
     {
@@ -412,9 +412,9 @@ library UniswapV4Lib {
         PoolKey memory poolKey,
         int24          tickLower,
         int24          tickUpper,
-        uint128        liquidity,
-        uint256        amount0Max,
-        uint256        amount1Max
+        uint256        liquidity,
+        uint128        amount0Max,
+        uint128        amount1Max
     )
         internal view returns (bytes memory callData)
     {
@@ -447,9 +447,9 @@ library UniswapV4Lib {
     function _getIncreaseLiquidityCallData(
         PoolKey memory poolKey,
         uint256        tokenId,
-        uint128        liquidityIncrease,
-        uint256        amount0Max,
-        uint256        amount1Max
+        uint256        liquidityIncrease,
+        uint128        amount0Max,
+        uint128        amount1Max
     )
         internal view returns (bytes memory callData)
     {
@@ -480,9 +480,9 @@ library UniswapV4Lib {
         address        proxy,
         PoolKey memory poolKey,
         uint256        tokenId,
-        uint128        liquidityDecrease,
-        uint256        amount0Min,
-        uint256        amount1Min
+        uint256        liquidityDecrease,
+        uint128        amount0Min,
+        uint128        amount1Min
     )
         internal view returns (bytes memory callData)
     {
