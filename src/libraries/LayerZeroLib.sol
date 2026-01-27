@@ -13,6 +13,8 @@ library LayerZeroLib {
 
     using OptionsBuilder for bytes;
     
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+
     /**********************************************************************************************/
     /*** Structs                                                                                ***/
     /**********************************************************************************************/
@@ -23,7 +25,6 @@ library LayerZeroLib {
         address     oftAddress;
         uint256     amount;
         uint32      destinationEndpointId;
-        bytes32     rateLimitId;
         bytes32     layerZeroRecipient;
     }
 
@@ -36,7 +37,7 @@ library LayerZeroLib {
             params.rateLimits,
             keccak256(
                 abi.encode(
-                    params.rateLimitId,
+                    LIMIT_LAYERZERO_TRANSFER,
                     params.oftAddress,
                     params.destinationEndpointId
                 )
