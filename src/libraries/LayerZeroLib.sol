@@ -32,39 +32,46 @@ library LayerZeroLib {
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function transferTokenLayerZero(TransferTokenLayerZeroParams calldata params) external {
+    function transferTokenLayerZero(
+        IALMProxy   proxy,
+        IRateLimits rateLimits,
+        address     oftAddress,
+        uint256     amount,
+        uint32      destinationEndpointId,
+        bytes32     layerZeroRecipient
+    ) external {
         _rateLimited(
-            params.rateLimits,
+            rateLimits,
             keccak256(
                 abi.encode(
                     LIMIT_LAYERZERO_TRANSFER,
-                    params.oftAddress,
-                    params.destinationEndpointId
+                    oftAddress,
+                    destinationEndpointId
                 )
             ),
-            params.amount
+            amount
         );
 
-        require(params.layerZeroRecipient != bytes32(0), "MC/recipient-not-set");
+        require(layerZeroRecipient != bytes32(0), "MC/recipient-not-set");
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before
         //       using in production.
-        if (ILayerZero(params.oftAddress).approvalRequired()) {
+        if (ILayerZero(oftAddress).approvalRequired()) {
             ApproveLib.approve(
-                ILayerZero(params.oftAddress).token(),
-                address(params.proxy),
-                params.oftAddress,
-                params.amount
+                ILayerZero(oftAddress).token(),
+                address(proxy),
+                oftAddress,
+                amount
             );
         }
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
 
         SendParam memory sendParams = SendParam({
-            dstEid       : params.destinationEndpointId,
-            to           : params.layerZeroRecipient,
-            amountLD     : params.amount,
+            dstEid       : destinationEndpointId,
+            to           : layerZeroRecipient,
+            amountLD     : amount,
             minAmountLD  : 0,
             extraOptions : options,
             composeMsg   : "",
@@ -72,14 +79,14 @@ library LayerZeroLib {
         });
 
         // Query the min amount received on the destination chain and set it.
-        ( , , OFTReceipt memory receipt ) = ILayerZero(params.oftAddress).quoteOFT(sendParams);
+        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
-        MessagingFee memory fee = ILayerZero(params.oftAddress).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
 
-        params.proxy.doCallWithValue{value: fee.nativeFee}(
-            params.oftAddress,
-            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(params.proxy))),
+        proxy.doCallWithValue{value: fee.nativeFee}(
+            oftAddress,
+            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
             fee.nativeFee
         );
     }

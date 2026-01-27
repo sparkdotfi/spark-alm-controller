@@ -967,14 +967,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(RELAYER);
 
-        LayerZeroLib.transferTokenLayerZero(LayerZeroLib.TransferTokenLayerZeroParams({
+        LayerZeroLib.transferTokenLayerZero({
             proxy                 : proxy,
             rateLimits            : rateLimits,
             oftAddress            : oftAddress,
             amount                : amount,
             destinationEndpointId : destinationEndpointId,
             layerZeroRecipient    : layerZeroRecipients[destinationEndpointId]
-        }));
+        });
     }
 
     /**********************************************************************************************/
