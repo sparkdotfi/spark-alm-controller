@@ -258,8 +258,6 @@ library UniswapV4Lib {
     )
         internal
     {
-        require(amount <= type(uint160).max, "MC/amount-too-large-for-permit2");
-
         // Approve the Permit2 contract to spend none of the token (success is optional).
         // NOTE: We don't care about the success of this call, since the only outcomes are:
         //         - the allowance is 0 (it was reset or was already 0)
