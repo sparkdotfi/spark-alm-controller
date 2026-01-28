@@ -275,7 +275,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         require(exchange != address(0),  "MC/exchange-zero-address");
         require(otcBuffer != address(0), "MC/otcBuffer-zero-address");
-        require(exchange != otcBuffer, "MC/exchange-equals-otcBuffer");
+        require(exchange != otcBuffer,   "MC/exchange-equals-otcBuffer");
 
         OTC storage otc = otcs[exchange];
 
