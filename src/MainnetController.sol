@@ -281,7 +281,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         // Prevent rotating buffer while a swap is pending and not ready
         require(otc.sentTimestamp == 0 || isOtcSwapReady(exchange), "MC/swap-in-progress");
- 
+
         emit OTCBufferSet(exchange, otc.buffer, otcBuffer);
         otc.buffer = otcBuffer;
     }
@@ -496,7 +496,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function depositToWeETH(
         uint256 amount,
         uint256 minSharesOut
-    ) 
+    )
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);

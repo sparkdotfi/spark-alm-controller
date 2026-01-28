@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IWEETHLike, IEETHLike } from "../../src/libraries/WeETHLib.sol";
+import { IWEETHLike, IEETHLike } from "../../src/libraries/WEETHLib.sol";
 
 import { WEETHModule } from "../../src/WEETHModule.sol";
 
@@ -261,7 +261,7 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
 
         vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
         IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
-        
+
         assertEq(withdrawRequestNFT.isFinalized(requestId),        true);
         assertEq(withdrawRequestNFT.getClaimableAmount(requestId), expectedEEthBalance - 1);  // Rounding error
 
@@ -371,7 +371,7 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
         IWithdrawRequestNFTLike(withdrawRequestNFT).invalidateRequest(requestId);
-    
+
         vm.prank(relayer);
         vm.expectRevert("WeEthModule/invalid-request-id");
         mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
