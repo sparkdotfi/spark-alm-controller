@@ -346,7 +346,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /*** Relayer ERC4626 functions                                                              ***/
     /**********************************************************************************************/
 
-    function depositERC4626(address token, uint256 amount)
+    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -365,13 +365,15 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
+        require(shares >= minSharesOut, "FC/min-shares-out-not-met");
+
         require(
             _getExchangeRate(shares, amount) <= maxExchangeRates[token],
             "FC/exchange-rate-too-high"
         );
     }
 
-    function withdrawERC4626(address token, uint256 amount)
+    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -388,6 +390,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
+        require(shares <= maxSharesIn, "FC/max-shares-in-not-met");
+
         rateLimits.triggerRateLimitIncrease(
             RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             amount
@@ -395,7 +399,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     // NOTE: !!! Rate limited at end of function !!!
-    function redeemERC4626(address token, uint256 shares)
+    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
         external nonReentrant onlyRole(RELAYER) returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
@@ -407,6 +411,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             ),
             (uint256)
         );
+
+        require(assets >= minAssetsOut, "FC/min-assets-out-not-met");
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
