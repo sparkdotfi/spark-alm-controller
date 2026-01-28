@@ -46,6 +46,10 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
         return 23469772; //  September 29, 2025
     }
 
+    function _getMinSharesOut(uint256 amount) internal view returns (uint256) {
+        return liquidityPool.sharesForAmount(amount) * 99 / 100;
+    }
+
 }
 
 contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTestBase {
@@ -53,7 +57,7 @@ contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTe
     function test_depositToWeETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.depositToWeETH(1e18);
+        mainnetController.depositToWeETH(1e18, 0);
     }
 
     function test_depositToWeETH_notRelayer() external {
@@ -62,13 +66,13 @@ contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTe
             address(this),
             RELAYER
         ));
-        mainnetController.depositToWeETH(1e18);
+        mainnetController.depositToWeETH(1e18, 0);
     }
 
     function test_depositToWeETH_zeroMaxAmount() external {
         vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.depositToWeETH(1e18);
+        mainnetController.depositToWeETH(1e18, 0);
     }
 
     function test_depositToWeETH_rateLimitsBoundary() external {
@@ -81,10 +85,28 @@ contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTe
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.depositToWeETH(1_000e18 + 1);
+        mainnetController.depositToWeETH(1_000e18 + 1, 0);
 
         vm.prank(relayer);
-        mainnetController.depositToWeETH(1_000e18);
+        mainnetController.depositToWeETH(1_000e18, 0);
+    }
+
+    function test_depositToWeETH_slippageTooHigh() external {
+        bytes32 key = mainnetController.LIMIT_WEETH_DEPOSIT();
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 1_000e18, uint256(1_000e18) / 1 days);
+
+        deal(Ethereum.WETH, address(almProxy), 1_000e18);
+
+        uint256 minSharesOut = _getMinSharesOut(1_000e18);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/slippage-too-high");
+        mainnetController.depositToWeETH(1_000e18, 1_000e18);
+
+        vm.prank(relayer);
+        mainnetController.depositToWeETH(1_000e18, minSharesOut);
     }
 
 }
@@ -109,10 +131,12 @@ contract MainnetControllerDepositToWeETHTests is MainnetControllerWeETHTestBase 
         assertEq(weETH.balanceOf(address(almProxy)), 0);
         assertEq(address(liquidityPool).balance,     initialLiquidityPoolBalance);
 
+        uint256 minSharesOut = _getMinSharesOut(1_000e18);
+
         vm.record();
 
         vm.prank(relayer);
-        uint256 shares = mainnetController.depositToWeETH(1_000e18);
+        uint256 shares = mainnetController.depositToWeETH(1_000e18, minSharesOut);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -197,8 +221,10 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
+        uint256 minSharesOut = _getMinSharesOut(1_000e18);
+
         vm.prank(relayer);
-        mainnetController.depositToWeETH(1_000e18);
+        mainnetController.depositToWeETH(1_000e18, minSharesOut);
 
         uint256 initialWeETHBalance = weETH.balanceOf(address(almProxy));
 
@@ -274,8 +300,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
+        uint256 minSharesOut = _getMinSharesOut(1_000e18);
+
         vm.prank(relayer);
-        mainnetController.depositToWeETH(1_000e18);
+        mainnetController.depositToWeETH(1_000e18, minSharesOut);
 
         vm.record();
 
@@ -321,8 +349,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
+        uint256 minSharesOut = _getMinSharesOut(1_000e18);
+
         vm.prank(relayer);
-        mainnetController.depositToWeETH(1_000e18);
+        mainnetController.depositToWeETH(1_000e18, minSharesOut);
 
         vm.record();
 
@@ -362,8 +392,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
+        uint256 minSharesOut = _getMinSharesOut(1_000e18);
+
         vm.prank(relayer);
-        mainnetController.depositToWeETH(1_000e18);
+        mainnetController.depositToWeETH(1_000e18, minSharesOut);
 
         vm.record();
 
@@ -405,8 +437,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
+        uint256 minSharesOut = _getMinSharesOut(1_000e18);
+
         vm.prank(relayer);
-        mainnetController.depositToWeETH(1_000e18);
+        mainnetController.depositToWeETH(1_000e18, minSharesOut);
 
         vm.record();
 

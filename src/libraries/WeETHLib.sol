@@ -21,6 +21,7 @@ interface ILiquidityPoolLike {
     function amountForShare(uint256 shareAmount) external view returns (uint256);
     function deposit() external;
     function requestWithdraw(address receiver,uint256 amount) external returns (uint256 requestId);
+    function sharesForAmount(uint256 amount) external view returns (uint256);
     function withdrawRequestNFT() external view returns (address);
 }
 
@@ -53,7 +54,8 @@ library WeETHLib {
     function deposit(
         IALMProxy   proxy,
         IRateLimits rateLimits,
-        uint256     amount
+        uint256     amount,
+        uint256     minSharesOut
     ) external returns (uint256 shares) {
         _rateLimited(rateLimits, LIMIT_WEETH_DEPOSIT, amount);
 
@@ -88,6 +90,8 @@ library WeETHLib {
             ),
             (uint256)
         );
+
+        require(shares >= minSharesOut, "MC/slippage-too-high");
     }
 
     function requestWithdraw(

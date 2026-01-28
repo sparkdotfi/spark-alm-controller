@@ -489,13 +489,19 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** weETH Integration                                                                      ***/
     /**********************************************************************************************/
 
-    function depositToWeETH(uint256 amount) external nonReentrant returns (uint256 shares) {
+    function depositToWeETH(
+        uint256 amount,
+        uint256 minSharesOut
+    ) 
+        external nonReentrant returns (uint256 shares)
+    {
         _checkRole(RELAYER);
 
         shares = WeETHLib.deposit({
-            proxy       : proxy,
-            rateLimits  : rateLimits,
-            amount      : amount
+            proxy        : proxy,
+            rateLimits   : rateLimits,
+            amount       : amount,
+            minSharesOut : minSharesOut
         });
     }
 
