@@ -273,11 +273,15 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setOTCBuffer(address exchange, address otcBuffer) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange != address(0), "MC/exchange-zero-address");
-        require(exchange != otcBuffer,  "MC/exchange-equals-otcBuffer");
+        require(exchange  != address(0), "MC/exchange-zero-address");
+        require(otcBuffer != address(0), "MC/otcBuffer-zero-address");
+        require(exchange  != otcBuffer,  "MC/exchange-equals-otcBuffer");
 
         OTC storage otc = otcs[exchange];
 
+        // Prevent rotating buffer while a swap is pending and not ready
+        require(otc.sentTimestamp == 0 || isOtcSwapReady(exchange), "MC/swap-in-progress");
+ 
         emit OTCBufferSet(exchange, otc.buffer, otcBuffer);
         otc.buffer = otcBuffer;
     }
@@ -1075,8 +1079,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         OTC storage otc = otcs[exchange];
 
-        // Just to check that OTC buffer exists
-        require(otc.buffer != address(0), "MC/otc-buffer-not-set");
+        // Its impossible to have zero address buffer because of whitelistedAssets.
         require(isOtcSwapReady(exchange), "MC/last-swap-not-returned");
 
         otc.sent18        = sent18;
