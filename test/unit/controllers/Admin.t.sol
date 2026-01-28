@@ -299,6 +299,12 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
     }
 
+    function test_setOTCRechargeRate_exchangeZero() external {
+        vm.prank(admin);
+        vm.expectRevert("MC/exchange-zero-address");
+        mainnetController.setOTCRechargeRate(address(0), uint256(1_000_000e18) / 1 days);
+    }
+
     function test_setOTCRechargeRate() external {
         ( , uint256 rate18,,, ) = mainnetController.otcs(exchange);
         assertEq(rate18, 0);

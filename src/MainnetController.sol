@@ -1076,7 +1076,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         OTC storage otc = otcs[exchange];
 
-        // Just to check that OTC buffer exists
+        // Its impossible to have zero address buffer because of whitelistedAssets.
         require(isOtcSwapReady(exchange), "MC/last-swap-not-returned");
 
         otc.sent18        = sent18;
