@@ -335,6 +335,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
 
+        require(msg.value >= fee.nativeFee, "FC/insufficient-fee");
+
         proxy.doCallWithValue{value: fee.nativeFee}(
             oftAddress,
             abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),

@@ -181,6 +181,52 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         );
     }
 
+    function test_transferTokenLayerZero_insufficientFee() external {
+        vm.startPrank(SPARK_PROXY);
+
+        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+        rateLimits.setRateLimitData(
+            keccak256(abi.encode(
+                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+                USDT_OFT,
+                destinationEndpointId
+            )),
+            10_000_000e6,
+            0
+        );
+
+        mainnetController.setLayerZeroRecipient(destinationEndpointId, target);
+
+        vm.stopPrank();
+
+        // Setup token balances
+        deal(address(usdt), address(almProxy), 10_000_000e6);
+        deal(relayer, 1 ether);  // Gas cost for LayerZero
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : target,
+            amountLD     : 10_000_000e6,
+            minAmountLD  : 10_000_000e6,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.prank(relayer);
+        vm.expectRevert("MC/insufficient-fee");
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee - 1}(
+            USDT_OFT,
+            10_000_000e6,
+            destinationEndpointId
+        );
+    }
+
 }
 
 contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLayerZeroTestBase {
@@ -542,6 +588,55 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         vm.prank(relayer);
         vm.expectRevert("FC/recipient-not-set");
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6,
+            destinationEndpointId
+        );
+    }
+
+    function test_transferTokenLayerZero_insufficientFee() external {
+        vm.startPrank(SPARK_EXECUTOR);
+
+        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+        foreignRateLimits.setRateLimitData(
+            keccak256(abi.encode(
+                foreignController.LIMIT_LAYERZERO_TRANSFER(),
+                USDT_OFT,
+                destinationEndpointId
+            )),
+            10_000_000e6,
+            0
+        );
+
+        foreignController.setLayerZeroRecipient(
+            destinationEndpointId,
+            target
+        );
+
+        vm.stopPrank();
+
+        // Setup token balances
+        deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
+        deal(relayer, 1 ether);  // Gas cost for LayerZero
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : target,
+            amountLD     : 10_000_000e6,
+            minAmountLD  : 10_000_000e6,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.prank(relayer);
+        vm.expectRevert("FC/insufficient-fee");
+        foreignController.transferTokenLayerZero{value: fee.nativeFee - 1}(
             USDT_OFT,
             10_000_000e6,
             destinationEndpointId

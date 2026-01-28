@@ -71,6 +71,8 @@ library LayerZeroLib {
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
 
+        require(msg.value >= fee.nativeFee, "MC/insufficient-fee");
+
         proxy.doCallWithValue{value: fee.nativeFee}(
             oftAddress,
             abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
