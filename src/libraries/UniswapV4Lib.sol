@@ -45,8 +45,8 @@ library UniswapV4Lib {
         int24   tickLower,
         int24   tickUpper,
         uint128 liquidity,
-        uint256 amount0Max,
-        uint256 amount1Max,
+        uint128 amount0Max,
+        uint128 amount1Max,
         mapping(bytes32 poolId => TickLimits tickLimits) storage tickLimits
     )
         external
@@ -85,8 +85,8 @@ library UniswapV4Lib {
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityIncrease,
-        uint256 amount0Max,
-        uint256 amount1Max,
+        uint128 amount0Max,
+        uint128 amount1Max,
         mapping(bytes32 poolId => TickLimits tickLimits) storage tickLimits
     )
         external
@@ -132,8 +132,8 @@ library UniswapV4Lib {
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityDecrease,
-        uint256 amount0Min,
-        uint256 amount1Min
+        uint128 amount0Min,
+        uint128 amount1Min
     )
         external
     {
@@ -254,12 +254,10 @@ library UniswapV4Lib {
         address proxy,
         address token,
         address spender,
-        uint256 amount
+        uint128 amount
     )
         internal
     {
-        require(amount <= type(uint160).max, "MC/amount-too-large-for-permit2");
-
         // Approve the Permit2 contract to spend none of the token (success is optional).
         // NOTE: We don't care about the success of this call, since the only outcomes are:
         //         - the allowance is 0 (it was reset or was already 0)
@@ -303,8 +301,8 @@ library UniswapV4Lib {
         bytes32        poolId,
         address        token0,
         address        token1,
-        uint256        amount0Max,
-        uint256        amount1Max,
+        uint128        amount0Max,
+        uint128        amount1Max,
         bytes   memory callData
     )
         internal
@@ -413,8 +411,8 @@ library UniswapV4Lib {
         int24          tickLower,
         int24          tickUpper,
         uint128        liquidity,
-        uint256        amount0Max,
-        uint256        amount1Max
+        uint128        amount0Max,
+        uint128        amount1Max
     )
         internal view returns (bytes memory callData)
     {
@@ -426,14 +424,14 @@ library UniswapV4Lib {
         bytes[] memory params = new bytes[](2);
 
         params[0] = abi.encode(
-            poolKey,     // Which pool to mint in
-            tickLower,   // Position's lower price bound
-            tickUpper,   // Position's upper price bound
-            liquidity,   // Amount of liquidity to mint
-            amount0Max,  // Maximum amount of token0 to use
-            amount1Max,  // Maximum amount of token1 to use
-            proxy,       // NFT recipient
-            ""           // No hook data needed
+            poolKey,             // Which pool to mint in
+            tickLower,           // Position's lower price bound
+            tickUpper,           // Position's upper price bound
+            uint256(liquidity),  // Amount of liquidity to mint
+            amount0Max,          // Maximum amount of token0 to use
+            amount1Max,          // Maximum amount of token1 to use
+            proxy,               // NFT recipient
+            ""                   // No hook data needed
         );
 
         params[1] = abi.encode(
@@ -448,8 +446,8 @@ library UniswapV4Lib {
         PoolKey memory poolKey,
         uint256        tokenId,
         uint128        liquidityIncrease,
-        uint256        amount0Max,
-        uint256        amount1Max
+        uint128        amount0Max,
+        uint128        amount1Max
     )
         internal view returns (bytes memory callData)
     {
@@ -461,11 +459,11 @@ library UniswapV4Lib {
         bytes[] memory params = new bytes[](2);
 
         params[0] = abi.encode(
-            tokenId,            // Position to increase
-            liquidityIncrease,  // Amount to add
-            amount0Max,         // Maximum token0 to spend
-            amount1Max,         // Maximum token1 to spend
-            ""                  // No hook data needed
+            tokenId,                     // Position to increase
+            uint256(liquidityIncrease),  // Amount to add
+            amount0Max,                  // Maximum token0 to spend
+            amount1Max,                  // Maximum token1 to spend
+            ""                           // No hook data needed
         );
 
         params[1] = abi.encode(
@@ -481,8 +479,8 @@ library UniswapV4Lib {
         PoolKey memory poolKey,
         uint256        tokenId,
         uint128        liquidityDecrease,
-        uint256        amount0Min,
-        uint256        amount1Min
+        uint128        amount0Min,
+        uint128        amount1Min
     )
         internal view returns (bytes memory callData)
     {
@@ -494,11 +492,11 @@ library UniswapV4Lib {
         bytes[] memory params = new bytes[](2);
 
         params[0] = abi.encode(
-            tokenId,            // Position to decrease
-            liquidityDecrease,  // Amount to remove
-            amount0Min,         // Minimum token0 to receive
-            amount1Min,         // Minimum token1 to receive
-            ""                  // No hook data needed
+            tokenId,                     // Position to decrease
+            uint256(liquidityDecrease),  // Amount to remove
+            amount0Min,                  // Minimum token0 to receive
+            amount1Min,                  // Minimum token1 to receive
+            ""                           // No hook data needed
         );
 
         params[1] = abi.encode(
