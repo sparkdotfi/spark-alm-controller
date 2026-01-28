@@ -273,9 +273,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setOTCBuffer(address exchange, address otcBuffer) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange != address(0),  "MC/exchange-zero-address");
+        require(exchange  != address(0), "MC/exchange-zero-address");
         require(otcBuffer != address(0), "MC/otcBuffer-zero-address");
-        require(exchange != otcBuffer,   "MC/exchange-equals-otcBuffer");
+        require(exchange  != otcBuffer,  "MC/exchange-equals-otcBuffer");
 
         OTC storage otc = otcs[exchange];
 
