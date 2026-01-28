@@ -247,6 +247,12 @@ contract MainnetControllerSetOTCBufferTests is MainnetControllerAdminTestBase {
         mainnetController.setOTCBuffer(address(0), address(otcBuffer));
     }
 
+    function test_setOTCBuffer_otcBufferZero() external {
+        vm.prank(admin);
+        vm.expectRevert("MC/otcBuffer-zero-address");
+        mainnetController.setOTCBuffer(exchange, address(0));
+    }
+
     function test_setOTCBuffer_exchangeEqualsOTCBuffer() external {
         vm.prank(admin);
         vm.expectRevert("MC/exchange-equals-otcBuffer");
@@ -291,12 +297,6 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
             DEFAULT_ADMIN_ROLE
         ));
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
-    }
-
-    function test_setOTCRechargeRate_exchangeZero() external {
-        vm.prank(admin);
-        vm.expectRevert("MC/exchange-zero-address");
-        mainnetController.setOTCRechargeRate(address(0), uint256(1_000_000e18) / 1 days);
     }
 
     function test_setOTCRechargeRate() external {

@@ -98,6 +98,26 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
 }
 
+// NOTE: This test requires the send to be executed first which requires ForkTestBase,
+//       therefore it is placed here instead of Admin.t.sol.
+contract MainnetControllerSetOTCBufferFailureTests is MainnetControllerOTCSwapBase {
+
+    function test_setOTCBuffer_swapInProgress() external {
+        deal(address(usdt), address(almProxy), 5_000_000e6);
+
+        // Execute OTC swap
+        vm.prank(relayer);
+        mainnetController.otcSend(exchange, address(usdt), 5_000_000e6);
+
+        ( address buffer,,,, ) = mainnetController.otcs(exchange);
+
+        vm.expectRevert("MC/swap-in-progress");
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+    }
+
+}
+
 contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
 
     function test_otcSend_reentrancy() external {
@@ -164,15 +184,6 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, address(usds), 10_000_000e18);
-    }
-
-    function test_otcSend_otcBufferNotSet() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setOTCBuffer(exchange, address(0));
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/otc-buffer-not-set");
-        mainnetController.otcSend(exchange, address(usdt), 1e6);
     }
 
     function test_otcSend_transferFailed() external {
