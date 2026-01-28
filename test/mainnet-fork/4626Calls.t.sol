@@ -135,6 +135,21 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(address(susds), 1e18, 1e18);
     }
 
+    function test_depositERC4626_minSharesOutNotMetBoundary() external {
+        uint256 overBoundaryShares = susds.convertToShares(5_000_000e18 + 1);
+        uint256 atBoundaryShares   = susds.convertToShares(5_000_000e18);
+
+        vm.startPrank(relayer);
+
+        mainnetController.mintUSDS(5_000_000e18);
+
+        vm.expectRevert("MC/min-shares-out-not-met");
+        mainnetController.depositERC4626(address(susds), 5_000_000e18, overBoundaryShares);
+
+        mainnetController.depositERC4626(address(susds), 5_000_000e18, atBoundaryShares);
+        vm.stopPrank();
+    }
+
 }
 
 contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
@@ -229,6 +244,24 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
 
         vm.expectRevert("MC/max-shares-in-not-met");
         mainnetController.withdrawERC4626(address(susds), 1e18, 0);
+        vm.stopPrank();
+    }
+
+    function test_withdrawERC4626_maxSharesInNotMetBoundary() external {
+        // Because of rounding 1_000_000e18 is under boundary, 1_000_000e18 + 1 is at boundary
+
+        uint256 underBoundaryShares = susds.convertToShares(1_000_000e18);
+        uint256 atBoundaryShares    = susds.convertToShares(1_000_000e18 + 1);
+
+        vm.startPrank(relayer);
+
+        mainnetController.mintUSDS(2_000_000e18);
+        mainnetController.depositERC4626(address(susds), 2_000_000e18, 0);
+
+        vm.expectRevert("MC/max-shares-in-not-met");
+        mainnetController.withdrawERC4626(address(susds), 1_000_000e18, underBoundaryShares);
+
+        mainnetController.withdrawERC4626(address(susds), 1_000_000e18, atBoundaryShares);
         vm.stopPrank();
     }
 
@@ -367,6 +400,24 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
 
         vm.expectRevert("MC/min-assets-out-not-met");
         mainnetController.redeemERC4626(address(susds), 1e18, 2e18);
+        vm.stopPrank();
+    }
+
+    function test_redeemERC4626_minAssetsOutNotMetBoundary() external {
+        vm.startPrank(relayer);
+
+        mainnetController.mintUSDS(2_000_000e18);
+        mainnetController.depositERC4626(address(susds), 2_000_000e18, 0);
+
+        uint256 shares = susds.convertToShares(2_000_000e18);
+
+        uint256 overBoundaryAssets = susds.convertToAssets(shares) + 1;
+        uint256 atBoundaryAssets   = susds.convertToAssets(shares);
+
+        vm.expectRevert("MC/min-assets-out-not-met");
+        mainnetController.redeemERC4626(address(susds), shares, overBoundaryAssets);
+
+        mainnetController.redeemERC4626(address(susds), shares, atBoundaryAssets);
         vm.stopPrank();
     }
 

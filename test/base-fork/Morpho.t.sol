@@ -200,6 +200,19 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18, 25_000_000e18 + 1);
     }
 
+    function test_morpho_deposit_minSharesOutNotMetBoundary() external {
+        deal(Base.USDS, address(almProxy), 25_000_000e18);
+
+        uint256 overBoundaryShares = usdsVault.convertToShares(25_000_000e18 + 1);
+        uint256 atBoundaryShares   = usdsVault.convertToShares(25_000_000e18);
+
+        vm.startPrank(relayer);
+        vm.expectRevert("FC/min-shares-out-not-met");
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18, overBoundaryShares);
+
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18, atBoundaryShares);
+    }
+
 }
 
 contract MorphoDepositSuccessTests is MorphoBaseTest {
@@ -317,6 +330,24 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
 
         vm.stopPrank();
     }
+
+    function test_morpho_withdraw_maxSharesInNotMetBoundary() external {
+        deal(Base.USDS, address(almProxy), 10_000_000e18);
+
+        uint256 underBoundaryShares = usdsVault.convertToShares(10_000_000e18) - 1;
+        uint256 atBoundaryShares    = usdsVault.convertToShares(10_000_000e18);
+        
+        vm.startPrank(relayer);
+
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 10_000_000e18, 0);
+
+        vm.expectRevert("FC/max-shares-in-not-met");
+        foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 10_000_000e18, underBoundaryShares);
+
+        foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 10_000_000e18, atBoundaryShares);
+        vm.stopPrank();
+    }
+
 
 }
 
@@ -494,6 +525,23 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
         vm.expectRevert("FC/min-assets-out-not-met");
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18 + 1);
 
+        vm.stopPrank();
+    }
+
+    function test_morpho_redeem_minAssetsOutNotMetBoundary() external {
+        deal(Base.USDS, address(almProxy), 10_000_000e18);
+
+        uint256 overBoundaryAssets = usdsVault.convertToAssets(10_000_000e18) + 1;
+        uint256 atBoundaryAssets   = usdsVault.convertToAssets(10_000_000e18);
+        
+        vm.startPrank(relayer);
+
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 10_000_000e18, 10_000_000e18);
+
+        vm.expectRevert("FC/min-assets-out-not-met");
+        foreignController.redeemERC4626(MORPHO_VAULT_USDS, 10_000_000e18, overBoundaryAssets);
+
+        foreignController.redeemERC4626(MORPHO_VAULT_USDS, 10_000_000e18, atBoundaryAssets);
         vm.stopPrank();
     }
 

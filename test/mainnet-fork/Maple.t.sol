@@ -156,6 +156,19 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
         mainnetController.depositERC4626(address(syrup), 1_000_000e6, 0);
     }
 
+    function test_depositERC4626_maple_minSharesOutNotMetBoundary() external {
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
+        uint256 overBoundaryShares = syrup.convertToShares(1_000_000e6 + 1);
+        uint256 atBoundaryShares   = syrup.convertToShares(1_000_000e6);
+
+        vm.startPrank(relayer);
+        vm.expectRevert("MC/min-shares-out-not-met");
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6, overBoundaryShares);
+
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6, atBoundaryShares);
+    }
+
 }
 
 contract MainnetControllerDepositERC4626Tests is MapleTestBase {
