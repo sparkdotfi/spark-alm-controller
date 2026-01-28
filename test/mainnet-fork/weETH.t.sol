@@ -3,11 +3,17 @@ pragma solidity >=0.8.0;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IWEETHLike, ILiquidityPoolLike, IEETHLike } from "../../src/libraries/WeETHLib.sol";
+import { IWEETHLike, IEETHLike } from "../../src/libraries/WeETHLib.sol";
 
-import { WeEthModule } from "../../src/WeEthModule.sol";
+import { WEETHModule } from "../../src/WEETHModule.sol";
 
 import "./ForkTestBase.t.sol";
+
+interface ILiquidityPoolLike {
+    function amountForShare(uint256 shareAmount) external view returns (uint256);
+    function sharesForAmount(uint256 amount) external view returns (uint256);
+    function withdrawRequestNFT() external view returns (address);
+}
 
 interface IWithdrawRequestNFTLike {
     function finalizeRequests(uint256 requestId) external;
@@ -39,7 +45,7 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
         eETH          = IEETHLike(address(IWEETHLike(Ethereum.WEETH).eETH()));
         liquidityPool = ILiquidityPoolLike(IEETHLike(eETH).liquidityPool());
 
-        weETHModule = address(new WeEthModule(Ethereum.SPARK_PROXY, address(almProxy)));
+        weETHModule = address(new WEETHModule(Ethereum.SPARK_PROXY, address(almProxy)));
     }
 
     function _getBlock() internal override pure returns (uint256) {
@@ -47,7 +53,7 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
     }
 
     function _getMinSharesOut(uint256 amount) internal view returns (uint256) {
-        return liquidityPool.sharesForAmount(amount) * 99 / 100;
+        return liquidityPool.sharesForAmount(amount) - 1;
     }
 
 }
@@ -91,7 +97,7 @@ contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTe
         mainnetController.depositToWeETH(1_000e18, 0);
     }
 
-    function test_depositToWeETH_slippageTooHigh() external {
+    function test_depositToWeETH_slippageTooHighBoundary() external {
         bytes32 key = mainnetController.LIMIT_WEETH_DEPOSIT();
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -103,7 +109,7 @@ contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTe
 
         vm.prank(relayer);
         vm.expectRevert("MC/slippage-too-high");
-        mainnetController.depositToWeETH(1_000e18, 1_000e18);
+        mainnetController.depositToWeETH(1_000e18, minSharesOut + 1);
 
         vm.prank(relayer);
         mainnetController.depositToWeETH(1_000e18, minSharesOut);

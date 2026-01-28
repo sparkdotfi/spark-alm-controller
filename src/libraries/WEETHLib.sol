@@ -21,7 +21,6 @@ interface ILiquidityPoolLike {
     function amountForShare(uint256 shareAmount) external view returns (uint256);
     function deposit() external;
     function requestWithdraw(address receiver,uint256 amount) external returns (uint256 requestId);
-    function sharesForAmount(uint256 amount) external view returns (uint256);
     function withdrawRequestNFT() external view returns (address);
 }
 
@@ -41,7 +40,7 @@ interface IWETHLike {
     function withdraw(uint256 amount) external;
 }
 
-library WeETHLib {
+library WEETHLib {
 
     bytes32 public constant LIMIT_WEETH_CLAIM_WITHDRAW   = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
     bytes32 public constant LIMIT_WEETH_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");

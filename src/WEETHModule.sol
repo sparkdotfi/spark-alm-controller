@@ -14,7 +14,7 @@ interface IWithdrawRequestNFTLike {
     function isValid(uint256 requestId) external view returns (bool);
 }
 
-contract WeEthModule is AccessControlEnumerable {
+contract WEETHModule is AccessControlEnumerable {
 
     address public immutable almProxy;
 
