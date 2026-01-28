@@ -19,7 +19,7 @@ interface IEETHLike is IERC20 {
 
 interface ILiquidityPoolLike {
     function amountForShare(uint256 shareAmount) external view returns (uint256);
-    function deposit() external;
+    function deposit() external payable returns (uint256 shareAmount);
     function requestWithdraw(address receiver,uint256 amount) external returns (uint256 requestId);
     function withdrawRequestNFT() external view returns (address);
 }
