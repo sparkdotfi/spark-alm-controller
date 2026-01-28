@@ -181,7 +181,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         );
     }
 
-    function test_transferTokenLayerZero_insufficientFee() external {
+    function test_transferTokenLayerZero_incorrectFee() external {
         vm.startPrank(SPARK_PROXY);
 
         bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
@@ -219,7 +219,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
         vm.prank(relayer);
-        vm.expectRevert("MC/insufficient-fee");
+        vm.expectRevert("MC/incorrect-fee");
         mainnetController.transferTokenLayerZero{value: fee.nativeFee - 1}(
             USDT_OFT,
             10_000_000e6,
@@ -594,7 +594,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         );
     }
 
-    function test_transferTokenLayerZero_insufficientFee() external {
+    function test_transferTokenLayerZero_incorrectFee() external {
         vm.startPrank(SPARK_EXECUTOR);
 
         bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
@@ -635,7 +635,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
         vm.prank(relayer);
-        vm.expectRevert("FC/insufficient-fee");
+        vm.expectRevert("FC/incorrect-fee");
         foreignController.transferTokenLayerZero{value: fee.nativeFee - 1}(
             USDT_OFT,
             10_000_000e6,
