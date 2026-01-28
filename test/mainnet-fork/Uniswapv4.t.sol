@@ -147,7 +147,7 @@ contract UniswapV4TestBase is ForkTestBase {
         rateLimits.setRateLimitData(depositLimitKey, 200_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(poolId, tickLower, tickUpper, liquidity, 0.9999e18);
+        ( uint128 amount0Max, uint128 amount1Max ) = _getIncreasePositionMaxAmounts(poolId, tickLower, tickUpper, liquidity, 0.9999e18);
 
         minted = _mintPosition(poolId, tickLower, tickUpper, liquidity, amount0Max, amount1Max);
 
@@ -164,17 +164,17 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 liquidity,
         uint256 maxSlippage
     )
-        internal returns (uint256 amount0Max, uint256 amount1Max)
+        internal returns (uint128 amount0Max, uint128 amount1Max)
     {
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             poolId,
             tickLower,
             tickUpper,
             liquidity
         );
 
-        amount0Max = (amount0Forecasted * 1e18) / maxSlippage;
-        amount1Max = (amount1Forecasted * 1e18) / maxSlippage;
+        amount0Max = uint128((uint256(amount0Forecasted) * 1e18) / maxSlippage);
+        amount1Max = uint128((uint256(amount1Forecasted) * 1e18) / maxSlippage);
     }
 
     function _mintPosition(
@@ -182,8 +182,8 @@ contract UniswapV4TestBase is ForkTestBase {
         int24   tickLower,
         int24   tickUpper,
         uint128 liquidity,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         internal returns (IncreasePositionResult memory result)
     {
@@ -243,8 +243,8 @@ contract UniswapV4TestBase is ForkTestBase {
     function _increasePosition(
         uint256 tokenId,
         uint128 liquidityIncrease,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         internal returns (IncreasePositionResult memory result)
     {
@@ -311,29 +311,29 @@ contract UniswapV4TestBase is ForkTestBase {
     }
 
     function _getDecreasePositionMinAmounts(uint256 tokenId, uint128 liquidity, uint256 maxSlippage)
-        internal returns (uint256 amount0Min, uint256 amount1Min)
+        internal returns (uint128 amount0Min, uint128 amount1Min)
     {
         (
             PoolKey memory poolKey,
             PositionInfo positionInfo
         ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             keccak256(abi.encode(poolKey)),
             positionInfo.tickLower(),
             positionInfo.tickUpper(),
             liquidity
         );
 
-        amount0Min = (amount0Forecasted * maxSlippage) / 1e18;
-        amount1Min = (amount1Forecasted * maxSlippage) / 1e18;
+        amount0Min = uint128((uint256(amount0Forecasted) * maxSlippage) / 1e18);
+        amount1Min = uint128((uint256(amount1Forecasted) * maxSlippage) / 1e18);
     }
 
     function _decreasePosition(
         uint256 tokenId,
         uint128 liquidityDecrease,
-        uint256 amount0Min,
-        uint256 amount1Min
+        uint128 amount0Min,
+        uint128 amount1Min
     )
         internal returns (DecreasePositionResult memory result)
     {
@@ -450,18 +450,18 @@ contract UniswapV4TestBase is ForkTestBase {
     }
 
     function _getAmount0ForLiquidity(
-        uint160 sqrtPriceAX96,
-        uint160 sqrtPriceBX96,
-        uint128 liquidity
+        uint256 sqrtPriceAX96,
+        uint256 sqrtPriceBX96,
+        uint256 liquidity
     )
         internal pure returns (uint256 amount0)
     {
         require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices-0");
 
         return FullMath.mulDiv(
-            uint256(liquidity) << 96,
+            liquidity << 96,
             sqrtPriceBX96 - sqrtPriceAX96,
-            uint256(sqrtPriceBX96) * sqrtPriceAX96
+            sqrtPriceBX96 * sqrtPriceAX96
         );
     }
 
@@ -507,8 +507,8 @@ contract UniswapV4TestBase is ForkTestBase {
         );
     }
 
-    function _getPrice(uint160 sqrtPriceX96) internal view returns (uint256 price) {
-        uint256 priceRoot = (uint256(sqrtPriceX96) * 1e18) >> 96;
+    function _getPrice(uint256 sqrtPriceX96) internal view returns (uint256 price) {
+        uint256 priceRoot = (sqrtPriceX96 * 1e18) >> 96;
 
         return (priceRoot * priceRoot) / 1e18;
     }
@@ -615,16 +615,18 @@ contract UniswapV4TestBase is ForkTestBase {
         int24   tickUpper,
         uint128 liquidityAmount
     )
-        internal view returns (uint256 amount0, uint256 amount1)
+        internal view returns (uint128 amount0, uint128 amount1)
     {
         ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(poolId));
 
-        return _getAmountsForLiquidity(
+        ( uint256 amount0Raw, uint256 amount1Raw ) = _getAmountsForLiquidity(
             sqrtPriceX96,
             TickMath.getSqrtPriceAtTick(tickLower),
             TickMath.getSqrtPriceAtTick(tickUpper),
             liquidityAmount
         );
+
+        return (uint128(amount0Raw), uint128(amount1Raw));
     }
 
     function _assertZeroAllowances(address token) internal {
@@ -1017,55 +1019,13 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenMaxAmountsTooLargeForPermit2Boundary() external {
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(address(usdt), address(almProxy), 1_000_000e6);
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : -10,
-            tickUpper  : 0,
-            liquidity  : 1_000_000e6,
-            amount0Max : uint256(type(uint160).max) + 1,
-            amount1Max : uint256(type(uint160).max)
-        });
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : -10,
-            tickUpper  : 0,
-            liquidity  : 1_000_000e6,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max) + 1
-        });
-
-        vm.prank(relayer);
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : -10,
-            tickUpper  : 0,
-            liquidity  : 1_000_000e6,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max)
-        });
-    }
-
     function test_mintPositionUniswapV4_revertsWhenMaxAmountsSurpassedBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
         amount0Forecasted += 1; // Quote is off by 1
         amount1Forecasted += 1; // Quote is off by 1
@@ -1122,7 +1082,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, expectedDecrease - 1, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
         amount0Forecasted += 1; // Quote is off by 1
         amount1Forecasted += 1; // Quote is off by 1
@@ -1161,7 +1121,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(_POOL_ID, -10, 0, 1_000_000e6, 0.99e18);
+        ( uint128 amount0Max, uint128 amount1Max ) = _getIncreasePositionMaxAmounts(_POOL_ID, -10, 0, 1_000_000e6, 0.99e18);
 
         vm.record();
 
@@ -1317,47 +1277,6 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_increaseLiquidityUniswapV4_revertsWhenAmountsTooLargeForPermit2Boundary() external {
-        IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
-
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, -10, 0, 10);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(address(usdt), address(almProxy), 1_000_000e6);
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e6,
-            amount0Max        : uint256(type(uint160).max) + 1,
-            amount1Max        : uint256(type(uint160).max)
-        });
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e6,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max) + 1
-        });
-
-        vm.prank(relayer);
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e6,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max)
-        });
-    }
-
     function test_increaseLiquidityUniswapV4_revertsWhenMaxAmountsSurpassedBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
@@ -1366,7 +1285,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -1427,7 +1346,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, expectedDecrease - 1, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -1471,7 +1390,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(
+        ( uint128 amount0Max, uint128 amount1Max ) = _getIncreasePositionMaxAmounts(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -1518,7 +1437,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -1559,7 +1478,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -1602,7 +1521,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, expectedDecrease - 1, 0);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -1638,7 +1557,11 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Min, uint256 amount1Min ) = _getDecreasePositionMinAmounts(minted.tokenId, minted.liquidityIncrease / 2, 0.99e18);
+        ( uint128 amount0Min, uint128 amount1Min ) = _getDecreasePositionMinAmounts(
+            minted.tokenId,
+            minted.liquidityIncrease / 2,
+            0.99e18
+        );
 
         vm.record();
 
@@ -1661,7 +1584,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Min, uint256 amount1Min ) = _getDecreasePositionMinAmounts(
+        ( uint128 amount0Min, uint128 amount1Min ) = _getDecreasePositionMinAmounts(
             minted.tokenId,
             minted.liquidityIncrease,
             0.99e18
@@ -1830,7 +1753,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
         vm.stopPrank();
 
-        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, liquidity, type(uint160).max, type(uint160).max);
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, liquidity, type(uint128).max, type(uint128).max);
         DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, mintResult.liquidityIncrease, 0, 0);
 
         uint256 valueDeposited = mintResult.amount0Spent        + mintResult.amount1Spent;
@@ -1862,8 +1785,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, uint256(2_000_000e18) / 1 days);
         vm.stopPrank();
 
-        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, initialLiquidity, type(uint160).max, type(uint160).max);
-        IncreasePositionResult memory increaseResult = _increasePosition(mintResult.tokenId, additionalLiquidity, type(uint160).max, type(uint160).max);
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, initialLiquidity, type(uint128).max, type(uint128).max);
+        IncreasePositionResult memory increaseResult = _increasePosition(mintResult.tokenId, additionalLiquidity, type(uint128).max, type(uint128).max);
 
         uint256 valueBeforeIncrease = mintResult.amount0Spent     + mintResult.amount1Spent;
         uint256 valueAdded          = increaseResult.amount0Spent + increaseResult.amount1Spent;
@@ -1892,11 +1815,9 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
 
         address tokenIn = swapDirection ? address(usdc) : address(usdt);
 
-        uint128 amountOutMin = _getSwapAmountOutMin(_POOL_ID, tokenIn, amountIn, 0.99e18);
-
+        uint128 amountOutMin    = _getSwapAmountOutMin(_POOL_ID, tokenIn, amountIn, 0.99e18);
         uint256 rateLimitBefore = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
-
-        uint256 amountOut = _swap(_POOL_ID, tokenIn, amountIn, amountOutMin);
+        uint256 amountOut       = _swap(_POOL_ID, tokenIn, amountIn, amountOutMin);
 
         assertEq(rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY), rateLimitBefore - _to18From6Decimals(amountIn));
 
@@ -1931,8 +1852,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 0,
             liquidity  : 4_000e12,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 1_363_024.631364e6);
@@ -1948,7 +1869,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         assertEq(_externalSwap(_POOL_ID, _user, address(usdt), 1_000_000e6), 1_000_648.496032e6);
 
         // 4. The relayer increases the liquidity position by 50%.
-        increaseResult = _increasePosition(increaseResult.tokenId, 2_000e12, type(uint160).max, type(uint160).max);
+        increaseResult = _increasePosition(increaseResult.tokenId, 2_000e12, type(uint128).max, type(uint128).max);
 
         assertEq(increaseResult.amount0Spent, 635_276.445136e6);
         assertEq(increaseResult.amount1Spent, 364_624.424738e6);
@@ -2047,8 +1968,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 840_606.192834e6);
@@ -2095,8 +2016,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 0); // Expected 840_606.192834e6 as per baseline
@@ -2155,8 +2076,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -10,
             tickUpper  : 10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 999_950.044994e6); // Expected 840_606.192834e6 as per baseline
@@ -2211,8 +2132,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -5,
             tickUpper  : 15,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 999_700.101224e6);
@@ -2259,8 +2180,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -5,
             tickUpper  : 15,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 632_055.655046e6); // Expected 999_700.101224e6 as per baseline
@@ -2319,8 +2240,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -5,
             tickUpper  : 15,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 0); // Expected 999_700.101224e6 as per baseline
@@ -2375,8 +2296,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -30,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 0);
@@ -2423,8 +2344,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -30,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 457_787.249555e6); // Expected 0 as per baseline
@@ -2483,8 +2404,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -30,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 1_000_950.445137e6); // Expected 0 as per baseline
@@ -2533,7 +2454,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         // While recommended usage is to use max amounts that are exactly (or close to exactly) the
         // forecasted amounts in production, however this shows that even a value of 0.99 is
         // sufficient to prevent an attack.
-        ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(_POOL_ID, -30, -10, 1_000_000_000e6, 0.99e18);
+        ( uint128 amount0Max, uint128 amount1Max ) = _getIncreasePositionMaxAmounts(_POOL_ID, -30, -10, 1_000_000_000e6, 0.99e18);
 
         /******************************************************************************************/
         /*** Frontrun                                                                           ***/
@@ -2589,8 +2510,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -200,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 0);
@@ -2637,8 +2558,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -200,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 9_549_562.082877e6); // Expected 0 as per baseline
@@ -2699,8 +2620,8 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
             tickLower  : -200,
             tickUpper  : -10,
             liquidity  : 1_000_000_000e6,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
     }
 
@@ -2867,55 +2788,13 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_mintPositionUniswapV4_revertsWhenMaxAmountsTooLargeForPermit2Boundary() external {
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, 270_000, 280_000, 1_000);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        deal(address(usdt), address(almProxy), 1_000_000e6);
-        deal(address(usds), address(almProxy), 1_000_000e18);
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : 276_300,
-            tickUpper  : 276_400,
-            liquidity  : 1_000_000e12,
-            amount0Max : uint256(type(uint160).max) + 1,
-            amount1Max : uint256(type(uint160).max)
-        });
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : 276_300,
-            tickUpper  : 276_400,
-            liquidity  : 1_000_000e12,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max) + 1
-        });
-
-        vm.prank(relayer);
-        mainnetController.mintPositionUniswapV4({
-            poolId     : _POOL_ID,
-            tickLower  : 276_300,
-            tickUpper  : 276_400,
-            liquidity  : 1_000_000e12,
-            amount0Max : uint256(type(uint160).max),
-            amount1Max : uint256(type(uint160).max)
-        });
-    }
-
     function test_mintPositionUniswapV4_revertsWhenMaxAmountsSurpassedBoundary() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4TickLimits(_POOL_ID, 270_000, 280_000, 1_000);
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, 276_300, 276_400, 1_000_000e12);
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, 276_300, 276_400, 1_000_000e12);
 
         amount0Forecasted += 1; // Quote is off by 1
         amount1Forecasted += 1; // Quote is off by 1
@@ -2972,7 +2851,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, expectedDecrease - 1, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
         amount0Forecasted += 1; // Quote is off by 1
         amount1Forecasted += 1; // Quote is off by 1
@@ -3011,7 +2890,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(_POOL_ID, 276_000, 276_600, 1_000_000e12, 0.99e18);
+        ( uint128 amount0Max, uint128 amount1Max ) = _getIncreasePositionMaxAmounts(_POOL_ID, 276_000, 276_600, 1_000_000e12, 0.99e18);
 
         vm.record();
 
@@ -3073,7 +2952,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3117,7 +2996,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3161,7 +3040,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3197,47 +3076,6 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         });
     }
 
-    function test_increaseLiquidityUniswapV4_revertsWhenMaxAmountsTooLargeForPermit2Boundary() external {
-        IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
-
-        vm.startPrank(SPARK_PROXY);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, 276_000, 276_600, 1_000);
-        rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
-        vm.stopPrank();
-
-        deal(address(usdt), address(almProxy), 1_000_000e6);
-        deal(address(usds), address(almProxy), 1_000_000e18);
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e12,
-            amount0Max        : uint256(type(uint160).max) + 1,
-            amount1Max        : uint256(type(uint160).max)
-        });
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/amount-too-large-for-permit2");
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e12,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max) + 1
-        });
-
-        vm.prank(relayer);
-        mainnetController.increaseLiquidityUniswapV4({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e12,
-            amount0Max        : uint256(type(uint160).max),
-            amount1Max        : uint256(type(uint160).max)
-        });
-    }
-
     function test_increaseLiquidityUniswapV4_revertsWhenMaxAmountsMaxSurpassedBoundary() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
@@ -3246,7 +3084,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3307,7 +3145,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, expectedDecrease - 1, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3351,7 +3189,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_DEPOSIT_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        ( uint256 amount0Max, uint256 amount1Max ) = _getIncreasePositionMaxAmounts(
+        ( uint128 amount0Max, uint128 amount1Max ) = _getIncreasePositionMaxAmounts(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3398,7 +3236,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3439,7 +3277,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3482,7 +3320,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, expectedDecrease - 1, 0);
 
-        ( uint256 amount0Forecasted, uint256 amount1Forecasted ) = _quoteLiquidity(
+        ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             _POOL_ID,
             minted.tickLower,
             minted.tickUpper,
@@ -3518,7 +3356,11 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Min, uint256 amount1Min ) = _getDecreasePositionMinAmounts(minted.tokenId, minted.liquidityIncrease / 2, 0.99e18);
+        ( uint128 amount0Min, uint128 amount1Min ) = _getDecreasePositionMinAmounts(
+            minted.tokenId,
+            minted.liquidityIncrease / 2,
+            0.99e18
+        );
 
         vm.record();
 
@@ -3541,7 +3383,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, 0);
 
-        ( uint256 amount0Min, uint256 amount1Min ) = _getDecreasePositionMinAmounts(
+        ( uint128 amount0Min, uint128 amount1Min ) = _getDecreasePositionMinAmounts(
             minted.tokenId,
             minted.liquidityIncrease,
             0.99e18
@@ -3710,7 +3552,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 1_000_000_000e18, uint256(1_000_000_000e18) / 1 days);
         vm.stopPrank();
 
-        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, liquidity, type(uint160).max, type(uint160).max);
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, liquidity, type(uint128).max, type(uint128).max);
         DecreasePositionResult memory decreaseResult = _decreasePosition(mintResult.tokenId, mintResult.liquidityIncrease, 0, 0);
 
         uint256 valueDeposited = mintResult.amount0Spent        + mintResult.amount1Spent;
@@ -3742,8 +3584,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         rateLimits.setRateLimitData(_WITHDRAW_LIMIT_KEY, 2_000_000e18, uint256(2_000_000e18) / 1 days);
         vm.stopPrank();
 
-        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, initialLiquidity, type(uint160).max, type(uint160).max);
-        IncreasePositionResult memory increaseResult = _increasePosition(mintResult.tokenId, additionalLiquidity, type(uint160).max, type(uint160).max);
+        IncreasePositionResult memory mintResult     = _mintPosition(_POOL_ID, tickLower, tickUpper, initialLiquidity, type(uint128).max, type(uint128).max);
+        IncreasePositionResult memory increaseResult = _increasePosition(mintResult.tokenId, additionalLiquidity, type(uint128).max, type(uint128).max);
 
         uint256 valueBeforeIncrease = mintResult.amount0Spent     + mintResult.amount1Spent;
         uint256 valueAdded          = increaseResult.amount0Spent + increaseResult.amount1Spent;
@@ -3779,11 +3621,9 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
 
         address tokenIn = swapDirection ? address(usdt) : address(usds);
 
-        uint128 amountOutMin = _getSwapAmountOutMin(_POOL_ID, tokenIn, amountIn, 0.99e18);
-
+        uint128 amountOutMin    = _getSwapAmountOutMin(_POOL_ID, tokenIn, amountIn, 0.99e18);
         uint256 rateLimitBefore = rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY);
-
-        uint256 amountOut = _swap(_POOL_ID, tokenIn, amountIn, amountOutMin);
+        uint256 amountOut       = _swap(_POOL_ID, tokenIn, amountIn, amountOutMin);
 
         assertEq(
             rateLimits.getCurrentRateLimit(_SWAP_LIMIT_KEY),
@@ -3825,8 +3665,8 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
             tickLower  : 276_300,
             tickUpper  : 276_400,
             liquidity  : 4_000e17,
-            amount0Max : type(uint160).max,
-            amount1Max : type(uint160).max
+            amount0Max : type(uint128).max,
+            amount1Max : type(uint128).max
         });
 
         assertEq(increaseResult.amount0Spent, 1_183_957.816516e6);
@@ -3842,7 +3682,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         assertEq(_externalSwap(_POOL_ID, _user, address(usdt), 500_000e6), 500_159.667307969852203416e18);
 
         // 4. The relayer increases the liquidity position by 50%.
-        increaseResult = _increasePosition(increaseResult.tokenId, 2_000e17, type(uint160).max, type(uint160).max);
+        increaseResult = _increasePosition(increaseResult.tokenId, 2_000e17, type(uint128).max, type(uint128).max);
 
         assertEq(increaseResult.amount0Spent, 840_712.962029e6);
         assertEq(increaseResult.amount1Spent, 157_636.030550204975395201e18);
