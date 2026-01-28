@@ -109,11 +109,9 @@ contract MainnetControllerSetOTCBufferFailureTests is MainnetControllerOTCSwapBa
         vm.prank(relayer);
         mainnetController.otcSend(exchange, address(usdt), 5_000_000e6);
 
-        ( address buffer,,,, ) = mainnetController.otcs(exchange);
-
         vm.expectRevert("MC/swap-in-progress");
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setOTCBuffer(exchange, address(otcBuffer));
+        mainnetController.setOTCBuffer(exchange, makeAddr("new-buffer"));
     }
 
 }
