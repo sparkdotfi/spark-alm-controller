@@ -60,7 +60,7 @@ library CCTPLib {
         // If amount is larger than limit it must be split into multiple calls.
         uint256 burnLimit = params.cctp.localMinter().burnLimitsPerMessage(address(params.usdc));
 
-        require(burnLimit > 0, "MC/burn-limit-not-set");
+        require(burnLimit > 0, "MC/burn-limit-not-set"); // Will test this with vm.mock.
 
         // This variable will get reduced in the loop below.
         uint256 usdcAmountTemp = params.usdcAmount;
