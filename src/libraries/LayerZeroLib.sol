@@ -39,7 +39,7 @@ library LayerZeroLib {
             amount
         );
 
-        require(layerZeroRecipient != bytes32(0), "MC/recipient-not-set");
+        require(layerZeroRecipient != bytes32(0), "recipient-not-set");
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before
