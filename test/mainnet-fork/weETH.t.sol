@@ -53,14 +53,14 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
         liquidityPool = ILiquidityPoolLike(IEETHLike(eETH).liquidityPool());
 
         weETHModule = address(
-                new ERC1967Proxy(
-                    address(new WEETHModule()),
-                    abi.encodeCall(
-                        WEETHModule.initialize,
-                        (Ethereum.SPARK_PROXY, address(almProxy))
-                    )
+            new ERC1967Proxy(
+                address(new WEETHModule()),
+                abi.encodeCall(
+                    WEETHModule.initialize,
+                    (Ethereum.SPARK_PROXY, address(almProxy))
                 )
-            );
+            )
+        );
     }
 
     function _getBlock() internal override pure returns (uint256) {

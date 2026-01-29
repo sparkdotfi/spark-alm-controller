@@ -36,7 +36,6 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         0x72fb93b69874a05cc16cf86ff69e742007cd0f04a37e31aa1dda9b1c977e8300;
 
     function _getWEETHModuleStorage() internal pure returns (WEETHModuleStorage storage $) {
-        // slither-disable-next-line assembly
         assembly {
             $.slot := _WEETH_MODULE_STORAGE_LOCATION
         }
@@ -96,7 +95,9 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         IERC20(Ethereum.WETH).safeTransfer(msg.sender, ethReceived);
     }
 
-    function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
+    function onERC721Received(address, address, uint256, bytes calldata) 
+        external pure returns (bytes4) 
+    {
         return this.onERC721Received.selector;
     }
 
