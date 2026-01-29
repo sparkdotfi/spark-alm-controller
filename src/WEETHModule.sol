@@ -23,27 +23,43 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     using SafeERC20 for IERC20;
 
-    address public almProxy;
+    /**********************************************************************************************/
+    /*** UUPS Storage                                                                           ***/
+    /**********************************************************************************************/
 
-    uint256[49] private __gap;
+    struct WEETHModuleStorage {
+        address almProxy;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("almController.storage.WEETHModule")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 internal constant _WEETH_MODULE_STORAGE_LOCATION =
+        0x72fb93b69874a05cc16cf86ff69e742007cd0f04a37e31aa1dda9b1c977e8300;
+
+    function _getWEETHModuleStorage() internal pure returns (WEETHModuleStorage storage $) {
+        // slither-disable-next-line assembly
+        assembly {
+            $.slot := _WEETH_MODULE_STORAGE_LOCATION
+        }
+    }
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
 
     constructor() {
-        _disableInitializers();
+        _disableInitializers();  // Avoid initializing in the context of the implementation
     }
 
-    function initialize(address admin, address _almProxy) external initializer {
-        require(_almProxy != address(0), "WeEthModule/invalid-alm-proxy");
+    function initialize(address admin, address almProxy_) external initializer {
+        require(almProxy_ != address(0), "WEETHModule/invalid-alm-proxy");
+        require(admin     != address(0), "WEETHModule/invalid-admin");
 
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        almProxy = _almProxy;
+        _getWEETHModuleStorage().almProxy = almProxy_;
     }
 
     // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
@@ -54,7 +70,9 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     /**********************************************************************************************/
 
     function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceived) {
-        require(msg.sender == almProxy, "WeEthModule/invalid-sender");
+        WEETHModuleStorage storage $ = _getWEETHModuleStorage();
+
+        require(msg.sender == $.almProxy, "WeEthModule/invalid-sender");
 
         address eETH               = IWEETHLike(Ethereum.WEETH).eETH();
         address liquidityPool      = IEETHLike(eETH).liquidityPool();
@@ -77,11 +95,15 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         // Wrap ETH to WETH.
         IWETHLike(Ethereum.WETH).deposit{value: ethReceived}();
 
-        IERC20(Ethereum.WETH).safeTransfer(almProxy, ethReceived);
+        IERC20(Ethereum.WETH).safeTransfer($.almProxy, ethReceived);
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
         return this.onERC721Received.selector;
+    }
+
+    function almProxy() public view returns (address) {
+        return _getWEETHModuleStorage().almProxy;
     }
 
     /**********************************************************************************************/
