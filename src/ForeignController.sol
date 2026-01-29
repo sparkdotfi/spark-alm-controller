@@ -390,7 +390,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        require(shares <= maxSharesIn, "FC/max-shares-in-not-met");
+        require(shares <= maxSharesIn, "FC/shares-burned-too-high");
 
         rateLimits.triggerRateLimitIncrease(
             RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),

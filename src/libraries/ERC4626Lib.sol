@@ -69,7 +69,7 @@ library ERC4626Lib {
             (uint256)
         );
 
-        require(shares <= maxSharesIn, "MC/max-shares-in-not-met");
+        require(shares <= maxSharesIn, "MC/shares-burned-too-high");
 
         IRateLimits(rateLimits).triggerRateLimitIncrease(
             RateLimitHelpers.makeAddressKey(depositRateLimitId, token),

@@ -192,14 +192,6 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1e18, 0);
     }
 
-    function test_morpho_deposit_minSharesOutNotMet() external {
-        deal(Base.USDS, address(almProxy), 25_000_000e18);
-
-        vm.prank(relayer);
-        vm.expectRevert("FC/min-shares-out-not-met");
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18, 25_000_000e18 + 1);
-    }
-
     function test_morpho_deposit_minSharesOutNotMetBoundary() external {
         deal(Base.USDS, address(almProxy), 25_000_000e18);
 
@@ -318,30 +310,17 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
         vm.stopPrank();
     }
 
-    function test_morpho_usds_withdraw_maxSharesInNotMet() external {
-        deal(Base.USDS, address(almProxy), 1_000_000e18);
-
-        vm.startPrank(relayer);
-
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18);
-
-        vm.expectRevert("FC/max-shares-in-not-met");
-        foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 0);
-
-        vm.stopPrank();
-    }
-
     function test_morpho_withdraw_maxSharesInNotMetBoundary() external {
         deal(Base.USDS, address(almProxy), 10_000_000e18);
 
-        uint256 underBoundaryShares = usdsVault.convertToShares(10_000_000e18) - 1;
-        uint256 atBoundaryShares    = usdsVault.convertToShares(10_000_000e18);
+        uint256 underBoundaryShares = usdsVault.previewWithdraw(10_000_000e18) - 1;
+        uint256 atBoundaryShares    = usdsVault.previewWithdraw(10_000_000e18);
         
         vm.startPrank(relayer);
 
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 10_000_000e18, 0);
 
-        vm.expectRevert("FC/max-shares-in-not-met");
+        vm.expectRevert("FC/shares-burned-too-high");
         foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 10_000_000e18, underBoundaryShares);
 
         foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 10_000_000e18, atBoundaryShares);

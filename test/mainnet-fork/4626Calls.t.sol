@@ -126,15 +126,6 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(address(susds), 5_000_000e18, 0);
     }
 
-    function test_depositERC4626_minSharesOutNotMet() external {
-        vm.prank(relayer);
-        mainnetController.mintUSDS(1e18);
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/min-shares-out-not-met");
-        mainnetController.depositERC4626(address(susds), 1e18, 1e18);
-    }
-
     function test_depositERC4626_minSharesOutNotMetBoundary() external {
         uint256 overBoundaryShares = susds.convertToShares(5_000_000e18 + 1);
         uint256 atBoundaryShares   = susds.convertToShares(5_000_000e18);
@@ -237,28 +228,16 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
         vm.stopPrank();
     }
 
-    function test_withdrawERC4626_maxSharesInNotMet() external {
-        vm.startPrank(relayer);
-        mainnetController.mintUSDS(2e18);
-        mainnetController.depositERC4626(address(susds), 2e18, 0);
-
-        vm.expectRevert("MC/max-shares-in-not-met");
-        mainnetController.withdrawERC4626(address(susds), 1e18, 0);
-        vm.stopPrank();
-    }
-
     function test_withdrawERC4626_maxSharesInNotMetBoundary() external {
-        // Because of rounding 1_000_000e18 is under boundary, 1_000_000e18 + 1 is at boundary
-
-        uint256 underBoundaryShares = susds.convertToShares(1_000_000e18);
-        uint256 atBoundaryShares    = susds.convertToShares(1_000_000e18 + 1);
+        uint256 underBoundaryShares = susds.previewWithdraw(1_000_000e18) - 1;
+        uint256 atBoundaryShares    = susds.previewWithdraw(1_000_000e18);
 
         vm.startPrank(relayer);
 
         mainnetController.mintUSDS(2_000_000e18);
         mainnetController.depositERC4626(address(susds), 2_000_000e18, 0);
 
-        vm.expectRevert("MC/max-shares-in-not-met");
+        vm.expectRevert("MC/shares-burned-too-high");
         mainnetController.withdrawERC4626(address(susds), 1_000_000e18, underBoundaryShares);
 
         mainnetController.withdrawERC4626(address(susds), 1_000_000e18, atBoundaryShares);
@@ -390,16 +369,6 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
 
         mainnetController.redeemERC4626(address(susds), atBoundaryShares, 1e18);
 
-        vm.stopPrank();
-    }
-
-    function test_redeemERC4626_minAssetsOutNotMet() external {
-        vm.startPrank(relayer);
-        mainnetController.mintUSDS(2e18);
-        mainnetController.depositERC4626(address(susds), 2e18, 0);
-
-        vm.expectRevert("MC/min-assets-out-not-met");
-        mainnetController.redeemERC4626(address(susds), 1e18, 2e18);
         vm.stopPrank();
     }
 
