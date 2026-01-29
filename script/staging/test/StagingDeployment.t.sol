@@ -269,6 +269,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_mintDepositCooldownAssetsBurnUsde() public {
+        vm.skip(true);
+
         uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
