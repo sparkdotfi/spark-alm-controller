@@ -96,13 +96,21 @@ library LayerZeroLib {
     )
         internal returns (uint256)
     {
-        // Query the min amount received on the destination chain and set it.
-        ( , , OFTReceipt memory receipt ) = abi.decode(
+        // Query OFT limits and min amount received on the destination chain,
+        // enforce per-message bounds.
+        ( OFTLimit memory limit, , OFTReceipt memory receipt ) = abi.decode(
             proxy.doCall(
                 oftAddress,
                 abi.encodeCall(ILayerZero.quoteOFT, (sendParams))
             ),
             (OFTLimit, OFTFeeDetail[], OFTReceipt)
+        );
+
+        require(sendParams.amountLD >= limit.minAmountLD, "LayerZeroLib/amount-below-min");
+
+        require(
+            limit.maxAmountLD == 0 || sendParams.amountLD <= limit.maxAmountLD,
+            "LayerZeroLib/amount-above-max"
         );
 
         return receipt.amountReceivedLD;
