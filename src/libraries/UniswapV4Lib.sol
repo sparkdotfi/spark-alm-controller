@@ -539,7 +539,7 @@ library UniswapV4Lib {
     }
 
     function _requirePoolIdMatch(bytes32 poolId, PoolKey memory poolKey) internal pure {
-        require(keccak256(abi.encode(poolKey)) == poolId, "MC/tokenId-poolId-mismatch");
+        require(keccak256(abi.encode(poolKey)) == poolId, "MC/poolKey-poolId-mismatch");
     }
 
 }
