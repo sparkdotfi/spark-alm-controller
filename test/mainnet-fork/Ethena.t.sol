@@ -379,10 +379,11 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
         vm.prank(relayer);
         vm.expectEmit(address(susde));
         emit Withdraw(address(almProxy), silo, address(almProxy), assets, 100e18);
-        mainnetController.cooldownAssetsSUSDe(assets);
+        uint256 returnedShares = mainnetController.cooldownAssetsSUSDe(assets);
 
         _assertReentrancyGuardWrittenToTwice();
 
+        assertEq(returnedShares,                     100e18);
         assertEq(susde.balanceOf(address(almProxy)), 0);
         assertEq(usde.balanceOf(silo),               startingSiloBalance + assets);
     }

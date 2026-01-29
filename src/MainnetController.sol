@@ -824,9 +824,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         ApproveLib.approve(address(usde), address(proxy), address(ethenaMinter), usdeAmount);
     }
 
-    function cooldownAssetsSUSDe(
-        uint256 usdeAmount
-    ) 
+    function cooldownAssetsSUSDe(uint256 usdeAmount)
         external nonReentrant returns (uint256 cooldownShares)
     {
         _checkRole(RELAYER);
