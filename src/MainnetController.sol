@@ -824,12 +824,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function cooldownAssetsSUSDe(
         uint256 usdeAmount
     ) 
-        external nonReentrant returns (uint256 cooldownAmount)
+        external nonReentrant returns (uint256 cooldownShares)
     {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
-        cooldownAmount = abi.decode(
+        cooldownShares = abi.decode(
             proxy.doCall(
                 address(susde),
                 abi.encodeCall(susde.cooldownAssets, (usdeAmount))
@@ -840,11 +840,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     // NOTE: !!! Rate limited at end of function !!!
     function cooldownSharesSUSDe(uint256 susdeAmount)
-        external nonReentrant returns (uint256 cooldownShares)
+        external nonReentrant returns (uint256 cooldownAssets)
     {
         _checkRole(RELAYER);
 
-        cooldownShares = abi.decode(
+        cooldownAssets = abi.decode(
             proxy.doCall(
                 address(susde),
                 abi.encodeCall(susde.cooldownShares, (susdeAmount))
@@ -852,7 +852,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownShares);
+        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAssets);
     }
 
     function unstakeSUSDe() external nonReentrant {
