@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { AccessControlEnumerable }  from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import { AccessControlEnumerableUpgradeable }
+    from "openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
+
+import { UUPSUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
@@ -14,21 +18,28 @@ interface IWithdrawRequestNFTLike {
     function isValid(uint256 requestId) external view returns (bool);
 }
 
-contract WeEthModule is AccessControlEnumerable {
+contract WeEthModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
-    address public immutable almProxy;
+    address public almProxy;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
 
-    constructor(address admin, address _almProxy) {
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address admin, address _almProxy) external initializer {
         require(_almProxy != address(0), "WeEthModule/invalid-alm-proxy");
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
         almProxy = _almProxy;
     }
+
+    // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
+    function _authorizeUpgrade(address) internal view override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /**********************************************************************************************/
     /*** External functions                                                                     ***/
