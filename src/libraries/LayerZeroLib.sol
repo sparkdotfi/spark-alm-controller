@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { ILayerZero, SendParam, OFTReceipt, MessagingFee } from "../interfaces/ILayerZero.sol";
-import { IRateLimits }                                     from "../interfaces/IRateLimits.sol";
-import { IALMProxy }                                       from "../interfaces/IALMProxy.sol";
+import { 
+    ILayerZero,
+    SendParam,
+    OFTReceipt,
+    MessagingFee,
+    OFTLimit,
+    OFTFeeDetail
+} from "../interfaces/ILayerZero.sol";
+
+import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
 
@@ -12,7 +20,7 @@ import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/Optio
 library LayerZeroLib {
 
     using OptionsBuilder for bytes;
-    
+
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
 
     /**********************************************************************************************/
@@ -66,7 +74,14 @@ library LayerZeroLib {
         });
 
         // Query the min amount received on the destination chain and set it.
-        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
+        ( ,, OFTReceipt memory receipt ) = abi.decode(
+            proxy.doCall(
+                oftAddress,
+                abi.encodeCall(ILayerZero.quoteOFT, (sendParams))
+            ),
+            (OFTLimit, OFTFeeDetail[], OFTReceipt)
+        );
+
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
         MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
