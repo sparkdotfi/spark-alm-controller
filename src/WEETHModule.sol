@@ -2,6 +2,7 @@
 pragma solidity ^0.8.21;
 
 import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { SafeERC20 }                from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { AccessControlEnumerableUpgradeable }
     from "openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
@@ -19,6 +20,8 @@ interface IWithdrawRequestNFTLike {
 }
 
 contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
+
+    using SafeERC20 for IERC20;
 
     address public almProxy;
 
@@ -74,7 +77,7 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         // Wrap ETH to WETH.
         IWETHLike(Ethereum.WETH).deposit{value: ethReceived}();
 
-        IERC20(Ethereum.WETH).transfer(almProxy, ethReceived);
+        IERC20(Ethereum.WETH).safeTransfer(almProxy, ethReceived);
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {

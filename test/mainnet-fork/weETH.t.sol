@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { IWEETHLike, IEETHLike } from "../../src/libraries/WEETHLib.sol";
+import { IEETHLike } from "../../src/libraries/WEETHLib.sol";
 
 import { WEETHModule } from "../../src/WEETHModule.sol";
 
@@ -26,6 +26,11 @@ interface IWithdrawRequestNFTLike {
     function invalidateRequest(uint256 requestId) external;
     function ownerOf(uint256 requestId) external view returns (address);
     function roleRegistry() external view returns (address);
+}
+
+interface IWEETHLike is IERC20 {
+    function eETH() external view returns (address);
+    function getEETHByWeETH(uint256 weETHAmount) external view returns (uint256);
 }
 
 contract MainnetControllerWeETHTestBase is ForkTestBase {
