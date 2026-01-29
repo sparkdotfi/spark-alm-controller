@@ -26,7 +26,6 @@ interface ILiquidityPoolLike {
 
 interface IWEETHLike is IERC20 {
     function eETH() external view returns (address);
-    function getEETHByWeETH(uint256 weETHAmount) external view returns (uint256);
     function unwrap(uint256 amount) external returns (uint256);
     function wrap(uint256 amount) external returns (uint256);
 }
