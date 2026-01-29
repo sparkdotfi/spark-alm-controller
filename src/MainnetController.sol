@@ -53,8 +53,8 @@ interface ISparkVaultLike {
 }
 
 interface ISUSDELike is IERC4626 {
-    function cooldownAssets(uint256 usdeAmount) external;
-    function cooldownShares(uint256 susdeAmount) external;
+    function cooldownAssets(uint256 usdeAmount) external returns (uint256);
+    function cooldownShares(uint256 susdeAmount) external returns (uint256);
     function unstake(address receiver) external;
 }
 
@@ -824,23 +824,28 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         ApproveLib.approve(address(usde), address(proxy), address(ethenaMinter), usdeAmount);
     }
 
-    function cooldownAssetsSUSDe(uint256 usdeAmount) external nonReentrant {
+    function cooldownAssetsSUSDe(uint256 usdeAmount)
+        external nonReentrant returns (uint256 cooldownShares)
+    {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
-        proxy.doCall(
-            address(susde),
-            abi.encodeCall(susde.cooldownAssets, (usdeAmount))
+        cooldownShares = abi.decode(
+            proxy.doCall(
+                address(susde),
+                abi.encodeCall(susde.cooldownAssets, (usdeAmount))
+            ),
+            (uint256)
         );
     }
 
     // NOTE: !!! Rate limited at end of function !!!
     function cooldownSharesSUSDe(uint256 susdeAmount)
-        external nonReentrant returns (uint256 cooldownAmount)
+        external nonReentrant returns (uint256 cooldownAssets)
     {
         _checkRole(RELAYER);
 
-        cooldownAmount = abi.decode(
+        cooldownAssets = abi.decode(
             proxy.doCall(
                 address(susde),
                 abi.encodeCall(susde.cooldownShares, (susdeAmount))
@@ -848,7 +853,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
+        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAssets);
     }
 
     function unstakeSUSDe() external nonReentrant {
