@@ -16,15 +16,17 @@ contract OTCBufferTestBase is UnitTestBase {
     address almProxy = makeAddr("almProxy");
 
     function setUp() public {
-        buffer = OTCBuffer(address(
-                    new ERC1967Proxy(
-                        address(new OTCBuffer()),
-                        abi.encodeCall(
-                            OTCBuffer.initialize,
-                            (admin, almProxy)
-                        )
+        buffer = OTCBuffer(
+            address(
+                new ERC1967Proxy(
+                    address(new OTCBuffer()),
+                    abi.encodeCall(
+                        OTCBuffer.initialize,
+                        (admin, almProxy)
                     )
-                ));
+                )
+            )
+        );
 
         usdt   = new ERC20Mock();
     }
@@ -33,19 +35,38 @@ contract OTCBufferTestBase is UnitTestBase {
 
 contract OTCBufferInitializeTests is OTCBufferTestBase {
 
-    function test_initialize_invalidAlmProxy() public {
+    function test_initialize_invalidAdmin() public {
         address otcBuffer = address(new OTCBuffer());
-        
-        vm.expectRevert("OTCBuffer/invalid-alm-proxy");
-        OTCBuffer(address(
-            new ERC1967Proxy(
-                otcBuffer,
-                abi.encodeCall(
-                    OTCBuffer.initialize,
-                    (admin, address(0))
+
+        vm.expectRevert("OTCBuffer/invalid-admin");
+        OTCBuffer(
+            address(
+                new ERC1967Proxy(
+                    otcBuffer,
+                    abi.encodeCall(
+                        OTCBuffer.initialize,
+                        (address(0), almProxy)
+                    )
                 )
             )
-        ));
+        );
+    }
+
+    function test_initialize_invalidAlmProxy() public {
+        address otcBuffer = address(new OTCBuffer());
+
+        vm.expectRevert("OTCBuffer/invalid-alm-proxy");
+        OTCBuffer(
+            address(
+                new ERC1967Proxy(
+                    otcBuffer,
+                    abi.encodeCall(
+                        OTCBuffer.initialize,
+                        (admin, address(0))
+                    )
+                )
+            )
+        );
     }
 
     function test_initialize() public {
@@ -53,7 +74,8 @@ contract OTCBufferInitializeTests is OTCBufferTestBase {
 
         address newAdmin = makeAddr("new-admin");
 
-        OTCBuffer newBuffer = OTCBuffer(address(
+        OTCBuffer newBuffer = OTCBuffer(
+            address(
                 new ERC1967Proxy(
                     address(new OTCBuffer()),
                     abi.encodeCall(
@@ -61,7 +83,8 @@ contract OTCBufferInitializeTests is OTCBufferTestBase {
                         (newAdmin, almProxy)
                     )
                 )
-            ));
+            )
+        );
 
         assertEq(newBuffer.hasRole(DEFAULT_ADMIN_ROLE, newAdmin), true);
     }

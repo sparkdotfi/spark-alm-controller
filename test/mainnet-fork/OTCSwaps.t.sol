@@ -56,7 +56,8 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        otcBuffer = OTCBuffer(address(
+        otcBuffer = OTCBuffer(
+            address(
                 new ERC1967Proxy(
                     address(new OTCBuffer()),
                     abi.encodeCall(
@@ -64,7 +65,8 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
                         (Ethereum.SPARK_PROXY, address(almProxy))
                     )
                 )
-            ));
+            )
+        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         otcBuffer.approve(address(usdt), type(uint256).max);

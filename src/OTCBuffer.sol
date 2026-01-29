@@ -22,15 +22,16 @@ contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(address admin, address _almProxy) external initializer {
-        require(_almProxy != address(0), "OTCBuffer/invalid-alm-proxy");
+    function initialize(address admin, address almProxy_) external initializer {
+        require(admin     != address(0), "OTCBuffer/invalid-admin");
+        require(almProxy_ != address(0), "OTCBuffer/invalid-alm-proxy");
 
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        almProxy = _almProxy;
+        almProxy = almProxy_;
     }
 
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
