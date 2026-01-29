@@ -173,7 +173,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         deal(relayer, fee.nativeFee);
 
         vm.prank(relayer);
-        vm.expectRevert("recipient-not-set");
+        vm.expectRevert("LayerZeroLib/recipient-not-set");
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
@@ -540,7 +540,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         deal(relayer, fee.nativeFee);
 
         vm.prank(relayer);
-        vm.expectRevert("recipient-not-set");
+        vm.expectRevert("LayerZeroLib/recipient-not-set");
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
