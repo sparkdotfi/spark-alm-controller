@@ -18,6 +18,7 @@ library ERC4626Lib {
         address proxy,
         address token,
         uint256 amount,
+        uint256 minSharesOut,
         uint256 maxExchangeRate,
         address rateLimits,
         bytes32 rateLimitId
@@ -39,6 +40,8 @@ library ERC4626Lib {
             (uint256)
         );
 
+        require(shares >= minSharesOut, "MC/min-shares-out-not-met");
+
         require(getExchangeRate(shares, amount) <= maxExchangeRate, "MC/exchange-rate-too-high");
     }
 
@@ -46,6 +49,7 @@ library ERC4626Lib {
         address proxy,
         address token,
         uint256 amount,
+        uint256 maxSharesIn,
         address rateLimits,
         bytes32 withdrawRateLimitId,
         bytes32 depositRateLimitId
@@ -65,6 +69,8 @@ library ERC4626Lib {
             (uint256)
         );
 
+        require(shares <= maxSharesIn, "MC/shares-burned-too-high");
+
         IRateLimits(rateLimits).triggerRateLimitIncrease(
             RateLimitHelpers.makeAddressKey(depositRateLimitId, token),
             amount
@@ -75,6 +81,7 @@ library ERC4626Lib {
         address proxy,
         address token,
         uint256 shares,
+        uint256 minAssetsOut,
         address rateLimits,
         bytes32 withdrawRateLimitId,
         bytes32 depositRateLimitId
@@ -88,6 +95,8 @@ library ERC4626Lib {
             ),
             (uint256)
         );
+
+        require(assets >= minAssetsOut, "MC/min-assets-out-not-met");
 
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressKey(withdrawRateLimitId, token),

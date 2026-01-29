@@ -93,7 +93,7 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
 
         vm.prank(relayer);
         vm.expectRevert("MC/exchange-rate-too-high");
-        mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
+        mainnetController.depositERC4626(address(morphoVault), 2_000_000e18, 0);
     }
 
     function test_depositERC4626_donationAttackSuccess() external {
@@ -105,7 +105,11 @@ contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
         _doAttack();
 
         vm.prank(relayer);
-        uint256 shares = mainnetController.depositERC4626(address(morphoVault), 2_000_000e18);
+        uint256 shares = mainnetController.depositERC4626(
+            address(morphoVault),
+            2_000_000e18,
+            0
+        );
 
         // One can compute:
         // shares == assets * (totalSupply + 1) / (totalAssets + 1)

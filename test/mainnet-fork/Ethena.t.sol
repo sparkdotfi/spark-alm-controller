@@ -728,7 +728,7 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 5_000_000e18);
 
         vm.prank(relayer);
-        mainnetController.depositERC4626(address(susde), 500_000e18);
+        mainnetController.depositERC4626(address(susde), 500_000e18, 0);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 4_500_000e18);
 
@@ -845,7 +845,7 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 5_000_000e18);
 
         vm.prank(relayer);
-        uint256 susdeShares = mainnetController.depositERC4626(address(susde), 500_000e18);
+        uint256 susdeShares = mainnetController.depositERC4626(address(susde), 500_000e18, 0);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 4_500_000e18);
 

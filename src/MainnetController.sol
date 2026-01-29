@@ -539,7 +539,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Relayer ERC4626 functions                                                              ***/
     /**********************************************************************************************/
 
-    function depositERC4626(address token, uint256 amount)
+    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
@@ -548,13 +548,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy           : address(proxy),
             token           : token,
             amount          : amount,
+            minSharesOut    : minSharesOut,
             maxExchangeRate : maxExchangeRates[token],
             rateLimits      : address(rateLimits),
             rateLimitId     : LIMIT_4626_DEPOSIT
         });
     }
 
-    function withdrawERC4626(address token, uint256 amount)
+    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
@@ -563,13 +564,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy               : address(proxy),
             token               : token,
             amount              : amount,
+            maxSharesIn         : maxSharesIn,
             rateLimits          : address(rateLimits),
             withdrawRateLimitId : LIMIT_4626_WITHDRAW,
             depositRateLimitId  : LIMIT_4626_DEPOSIT
         });
     }
 
-    function redeemERC4626(address token, uint256 shares)
+    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
         external nonReentrant returns (uint256 assets)
     {
         _checkRole(RELAYER);
@@ -578,6 +580,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy               : address(proxy),
             token               : token,
             shares              : shares,
+            minAssetsOut        : minAssetsOut,
             rateLimits          : address(rateLimits),
             withdrawRateLimitId : LIMIT_4626_WITHDRAW,
             depositRateLimitId  : LIMIT_4626_DEPOSIT
