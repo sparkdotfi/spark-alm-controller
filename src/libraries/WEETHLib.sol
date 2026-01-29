@@ -40,7 +40,7 @@ interface IWETHLike {
     function withdraw(uint256 amount) external;
 }
 
-library WeETHLib {
+library WEETHLib {
 
     bytes32 public constant LIMIT_WEETH_CLAIM_WITHDRAW   = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
     bytes32 public constant LIMIT_WEETH_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
@@ -53,7 +53,8 @@ library WeETHLib {
     function deposit(
         IALMProxy   proxy,
         IRateLimits rateLimits,
-        uint256     amount
+        uint256     amount,
+        uint256     minSharesOut
     ) external returns (uint256 shares) {
         _rateLimited(rateLimits, LIMIT_WEETH_DEPOSIT, amount);
 
@@ -88,6 +89,8 @@ library WeETHLib {
             ),
             (uint256)
         );
+
+        require(shares >= minSharesOut, "MC/slippage-too-high");
     }
 
     function requestWithdraw(

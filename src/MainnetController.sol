@@ -24,7 +24,7 @@ import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
-import { WeETHLib }                       from "./libraries/WeETHLib.sol";
+import { WEETHLib }                       from "./libraries/WEETHLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -165,9 +165,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
     bytes32 public LIMIT_USDS_TO_USDC            = keccak256("LIMIT_USDS_TO_USDC");
-    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = WeETHLib.LIMIT_WEETH_CLAIM_WITHDRAW;
-    bytes32 public LIMIT_WEETH_DEPOSIT           = WeETHLib.LIMIT_WEETH_DEPOSIT;
-    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WeETHLib.LIMIT_WEETH_REQUEST_WITHDRAW;
+    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = WEETHLib.LIMIT_WEETH_CLAIM_WITHDRAW;
+    bytes32 public LIMIT_WEETH_DEPOSIT           = WEETHLib.LIMIT_WEETH_DEPOSIT;
+    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WEETHLib.LIMIT_WEETH_REQUEST_WITHDRAW;
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
@@ -281,7 +281,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         // Prevent rotating buffer while a swap is pending and not ready
         require(otc.sentTimestamp == 0 || isOtcSwapReady(exchange), "MC/swap-in-progress");
- 
+
         emit OTCBufferSet(exchange, otc.buffer, otcBuffer);
         otc.buffer = otcBuffer;
     }
@@ -493,13 +493,19 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** weETH Integration                                                                      ***/
     /**********************************************************************************************/
 
-    function depositToWeETH(uint256 amount) external nonReentrant returns (uint256 shares) {
+    function depositToWeETH(
+        uint256 amount,
+        uint256 minSharesOut
+    )
+        external nonReentrant returns (uint256 shares)
+    {
         _checkRole(RELAYER);
 
-        shares = WeETHLib.deposit({
-            proxy       : proxy,
-            rateLimits  : rateLimits,
-            amount      : amount
+        shares = WEETHLib.deposit({
+            proxy        : proxy,
+            rateLimits   : rateLimits,
+            amount       : amount,
+            minSharesOut : minSharesOut
         });
     }
 
@@ -511,7 +517,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(RELAYER);
 
-        requestId = WeETHLib.requestWithdraw({
+        requestId = WEETHLib.requestWithdraw({
             proxy       : proxy,
             rateLimits  : rateLimits,
             weETHShares : weETHShares,
@@ -527,7 +533,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(RELAYER);
 
-        ethReceived = WeETHLib.claimWithdrawal({
+        ethReceived = WEETHLib.claimWithdrawal({
             proxy       : proxy,
             rateLimits  : rateLimits,
             requestId   : requestId,
