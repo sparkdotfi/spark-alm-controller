@@ -22,6 +22,8 @@ contract WeEthModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     address public almProxy;
 
+    uint256[49] private __gap;
+
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
@@ -32,6 +34,9 @@ contract WeEthModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     function initialize(address admin, address _almProxy) external initializer {
         require(_almProxy != address(0), "WeEthModule/invalid-alm-proxy");
+
+        __AccessControlEnumerable_init();
+        __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 

@@ -22,10 +22,6 @@ interface IWithdrawRequestNFTLike {
     function roleRegistry() external view returns (address);
 }
 
-interface IWeEthModuleLike {
-    function initialize(address admin, address _almProxy) external;
-}
-
 contract MainnetControllerWeETHTestBase is ForkTestBase {
 
     IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
