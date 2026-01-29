@@ -201,7 +201,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "FC/transfer-failed"
         );
     }
@@ -496,7 +496,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             // decode it first
             approveCallReturnData = abi.decode(data, (bytes));
             // Approve was successful if 1) no return value or 2) true return value
-            if (approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool))) {
+            if (
+                approveCallReturnData.length == 0 ||
+                (approveCallReturnData.length == 32 && abi.decode(approveCallReturnData, (bool)))
+            ) {
                 return;
             }
         }
@@ -508,7 +511,9 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         // Revert if approve returns false
         require(
-            approveCallReturnData.length == 0 || abi.decode(approveCallReturnData, (bool)),
+            approveCallReturnData.length == 0 ||
+            (approveCallReturnData.length == 32 && abi.decode(approveCallReturnData, (bool))
+        ),
             "FC/approve-failed"
         );
     }
