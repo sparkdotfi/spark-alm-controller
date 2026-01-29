@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ERC1967Proxy }                  from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20Mock }                     from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 import { IERC20Metadata }                from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IERC20 as OzIERC20, SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -55,7 +56,17 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        otcBuffer = new OTCBuffer(Ethereum.SPARK_PROXY, address(almProxy));
+        otcBuffer = OTCBuffer(
+            address(
+                new ERC1967Proxy(
+                    address(new OTCBuffer()),
+                    abi.encodeCall(
+                        OTCBuffer.initialize,
+                        (Ethereum.SPARK_PROXY, address(almProxy))
+                    )
+                )
+            )
+        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         otcBuffer.approve(address(usdt), type(uint256).max);
