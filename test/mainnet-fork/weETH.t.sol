@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IWEETHLike, IEETHLike } from "../../src/libraries/WEETHLib.sol";
+import { IEETHLike } from "../../src/libraries/WEETHLib.sol";
 
 import { WEETHModule } from "../../src/WEETHModule.sol";
 
@@ -24,6 +24,11 @@ interface IWithdrawRequestNFTLike {
     function invalidateRequest(uint256 requestId) external;
     function ownerOf(uint256 requestId) external view returns (address);
     function roleRegistry() external view returns (address);
+}
+
+interface IWEETHLike is IERC20 {
+    function eETH() external view returns (address);
+    function getEETHByWeETH(uint256 weETHAmount) external view returns (uint256);
 }
 
 contract MainnetControllerWeETHTestBase is ForkTestBase {
