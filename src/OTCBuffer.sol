@@ -1,27 +1,39 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { AccessControlEnumerable }  from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 }                from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { UUPSUpgradeable }          from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract OTCBuffer is AccessControlEnumerable {
+import { AccessControlEnumerableUpgradeable } 
+    from "openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
+
+contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     using SafeERC20 for IERC20;
 
-    address public immutable almProxy;
+    address public almProxy;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
 
-    constructor(address admin, address _almProxy) {
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address admin, address _almProxy) external initializer {
         require(_almProxy != address(0), "OTCBuffer/invalid-alm-proxy");
+
+        __AccessControlEnumerable_init();
+        __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
         almProxy = _almProxy;
     }
+
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /**********************************************************************************************/
     /*** Call functions                                                                         ***/
