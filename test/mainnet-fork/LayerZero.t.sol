@@ -676,11 +676,11 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
     function test_transferTokenLayerZero_OFTLimitBoundary() external {
         bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
-        vm.startPrank(SPARK_PROXY);
+        vm.startPrank(SPARK_EXECUTOR);
 
-        rateLimits.setRateLimitData(
+        foreignRateLimits.setRateLimitData(
             keccak256(abi.encode(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+                foreignController.LIMIT_LAYERZERO_TRANSFER(),
                 USDT_OFT,
                 destinationEndpointId
             )),
@@ -688,12 +688,12 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
             0
         );
 
-        mainnetController.setLayerZeroRecipient(destinationEndpointId, target);
+        foreignController.setLayerZeroRecipient(destinationEndpointId, target);
 
         vm.stopPrank();
 
         // Setup token balances
-        deal(address(usdt), address(almProxy), type(uint256).max);
+        deal(address(USDT0), address(foreignAlmProxy), type(uint256).max);
         deal(relayer, 1 ether);  // Gas cost for LayerZero
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
@@ -720,7 +720,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
         vm.prank(relayer);
         vm.expectRevert("LayerZeroLib/amount-above-max");
-        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             limits.maxAmountLD + 1, 
             destinationEndpointId
@@ -741,7 +741,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
         vm.prank(relayer);
-        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             limits.minAmountLD,
             destinationEndpointId
@@ -762,7 +762,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
 
         vm.prank(relayer);
-        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             limits.maxAmountLD,
             destinationEndpointId
