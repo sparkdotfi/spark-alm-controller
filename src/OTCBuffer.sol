@@ -39,16 +39,16 @@ contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         _disableInitializers();  // Avoid initializing in the context of the implementation
     }
 
-    function initialize(address admin, address almProxy) external initializer {
+    function initialize(address admin, address almProxy_) external initializer {
         require(admin     != address(0), "OTCBuffer/invalid-admin");
-        require(almProxy  != address(0), "OTCBuffer/invalid-alm-proxy");
+        require(almProxy_ != address(0), "OTCBuffer/invalid-alm-proxy");
 
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
 
-        _getOTCBufferStorage().almProxy = almProxy;
+        _getOTCBufferStorage().almProxy = almProxy_;
     }
 
     // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
@@ -61,10 +61,10 @@ contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     function approve(address asset, uint256 allowance)
         external onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        IERC20(asset).forceApprove(_getOTCBufferStorage().almProxy, allowance);
+        IERC20(asset).forceApprove(almProxy(), allowance);
     }
 
-    function almProxy() external view returns (address) {
+    function almProxy() public view returns (address) {
         return _getOTCBufferStorage().almProxy;
     }
 

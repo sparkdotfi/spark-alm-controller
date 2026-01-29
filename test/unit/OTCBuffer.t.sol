@@ -67,18 +67,13 @@ contract OTCBufferInitializeTests is OTCBufferTestBase {
     }
 
     function test_initialize_cannotInitializeImplementation() public {
-        OTCBuffer newBuffer = OTCBuffer(
-            address(new OTCBuffer())
-        );
+        OTCBuffer newBuffer = new OTCBuffer();
 
         vm.expectRevert("InvalidInitialization()");
         newBuffer.initialize(admin, almProxy);
     }
 
     function test_initialize() public {
-        assertEq(buffer.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
-        assertEq(buffer.almProxy(),                         almProxy);
-
         address newAdmin = makeAddr("new-admin");
 
         OTCBuffer newBuffer = OTCBuffer(
