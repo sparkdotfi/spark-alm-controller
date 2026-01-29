@@ -524,7 +524,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(USDT_OFT, 1e6, destinationEndpointId);
     }
 
-    function test_transferTokenLayerZero_rateLimitedBoundary_xxx() external {
+    function test_transferTokenLayerZero_rateLimitedBoundary() external {
         vm.startPrank(SPARK_EXECUTOR);
 
         foreignRateLimits.setRateLimitData(
