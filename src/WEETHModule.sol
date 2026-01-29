@@ -70,9 +70,7 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     /**********************************************************************************************/
 
     function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceived) {
-        WEETHModuleStorage storage $ = _getWEETHModuleStorage();
-
-        require(msg.sender == $.almProxy, "WeEthModule/invalid-sender");
+        require(msg.sender == almProxy(), "WeEthModule/invalid-sender");
 
         address eETH               = IWEETHLike(Ethereum.WEETH).eETH();
         address liquidityPool      = IEETHLike(eETH).liquidityPool();
@@ -95,7 +93,7 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         // Wrap ETH to WETH.
         IWETHLike(Ethereum.WETH).deposit{value: ethReceived}();
 
-        IERC20(Ethereum.WETH).safeTransfer($.almProxy, ethReceived);
+        IERC20(Ethereum.WETH).safeTransfer(msg.sender, ethReceived);
     }
 
     function onERC721Received(address, address, uint256, bytes calldata) external returns (bytes4) {
