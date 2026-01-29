@@ -3,7 +3,8 @@ pragma solidity ^0.8.21;
 
 import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { SafeERC20 }                from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { UUPSUpgradeable }          from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+
+import { UUPSUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { AccessControlEnumerableUpgradeable } 
     from "openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
@@ -19,7 +20,7 @@ contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     /**********************************************************************************************/
 
     constructor() {
-        _disableInitializers();
+        _disableInitializers();  // Avoid initializing in the context of the implementation
     }
 
     function initialize(address admin, address almProxy_) external initializer {
@@ -34,6 +35,7 @@ contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         almProxy = almProxy_;
     }
 
+    // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /**********************************************************************************************/

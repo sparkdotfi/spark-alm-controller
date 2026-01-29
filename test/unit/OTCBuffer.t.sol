@@ -28,7 +28,7 @@ contract OTCBufferTestBase is UnitTestBase {
             )
         );
 
-        usdt   = new ERC20Mock();
+        usdt = new ERC20Mock();
     }
 
 }
@@ -39,15 +39,11 @@ contract OTCBufferInitializeTests is OTCBufferTestBase {
         address otcBuffer = address(new OTCBuffer());
 
         vm.expectRevert("OTCBuffer/invalid-admin");
-        OTCBuffer(
-            address(
-                new ERC1967Proxy(
-                    otcBuffer,
-                    abi.encodeCall(
-                        OTCBuffer.initialize,
-                        (address(0), almProxy)
-                    )
-                )
+        new ERC1967Proxy(
+            otcBuffer,
+            abi.encodeCall(
+                OTCBuffer.initialize,
+                (address(0), almProxy)
             )
         );
     }
@@ -56,17 +52,27 @@ contract OTCBufferInitializeTests is OTCBufferTestBase {
         address otcBuffer = address(new OTCBuffer());
 
         vm.expectRevert("OTCBuffer/invalid-alm-proxy");
-        OTCBuffer(
-            address(
-                new ERC1967Proxy(
-                    otcBuffer,
-                    abi.encodeCall(
-                        OTCBuffer.initialize,
-                        (admin, address(0))
-                    )
-                )
+        new ERC1967Proxy(
+            otcBuffer,
+            abi.encodeCall(
+                OTCBuffer.initialize,
+                (admin, address(0))
             )
         );
+    }
+
+    function test_initialize_cannotInitializeTwice() public {
+        vm.expectRevert("InvalidInitialization()");
+        buffer.initialize(admin, almProxy);
+    }
+
+    function test_initialize_cannotInitializeImplementation() public {
+        OTCBuffer newBuffer = OTCBuffer(
+            address(new OTCBuffer())
+        );
+
+        vm.expectRevert("InvalidInitialization()");
+        newBuffer.initialize(admin, almProxy);
     }
 
     function test_initialize() public {
