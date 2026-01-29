@@ -44,8 +44,8 @@ contract WrapEthSuccessTests is WrapEthTestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(weth.balanceOf(address(almProxy)), initialWethBalance);
         assertEq(address(almProxy).balance,         0);
+        assertEq(weth.balanceOf(address(almProxy)), initialWethBalance);
     }
 
     function test_wrapAllProxyETH() external {
