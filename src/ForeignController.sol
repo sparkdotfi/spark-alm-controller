@@ -16,6 +16,8 @@ import { IERC4626 } from "../lib/openzeppelin-contracts/contracts/interfaces/IER
 
 import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
 
+import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
+
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
@@ -68,7 +70,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
     bytes32 public constant LIMIT_ASSET_TRANSFER     = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public constant LIMIT_LAYERZERO_TRANSFER = LayerZeroLib.LIMIT_LAYERZERO_TRANSFER;
     bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
     bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = keccak256("LIMIT_SPARK_VAULT_TAKE");
@@ -301,52 +303,22 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         payable
         nonReentrant
         onlyRole(RELAYER)
-        rateLimited(
-            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
-            amount
-        )
     {
-        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
-
-        require(recipient != bytes32(0), "FC/recipient-not-set");
-
-        // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == true. Add integration testing for this case before
-        //       using in production.
-        if (ILayerZero(oftAddress).approvalRequired()) {
-            _approve(ILayerZero(oftAddress).token(), oftAddress, amount);
-        }
-
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        SendParam memory sendParams = SendParam({
-            dstEid       : destinationEndpointId,
-            to           : recipient,
-            amountLD     : amount,
-            minAmountLD  : 0,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
+        LayerZeroLib.transferTokenLayerZero({
+            proxy                 : proxy,
+            rateLimits            : rateLimits,
+            oftAddress            : oftAddress,
+            amount                : amount,
+            destinationEndpointId : destinationEndpointId,
+            layerZeroRecipient    : layerZeroRecipients[destinationEndpointId]
         });
-
-        // Query the min amount received on the destination chain and set it.
-        ( ,, OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
-        sendParams.minAmountLD = receipt.amountReceivedLD;
-
-        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
-
-        proxy.doCallWithValue{value: fee.nativeFee}(
-            oftAddress,
-            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
-            fee.nativeFee
-        );
     }
 
     /**********************************************************************************************/
     /*** Relayer ERC4626 functions                                                              ***/
     /**********************************************************************************************/
 
-    function depositERC4626(address token, uint256 amount)
+    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -365,13 +337,15 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
+        require(shares >= minSharesOut, "FC/min-shares-out-not-met");
+
         require(
             _getExchangeRate(shares, amount) <= maxExchangeRates[token],
             "FC/exchange-rate-too-high"
         );
     }
 
-    function withdrawERC4626(address token, uint256 amount)
+    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -388,6 +362,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
+        require(shares <= maxSharesIn, "FC/shares-burned-too-high");
+
         rateLimits.triggerRateLimitIncrease(
             RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             amount
@@ -395,7 +371,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     // NOTE: !!! Rate limited at end of function !!!
-    function redeemERC4626(address token, uint256 shares)
+    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
         external nonReentrant onlyRole(RELAYER) returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
@@ -407,6 +383,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             ),
             (uint256)
         );
+
+        require(assets >= minAssetsOut, "FC/min-assets-out-not-met");
 
         rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
