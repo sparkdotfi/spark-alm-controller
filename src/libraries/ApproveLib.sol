@@ -22,7 +22,10 @@ library ApproveLib {
             returnData = abi.decode(data, (bytes));
 
             // Approve was successful if 1) no return value or 2) true return value.
-            if (returnData.length == 0 || abi.decode(returnData, (bool))) return;
+            if (
+                returnData.length == 0 ||
+                (returnData.length == 32 && abi.decode(returnData, (bool)))
+            ) return;
         }
 
         // If call was unsuccessful, set to zero and try again.
@@ -31,7 +34,10 @@ library ApproveLib {
         returnData = IALMProxy(proxy).doCall(token, approveData);
 
         // Revert if approve returns false.
-        require(returnData.length == 0 || abi.decode(returnData, (bool)), "MC/approve-failed");
+        require(
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
+            "MC/approve-failed"
+        );
     }
 
 }

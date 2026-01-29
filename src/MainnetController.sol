@@ -1158,7 +1158,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "MC/transfer-failed"
         );
     }
@@ -1175,7 +1175,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "MC/transferFrom-failed"
         );
     }

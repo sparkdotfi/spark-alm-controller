@@ -280,7 +280,8 @@ library UniswapV4Lib {
 
             // Revert if approve returns anything, and that anything is not `true`.
             require(
-                approveResult.length == 0 || abi.decode(approveResult, (bool)),
+                approveResult.length == 0 ||
+                (approveResult.length == 32 && abi.decode(approveResult, (bool))),
                 "MC/permit2-approve-failed"
             );
         }
@@ -539,7 +540,7 @@ library UniswapV4Lib {
     }
 
     function _requirePoolIdMatch(bytes32 poolId, PoolKey memory poolKey) internal pure {
-        require(keccak256(abi.encode(poolKey)) == poolId, "MC/tokenId-poolId-mismatch");
+        require(keccak256(abi.encode(poolKey)) == poolId, "MC/poolKey-poolId-mismatch");
     }
 
 }
