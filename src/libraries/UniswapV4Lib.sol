@@ -418,10 +418,11 @@ library UniswapV4Lib {
     {
         bytes memory actions = abi.encodePacked(
             uint8(Actions.MINT_POSITION),
-            uint8(Actions.SETTLE_PAIR)
+            uint8(Actions.CLOSE_CURRENCY),
+            uint8(Actions.CLOSE_CURRENCY)
         );
 
-        bytes[] memory params = new bytes[](2);
+        bytes[] memory params = new bytes[](3);
 
         params[0] = abi.encode(
             poolKey,             // Which pool to mint in
@@ -434,10 +435,8 @@ library UniswapV4Lib {
             ""                   // No hook data needed
         );
 
-        params[1] = abi.encode(
-            poolKey.currency0,  // First token to settle
-            poolKey.currency1   // Second token to settle
-        );
+        params[1] = abi.encode(poolKey.currency0); // First token to close
+        params[2] = abi.encode(poolKey.currency1); // Second token to close
 
         return _getModifyLiquiditiesCallData(actions, params);
     }
