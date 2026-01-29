@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { IWEETHLike, IEETHLike } from "../../src/libraries/WeETHLib.sol";
+import { IWEETHLike, IEETHLike } from "../../src/libraries/WEETHLib.sol";
 
 import { WEETHModule } from "../../src/WEETHModule.sol";
 
