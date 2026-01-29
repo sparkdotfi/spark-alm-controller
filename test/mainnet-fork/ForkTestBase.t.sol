@@ -43,8 +43,8 @@ interface IBufferLike {
 }
 
 interface ISUSDELike is IERC4626 {
-    function cooldownAssets(uint256 usdeAmount) external;
-    function cooldownShares(uint256 susdeAmount) external;
+    function cooldownAssets(uint256 usdeAmount) external returns (uint256);
+    function cooldownShares(uint256 susdeAmount) external returns (uint256);
     function unstake(address receiver) external;
     function silo() external view returns(address);
 }
