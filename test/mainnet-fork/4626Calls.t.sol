@@ -127,7 +127,7 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
     }
 
     function test_depositERC4626_minSharesOutNotMetBoundary() external {
-        uint256 overBoundaryShares = susds.convertToShares(5_000_000e18 + 1);
+        uint256 overBoundaryShares = susds.convertToShares(5_000_000e18) + 1;
         uint256 atBoundaryShares   = susds.convertToShares(5_000_000e18);
 
         vm.startPrank(relayer);
@@ -138,6 +138,7 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
         mainnetController.depositERC4626(address(susds), 5_000_000e18, overBoundaryShares);
 
         mainnetController.depositERC4626(address(susds), 5_000_000e18, atBoundaryShares);
+
         vm.stopPrank();
     }
 
@@ -211,9 +212,8 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
     }
 
     function test_withdrawERC4626_rateLimitBoundary() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 10_000_000e18, uint256(1_000_000e18) / 4 hours);
-        vm.stopPrank();
 
         vm.startPrank(relayer);
 
@@ -241,6 +241,7 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
         mainnetController.withdrawERC4626(address(susds), 1_000_000e18, underBoundaryShares);
 
         mainnetController.withdrawERC4626(address(susds), 1_000_000e18, atBoundaryShares);
+
         vm.stopPrank();
     }
 
@@ -349,9 +350,8 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
     }
 
     function test_redeemERC4626_rateLimitBoundary() external {
-        vm.startPrank(Ethereum.SPARK_PROXY);
+        vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 10_000_000e18, uint256(1_000_000e18) / 4 hours);
-        vm.stopPrank();
 
         vm.startPrank(relayer);
 
@@ -387,6 +387,7 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
         mainnetController.redeemERC4626(address(susds), shares, overBoundaryAssets);
 
         mainnetController.redeemERC4626(address(susds), shares, atBoundaryAssets);
+
         vm.stopPrank();
     }
 

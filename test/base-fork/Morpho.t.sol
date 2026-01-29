@@ -195,7 +195,7 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
     function test_morpho_deposit_minSharesOutNotMetBoundary() external {
         deal(Base.USDS, address(almProxy), 25_000_000e18);
 
-        uint256 overBoundaryShares = usdsVault.convertToShares(25_000_000e18 + 1);
+        uint256 overBoundaryShares = usdsVault.convertToShares(25_000_000e18) + 1;
         uint256 atBoundaryShares   = usdsVault.convertToShares(25_000_000e18);
 
         vm.startPrank(relayer);
@@ -324,6 +324,7 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
         foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 10_000_000e18, underBoundaryShares);
 
         foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 10_000_000e18, atBoundaryShares);
+
         vm.stopPrank();
     }
 
@@ -494,19 +495,6 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
         vm.stopPrank();
     }
 
-    function test_morpho_usds_redeem_minAssetsOutNotMet() external {
-        deal(Base.USDS, address(almProxy), 1_000_000e18);
-
-        vm.startPrank(relayer);
-
-        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18);
-
-        vm.expectRevert("FC/min-assets-out-not-met");
-        foreignController.redeemERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18 + 1);
-
-        vm.stopPrank();
-    }
-
     function test_morpho_redeem_minAssetsOutNotMetBoundary() external {
         deal(Base.USDS, address(almProxy), 10_000_000e18);
 
@@ -521,6 +509,7 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 10_000_000e18, overBoundaryAssets);
 
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 10_000_000e18, atBoundaryAssets);
+        
         vm.stopPrank();
     }
 
