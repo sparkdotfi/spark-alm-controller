@@ -1165,7 +1165,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
         vm.prank(relayer);
-        vm.expectRevert("MC/tokenId-poolId-mismatch");
+        vm.expectRevert("MC/poolKey-poolId-mismatch");
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : bytes32(0),
             tokenId           : minted.tokenId,
@@ -1421,7 +1421,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
         vm.prank(relayer);
-        vm.expectRevert("MC/tokenId-poolId-mismatch");
+        vm.expectRevert("MC/poolKey-poolId-mismatch");
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : bytes32(0),
             tokenId           : minted.tokenId,
@@ -2934,7 +2934,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
         vm.prank(relayer);
-        vm.expectRevert("MC/tokenId-poolId-mismatch");
+        vm.expectRevert("MC/poolKey-poolId-mismatch");
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : bytes32(0),
             tokenId           : minted.tokenId,
@@ -3220,7 +3220,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
         vm.prank(relayer);
-        vm.expectRevert("MC/tokenId-poolId-mismatch");
+        vm.expectRevert("MC/poolKey-poolId-mismatch");
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : bytes32(0),
             tokenId           : minted.tokenId,

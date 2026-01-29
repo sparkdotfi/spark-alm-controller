@@ -3,6 +3,8 @@ pragma solidity >=0.8.0;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 import { IEETHLike } from "../../src/libraries/WEETHLib.sol";
 
 import { WEETHModule } from "../../src/WEETHModule.sol";
@@ -50,7 +52,15 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
         eETH          = IEETHLike(address(IWEETHLike(Ethereum.WEETH).eETH()));
         liquidityPool = ILiquidityPoolLike(IEETHLike(eETH).liquidityPool());
 
-        weETHModule = address(new WEETHModule(Ethereum.SPARK_PROXY, address(almProxy)));
+        weETHModule = address(
+            new ERC1967Proxy(
+                address(new WEETHModule()),
+                abi.encodeCall(
+                    WEETHModule.initialize,
+                    (Ethereum.SPARK_PROXY, address(almProxy))
+                )
+            )
+        );
     }
 
     function _getBlock() internal override pure returns (uint256) {
