@@ -77,6 +77,7 @@ contract OTCBufferInitializeTests is OTCBufferTestBase {
 
     function test_initialize() public {
         assertEq(buffer.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+        assertEq(buffer.almProxy(),                         almProxy);
 
         address newAdmin = makeAddr("new-admin");
 
@@ -93,6 +94,7 @@ contract OTCBufferInitializeTests is OTCBufferTestBase {
         );
 
         assertEq(newBuffer.hasRole(DEFAULT_ADMIN_ROLE, newAdmin), true);
+        assertEq(newBuffer.almProxy(),                            almProxy);
     }
 
 }
