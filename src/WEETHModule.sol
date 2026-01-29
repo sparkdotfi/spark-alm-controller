@@ -6,7 +6,7 @@ import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
-import { IEETHLike, ILiquidityPoolLike, IWETHLike, IWEETHLike } from "./libraries/WeETHLib.sol";
+import { IEETHLike, ILiquidityPoolLike, IWETHLike, IWEETHLike } from "./libraries/WEETHLib.sol";
 
 interface IWithdrawRequestNFTLike {
     function claimWithdraw(uint256 requestId) external;
@@ -14,7 +14,7 @@ interface IWithdrawRequestNFTLike {
     function isValid(uint256 requestId) external view returns (bool);
 }
 
-contract WeEthModule is AccessControlEnumerable {
+contract WEETHModule is AccessControlEnumerable {
 
     address public immutable almProxy;
 
