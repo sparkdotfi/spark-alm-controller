@@ -280,7 +280,8 @@ library UniswapV4Lib {
 
             // Revert if approve returns anything, and that anything is not `true`.
             require(
-                approveResult.length == 0 || abi.decode(approveResult, (bool)),
+                approveResult.length == 0 ||
+                (approveResult.length == 32 && abi.decode(approveResult, (bool))),
                 "MC/permit2-approve-failed"
             );
         }
