@@ -20,7 +20,7 @@ import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerInit }   from "../../deploy/ForeignControllerInit.sol";
 
-import { ILayerZero, SendParam, MessagingFee } from "../../src/interfaces/ILayerZero.sol";
+import { ILayerZero, SendParam, MessagingFee, OFTLimit } from "../../src/interfaces/ILayerZero.sol";
 
 import { ALMProxy }                from "../../src/ALMProxy.sol";
 import { ForeignController }       from "../../src/ForeignController.sol";
