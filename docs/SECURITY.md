@@ -17,7 +17,7 @@ This document describes protocol-specific security considerations for the Spark 
 When assuming a compromised `RELAYER`:
 
 1. **Value movement restrictions:** Smart contract logic must prevent movement of value outside the ALM system of contracts
-   - Exception: Asynchronous integrations (e.g., BUIDL) where `transferAsset` sends funds to whitelisted addresses, with LP tokens minted asynchronously
+   - Exception: Asynchronous integrations (e.g., BUIDL) where `transferAsset` sends funds to whitelisted addresses, with LP tokens minted asynchronously, or OTC trades.
 
 2. **Loss limitations:** Any action must be limited to "reasonable" slippage/losses/opportunity cost by rate limits
 

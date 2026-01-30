@@ -26,9 +26,10 @@ The Spark Liquidity Layer (SLL) performs liquidity operations across multiple ve
 
 ### Rate Limiting
 
-Curve operations use two rate limit keys per pool:
+Curve operations use three rate limit keys per pool:
 - **Add liquidity rate limit:** Controls the value deposited into pools
 - **Swap rate limit:** Controls the implicit swap value when deposits are imbalanced
+- **Remove liquidity rate limit:** Controls the value withdrawn from pools
 
 ### Slippage Protection
 
@@ -46,6 +47,8 @@ Curve pools must be seeded with initial liquidity before use. The `addLiquidity`
 
 - **Swaps:** Exchange between stablecoins via Uniswap V4 pools
 - **Mint Positions:** Create liquidity positions (if applicable)
+- **Increase Positions:** Deposit adfditional liquidity into an existing position
+- **Decrease Positions:** Withdraw some or al the liquidity of an existing position
 
 ### Requirements
 
@@ -65,7 +68,7 @@ The OTC swap module allows offchain swaps with OTC desks and exchanges while con
 2. The contract prevents sending more funds until the required balance is returned
 3. Acts as a gating mechanism: maximum `X` funds outside the system per approved exchange
 
-This provides guarantees that at most `X` can be lost per whitelisted OTC route, while allowing rapid throughput into high-liquidity offchain markets.
+This provides guarantees that at most `X` can be at risk per whitelisted OTC route, while allowing rapid throughput into high-liquidity offchain markets.
 
 ### System Diagram
 
@@ -83,7 +86,7 @@ For an OTC swap to be performed, `isOtcSwapReady(exchange)` must return `true`. 
 
 The OTC struct contains a `rechargeRate` value expressed in 18 decimals of token per second. This value increases over time after the initial swap is sent.
 
-**Purpose:** Prevents the configuration from bricking swapping functionality if an exchange returns a material amount of funds that is below the configured `maxSlippage`. The mechanism allows the OTC swap returned amount to virtually "recharge" over time until it eventually exceeds the required amount.
+**Purpose:** Prevents the configuration from bricking swapping functionality if an exchange returns an amount of funds that is materially below the configured `maxSlippage`. The mechanism allows the amount that can be sent as part of an OTC swap to virtually "recharge" over time, to respond to deviations in recent expected claims.
 
 #### Ready Condition
 
@@ -93,7 +96,7 @@ $$claimedAmount + (blockTimestamp - sentTimestamp) \times rechargeRate \ge sentA
 
 ### OTC Buffer Configuration
 
-OTC buffers require infinite allowance (`type(uint256).max`) to the ALMProxy. This allows atomic fund pulling during swap completion. `otcClaim` always attempts to transfer the entire buffer balance for a whitelisted asset; with finite allowances, an attacker can donate a small amount to push balance above allowance, causing claim reverts and blocking OTC readiness when recharge is zero/low. See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#otc-exchange) for deployment checklist.
+OTC buffers require infinite allowance (`type(uint256).max`) to the ALMProxy. This allows atomic fund pulling during swap completion. `otcClaim` always attempts to transfer the entire buffer balance for a whitelisted asset; with finite allowances, an attacker can donate a small amount to push balance above allowance, causing claim reverts and blocking OTC readiness when recharge is zero/low. See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#otc-buffer-deployment) for deployment checklist.
 
 ---
 

@@ -57,6 +57,10 @@ A variant of the `ALMProxy` that is not intended to hold funds or have critical 
 
 Buffer contract used for OTC swap operations. See [OTC_SWAPS.md](./OTC_SWAPS.md) for details.
 
+### WEETHModule
+
+Module contract used for facilitating NFT-based WEETH withdrawals. See [WEETH_INTEGRATION.md](./WEETH_INTEGRATION.md) for details.
+
 ## Architecture Diagrams
 
 ### General Call Flow

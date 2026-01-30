@@ -63,18 +63,6 @@ All ERC-20 tokens used with the ALM Controller must be:
 | `redeemERC4626` | Non-zero deposit rate limit for same vault |
 | `withdrawAave` | Non-zero deposit rate limit for same aToken |
 
-## Token Requirements
-
-### ERC-20 Token Compatibility
-
-All ERC-20 tokens used with the ALM Controller must be:
-
-| Requirement | Rationale |
-|-------------|-----------|
-| **Non-rebasing** | Rebasing tokens would cause accounting inconsistencies |
-| **Sufficient decimal precision** | Minimum 6 decimals recommended to avoid precision loss in rate limit calculations |
-| **Standard ERC-20 compliance** | Non-standard implementations may cause unexpected behavior |
-
 ---
 
 ## OTC Buffer Deployment
@@ -82,7 +70,7 @@ All ERC-20 tokens used with the ALM Controller must be:
 When deploying a new OTC buffer:
 
 1. Deploy the `OTCBuffer` contract
-2. **Critical:** Set infinite allowance (`type(uint256).max`) to the `ALMProxy`
+2. **Critical:** `initialize` the contract to set up the access controls and set infinite allowance (`type(uint256).max`) to the `ALMProxy`
 3. Configure the OTC buffer address in the controller
 4. Set appropriate rate limits and slippage parameters
 
@@ -104,8 +92,10 @@ Only pools with 1:1 assets can be onboarded:
 ### Onboarding Process
 
 1. Verify pool contains only whitelisted 1:1 stablecoins
-2. Configure rate limit key for the specific pool
-3. Set appropriate slippage parameters
+2. Verify pool does not have dangerous hooks
+3. Configure rate limits for the specific pool
+4. Configure tick limits for the specific pool
+5. Set appropriate slippage parameters
 
 ---
 
@@ -124,6 +114,7 @@ Only pools with 1:1 assets can be onboarded:
 | Integration | Monitor |
 |-------------|---------|
 | **All** | Rate limit utilization, transaction failures |
+| **UniswapV4** | Tick Limits |
 | **ERC-4626** | Exchange rate changes, share price manipulation |
 | **OTC** | Outstanding swap amounts, recharge progress |
 | **weETH** | Pending withdrawal NFTs, finalization delays |

@@ -57,7 +57,7 @@ Rate limits serve as the primary security boundary against compromised relayers.
 
 ### How Rate Limits Protect
 
-- **Immediate attack capacity** = `lastAmount` (current available limit)
+- **Immediate attack capacity** = `lastAmount` plus accumulation since `lastUpdated` (current available limit)
 - **Maximum attack capacity** = `maxAmount` (rate limit ceiling)
 - **Recovery rate** = `slope` (tokens per second regeneration)
 

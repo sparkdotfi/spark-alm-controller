@@ -4,19 +4,18 @@ This document describes the rate limiting system used in the Spark ALM Controlle
 
 ## Overview
 
-The `RateLimits` contract enforces rate limits on the controller contracts. Rate limits are defined using `keccak256` hashes to identify which function to apply the rate limit to. This design allows flexibility in future function signatures while maintaining the same high-level functionality.
+The `RateLimits` contract enforces rate limits on the controller contracts. Rate limits are keyed by individual `bytes32` hashes derived from a `bytes32` identifier unique to the integration and function, and optionally some data unique to the recipient, assets, pool, etc to apply the rate limit to. This design allows flexibility in future function signatures while maintaining the same high-level functionality.
 
 ### Whitelisting via Rate Limit Keys
 
 Rate limit keys are constructed by hashing together a **function identifier** and an **address or ID** (e.g., pool address, vault address, token address). This mechanism serves as an implicit **whitelist/onboarding system**:
 
-- **Specific integrations only:** Only addresses that have a rate limit key configured can be used with rate-limited functions
 - **Examples:**
-  - A specific Uniswap V4 pool must have its rate limit key set before it can be used
-  - A specific Morpho vault must be onboarded by setting its rate limit key
-  - A specific Curve pool requires rate limit configuration before operations
+  - Depositing liquidity to a specific Uniswap V4 pool requires the rate limit key `keccak256(abi.encode(LIMIT_UNISWAP_V4_DEPOSIT, poolId))` to be set
+  - Withdrawing an aToken from Aave requires the rate limit key `keccak256(abi.encode(LIMIT_AAVE_WITHDRAW, aToken))` to be set
+  - Preparing a USDe burn requires the rate limit key `LIMIT_SUSDE_COOLDOWN` to be set
 - **Security benefit:** Prevents relayers from interacting with arbitrary/malicious contracts - only governance-approved integrations have valid rate limit keys
-- **Operational benefit:** New integrations are explicitly onboarded by setting rate limit parameters, providing a clear audit trail
+- **Operational benefit:** New integrations can be onboarded with lower rate limits to ease into use, and then increased to manage ongoing risk/exposure, and providing a clear audit trail
 
 See `RateLimitHelpers.sol` for the key generation utilities (e.g., `makeAddressKey`).
 
@@ -104,7 +103,6 @@ For example, after minting USDS:
 - Maple pools are permissioned environments
 - Pool dynamics are slower-moving compared to DEX liquidity
 - Lower risk of rapid value extraction
-- Redemption requests can be cancelled by governance if needed without creating attack vectors
 
 ---
 
@@ -156,9 +154,3 @@ Rate limits must take into account:
 
 1. **Risk tolerance** for a given protocol
 2. **Griefing attacks** (e.g., repetitive transactions with high slippage by malicious relayer)
-
-**Note:** Unlimited rate limits can be used as an onboarding tool for new integrations.
-
-### Withdrawal Requirements
-
-Withdrawals using `withdrawERC4626`/`redeemERC4626`/`withdrawAave` must always have a non-zero deposit rate limit set for their corresponding deposit functions in order to succeed.
