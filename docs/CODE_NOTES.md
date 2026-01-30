@@ -8,20 +8,11 @@ This document captures specific implementation decisions and behaviors that may 
 
 **Location:** `src/libraries/CurveLib.sol` - `addLiquidity` function
 
-**Behavior:** The function will revert when `get_virtual_price() == 0`.
+**Behavior:** Reverts when `get_virtual_price() == 0`.
 
-**Intention:** This is intentional behavior designed to prevent adding liquidity to unseeded pools.
-
-### Rationale
-
-- Unseeded Curve pools (pools with no liquidity) have a virtual price of zero
-- Adding liquidity to an unseeded pool can lead to unfavorable exchange rates and potential value loss
-- By reverting on zero virtual price (via division by zero), the contract enforces that pools must be properly initialized before the ALM system interacts with them
-
-### Relevant Code
+**Intention:** Prevents adding liquidity to unseeded pools, which could lead to unfavorable exchange rates.
 
 ```solidity
-// In CurveLib.addLiquidity()
 // Intentionally reverts when get_virtual_price() == 0 to prevent adding liquidity to unseeded pools
 require(
     params.minLpAmount >= valueDeposited
@@ -31,15 +22,11 @@ require(
 );
 ```
 
-### Operational Requirement
-
-Ensure Curve pools are seeded with initial liquidity before whitelisting them for ALM Controller operations. See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding) for details.
+See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding) for seeding requirements.
 
 ---
 
 ## Error Message Prefixes
-
-The codebase uses standardized error message prefixes to indicate the source contract:
 
 | Prefix | Source |
 |--------|--------|
@@ -49,42 +36,23 @@ The codebase uses standardized error message prefixes to indicate the source con
 
 ---
 
-## Rate Limit Key Generation
-
-Rate limit keys are generated using `keccak256` hashes, typically combining:
-- A function identifier
-- An address (e.g., pool address, token address)
-
-This approach allows:
-- Flexibility in future function signatures
-- Granular rate limiting per protocol/asset combination
-- Consistent identification across controller versions
-- **Implicit whitelisting** of specific integrations (only configured addresses work)
-
-See `RateLimitHelpers.sol` for the key generation utilities.
-
----
-
 ## Slippage Checks
 
-All swap and liquidity operations require `maxSlippage != 0`. This is enforced with explicit checks:
+All swap and liquidity operations require `maxSlippage != 0`:
 
 ```solidity
 require(params.maxSlippage != 0, "MC/max-slippage-not-set");
 ```
 
-**Rationale:** A zero slippage parameter would effectively disable slippage protection, allowing a compromised relayer to execute trades at arbitrarily bad rates.
+**Rationale:** Zero slippage would disable protection, allowing arbitrarily bad trades by compromised relayers.
 
 ---
 
-## wrapAllProxyETH
+## Rate Limit Key Generation
 
-**Location:** `src/MainnetController.sol`
+Rate limit keys combine a function identifier with an address via `keccak256`. This provides:
+- Granular per-integration rate limiting
+- Implicit whitelisting (only configured addresses work)
+- Flexibility for future function signatures
 
-**Purpose:** Converts all ETH held by the ALMProxy to WETH.
-
-**Access:** `RELAYER` role (not admin-only)
-
-**Use Case:** ETH received from protocol operations (e.g., unwrapping WETH, receiving ETH from contracts) can be converted to WETH for standard token handling.
-
-**Security:** Keeps funds within the ALMProxy - only changes ETH to WETH, doesn't move funds out of the system.
+See `RateLimitHelpers.sol` for utilities and [Rate Limits](./RATE_LIMITS.md#whitelisting-via-rate-limit-keys) for design rationale.

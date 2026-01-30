@@ -1,6 +1,6 @@
 # Security
 
-This document describes security considerations, trust assumptions, and attack mitigations for the Spark ALM Controller.
+This document describes protocol-specific security considerations for the Spark ALM Controller.
 
 ## Trust Assumptions
 
@@ -25,6 +25,8 @@ When assuming a compromised `RELAYER`:
 
 4. **DOS attacks:** A compromised relayer can perform DOS attacks. Recovery procedures are outlined in `Attacks.t.sol` test files.
 
+For comprehensive threat modeling, attack vectors, and trust assumptions, see [Threat Model](./THREAT_MODEL.md).
+
 ---
 
 ## Protocol-Specific Considerations
@@ -39,14 +41,27 @@ When assuming a compromised `RELAYER`:
 
 **Rationale:**
 - Ethena operations are asynchronous by design
+- The delegated signer role provides sufficient safeguards (trusted to not honor requests with >50bps slippage)
 - Ethena's API [Order Validity Checks](https://docs.ethena.fi/solution-design/minting-usde/order-validity-checks) provide protection against malicious delegated signers
 - Worst-case loss is bounded by slippage limits and rate limits on the operation
 
 **Security Note:** The delegated signer role can technically be set by a compromised relayer. Ethena's off-chain validation is trusted to prevent abuse in this scenario.
 
-### EtherFi Integration
+### EtherFi/weETH Integration
 
-Request for withdrawal of funds can be invalidated by admin of EtherFi without returning the funds, but can also be revalidated again.
+**Trust Assumption:** EtherFi is trusted to eventually process withdrawal requests.
+
+**Risk:** Withdrawal requests can be invalidated by EtherFi admin without returning funds, but can also be revalidated.
+
+**Architecture Note:** The weETH integration requires a dedicated `WEETHModule` contract to handle withdrawal NFTs and ETH conversion. See [weETH Integration](./WEETH_INTEGRATION.md) for details.
+
+### OTC Desk Integration
+
+**Trust Assumption:** All whitelisted exchanges/OTC desks will complete trades (no counterparty risk beyond slippage).
+
+**Maximum Loss:** Bounded by single outstanding OTC swap amount per exchange.
+
+See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
 ---
 
@@ -71,54 +86,24 @@ Request for withdrawal of funds can be invalidated by admin of EtherFi without r
 
 ---
 
-## Asset Assumptions
-
-### 1:1 Asset Parity
-
-**Assumption:** All assets are tracking the same underlying. The system handles only USD stablecoins, with values treated as equivalent (i.e., 1 USDT = 1 USDC).
-
-**Risk:** If assets depeg significantly from each other, the 1:1 assumption breaks down. This is an accepted protocol risk that should be monitored operationally.
-
----
-
-## Security and Audit Considerations
+## Audit Considerations
 
 ### Gas Fee Losses
 
-**Stated Assumption:** Gas fee losses are ignored for the purposes of audits and security considerations.
+**Stated Assumption:** Gas fee losses are ignored for security audit purposes.
 
 **Rationale:**
 - Gas fees are operational costs, not security vulnerabilities
-- Gas fee griefing by a compromised relayer is bounded by the relayer's ability to submit transactions (rate-limited by block production and MEV considerations)
-- The economic impact of gas fee griefing is significantly lower than the value protection provided by rate limits on capital movements
+- Gas fee griefing by a compromised relayer is bounded by block production and MEV considerations
+- Economic impact is minimal compared to rate-limited capital protection
 
-**Implication:** Audits should focus on capital preservation and rate limit effectiveness rather than gas optimization when evaluating security.
-
-**Operational Consideration:** Gas costs should still be monitored and optimized from an operational efficiency perspective, but they are not considered a security risk vector.
+**Implication:** Audits should focus on capital preservation and rate limit effectiveness.
 
 ---
 
 ## Operational Requirements
 
-For detailed operational requirements including:
-- ERC-4626 vault seeding
-- Curve pool seeding
-- Token requirements
-- Rate limit configuration
-- Onboarding checklists
-
-See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md).
-
----
-
-## Threat Model
-
-For a comprehensive threat model including:
-- Attack vectors and mitigations
-- Security invariants
-- Audit focus areas
-
-See [Threat Model](./THREAT_MODEL.md).
+For detailed operational requirements including seeding, configuration, and onboarding checklists, see [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md).
 
 ---
 

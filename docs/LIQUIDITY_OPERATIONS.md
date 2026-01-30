@@ -1,6 +1,6 @@
 # Liquidity Operations
 
-This document describes the stablecoin market making, swapping, and liquidity provision functionality in the Spark ALM Controller, including Curve, Uniswap V4, and OTC integrations.
+This document describes the stablecoin market making, swapping, and liquidity provision functionality in the Spark ALM Controller.
 
 ## Overview
 
@@ -9,22 +9,10 @@ The Spark Liquidity Layer (SLL) performs liquidity operations across multiple ve
 | Venue | Operations | Use Case |
 |-------|------------|----------|
 | **Curve** | Add/remove liquidity, swaps | Deep stablecoin liquidity pools |
-| **Uniswap V4** | Swaps | On-chain stablecoin swaps |
+| **Uniswap V4** | Swaps, positions | On-chain stablecoin swaps |
 | **OTC Desks** | Offchain swaps | High-volume institutional liquidity |
 
----
-
-## Asset Assumptions
-
-### 1:1 Asset Parity
-
-**Assumption:** All assets used in swaps and liquidity operations are always 1:1 with each other.
-
-**Rationale:** The system is designed to handle USD stablecoins (USDC, USDT, DAI, USDS) which are treated as having equivalent value.
-
-**Implication:** No additional price oracles or slippage calculations are required for these asset pairs within the system.
-
-**Risk:** If assets depeg significantly from each other, the 1:1 assumption breaks down. This is an accepted protocol risk that should be monitored operationally.
+**Asset Assumption:** All assets in these operations are treated as 1:1 (USD stablecoins). See [Threat Model](./THREAT_MODEL.md#core-assumption-11-asset-parity) for details.
 
 ---
 
@@ -46,6 +34,10 @@ Curve operations use two rate limit keys per pool:
 
 All Curve operations require `maxSlippage` to be configured (cannot be zero). The slippage check uses the pool's virtual price to ensure minimum acceptable returns.
 
+### Seeding Requirement
+
+Curve pools must be seeded with initial liquidity before use. The `addLiquidity` function intentionally reverts when `get_virtual_price() == 0` to prevent interaction with unseeded pools.
+
 ---
 
 ## Uniswap V4 Integration
@@ -53,10 +45,11 @@ All Curve operations require `maxSlippage` to be configured (cannot be zero). Th
 ### Supported Operations
 
 - **Swaps:** Exchange between stablecoins via Uniswap V4 pools
+- **Mint Positions:** Create liquidity positions (if applicable)
 
-### Operational Requirements
+### Requirements
 
-- All Uniswap V4 pool onboardings must be done with 1:1 assets only
+- Only 1:1 stablecoin pools can be onboarded
 - Pools must have rate limits configured before use
 - Rate limit keys whitelist specific pools for interaction
 
@@ -64,15 +57,15 @@ All Curve operations require `maxSlippage` to be configured (cannot be zero). Th
 
 ## OTC Swaps (Offchain Swap Support)
 
-The OTC swap module allows the SLL to perform offchain swaps with OTC desks and exchanges while ensuring constraints on capital outside the system.
+The OTC swap module allows offchain swaps with OTC desks and exchanges while constraining capital outside the system.
 
 ### How It Works
 
 1. Funds are sent from the ALM Proxy to the offchain destination
 2. The contract prevents sending more funds until the required balance is returned
-3. Acts as a gating mechanism that only allows a maximum `X` of funds to be outside the system per approved OTC exchange at any time
+3. Acts as a gating mechanism: maximum `X` funds outside the system per approved exchange
 
-This provides strong guarantees to Spark/Sky that at most `X` can be stolen/lost per whitelisted OTC route, while still allowing rapid throughput into high-liquidity offchain markets.
+This provides guarantees that at most `X` can be lost per whitelisted OTC route, while allowing rapid throughput into high-liquidity offchain markets.
 
 ### System Diagram
 
@@ -100,38 +93,32 @@ $$claimedAmount + (blockTimestamp - sentTimestamp) \times rechargeRate \ge sentA
 
 ### OTC Buffer Configuration
 
-#### Infinite Allowance Requirement
-
-**Requirement:** OTC buffers need to have an infinite allowance to the ALMProxy.
-
-| Aspect | Details |
-|--------|---------|
-| **Configuration** | OTC buffer contracts must be configured with `type(uint256).max` approval to the `ALMProxy` contract |
-| **Security Analysis** | See Octane Security Analysis - Infinite Approval |
-
-**Rationale:**
-- Allows the ALMProxy to pull funds from OTC buffer contracts atomically during swap completion
-- Eliminates the need for repeated approvals, reducing gas costs and operational complexity
-- OTC buffer contracts are specifically designed and whitelisted for this purpose
-- The ALMProxy is governance-controlled and highly trusted within the system architecture
-
-**Operational Note:** During OTC buffer deployment, this infinite allowance must be set as part of the initialization process.
-
-### OTC Trust Assumptions
-
-| Assumption | Details |
-|------------|---------|
-| Fund return method | Funds return to the OTC Buffer contract via transfer (accommodates exchanges that can only send tokens to an address) |
-| Maximum loss | Limited to the single outstanding OTC swap amount for a given exchange |
-| Recharge rate | Configured low enough that the system will not practically allow multiple swaps in a row without receiving material funds |
+OTC buffers require infinite allowance (`type(uint256).max`) to the ALMProxy. This allows atomic fund pulling during swap completion. `otcClaim` always attempts to transfer the entire buffer balance for a whitelisted asset; with finite allowances, an attacker can donate a small amount to push balance above allowance, causing claim reverts and blocking OTC readiness when recharge is zero/low. See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#otc-exchange) for deployment checklist.
 
 ---
 
-## Operational Requirements Summary
+## PSM Integration
 
-| Integration | Requirement |
-|-------------|-------------|
-| **All** | Rate limits must be configured for specific pools/venues |
-| **Curve** | Pools must be seeded with initial liquidity before whitelisting (see [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md)) |
-| **Uniswap V4** | Only 1:1 asset pools can be onboarded |
-| **OTC** | Buffer contracts must have infinite allowance to ALMProxy |
+### Supported Operations
+
+- **USDS ↔ USDC Swaps:** Exchange between USDS and USDC through the Peg Stability Module
+- **USDS ↔ DAI Swaps:** Exchange between USDS and DAI
+
+### Rate Limiting
+
+PSM operations use rate limits to control swap volumes. Swaps to and from cancel each other out.
+
+### Design Decision: No Cancellation
+
+Rate limits are **not** cancelled in the PSM3 integration, and `minShares` is not added.
+
+**Rationale:**
+- PSM3 will be deprecated soon
+- The PSM3 contract is immutable, limiting attack surface
+- Prices cannot be manipulated due to 1:1 swap design
+
+---
+
+## Operational Requirements
+
+For deployment checklists and configuration requirements, see [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md).

@@ -13,6 +13,16 @@ This document outlines the threat model for the Spark ALM Controller, including 
 
 ---
 
+## Core Assumption: 1:1 Asset Parity
+
+**Assumption:** All stablecoin assets are treated as 1:1 with each other (USDC = USDT = DAI = USDS).
+
+**Implication:** No price oracles are used for stablecoin swaps within the system.
+
+**Risk:** If assets depeg significantly, the 1:1 assumption breaks down. This is an accepted protocol risk that should be monitored operationally.
+
+---
+
 ## Primary Threat: Compromised Relayer
 
 The system is designed with the assumption that a `RELAYER` can be fully compromised by a malicious actor. This is the primary threat the architecture defends against.
@@ -43,7 +53,7 @@ The system is designed with the assumption that a `RELAYER` can be fully comprom
 
 ## Rate Limits as Security Boundary
 
-Rate limits serve as the primary security boundary against compromised relayers:
+Rate limits serve as the primary security boundary against compromised relayers.
 
 ### How Rate Limits Protect
 
@@ -60,9 +70,9 @@ Rate limit keys (hash of function identifier + address) act as an implicit white
 
 ---
 
-## Protocol-Specific Trust
+## Protocol Trust Matrix
 
-### Fully Trusted Protocols
+### Fully Trusted
 
 | Protocol | Trust Reason |
 |----------|--------------|
@@ -71,18 +81,18 @@ Rate limit keys (hash of function identifier + address) act as an implicit white
 
 ### Trusted with Caveats
 
-| Protocol | Trust Level | Caveat |
-|----------|-------------|--------|
-| **Ethena** | Trusted counterparty | Delegated signer role can be set by relayer; Ethena's off-chain validation trusted to prevent abuse |
-| **EtherFi** | Trusted | Withdrawal requests can be invalidated by EtherFi admin |
-| **OTC Desks** | Trusted counterparties | Assumed to complete trades; max loss bounded by single swap amount |
-| **Maple** | Trusted | Permissioned pools with slower dynamics |
+| Protocol | Caveat |
+|----------|--------|
+| **Ethena** | Delegated signer can be set by relayer; Ethena's off-chain validation trusted |
+| **EtherFi** | Withdrawal requests can be invalidated (and revalidated) by admin |
+| **OTC Desks** | Assumed to complete trades; max loss bounded by single swap amount |
+| **Maple** | Permissioned pools with slower dynamics |
 
 ### External Protocol Risks
 
 | Protocol | Risk | Mitigation |
 |----------|------|------------|
-| **ERC-4626 Vaults** | Rounding attacks, donation attacks | Require burned shares; maxExchangeRate mechanism |
+| **ERC-4626 Vaults** | Rounding/donation attacks | Require burned shares; maxExchangeRate mechanism |
 | **Curve Pools** | Unseeded pool manipulation | Require pools to be seeded before whitelisting |
 | **CCTP** | Bridge delays | Operational consideration only |
 
@@ -153,15 +163,14 @@ The following invariants must always hold:
 
 ## Audit Focus Areas
 
-When auditing, focus on:
+**Focus on:**
+1. Rate limit bypass - Can any path avoid rate limit checks?
+2. Whitelist bypass - Can unconfigured addresses be used?
+3. Fund extraction - Can funds leave the ALM system unexpectedly?
+4. Slippage manipulation - Can `maxSlippage` checks be bypassed?
+5. Access control - Are role checks correctly implemented?
 
-1. **Rate limit bypass** - Can any path avoid rate limit checks?
-2. **Whitelist bypass** - Can unconfigured addresses be used?
-3. **Fund extraction** - Can funds leave the ALM system unexpectedly?
-4. **Slippage manipulation** - Can `maxSlippage` checks be bypassed?
-5. **Access control** - Are role checks correctly implemented?
-
-Do NOT focus on:
+**Do NOT focus on:**
 - Gas optimization (unless it affects security)
 - DOS prevention (accepted risk, but still preferable to be mitigated if possible)
 - Theoretical attacks requiring governance compromise

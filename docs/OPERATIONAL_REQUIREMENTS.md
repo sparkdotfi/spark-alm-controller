@@ -6,18 +6,17 @@ This document describes operational requirements for deploying and managing inte
 
 ## Protocol Seeding Requirements
 
-Certain protocols require initial seeding/initialization before the ALM Controller can safely interact with them. These requirements prevent manipulation attacks that exploit empty or uninitialized state.
+Certain protocols require initialization before the ALM Controller can safely interact with them.
 
 ### ERC-4626 Vault Seeding
 
-**Requirement:** All ERC-4626 vaults that are onboarded **MUST** have an initial burned shares amount.
+**Requirement:** All ERC-4626 vaults **MUST** have initial burned shares.
 
 | Aspect | Details |
 |--------|---------|
 | **Purpose** | Prevents rounding-based frontrunning attacks |
-| **Implementation** | Initial shares must be minted and burned (sent to zero address or dead address) |
-| **Permanence** | Burned shares must be unrecoverable - they cannot be removed at a later date |
-| **Timing** | Must be done before whitelisting the vault for ALM Controller operations |
+| **Implementation** | Initial shares must be minted and burned (sent to zero/dead address) |
+| **Permanence** | Burned shares must be unrecoverable |
 
 **Additional Protection:** Donation attacks are protected against with the `maxExchangeRate` mechanism.
 
@@ -28,44 +27,38 @@ Certain protocols require initial seeding/initialization before the ALM Controll
 
 ### Curve Pool Seeding
 
-**Requirement:** Curve pools must be seeded with initial liquidity before whitelisting for ALM Controller operations.
+**Requirement:** Curve pools must be seeded with initial liquidity before whitelisting.
 
 | Aspect | Details |
 |--------|---------|
-| **Purpose** | Prevents adding liquidity to unseeded pools which can lead to unfavorable exchange rates |
-| **Technical Detail** | Unseeded Curve pools have `get_virtual_price() == 0`, causing division by zero |
-| **Enforcement** | `CurveLib.addLiquidity` will revert when `get_virtual_price() == 0` |
-| **Timing** | Pool must be seeded before configuring rate limit keys |
+| **Purpose** | Prevents adding liquidity to unseeded pools |
+| **Technical Detail** | Unseeded pools have `get_virtual_price() == 0`, causing revert |
+| **Enforcement** | `CurveLib.addLiquidity` reverts on zero virtual price |
 
-**Code Reference:** See `src/libraries/CurveLib.sol`:
+---
 
-```solidity
-// Intentionally reverts when get_virtual_price() == 0 to prevent adding liquidity to unseeded pools
-require(
-    params.minLpAmount >= valueDeposited
-        * params.maxSlippage
-        / curvePool.get_virtual_price(),
-    "MC/min-amount-not-met"
-);
-```
+## Token Requirements
+
+All ERC-20 tokens used with the ALM Controller must be:
+
+| Requirement | Rationale |
+|-------------|-----------|
+| **Non-rebasing** | Rebasing tokens cause accounting inconsistencies |
+| **≥6 decimals** | Prevents precision loss in rate limit calculations |
+| **Standard ERC-20** | Non-standard implementations may cause unexpected behavior |
 
 ---
 
 ## Rate Limit Configuration
 
-### General Requirements
-
-- Rate limits **must** be configured for specific integrations (e.g., specific ERC-4626 vaults)
-- Vaults/protocols without rate limits set will revert on interaction
-
-**Security Note:** This whitelisting mechanism prevents relayers from interacting with arbitrary contracts.
+- Rate limits **must** be configured for each specific integration
+- Unconfigured integrations will revert on interaction
+- Rate limit keys act as a whitelist (see [Rate Limits](./RATE_LIMITS.md))
 
 ### Withdrawal Dependencies
 
-Withdrawals using the following functions require corresponding deposit rate limits:
-
-| Withdrawal Function | Required Deposit Rate Limit |
-|--------------------|----------------------------|
+| Withdrawal Function | Required |
+|--------------------|----------|
 | `withdrawERC4626` | Non-zero deposit rate limit for same vault |
 | `redeemERC4626` | Non-zero deposit rate limit for same vault |
 | `withdrawAave` | Non-zero deposit rate limit for same aToken |
@@ -116,34 +109,23 @@ Only pools with 1:1 assets can be onboarded:
 
 ---
 
-## Checklist: New Integration Onboardings
+## General Onboarding Process
 
-### ERC-4626 Vault
+1. **Verify protocol compatibility** with ALM Controller requirements
+2. **Configure rate limit keys** via governance
+3. **Set safety parameters** if applicable
+4. **Test on fork** before mainnet deployment
+5. **Monitor initial operations** closely after deployment
 
-- [ ] Verify vault has burned shares (check share balance of zero/dead address)
-- [ ] Verify `maxExchangeRate` protection is appropriate
-- [ ] Configure deposit rate limit key
-- [ ] Configure withdrawal rate limit key (can use same key)
-- [ ] Set appropriate `maxSlippage` if applicable
+---
 
-### Curve Pool
+## Monitoring Recommendations
 
-- [ ] Verify pool is seeded (check `get_virtual_price() > 0`)
-- [ ] Verify pool contains only whitelisted stablecoins
-- [ ] Configure add liquidity rate limit key
-- [ ] Configure swap rate limit key
-- [ ] Set appropriate `maxSlippage`
-
-### Uniswap V4 Pool
-
-- [ ] Verify pool contains only 1:1 stablecoins
-- [ ] Configure swap rate limit key
-- [ ] Set appropriate `maxSlippage`
-
-### OTC Exchange
-
-- [ ] Deploy and configure OTC buffer
-- [ ] Set infinite allowance to ALMProxy
-- [ ] Configure exchange parameters in controller
-- [ ] Set rate limits and slippage parameters
-- [ ] Set appropriate recharge rate
+| Integration | Monitor |
+|-------------|---------|
+| **All** | Rate limit utilization, transaction failures |
+| **ERC-4626** | Exchange rate changes, share price manipulation |
+| **OTC** | Outstanding swap amounts, recharge progress |
+| **weETH** | Pending withdrawal NFTs, finalization delays |
+| **CCTP/LayerZero** | Bridge confirmation times, stuck transfers |
+| **Ethena** | Pending mint/burn operations, delegated signer status |

@@ -27,9 +27,10 @@ This repository contains the onchain components of the Spark Liquidity Layer. Th
 |----------|-------------|
 | [Architecture](./docs/ARCHITECTURE.md) | System architecture, contract interactions, and permissions |
 | [Rate Limits](./docs/RATE_LIMITS.md) | Rate limit design, calculations, and configuration |
-| [Liquidity Operations](./docs/LIQUIDITY_OPERATIONS.md) | Curve, Uniswap V4, and OTC swap integrations |
+| [Liquidity Operations](./docs/LIQUIDITY_OPERATIONS.md) | Curve, Uniswap V4, OTC, and PSM integrations |
+| [weETH Integration](./docs/WEETH_INTEGRATION.md) | EtherFi weETH module architecture and withdrawal flow |
 | [Threat Model](./docs/THREAT_MODEL.md) | Attack vectors, trust assumptions, and security invariants |
-| [Security](./docs/SECURITY.md) | Protocol considerations and audit information |
+| [Security](./docs/SECURITY.md) | Protocol-specific considerations and audit information |
 | [Operational Requirements](./docs/OPERATIONAL_REQUIREMENTS.md) | Seeding, configuration, and onboarding checklists |
 | [Development](./docs/DEVELOPMENT.md) | Testing, deployment, and upgrade procedures |
 | [Code Notes](./docs/CODE_NOTES.md) | Implementation details and design decisions |
