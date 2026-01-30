@@ -34,10 +34,8 @@ contract WrapETHFailureTests is WrapETHTestBase {
 contract WrapETHSuccessTests is WrapETHTestBase {
 
     function test_wrapAllProxyETH_zeroBalance() external {
-        uint256 initialWethBalance = weth.balanceOf(address(almProxy));
-
-        assertEq(address(almProxy).balance, 0);
-        assertEq(initialWethBalance,        0);
+        assertEq(address(almProxy).balance,         0);
+        assertEq(weth.balanceOf(address(almProxy)), 0);
 
         vm.record();
 
@@ -47,16 +45,14 @@ contract WrapETHSuccessTests is WrapETHTestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), initialWethBalance);
+        assertEq(weth.balanceOf(address(almProxy)), 0);
     }
 
     function test_wrapAllProxyETH() external {
         vm.deal(address(almProxy), 1 ether);
 
-        uint256 initialWethBalance = weth.balanceOf(address(almProxy));
-
-        assertEq(address(almProxy).balance, 1 ether);
-        assertEq(initialWethBalance,        0);
+        assertEq(address(almProxy).balance,         1 ether);
+        assertEq(weth.balanceOf(address(almProxy)), 0);
 
         vm.record();
 
@@ -66,7 +62,7 @@ contract WrapETHSuccessTests is WrapETHTestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), initialWethBalance + 1 ether);
+        assertEq(weth.balanceOf(address(almProxy)), 1 ether);
     }
 
 }
