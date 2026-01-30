@@ -550,14 +550,13 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         uint256 proxyBalance = address(proxy).balance;
 
-        if (proxyBalance > 0) {
-            // Wrap into WETH
-            proxy.doCallWithValue(
-                Ethereum.WETH,
-                "",
-                proxyBalance
-            );
-        }
+        if (proxyBalance == 0) return;
+        
+        proxy.doCallWithValue(
+            Ethereum.WETH,
+            "",
+            proxyBalance
+        );
     }
 
     /**********************************************************************************************/

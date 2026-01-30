@@ -3,15 +3,15 @@ pragma solidity >=0.8.0;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase, IERC20, Ethereum } from "./ForkTestBase.t.sol";
 
-contract WrapEthTestBase is ForkTestBase {
+contract WrapETHTestBase is ForkTestBase {
 
     IERC20 weth = IERC20(Ethereum.WETH);
 
 }
 
-contract WrapEthFailureTests is WrapEthTestBase {
+contract WrapETHFailureTests is WrapETHTestBase {
 
     function test_wrapAllProxyETH_reentrancy() external {
         _setControllerEntered();
@@ -31,11 +31,13 @@ contract WrapEthFailureTests is WrapEthTestBase {
 
 }
 
-contract WrapEthSuccessTests is WrapEthTestBase {
-    function test_wrapAllProxyETH_zeroBalance() external {
-        assertEq(address(almProxy).balance, 0);
+contract WrapETHSuccessTests is WrapETHTestBase {
 
+    function test_wrapAllProxyETH_zeroBalance() external {
         uint256 initialWethBalance = weth.balanceOf(address(almProxy));
+
+        assertEq(address(almProxy).balance, 0);
+        assertEq(initialWethBalance,        0);
 
         vm.record();
 
@@ -51,9 +53,10 @@ contract WrapEthSuccessTests is WrapEthTestBase {
     function test_wrapAllProxyETH() external {
         vm.deal(address(almProxy), 1 ether);
 
-        assertEq(address(almProxy).balance, 1 ether);
-
         uint256 initialWethBalance = weth.balanceOf(address(almProxy));
+
+        assertEq(address(almProxy).balance, 1 ether);
+        assertEq(initialWethBalance,        0);
 
         vm.record();
 
