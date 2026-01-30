@@ -68,6 +68,34 @@ For example, after minting USDS:
 
 ### Cancellation Policy
 
+#### Mainnet PSM (With Cancellation)
+
+**Decision:** Rate limits **are** cancelled in the Mainnet PSM integration.
+
+| Operation | Rate Limit Behavior |
+|-----------|---------------------|
+| `swapUSDSToUSDC` | Decreases rate limit |
+| `swapUSDCToUSDS` | **Cancels** (increases) rate limit |
+
+**Rationale:** Swapping USDC back to USDS effectively returns value to the system, so the rate limit is restored.
+
+#### PSM3 Integration (No Cancellation, No minShares)
+
+**Decision:** Rate limits are **not** cancelled in the PSM3 integration (ForeignController).
+
+| Operation | Rate Limit Behavior |
+|-----------|---------------------|
+| `depositPSM` | Decreases rate limit |
+| `withdrawPSM` | Decreases rate limit (no cancellation) |
+
+**Additional Decision:** `minShares` parameter is not added to PSM3 operations.
+
+**Rationale:**
+- The PSM3 integration will be deprecated soon, making additional safety mechanisms a poor investment of development resources
+- The PSM3 contract is immutable, limiting the attack surface
+- Prices cannot be manipulated in PSM3 due to its design (1:1 swap mechanism)
+- Risk window is time-limited due to planned deprecation
+
 #### Maple Integration (No Cancellation)
 
 **Decision:** Maple cancel redemption requests and deposits are **not** rate-limit cancelled.
@@ -77,18 +105,6 @@ For example, after minting USDS:
 - Pool dynamics are slower-moving compared to DEX liquidity
 - Lower risk of rapid value extraction
 - Redemption requests can be cancelled by governance if needed without creating attack vectors
-
-#### PSM3 Integration (No Cancellation, No minShares)
-
-**Decision:** Rate limits are **not** cancelled in the PSM3 integration.
-
-**Additional Decision:** `minShares` parameter is not added to PSM3 operations.
-
-**Rationale:**
-- The PSM3 integration will be deprecated soon, making additional safety mechanisms a poor investment of development resources
-- The PSM3 contract is immutable, limiting the attack surface
-- Prices cannot be manipulated in PSM3 due to its design (1:1 swap mechanism)
-- Risk window is time-limited due to planned deprecation
 
 ---
 

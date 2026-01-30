@@ -99,22 +99,33 @@ OTC buffers require infinite allowance (`type(uint256).max`) to the ALMProxy. Th
 
 ## PSM Integration
 
-### Supported Operations
+There are two PSM integrations with different rate limit behaviors:
 
-- **USDS ↔ USDC Swaps:** Exchange between USDS and USDC through the Peg Stability Module
-- **USDS ↔ DAI Swaps:** Exchange between USDS and DAI
+### Mainnet PSM (MainnetController)
 
-### Rate Limiting
+**Operations:** USDS ↔ USDC swaps (via DAI conversion)
 
-PSM operations use rate limits to control swap volumes. Swaps to and from cancel each other out.
+| Operation | Rate Limit |
+|-----------|------------|
+| `swapUSDSToUSDC` | Decreases limit |
+| `swapUSDCToUSDS` | **Cancels** (restores) limit |
 
-### Design Decision: No Cancellation
+**Rationale:** Swapping USDC back to USDS returns value to the system, so rate limit is restored.
 
-Rate limits are **not** cancelled in the PSM3 integration, and `minShares` is not added.
+### PSM3 (ForeignController)
+
+**Operations:** Deposit/withdraw assets to/from L2 PSM
+
+| Operation | Rate Limit |
+|-----------|------------|
+| `depositPSM` | Decreases limit |
+| `withdrawPSM` | Decreases limit (no cancellation) |
+
+**Design Decision:** No cancellation, no `minShares`.
 
 **Rationale:**
 - PSM3 will be deprecated soon
-- The PSM3 contract is immutable, limiting attack surface
+- The contract is immutable, limiting attack surface
 - Prices cannot be manipulated due to 1:1 swap design
 
 ---

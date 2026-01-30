@@ -142,8 +142,8 @@ function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceive
 The module implements `onERC721Received` to accept the `WithdrawRequestNFT`:
 
 ```solidity
-function onERC721Received(address, address, uint256, bytes calldata) 
-    external pure returns (bytes4) 
+function onERC721Received(address, address, uint256, bytes calldata)
+    external pure returns (bytes4)
 {
     return this.onERC721Received.selector;
 }
@@ -200,13 +200,3 @@ The WEETHModule:
 - Track pending `WithdrawRequestNFT` IDs owned by the WEETHModule
 - Monitor finalization status of pending requests
 - Alert on requests that remain unfinalized for extended periods
-
-### Checklist
-
-- [ ] Deploy WEETHModule proxy
-- [ ] Initialize with correct admin and ALMProxy
-- [ ] Configure `LIMIT_WEETH_DEPOSIT` rate limit
-- [ ] Configure `LIMIT_WEETH_REQUEST_WITHDRAW` rate limit (keyed by module address)
-- [ ] Configure `LIMIT_WEETH_CLAIM_WITHDRAW` rate limit (keyed by module address)
-- [ ] Verify module can receive ERC-721 tokens
-- [ ] Verify module can receive ETH
