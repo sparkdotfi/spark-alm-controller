@@ -20,7 +20,7 @@ import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerInit }   from "../../deploy/ForeignControllerInit.sol";
 
-import { ILayerZero, SendParam, MessagingFee } from "../../src/interfaces/ILayerZero.sol";
+import { ILayerZero, SendParam, MessagingFee, OFTLimit } from "../../src/interfaces/ILayerZero.sol";
 
 import { ALMProxy }                from "../../src/ALMProxy.sol";
 import { ForeignController }       from "../../src/ForeignController.sol";
@@ -194,6 +194,91 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
+            destinationEndpointId
+        );
+    }
+
+    function test_transferTokenLayerZero_OFTLimitBoundary() external {
+        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+        vm.startPrank(SPARK_PROXY);
+
+        rateLimits.setRateLimitData(
+            keccak256(abi.encode(
+                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+                USDT_OFT,
+                destinationEndpointId
+            )),
+            type(uint64).max,
+            0
+        );
+
+        mainnetController.setLayerZeroRecipient(destinationEndpointId, target);
+
+        vm.stopPrank();
+
+        // Setup token balances
+        deal(address(usdt), address(almProxy), type(uint64).max);
+        deal(relayer,       1 ether);  // Gas cost for LayerZero
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : target,
+            amountLD     : 0,
+            minAmountLD  : 0,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        // Get USDT_OFT OFTLimits
+        (OFTLimit memory limits, ,) = ILayerZero(USDT_OFT).quoteOFT(sendParams);
+
+        // NOTE: amount under OFTLimit minAmountLD boundary test can't be done with USDT_OFT 
+        //      USDT_OFT OFTLimit.minAmountLD = 0, So, we can't pass amount less than 0
+
+        // amount over OFTLimit maxAmountLD boundary
+
+        sendParams.amountLD    = limits.maxAmountLD + 1;
+        sendParams.minAmountLD = limits.maxAmountLD + 1;
+
+        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+        
+        vm.prank(relayer);
+        vm.expectRevert("LayerZeroLib/amount-above-max");
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            limits.maxAmountLD + 1, 
+            destinationEndpointId
+        );
+
+        // amount at OFTLimit minAmountLD boundary
+
+        sendParams.amountLD    = limits.minAmountLD;
+        sendParams.minAmountLD = limits.minAmountLD;
+
+        fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.prank(relayer);
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            limits.minAmountLD,
+            destinationEndpointId
+        );
+
+        // amount at OFTLimit maxAmountLD boundary
+
+        sendParams.amountLD    = limits.maxAmountLD;
+        sendParams.minAmountLD = limits.maxAmountLD;
+
+        fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.prank(relayer);
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            limits.maxAmountLD,
             destinationEndpointId
         );
     }
@@ -573,6 +658,91 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
+            destinationEndpointId
+        );
+    }
+    
+    function test_transferTokenLayerZero_OFTLimitBoundary() external {
+        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+        vm.startPrank(SPARK_EXECUTOR);
+
+        foreignRateLimits.setRateLimitData(
+            keccak256(abi.encode(
+                foreignController.LIMIT_LAYERZERO_TRANSFER(),
+                USDT_OFT,
+                destinationEndpointId
+            )),
+            type(uint64).max,
+            0
+        );
+
+        foreignController.setLayerZeroRecipient(destinationEndpointId, target);
+
+        vm.stopPrank();
+
+        // Setup token balances
+        deal(USDT0,   address(foreignAlmProxy), type(uint64).max, true);
+        deal(relayer, 1 ether);  // Gas cost for LayerZero
+
+        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
+
+        SendParam memory sendParams = SendParam({
+            dstEid       : destinationEndpointId,
+            to           : target,
+            amountLD     : 0,
+            minAmountLD  : 0,
+            extraOptions : options,
+            composeMsg   : "",
+            oftCmd       : ""
+        });
+
+        // Get USDT_OFT OFTLimits
+        (OFTLimit memory limits, ,) = ILayerZero(USDT_OFT).quoteOFT(sendParams);
+
+        // NOTE: amount under OFTLimit minAmountLD boundary test can't be done with USDT_OFT 
+        //      USDT_OFT OFTLimit.minAmountLD = 0, So, we can't pass amount less than 0
+
+        // amount over OFTLimit maxAmountLD boundary
+
+        sendParams.amountLD    = limits.maxAmountLD + 1;
+        sendParams.minAmountLD = limits.maxAmountLD + 1;
+        
+        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.prank(relayer);
+        vm.expectRevert("LayerZeroLib/amount-above-max");
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            limits.maxAmountLD + 1, 
+            destinationEndpointId
+        );
+
+        // amount at OFTLimit minAmountLD boundary
+
+        sendParams.amountLD    = limits.minAmountLD;
+        sendParams.minAmountLD = limits.minAmountLD;
+
+        fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.prank(relayer);
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            limits.minAmountLD,
+            destinationEndpointId
+        );
+
+        // amount at OFTLimit maxAmountLD boundary
+
+        sendParams.amountLD    = limits.maxAmountLD;
+        sendParams.minAmountLD = limits.maxAmountLD;
+
+        fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+
+        vm.prank(relayer);
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            limits.maxAmountLD,
             destinationEndpointId
         );
     }
