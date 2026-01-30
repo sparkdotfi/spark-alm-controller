@@ -54,19 +54,20 @@ Request for withdrawal of funds can be invalidated by admin of EtherFi without r
 
 ### ETH Recovery Mechanism
 
-**Guarantee:** Any ETH left in the ALMProxy can always be removed by governance through a `doCallWithValue` operation.
+**Guarantee:** Any ETH left in the ALMProxy can always be removed.
 
-| Aspect | Details |
-|--------|---------|
-| **Implementation** | The `doCallWithValue` function in ALMProxy allows arbitrary calls with ETH value attached |
-| **Access Control** | Only addresses with `DEFAULT_ADMIN_ROLE` (governance) can call this function |
+| Method | Access | Description |
+|--------|--------|-------------|
+| `doCallWithValue` | `DEFAULT_ADMIN_ROLE` (governance) | Allows arbitrary calls with ETH value attached from ALMProxy |
+| `wrapAllProxyETH` | `RELAYER` | Wraps all ETH in ALMProxy to WETH (MainnetController only) |
 
 **Use Cases:**
 - Recover accidentally sent ETH
 - Withdraw ETH received from protocol operations
+- Convert ETH to WETH for standard token handling
 - Emergency fund extraction
 
-**Security:** Since this is governance-controlled, it does not introduce additional attack vectors for compromised relayers.
+**Security:** The `doCallWithValue` function is governance-controlled and does not introduce attack vectors for compromised relayers. The `wrapAllProxyETH` function is relayer-accessible but only converts ETH to WETH within the ALMProxy, keeping funds in the system.
 
 ---
 
@@ -99,25 +100,25 @@ Request for withdrawal of funds can be invalidated by admin of EtherFi without r
 
 ## Operational Requirements
 
-### ERC-4626 Vaults
+For detailed operational requirements including:
+- ERC-4626 vault seeding
+- Curve pool seeding
+- Token requirements
+- Rate limit configuration
+- Onboarding checklists
 
-All ERC-4626 vaults that are onboarded **MUST** have an initial burned shares amount that prevents rounding-based frontrunning attacks. These shares must be unrecoverable so they cannot be removed at a later date. Donation attacks are also protected against with the maxExchangeRate mechanism.
+See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md).
 
-### ERC-20 Tokens
+---
 
-All ERC-20 tokens are to be:
-- Non-rebasing
-- With sufficiently high decimal precision (>= 6 decimals)
+## Threat Model
 
-### Rate Limit Configuration
+For a comprehensive threat model including:
+- Attack vectors and mitigations
+- Security invariants
+- Audit focus areas
 
-- Rate limits must be configured for specific ERC-4626 vaults and AAVE aTokens
-- Vaults without rate limits set will revert
-- Unlimited rate limits can be used as an onboarding tool
-
-### Withdrawal Dependencies
-
-Withdrawals using `withdrawERC4626`/`redeemERC4626`/`withdrawAave` must always have a non-zero deposit rate limit set for their corresponding deposit functions in order to succeed.
+See [Threat Model](./THREAT_MODEL.md).
 
 ---
 

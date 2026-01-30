@@ -6,6 +6,20 @@ This document describes the rate limiting system used in the Spark ALM Controlle
 
 The `RateLimits` contract enforces rate limits on the controller contracts. Rate limits are defined using `keccak256` hashes to identify which function to apply the rate limit to. This design allows flexibility in future function signatures while maintaining the same high-level functionality.
 
+### Whitelisting via Rate Limit Keys
+
+Rate limit keys are constructed by hashing together a **function identifier** and an **address or ID** (e.g., pool address, vault address, token address). This mechanism serves as an implicit **whitelist/onboarding system**:
+
+- **Specific integrations only:** Only addresses that have a rate limit key configured can be used with rate-limited functions
+- **Examples:**
+  - A specific Uniswap V4 pool must have its rate limit key set before it can be used
+  - A specific Morpho vault must be onboarded by setting its rate limit key
+  - A specific Curve pool requires rate limit configuration before operations
+- **Security benefit:** Prevents relayers from interacting with arbitrary/malicious contracts - only governance-approved integrations have valid rate limit keys
+- **Operational benefit:** New integrations are explicitly onboarded by setting rate limit parameters, providing a clear audit trail
+
+See `RateLimitHelpers.sol` for the key generation utilities (e.g., `makeAddressKey`).
+
 ## Rate Limit Data Structure
 
 Rate limits are stored in a mapping with the `keccak256` hash as the key and a struct containing:
