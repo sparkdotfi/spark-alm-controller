@@ -35,9 +35,13 @@ Curve operations use three rate limit keys per pool:
 
 All Curve operations require `maxSlippage` to be configured (cannot be zero). The slippage check uses the pool's virtual price to ensure minimum acceptable returns.
 
+### Requirements
+
+- Only 1:1 stablecoin pools can be onboarded
+
 ### Seeding Requirement
 
-Curve pools must be seeded with initial liquidity before use. The `addLiquidity` function intentionally reverts when `get_virtual_price() == 0` to prevent interaction with unseeded pools.
+Curve pools must be seeded with initial liquidity before use. Seeding must be done to an unrecoverable address (e.g, address(1)). This will prevent any unintended behaviours.
 
 ---
 
@@ -50,11 +54,25 @@ Curve pools must be seeded with initial liquidity before use. The `addLiquidity`
 - **Increase Positions:** Deposit adfditional liquidity into an existing position
 - **Decrease Positions:** Withdraw some or al the liquidity of an existing position
 
+### Rate Limiting
+
+Uniswap V4 operations use three rate limit keys per pool:
+- **Add liquidity rate limit:** Controls the value deposited into pools
+- **Swap rate limit:** Controls the implicit swap value when deposits are imbalanced
+- **Remove liquidity rate limit:** Controls the value withdrawn from pools
+
+### Slippage Protection
+
+All Uniswap V4 operations require `maxSlippage` to be configured (cannot be zero). The slippage check uses the pool's virtual price to ensure minimum acceptable returns.
+
 ### Requirements
 
 - Only 1:1 stablecoin pools can be onboarded
-- Pools must have rate limits configured before use
-- Rate limit keys whitelist specific pools for interaction
+- Tick limits must be configured.
+
+### Seeding Requirement
+
+Uniswap V4 pools must be seeded with initial liquidity before use. Seeding must be done to an unrecoverable address (e.g, address(1)). This will prevent any unintended behaviours.
 
 ---
 

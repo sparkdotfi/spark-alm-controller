@@ -27,13 +27,12 @@ Certain protocols require initialization before the ALM Controller can safely in
 
 ### Curve Pool Seeding
 
-**Requirement:** Curve pools must be seeded with initial liquidity before whitelisting.
+**Requirement:** Curve pools must be seeded with initial liquidity before use. Seeding must be done to an unrecoverable address (e.g, address(1)). This will prevent any unintended behaviours.
 
-| Aspect | Details |
-|--------|---------|
-| **Purpose** | Prevents adding liquidity to unseeded pools |
-| **Technical Detail** | Unseeded pools have `get_virtual_price() == 0`, causing revert |
-| **Enforcement** | `CurveLib.addLiquidity` reverts on zero virtual price |
+### Uniswap V4 Pool Seeding
+
+**Requirement:** Uniswap V4 pools must be seeded with initial liquidity before use. Seeding must be done to an unrecoverable address (e.g, address(1)). This will prevent any unintended behaviours.
+
 
 ---
 
@@ -114,7 +113,7 @@ Only pools with 1:1 assets can be onboarded:
 | Integration | Monitor |
 |-------------|---------|
 | **All** | Rate limit utilization, transaction failures |
-| **UniswapV4** | Tick Limits |
+| **UniswapV4** | Pool price |
 | **ERC-4626** | Exchange rate changes, share price manipulation |
 | **OTC** | Outstanding swap amounts, recharge progress |
 | **weETH** | Pending withdrawal NFTs, finalization delays |
