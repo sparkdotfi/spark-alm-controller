@@ -11,13 +11,17 @@ import { ApproveLib } from "./ApproveLib.sol";
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
 interface ICurvePoolLike is IERC20 {
+
     function add_liquidity(
         uint256[] memory amounts,
-        uint256 minMintAmount,
-        address receiver
+        uint256   minMintAmount,
+        address   receiver
     ) external;
+
     function balances(uint256 index) external view returns (uint256);
+
     function coins(uint256 index) external returns (address);
+
     function exchange(
         int128  inputIndex,
         int128  outputIndex,
@@ -25,14 +29,19 @@ interface ICurvePoolLike is IERC20 {
         uint256 minAmountOut,
         address receiver
     ) external returns (uint256 tokensOut);
+
     function get_virtual_price() external view returns (uint256);
+
     function N_COINS() external view returns (uint256);
+
     function remove_liquidity(
-        uint256 burnAmount,
+        uint256          burnAmount,
         uint256[] memory minAmounts,
-        address receiver
+        address          receiver
     ) external;
+
     function stored_rates() external view returns (uint256[] memory);
+
 }
 
 library CurveLib {
@@ -86,6 +95,7 @@ library CurveLib {
         ICurvePoolLike curvePool = ICurvePoolLike(params.pool);
 
         uint256 numCoins = curvePool.N_COINS();
+
         require(
             params.inputIndex < numCoins && params.outputIndex < numCoins,
             "MC/index-too-high"
@@ -99,14 +109,12 @@ library CurveLib {
         //   valueIn   = amountIn * rates[inputIndex] / 1e18  // 18 decimal precision, USD
         //   tokensOut = valueIn * 1e18 / rates[outputIndex]  // Token precision, token amount
         //   result    = tokensOut * maxSlippage / 1e18
-        uint256 minimumMinAmountOut = params.amountIn
-            * rates[params.inputIndex]
-            * params.maxSlippage
-            / rates[params.outputIndex]
-            / 1e18;
 
+        // NOTE: `params.minAmountOut * rates[params.outputIndex]` and `params.amountIn * rates[params.inputIndex]` are
+        //       always to 1e36 precision, so nether side wil overflow for amounts less than ~$100,000,000,000 trillion.
         require(
-            params.minAmountOut >= minimumMinAmountOut,
+            params.minAmountOut * rates[params.outputIndex] * 1e18 >=
+            params.amountIn * rates[params.inputIndex] * params.maxSlippage,
             "MC/min-amount-not-met"
         );
 
@@ -164,20 +172,20 @@ library CurveLib {
             );
             valueDeposited += params.depositAmounts[i] * rates[i];
         }
-        valueDeposited /= 1e18;
 
         // Ensure minimum LP amount expected is greater than max slippage amount.
+        // NOTE: `params.minLpAmount * curvePool.get_virtual_price()` and `valueDeposited` are always to 1e36 precision,
+        //       so nether side will overflow for amounts less than ~$100,000,000,000 trillion.
         require(
-            params.minLpAmount >= valueDeposited
-                * params.maxSlippage
-                / curvePool.get_virtual_price(),
+            params.minLpAmount * curvePool.get_virtual_price() * 1e18 >=
+            valueDeposited * params.maxSlippage,
             "MC/min-amount-not-met"
         );
 
         // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD)
         params.rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressKey(params.addLiquidityRateLimitId, params.pool),
-            valueDeposited
+            valueDeposited / 1e18
         );
 
         shares = abi.decode(
@@ -202,6 +210,7 @@ library CurveLib {
                 params.depositAmounts[i] * rates[i]
             );
         }
+
         uint256 averageSwap = totalSwapped / 2 / 1e18;
 
         params.rateLimits.triggerRateLimitDecrease(
@@ -231,14 +240,13 @@ library CurveLib {
         for (uint256 i = 0; i < params.minWithdrawAmounts.length; i++) {
             valueMinWithdrawn += params.minWithdrawAmounts[i] * rates[i];
         }
-        valueMinWithdrawn /= 1e18;
 
         // Check that the aggregated minimums are greater than the max slippage amount
+        // NOTE: `valueMinWithdrawn` and `params.lpBurnAmount * curvePool.get_virtual_price()` are always to 1e36
+        //       precision, so nether side will overflow for amounts less than ~$100,000,000,000 trillion.
         require(
-            valueMinWithdrawn >= params.lpBurnAmount
-                * curvePool.get_virtual_price()
-                * params.maxSlippage
-                / 1e36,
+            valueMinWithdrawn * 1e18 >=
+            params.lpBurnAmount * curvePool.get_virtual_price() * params.maxSlippage,
             "MC/min-amount-not-met"
         );
 
@@ -258,11 +266,10 @@ library CurveLib {
         for (uint256 i = 0; i < withdrawnTokens.length; i++) {
             valueWithdrawn += withdrawnTokens[i] * rates[i];
         }
-        valueWithdrawn /= 1e18;
 
         params.rateLimits.triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressKey(params.rateLimitId, params.pool),
-            valueWithdrawn
+            valueWithdrawn / 1e18
         );
     }
 
