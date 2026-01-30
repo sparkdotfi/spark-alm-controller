@@ -542,6 +542,24 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     /**********************************************************************************************/
+    /*** Relayer wrap ETH function                                                              ***/
+    /**********************************************************************************************/
+
+    function wrapAllProxyETH() external nonReentrant {
+        _checkRole(RELAYER);
+
+        uint256 proxyBalance = address(proxy).balance;
+
+        if (proxyBalance == 0) return;
+        
+        proxy.doCallWithValue(
+            Ethereum.WETH,
+            "",
+            proxyBalance
+        );
+    }
+
+    /**********************************************************************************************/
     /*** Relayer ERC4626 functions                                                              ***/
     /**********************************************************************************************/
 
