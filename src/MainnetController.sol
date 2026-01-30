@@ -53,8 +53,8 @@ interface ISparkVaultLike {
 }
 
 interface ISUSDELike is IERC4626 {
-    function cooldownAssets(uint256 usdeAmount) external;
-    function cooldownShares(uint256 susdeAmount) external;
+    function cooldownAssets(uint256 usdeAmount) external returns (uint256);
+    function cooldownShares(uint256 susdeAmount) external returns (uint256);
     function unstake(address receiver) external;
 }
 
@@ -563,7 +563,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Relayer ERC4626 functions                                                              ***/
     /**********************************************************************************************/
 
-    function depositERC4626(address token, uint256 amount)
+    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
@@ -572,13 +572,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy           : address(proxy),
             token           : token,
             amount          : amount,
+            minSharesOut    : minSharesOut,
             maxExchangeRate : maxExchangeRates[token],
             rateLimits      : address(rateLimits),
             rateLimitId     : LIMIT_4626_DEPOSIT
         });
     }
 
-    function withdrawERC4626(address token, uint256 amount)
+    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
@@ -587,13 +588,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy               : address(proxy),
             token               : token,
             amount              : amount,
+            maxSharesIn         : maxSharesIn,
             rateLimits          : address(rateLimits),
             withdrawRateLimitId : LIMIT_4626_WITHDRAW,
             depositRateLimitId  : LIMIT_4626_DEPOSIT
         });
     }
 
-    function redeemERC4626(address token, uint256 shares)
+    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
         external nonReentrant returns (uint256 assets)
     {
         _checkRole(RELAYER);
@@ -602,6 +604,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy               : address(proxy),
             token               : token,
             shares              : shares,
+            minAssetsOut        : minAssetsOut,
             rateLimits          : address(rateLimits),
             withdrawRateLimitId : LIMIT_4626_WITHDRAW,
             depositRateLimitId  : LIMIT_4626_DEPOSIT
@@ -839,23 +842,28 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         ApproveLib.approve(address(usde), address(proxy), address(ethenaMinter), usdeAmount);
     }
 
-    function cooldownAssetsSUSDe(uint256 usdeAmount) external nonReentrant {
+    function cooldownAssetsSUSDe(uint256 usdeAmount)
+        external nonReentrant returns (uint256 cooldownShares)
+    {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
-        proxy.doCall(
-            address(susde),
-            abi.encodeCall(susde.cooldownAssets, (usdeAmount))
+        cooldownShares = abi.decode(
+            proxy.doCall(
+                address(susde),
+                abi.encodeCall(susde.cooldownAssets, (usdeAmount))
+            ),
+            (uint256)
         );
     }
 
     // NOTE: !!! Rate limited at end of function !!!
     function cooldownSharesSUSDe(uint256 susdeAmount)
-        external nonReentrant returns (uint256 cooldownAmount)
+        external nonReentrant returns (uint256 cooldownAssets)
     {
         _checkRole(RELAYER);
 
-        cooldownAmount = abi.decode(
+        cooldownAssets = abi.decode(
             proxy.doCall(
                 address(susde),
                 abi.encodeCall(susde.cooldownShares, (susdeAmount))
@@ -863,7 +871,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
+        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAssets);
     }
 
     function unstakeSUSDe() external nonReentrant {
@@ -1168,7 +1176,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "MC/transfer-failed"
         );
     }
@@ -1185,7 +1193,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "MC/transferFrom-failed"
         );
     }

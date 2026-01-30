@@ -3,7 +3,9 @@ pragma solidity >=0.8.0;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IWEETHLike, IEETHLike } from "../../src/libraries/WEETHLib.sol";
+import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+import { IEETHLike } from "../../src/libraries/WEETHLib.sol";
 
 import { WEETHModule } from "../../src/WEETHModule.sol";
 
@@ -26,6 +28,11 @@ interface IWithdrawRequestNFTLike {
     function roleRegistry() external view returns (address);
 }
 
+interface IWEETHLike is IERC20 {
+    function eETH() external view returns (address);
+    function getEETHByWeETH(uint256 weETHAmount) external view returns (uint256);
+}
+
 contract MainnetControllerWeETHTestBase is ForkTestBase {
 
     IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
@@ -45,7 +52,15 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
         eETH          = IEETHLike(address(IWEETHLike(Ethereum.WEETH).eETH()));
         liquidityPool = ILiquidityPoolLike(IEETHLike(eETH).liquidityPool());
 
-        weETHModule = address(new WEETHModule(Ethereum.SPARK_PROXY, address(almProxy)));
+        weETHModule = address(
+            new ERC1967Proxy(
+                address(new WEETHModule()),
+                abi.encodeCall(
+                    WEETHModule.initialize,
+                    (Ethereum.SPARK_PROXY, address(almProxy))
+                )
+            )
+        );
     }
 
     function _getBlock() internal override pure returns (uint256) {
