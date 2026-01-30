@@ -36,7 +36,7 @@ library LayerZeroLib {
         uint32      destinationEndpointId,
         bytes32     layerZeroRecipient
     ) external {
-        require(layerZeroRecipient != bytes32(0), "MC/recipient-not-set");
+        require(layerZeroRecipient != bytes32(0), "LayerZeroLib/recipient-not-set");
 
         address token = ILayerZero(oftAddress).token();
 
