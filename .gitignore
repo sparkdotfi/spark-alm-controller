@@ -1,7 +1,6 @@
 cache/
 out/
 /broadcast
-docs/
 .env
 lcov.info
 script/output/*/*.json
