@@ -97,6 +97,8 @@ Audit reports are available in the [`audits/`](./audits/) directory. The system 
 - ChainSecurity
 - Certora
 
-## License
+---
 
-AGPL-3.0-or-later
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c83ef7e4-fae1-4c5c-8cff-99494ef75962" height="100"/>
+</p>
