@@ -12,21 +12,22 @@ import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { AaveLib }      from "./libraries/AaveLib.sol";
-import { ApproveLib }   from "./libraries/ApproveLib.sol";
-import { CCTPLib }      from "./libraries/CCTPLib.sol";
-import { CurveLib }     from "./libraries/CurveLib.sol";
-import { DAIUSDSLib }   from "./libraries/DAIUSDSLib.sol";
-import { ERC4626Lib }   from "./libraries/ERC4626Lib.sol";
-import { FarmLib }      from "./libraries/FarmLib.sol";
-import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
-import { MapleLib }     from "./libraries/MapleLib.sol";
-import { PSMLib }       from "./libraries/PSMLib.sol";
-import { UniswapV4Lib } from "./libraries/UniswapV4Lib.sol";
-import { USDELib }      from "./libraries/USDELib.sol";
-import { USDSLib }      from "./libraries/USDSLib.sol";
-import { WEETHLib }     from "./libraries/WEETHLib.sol";
-import { WSTETHLib }    from "./libraries/WSTETHLib.sol";
+import { AaveLib }          from "./libraries/AaveLib.sol";
+import { ApproveLib }       from "./libraries/ApproveLib.sol";
+import { CCTPLib }          from "./libraries/CCTPLib.sol";
+import { CurveLib }         from "./libraries/CurveLib.sol";
+import { DAIUSDSLib }       from "./libraries/DAIUSDSLib.sol";
+import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
+import { FarmLib }          from "./libraries/FarmLib.sol";
+import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
+import { MapleLib }         from "./libraries/MapleLib.sol";
+import { PSMLib }           from "./libraries/PSMLib.sol";
+import { TransferAssetLib } from "./libraries/TransferAssetLib.sol";
+import { UniswapV4Lib }     from "./libraries/UniswapV4Lib.sol";
+import { USDELib }          from "./libraries/USDELib.sol";
+import { USDSLib }          from "./libraries/USDSLib.sol";
+import { WEETHLib }         from "./libraries/WEETHLib.sol";
+import { WSTETHLib }        from "./libraries/WSTETHLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -118,7 +119,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_4626_WITHDRAW           = ERC4626Lib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_AAVE_DEPOSIT            = AaveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_AAVE_WITHDRAW           = AaveLib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_ASSET_TRANSFER          = keccak256("LIMIT_ASSET_TRANSFER");
+    bytes32 public LIMIT_ASSET_TRANSFER          = TransferAssetLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_CURVE_DEPOSIT           = CurveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_CURVE_SWAP              = CurveLib.LIMIT_SWAP;
     bytes32 public LIMIT_CURVE_WITHDRAW          = CurveLib.LIMIT_WITHDRAW;
@@ -347,12 +348,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        _rateLimited(
-            RateLimitHelpers.makeAddressAddressKey(LIMIT_ASSET_TRANSFER, asset, destination),
-            amount
-        );
-
-        _transfer(asset, destination, amount);
+        TransferAssetLib.transfer(address(proxy), address(rateLimits), asset, destination, amount);
     }
 
     /**********************************************************************************************/
