@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
-
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
@@ -11,10 +9,16 @@ import { RateLimits } from "../../src/RateLimits.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
+interface IERC20Like {
+
+    function balanceOf(address account) external view returns (uint256);
+
+}
+
 interface IWithdrawalQueue {
 
     struct RequestStatus {
-        uint256 amountOfStETH;
+        uint256 amountOfSTETH;
         uint256 amountOfShares;
         address owner;
         uint256 timestamp;
@@ -22,18 +26,18 @@ interface IWithdrawalQueue {
         bool    isClaimed;
     }
 
-    function getWithdrawalStatus(uint256[] calldata _requestIds)
+    function getWithdrawalStatus(uint256[] calldata requestIds)
         external
         view
         returns (RequestStatus[] memory statuses);
 
-    function finalize(uint256 _lastRequestIdToBeFinalized, uint256 _maxShareRate) external payable;
+    function finalize(uint256 lastRequestIdToBeFinalized, uint256 maxShareRate) external payable;
 
 }
 
-interface IWSTETH is IERC20 {
+interface IWSTETH is IERC20Like {
 
-    function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
+    function getStETHByWstETH(uint256 wstethAmount) external view returns (uint256);
 
 }
 
@@ -41,8 +45,8 @@ abstract contract WSTETH_TestBase is ForkTestBase {
 
     IWithdrawalQueue constant withdrawQueue = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE);
 
-    IERC20  constant weth   = IERC20(Ethereum.WETH);
-    IWSTETH constant wsteth = IWSTETH(Ethereum.WSTETH);
+    IERC20Like constant weth   = IERC20Like(Ethereum.WETH);
+    IWSTETH    constant wsteth = IWSTETH(Ethereum.WSTETH);
 
     function _getBlock() internal override pure returns (uint256) {
         return 23469772; //  September 29, 2025
@@ -50,30 +54,30 @@ abstract contract WSTETH_TestBase is ForkTestBase {
 
 }
 
-contract MainnetController_DepositToWSTETH_FailureTests is WSTETH_TestBase {
+contract MainnetController_DepositToWSTETH_Tests is WSTETH_TestBase {
 
-    function test_depositToWstETH_reentrancy() external {
+    function test_depositToWSTETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.depositToWstETH(1e18);
+        mainnetController.depositToWSTETH(1e18);
     }
 
-    function test_depositToWstETH_notRelayer() external {
+    function test_depositToWSTETH_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             RELAYER
         ));
-        mainnetController.depositToWstETH(1e18);
+        mainnetController.depositToWSTETH(1e18);
     }
 
-    function test_depositToWstETH_zeroMaxAmount() external {
-        vm.prank(relayer);
+    function test_depositToWSTETH_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.depositToWstETH(1e18);
+        vm.prank(relayer);
+        mainnetController.depositToWSTETH(1e18);
     }
 
-    function test_depositToWstETH_rateLimitsBoundary() external {
+    function test_depositToWSTETH_rateLimitsBoundary() external {
         bytes32 key = mainnetController.LIMIT_WSTETH_DEPOSIT();
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -81,19 +85,15 @@ contract MainnetController_DepositToWSTETH_FailureTests is WSTETH_TestBase {
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.depositToWstETH(1_000e18 + 1);
+        vm.prank(relayer);
+        mainnetController.depositToWSTETH(1_000e18 + 1);
 
         vm.prank(relayer);
-        mainnetController.depositToWstETH(1_000e18);
+        mainnetController.depositToWSTETH(1_000e18);
     }
 
-}
-
-contract MainnetController_DepositToWSTETH_SuccessTests is WSTETH_TestBase {
-
-    function test_depositToWstETH() external {
+    function test_depositToWSTETH() external {
         bytes32 key = mainnetController.LIMIT_WSTETH_DEPOSIT();
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -109,7 +109,7 @@ contract MainnetController_DepositToWSTETH_SuccessTests is WSTETH_TestBase {
         vm.record();
 
         vm.prank(relayer);
-        mainnetController.depositToWstETH(1_000e18);
+        mainnetController.depositToWSTETH(1_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -123,52 +123,48 @@ contract MainnetController_DepositToWSTETH_SuccessTests is WSTETH_TestBase {
 
 }
 
-contract MainnetController_RequestWithdrawFromWSTETH_FailureTests is WSTETH_TestBase {
+contract MainnetController_RequestWithdrawFromWSTETH_Tests is WSTETH_TestBase {
 
-    function test_requestWithdrawFromWstETH_reentrancy() external {
+    function test_requestWithdrawFromWSTETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.requestWithdrawFromWstETH(1e18);
+        mainnetController.requestWithdrawFromWSTETH(1e18);
     }
 
-    function test_requestWithdrawFromWstETH_notRelayer() external {
+    function test_requestWithdrawFromWSTETH_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             RELAYER
         ));
-        mainnetController.requestWithdrawFromWstETH(1e18);
+        mainnetController.requestWithdrawFromWSTETH(1e18);
     }
 
-    function test_requestWithdrawFromWstETH_zeroMaxAmount() external {
-        vm.prank(relayer);
+    function test_requestWithdrawFromWSTETH_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.requestWithdrawFromWstETH(1e18);
+        vm.prank(relayer);
+        mainnetController.requestWithdrawFromWSTETH(1e18);
     }
 
-    function test_requestWithdrawFromWstETH_rateLimitsBoundary() external {
+    function test_requestWithdrawFromWSTETH_rateLimitsBoundary() external {
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
 
-        uint256 stEthLimit = wsteth.getStETHByWstETH(500e18);
+        uint256 stethLimit = wsteth.getStETHByWstETH(500e18);
 
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(requestWithdrawKey, stEthLimit, stEthLimit / 1 days);
+        rateLimits.setRateLimitData(requestWithdrawKey, stethLimit, stethLimit / 1 days);
 
         deal(Ethereum.WSTETH, address(almProxy), 500e18);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.requestWithdrawFromWstETH(500e18 + 1);
+        vm.prank(relayer);
+        mainnetController.requestWithdrawFromWSTETH(500e18 + 1);
 
         vm.prank(relayer);
-        mainnetController.requestWithdrawFromWstETH(500e18);
+        mainnetController.requestWithdrawFromWSTETH(500e18);
     }
 
-}
-
-contract MainnetController_RequestWithdrawFromWSTETH_SuccessTests is WSTETH_TestBase {
-
-    function test_requestWithdrawFromWstETH() external {
+    function test_requestWithdrawFromWSTETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
 
@@ -185,7 +181,7 @@ contract MainnetController_RequestWithdrawFromWSTETH_SuccessTests is WSTETH_Test
         assertEq(wsteth.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
-        mainnetController.depositToWstETH(1_000e18);
+        mainnetController.depositToWSTETH(1_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),         0);
         assertEq(rateLimits.getCurrentRateLimit(requestWithdrawKey), 1_000e18);
@@ -202,7 +198,7 @@ contract MainnetController_RequestWithdrawFromWSTETH_SuccessTests is WSTETH_Test
         vm.record();
 
         vm.prank(relayer);
-        uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(500e18);
+        uint256[] memory requestIds = mainnetController.requestWithdrawFromWSTETH(500e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -219,7 +215,7 @@ contract MainnetController_RequestWithdrawFromWSTETH_SuccessTests is WSTETH_Test
 
         assertApproxEqAbs(statuses[0].amountOfShares, 500e18, 1);
 
-        assertEq(statuses[0].amountOfStETH, expectedEthWithdrawal);
+        assertEq(statuses[0].amountOfSTETH, expectedEthWithdrawal);
         assertEq(statuses[0].owner,         address(almProxy));
         assertEq(statuses[0].timestamp,     block.timestamp);
         assertEq(statuses[0].isFinalized,   false);
@@ -228,30 +224,26 @@ contract MainnetController_RequestWithdrawFromWSTETH_SuccessTests is WSTETH_Test
 
 }
 
-contract MainnetController_ClaimWithdrawalFromWSTETH_FailureTests is WSTETH_TestBase {
+contract MainnetController_ClaimWithdrawalFromWSTETH_Tests is WSTETH_TestBase {
 
-    function test_claimWithdrawalFromWstETH_reentrancy() external {
+    address internal constant FINALIZER = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
+
+    function test_claimWithdrawalFromWSTETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.claimWithdrawalFromWstETH(1);
+        mainnetController.claimWithdrawalFromWSTETH(1);
     }
 
-    function test_claimWithdrawalFromWstETH_notRelayer() external {
+    function test_claimWithdrawalFromWSTETH_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             RELAYER
         ));
-        mainnetController.claimWithdrawalFromWstETH(1);
+        mainnetController.claimWithdrawalFromWSTETH(1);
     }
 
-}
-
-contract MainnetController_ClaimWithdrawalFromWSTETH_SuccessTests is WSTETH_TestBase {
-
-    address finalizer = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
-
-    function test_claimWithdrawalFromWstETH() external {
+    function test_claimWithdrawalFromWSTETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
 
@@ -268,7 +260,7 @@ contract MainnetController_ClaimWithdrawalFromWSTETH_SuccessTests is WSTETH_Test
         assertEq(wsteth.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
-        mainnetController.depositToWstETH(1_000e18);
+        mainnetController.depositToWSTETH(1_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),         0);
         assertEq(rateLimits.getCurrentRateLimit(requestWithdrawKey), 1_000e18);
@@ -284,7 +276,7 @@ contract MainnetController_ClaimWithdrawalFromWSTETH_SuccessTests is WSTETH_Test
 
         // NOTE: Requesting for a small withdrawal so that it can be finalized.
         vm.prank(relayer);
-        uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(5e18);
+        uint256[] memory requestIds = mainnetController.requestWithdrawFromWSTETH(5e18);
 
         assertEq(wsteth.balanceOf(address(almProxy)), 818.02939539073162522e18);
 
@@ -299,13 +291,13 @@ contract MainnetController_ClaimWithdrawalFromWSTETH_SuccessTests is WSTETH_Test
 
         assertApproxEqAbs(statuses[0].amountOfShares, 5e18, 1);
 
-        assertEq(statuses[0].amountOfStETH, expectedEthWithdrawal);
+        assertEq(statuses[0].amountOfSTETH, expectedEthWithdrawal);
         assertEq(statuses[0].owner,         address(almProxy));
         assertEq(statuses[0].timestamp,     block.timestamp);
         assertEq(statuses[0].isFinalized,   false);
         assertEq(statuses[0].isClaimed,     false);
 
-        vm.prank(finalizer);
+        vm.prank(FINALIZER);
         withdrawQueue.finalize(requestIds[0], 300e27);
 
         statuses = withdrawQueue.getWithdrawalStatus(requestIds);
@@ -316,7 +308,7 @@ contract MainnetController_ClaimWithdrawalFromWSTETH_SuccessTests is WSTETH_Test
         vm.record();
 
         vm.prank(relayer);
-        mainnetController.claimWithdrawalFromWstETH(requestIds[0]);
+        mainnetController.claimWithdrawalFromWSTETH(requestIds[0]);
 
         _assertReentrancyGuardWrittenToTwice();
 
