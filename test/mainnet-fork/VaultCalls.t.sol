@@ -9,7 +9,7 @@ import { RateLimits } from "../../src/RateLimits.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract MainnetController_MintUSDS_FailureTests is ForkTestBase {
+contract MainnetController_MintUSDS_Tests is ForkTestBase {
 
     function test_mintUSDS_reentrancy() external {
         _setControllerEntered();
@@ -31,27 +31,23 @@ contract MainnetController_MintUSDS_FailureTests is ForkTestBase {
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
         vm.stopPrank();
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
     }
 
     function test_mintUSDS_rateLimitBoundary() external {
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(relayer);
         mainnetController.mintUSDS(5_000_000e18 + 1);
 
         vm.prank(relayer);
         mainnetController.mintUSDS(5_000_000e18);
     }
 
-}
-
-contract MainnetController_MintUSDS_SuccessTests is ForkTestBase {
-
     function test_mintUSDS() external {
         ( uint256 ink, uint256 art ) = dss.vat.urns(ilk, vault);
-        ( uint256 Art,,,, )          = dss.vat.ilks(ilk);
+        ( uint256 Art, , , , )       = dss.vat.ilks(ilk);
 
         assertEq(dss.vat.dai(USDS_JOIN), VAT_DAI_USDS_JOIN);
 
@@ -69,8 +65,8 @@ contract MainnetController_MintUSDS_SuccessTests is ForkTestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        ( ink, art ) = dss.vat.urns(ilk, vault);
-        ( Art,,,, )  = dss.vat.ilks(ilk);
+        ( ink, art )   = dss.vat.urns(ilk, vault);
+        ( Art, , , , ) = dss.vat.ilks(ilk);
 
         assertEq(dss.vat.dai(USDS_JOIN), VAT_DAI_USDS_JOIN + 1e45);
 
@@ -113,7 +109,7 @@ contract MainnetController_MintUSDS_SuccessTests is ForkTestBase {
 
 }
 
-contract MainnetController_BurnUSDS_FailureTests is ForkTestBase {
+contract MainnetController_BurnUSDS_Tests is ForkTestBase {
 
     function test_burnUSDS_reentrancy() external {
         _setControllerEntered();
@@ -135,14 +131,10 @@ contract MainnetController_BurnUSDS_FailureTests is ForkTestBase {
         rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
         vm.stopPrank();
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         mainnetController.burnUSDS(1e18);
     }
-
-}
-
-contract MainnetController_BurnUSDS_SuccessTests is ForkTestBase {
 
     function test_burnUSDS() external {
         // Setup
@@ -150,7 +142,7 @@ contract MainnetController_BurnUSDS_SuccessTests is ForkTestBase {
         mainnetController.mintUSDS(1e18);
 
         ( uint256 ink, uint256 art ) = dss.vat.urns(ilk, vault);
-        ( uint256 Art,,,, )          = dss.vat.ilks(ilk);
+        ( uint256 Art, , , , )       = dss.vat.ilks(ilk);
 
         assertEq(dss.vat.dai(USDS_JOIN), VAT_DAI_USDS_JOIN + 1e45);
 
@@ -168,8 +160,8 @@ contract MainnetController_BurnUSDS_SuccessTests is ForkTestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        ( ink, art ) = dss.vat.urns(ilk, vault);
-        ( Art,,,, )  = dss.vat.ilks(ilk);
+        ( ink, art )   = dss.vat.urns(ilk, vault);
+        ( Art, , , , ) = dss.vat.ilks(ilk);
 
         assertEq(dss.vat.dai(USDS_JOIN), VAT_DAI_USDS_JOIN);
 
