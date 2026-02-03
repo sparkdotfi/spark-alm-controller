@@ -18,21 +18,22 @@ import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 abstract contract Maple_TestBase is ForkTestBase {
 
-    IMapleTokenExtendedLike constant syrup = IMapleTokenExtendedLike(0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b);
+    IMapleTokenExtendedLike internal constant syrup =
+        IMapleTokenExtendedLike(0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b);
 
-    IPermissionManagerLike constant permissionManager
-        = IPermissionManagerLike(0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3);
+    IPermissionManagerLike internal constant permissionManager =
+        IPermissionManagerLike(0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3);
 
-    uint256 SYRUP_CONVERTED_ASSETS;
-    uint256 SYRUP_CONVERTED_SHARES;
+    uint256 internal syrupConvertedAssets;
+    uint256 internal syrupConvertedShares;
 
-    uint256 USDC_BAL_SYRUP;
+    uint256 internal usdcBalanceOfSyrup;
 
-    uint256 SYRUP_TOTAL_ASSETS;
-    uint256 SYRUP_TOTAL_SUPPLY;
+    uint256 internal syrupTotalAssets;
+    uint256 internal syrupTotalSupply;
 
-    bytes32 depositKey;
-    bytes32 redeemKey;
+    bytes32 internal depositKey;
+    bytes32 internal redeemKey;
 
     function setUp() override public {
         super.setUp();
@@ -61,19 +62,19 @@ abstract contract Maple_TestBase is ForkTestBase {
         );
         vm.stopPrank();
 
-        SYRUP_CONVERTED_ASSETS = syrup.convertToAssets(1_000_000e6);
-        SYRUP_CONVERTED_SHARES = syrup.convertToShares(1_000_000e6);
+        syrupConvertedAssets = syrup.convertToAssets(1_000_000e6);
+        syrupConvertedShares = syrup.convertToShares(1_000_000e6);
 
-        SYRUP_TOTAL_ASSETS = syrup.totalAssets();
-        SYRUP_TOTAL_SUPPLY = syrup.totalSupply();
+        syrupTotalAssets = syrup.totalAssets();
+        syrupTotalSupply = syrup.totalSupply();
 
-        USDC_BAL_SYRUP = usdc.balanceOf(address(syrup));
+        usdcBalanceOfSyrup = usdc.balanceOf(address(syrup));
 
-        assertEq(SYRUP_CONVERTED_ASSETS, 1_066_100.425881e6);
-        assertEq(SYRUP_CONVERTED_SHARES, 937_997.936895e6);
+        assertEq(syrupConvertedAssets, 1_066_100.425881e6);
+        assertEq(syrupConvertedShares, 937_997.936895e6);
 
-        assertEq(SYRUP_TOTAL_ASSETS, 59_578_045.544596e6);
-        assertEq(SYRUP_TOTAL_SUPPLY, 55_884_083.805100e6);
+        assertEq(syrupTotalAssets, 59_578_045.544596e6);
+        assertEq(syrupTotalSupply, 55_884_083.805100e6);
     }
 
     function _getBlock() internal pure override returns (uint256) {
@@ -161,37 +162,37 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
 
         assertEq(usdc.balanceOf(address(almProxy)),          1_000_000e6);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
-        assertEq(usdc.balanceOf(address(syrup)),             USDC_BAL_SYRUP);
+        assertEq(usdc.balanceOf(address(syrup)),             usdcBalanceOfSyrup);
 
         assertEq(usdc.allowance(address(almProxy), address(syrup)),  0);
 
-        assertEq(syrup.totalSupply(),                SYRUP_TOTAL_SUPPLY);
-        assertEq(syrup.totalAssets(),                SYRUP_TOTAL_ASSETS);
+        assertEq(syrup.totalSupply(),                syrupTotalSupply);
+        assertEq(syrup.totalAssets(),                syrupTotalAssets);
         assertEq(syrup.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(
             address(syrup),
             1_000_000e6,
-            SYRUP_CONVERTED_SHARES
+            syrupConvertedShares
         );
 
-        assertEq(shares, SYRUP_CONVERTED_SHARES);
+        assertEq(shares, syrupConvertedShares);
 
         assertEq(usdc.balanceOf(address(almProxy)),          0);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
-        assertEq(usdc.balanceOf(address(syrup)),             USDC_BAL_SYRUP + 1_000_000e6);
+        assertEq(usdc.balanceOf(address(syrup)),             usdcBalanceOfSyrup + 1_000_000e6);
 
         assertEq(usdc.allowance(address(almProxy), address(syrup)), 0);
 
-        assertEq(syrup.totalSupply(),                SYRUP_TOTAL_SUPPLY + shares);
-        assertEq(syrup.totalAssets(),                SYRUP_TOTAL_ASSETS + 1_000_000e6);
+        assertEq(syrup.totalSupply(),                syrupTotalSupply + shares);
+        assertEq(syrup.totalAssets(),                syrupTotalAssets + 1_000_000e6);
         assertEq(syrup.balanceOf(address(almProxy)), shares);
     }
 
 }
 
-contract MainnetController_Maple_RequestRedemption_FailureTests is Maple_TestBase {
+contract MainnetController_Maple_RequestRedemption_Tests is Maple_TestBase {
 
     function test_requestMapleRedemption_reentrancy() external {
         _setControllerEntered();
@@ -240,10 +241,6 @@ contract MainnetController_Maple_RequestRedemption_FailureTests is Maple_TestBas
         mainnetController.requestMapleRedemption(address(syrup), atBoundaryShares);
     }
 
-}
-
-contract MainnetController_Maple_RequestRedemption_SuccessTests is Maple_TestBase {
-
     function test_requestMapleRedemption() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
@@ -270,7 +267,7 @@ contract MainnetController_Maple_RequestRedemption_SuccessTests is Maple_TestBas
     }
 }
 
-contract MainnetController_Maple_CancelRedemption_FailureTests is Maple_TestBase {
+contract MainnetController_Maple_CancelRedemption_Tests is Maple_TestBase {
 
     function test_cancelMapleRedemption_reentrancy() external {
         _setControllerEntered();
@@ -288,14 +285,10 @@ contract MainnetController_Maple_CancelRedemption_FailureTests is Maple_TestBase
     }
 
     function test_cancelMapleRedemption_invalidMapleToken() external {
-        vm.expectRevert("MC/invalid-action");
+        vm.expectRevert("MapleLib/invalid-action");
         vm.prank(relayer);
         mainnetController.cancelMapleRedemption(makeAddr("fake-syrup"), 1_000_000e6);
     }
-
-}
-
-contract MainnetController_Maple_CancelRedemption_SuccessTests is Maple_TestBase {
 
     function test_cancelMapleRedemption() external {
         address withdrawalManager   = IPoolManagerLike(syrup.manager()).withdrawalManager();
@@ -331,7 +324,7 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
     function test_e2e_mapleDepositAndRedeem() external {
         // Increase withdraw rate limit so interest can be accrued
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(redeemKey,  2_000_000e6, uint256(1_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(redeemKey, 2_000_000e6, uint256(1_000_000e6) / 1 days);
 
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
@@ -339,28 +332,28 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
 
         assertEq(usdc.balanceOf(address(almProxy)),          1_000_000e6);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
-        assertEq(usdc.balanceOf(address(syrup)),             USDC_BAL_SYRUP);
+        assertEq(usdc.balanceOf(address(syrup)),             usdcBalanceOfSyrup);
 
         assertEq(usdc.allowance(address(almProxy), address(syrup)),  0);
 
-        assertEq(syrup.totalSupply(),                SYRUP_TOTAL_SUPPLY);
-        assertEq(syrup.totalAssets(),                SYRUP_TOTAL_ASSETS);
+        assertEq(syrup.totalSupply(),                syrupTotalSupply);
+        assertEq(syrup.totalAssets(),                syrupTotalAssets);
         assertEq(syrup.balanceOf(address(almProxy)), 0);
 
         vm.prank(relayer);
         uint256 proxyShares = mainnetController.depositERC4626(address(syrup), 1_000_000e6, 0);
 
-        assertEq(proxyShares, SYRUP_CONVERTED_SHARES);
+        assertEq(proxyShares, syrupConvertedShares);
 
         assertEq(usdc.balanceOf(address(almProxy)),          0);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
-        assertEq(usdc.balanceOf(address(syrup)),             USDC_BAL_SYRUP + 1_000_000e6);
+        assertEq(usdc.balanceOf(address(syrup)),             usdcBalanceOfSyrup + 1_000_000e6);
 
         assertEq(usdc.allowance(address(almProxy), address(syrup)), 0);
 
-        assertEq(syrup.totalSupply(),                SYRUP_TOTAL_SUPPLY + proxyShares);
-        assertEq(syrup.totalAssets(),                SYRUP_TOTAL_ASSETS + 1_000_000e6);
-        assertEq(syrup.balanceOf(address(almProxy)), SYRUP_CONVERTED_SHARES);
+        assertEq(syrup.totalSupply(),                syrupTotalSupply + proxyShares);
+        assertEq(syrup.totalAssets(),                syrupTotalAssets + 1_000_000e6);
+        assertEq(syrup.balanceOf(address(almProxy)), syrupConvertedShares);
 
         // --- Step 2: Request Redeem ---
 
@@ -388,11 +381,11 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
         uint256 withdrawAssets = syrup.convertToAssets(proxyShares);
         uint256 usdcPoolBal    = usdc.balanceOf(address(syrup));
 
-        assertGt(totalAssets, SYRUP_TOTAL_ASSETS + 1_000_000e6);  // Interest accrued
+        assertGt(totalAssets, syrupTotalAssets + 1_000_000e6);  // Interest accrued
 
         assertEq(withdrawAssets, 1_000_423.216342e6);  // Interest accrued
 
-        assertEq(syrup.totalSupply(),                         SYRUP_TOTAL_SUPPLY + proxyShares);
+        assertEq(syrup.totalSupply(),                         syrupTotalSupply + proxyShares);
         assertEq(syrup.totalAssets(),                         totalAssets);
         assertEq(syrup.balanceOf(address(withdrawalManager)), totalEscrowedShares + proxyShares);
 
@@ -400,13 +393,13 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
         assertEq(usdc.balanceOf(address(almProxy)), 0);
 
         // NOTE: `proxyShares` can be used in this case because almProxy is the only account using the
-        //       `withdrawalManager` at this fork block. Usually `proccessRedemptions` requires
+        //       `withdrawalManager` at this fork block. Usually `processRedemptions` requires
         //       `maxSharesToProcess` to include the shares of all accounts ahead of almProxy in
         //       queue plus almProxy's shares.
         vm.prank(IPoolManagerLike(syrup.manager()).poolDelegate());
         IWithdrawalManagerLike(withdrawalManager).processRedemptions(proxyShares);
 
-        assertEq(syrup.totalSupply(),                         SYRUP_TOTAL_SUPPLY);
+        assertEq(syrup.totalSupply(),                         syrupTotalSupply);
         assertEq(syrup.totalAssets(),                         totalAssets - withdrawAssets);
         assertEq(syrup.balanceOf(address(withdrawalManager)), totalEscrowedShares);
 
