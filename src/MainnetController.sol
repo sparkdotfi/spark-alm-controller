@@ -23,6 +23,7 @@ import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { MapleLib }         from "./libraries/MapleLib.sol";
 import { PSMLib }           from "./libraries/PSMLib.sol";
 import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
+import { SuperstateLib }    from "./libraries/SuperstateLib.sol";
 import { TransferAssetLib } from "./libraries/TransferAssetLib.sol";
 import { UniswapV4Lib }     from "./libraries/UniswapV4Lib.sol";
 import { USDELib }          from "./libraries/USDELib.sol";
@@ -41,12 +42,6 @@ interface IDAIUSDSLike {
 interface IPSMLike {
 
     function gem() external view returns (address);
-
-}
-
-interface IUSTBLike is IERC20 {
-
-    function subscribe(uint256 inAmount, address stablecoin) external;
 
 }
 
@@ -124,7 +119,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
     bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = SparkVaultLib.LIMIT_TAKE;
-    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
+    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = SuperstateLib.LIMIT_SUBSCRIBE;
     bytes32 public LIMIT_SUSDE_COOLDOWN          = USDELib.LIMIT_SUSDE_COOLDOWN;
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
@@ -151,12 +146,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     IRateLimits public rateLimits;
     address     public vault;
 
-    address   public dai;
-    address   public usds;
-    address   public usde;
-    address   public usdc;
-    IUSTBLike public ustb;
-    address   public susde;
+    address public dai;
+    address public usds;
+    address public usde;
+    address public usdc;
+    address public ustb;
+    address public susde;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -200,7 +195,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         ethenaMinter = Ethereum.ETHENA_MINTER;
 
         susde = Ethereum.SUSDE;
-        ustb  = IUSTBLike(Ethereum.USTB);
+        ustb  = Ethereum.USTB;
         dai   = IDAIUSDSLike(daiUsds).dai();
         usdc  = IPSMLike(psm).gem();
         usds  = Ethereum.USDS;
@@ -745,14 +740,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function subscribeSuperstate(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER) {
-        _rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount);
-
-        ApproveLib.approve(usdc, address(proxy), address(ustb), usdcAmount);
-
-        proxy.doCall(
-            address(ustb),
-            abi.encodeCall(ustb.subscribe, (usdcAmount, usdc))
-        );
+        SuperstateLib.subscribe(address(proxy), address(rateLimits), usdc, ustb, usdcAmount);
     }
 
     /**********************************************************************************************/
@@ -993,10 +981,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
-
-    function _rateLimited(bytes32 key, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(key, amount);
-    }
 
     function _rateLimitedAddress(bytes32 key, address asset, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);

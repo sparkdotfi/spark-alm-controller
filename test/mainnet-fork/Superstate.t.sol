@@ -7,8 +7,8 @@ import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
-import { RateLimits }       from "../../src/RateLimits.sol";
+import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }            from "../../src/RateLimits.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -24,7 +24,7 @@ interface IAllowlistV2Like {
 
 abstract contract Superstate_TestBase is ForkTestBase {
 
-    IAllowlistV2Like allowlist = IAllowlistV2Like(0x02f1fA8B196d21c7b733EB2700B825611d8A38E5);
+    IAllowlistV2Like internal allowlist = IAllowlistV2Like(0x02f1fA8B196d21c7b733EB2700B825611d8A38E5);
 
     function _getBlock() internal pure override returns (uint256) {
         return 21570000;  // Jan 7, 2024
@@ -33,6 +33,26 @@ abstract contract Superstate_TestBase is ForkTestBase {
 }
 
 contract MainnetController_SubscribeSuperstate_FailureTests is Superstate_TestBase {
+
+    address internal sweepDestination;
+
+    bytes32 internal key;
+
+    function setUp() public override {
+        super.setUp();
+
+        ( sweepDestination, ) = ustb.supportedStablecoins(address(usdc));
+
+        vm.startPrank(allowlist.owner());
+        allowlist.setEntityIdForAddress(1, address(almProxy));
+        allowlist.setEntityAllowedForFund(1, "USTB", true);
+        vm.stopPrank();
+
+        key = mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE();
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+    }
 
     function test_subscribeSuperstate_reentrancy() external {
         _setControllerEntered();
@@ -51,57 +71,26 @@ contract MainnetController_SubscribeSuperstate_FailureTests is Superstate_TestBa
 
     function test_subscribeSuperstate_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE(), 0, 0);
+        rateLimits.setRateLimitData(key, 0, 0);
         vm.stopPrank();
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6);
     }
 
     function test_subscribeSuperstate_rateLimitBoundary() external {
         deal(address(usdc), address(almProxy), 5_000_000e6);
 
-        bytes32 key = mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE();
-
-        vm.startPrank(allowlist.owner());
-        allowlist.setEntityIdForAddress(1, address(almProxy));
-        allowlist.setEntityAllowedForFund(1, "USTB", true);
-        vm.stopPrank();
-
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6 + 1);
 
         vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6);
-    }
-
-}
-
-contract MainnetController_SubscribeSuperstate_SuccessTests is Superstate_TestBase {
-
-    address sweepDestination;
-
-    bytes32 key;
-
-    function setUp() public override {
-        super.setUp();
-
-        ( sweepDestination, ) = ustb.supportedStablecoins(address(usdc));
-
-        vm.startPrank(allowlist.owner());
-        allowlist.setEntityIdForAddress(1, address(almProxy));
-        allowlist.setEntityAllowedForFund(1, "USTB", true);
-        vm.stopPrank();
-
-        key = mainnetController.LIMIT_SUPERSTATE_SUBSCRIBE();
-
-        vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
     }
 
     function test_subscribeSuperstate() external {
@@ -120,8 +109,11 @@ contract MainnetController_SubscribeSuperstate_SuccessTests is Superstate_TestBa
 
         uint256 totalSupply = ustb.totalSupply();
 
-        ( uint256 expectedUstb, uint256 stablecoinInAmountAfterFee, uint256 feeOnStablecoinInAmount )
-            = ustb.calculateSuperstateTokenOut(1_000_000e6, address(usdc));
+        (
+            uint256 expectedUstb,
+            uint256 stablecoinInAmountAfterFee,
+            uint256 feeOnStablecoinInAmount
+        ) = ustb.calculateSuperstateTokenOut(1_000_000e6, address(usdc));
 
         assertEq(expectedUstb,               95_027.920628e6);
         assertEq(stablecoinInAmountAfterFee, 1_000_000e6);
@@ -151,7 +143,7 @@ contract MainnetController_SubscribeSuperstate_SuccessTests is Superstate_TestBa
 
 contract MainnetController_Superstate_E2ETests is Superstate_TestBase {
 
-    address usccDepositAddress = makeAddr("usccDepositAddress");
+    address internal usccDepositAddress = makeAddr("usccDepositAddress");
 
     function setUp() public override {
         super.setUp();
@@ -160,7 +152,7 @@ contract MainnetController_Superstate_E2ETests is Superstate_TestBase {
 
         // Rate limit to transfer USDC to USCC deposit addressx to mint USCC
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAddressAddressKey(
+            makeAddressAddressKey(
                 mainnetController.LIMIT_ASSET_TRANSFER(),
                 address(usdc),
                 address(usccDepositAddress)
@@ -171,7 +163,7 @@ contract MainnetController_Superstate_E2ETests is Superstate_TestBase {
 
         // Rate limit to transfer USCC to USCC to burn USCC for USDC
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAddressAddressKey(
+            makeAddressAddressKey(
                 mainnetController.LIMIT_ASSET_TRANSFER(),
                 address(uscc),
                 address(uscc)
