@@ -7,6 +7,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 import { CCTPLib }      from "../../../src/libraries/CCTPLib.sol";
 import { ERC4626Lib }   from "../../../src/libraries/ERC4626Lib.sol";
 import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
+import { OTCLib }       from "../../../src/libraries/OTCLib.sol";
 import { UniswapV4Lib } from "../../../src/libraries/UniswapV4Lib.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
@@ -253,38 +254,39 @@ contract MainnetController_SetOTCBuffer_Tests is MainnetController_Admin_TestBas
     }
 
     function test_setOTCBuffer_exchangeZero() external {
+        vm.expectRevert("OTCLib/exchange-zero-address");
         vm.prank(admin);
-        vm.expectRevert("MC/exchange-zero-address");
         mainnetController.setOTCBuffer(address(0), address(otcBuffer));
     }
 
     function test_setOTCBuffer_otcBufferZero() external {
+        vm.expectRevert("OTCLib/otcBuffer-zero-address");
         vm.prank(admin);
-        vm.expectRevert("MC/otcBuffer-zero-address");
         mainnetController.setOTCBuffer(exchange, address(0));
     }
 
     function test_setOTCBuffer_exchangeEqualsOTCBuffer() external {
+        vm.expectRevert("OTCLib/exchange-equals-otcBuffer");
         vm.prank(admin);
-        vm.expectRevert("MC/exchange-equals-otcBuffer");
         mainnetController.setOTCBuffer(address(otcBuffer), address(otcBuffer));
     }
 
     function test_setOTCBuffer() external {
-        ( address otcBuffer_,,,, ) = mainnetController.otcs(exchange);
+        ( address otcBuffer_, , , , ) = mainnetController.otcs(exchange);
 
         assertEq(otcBuffer_, address(0));
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.OTCBufferSet(exchange, address(0), address(otcBuffer));
+        emit OTCLib.OTCBufferSet(exchange, address(otcBuffer));
+
+        vm.prank(admin);
         mainnetController.setOTCBuffer(exchange, address(otcBuffer));
 
         _assertReentrancyGuardWrittenToTwice();
 
-        ( otcBuffer_,,,, ) = mainnetController.otcs(exchange);
+        ( otcBuffer_, , , , ) = mainnetController.otcs(exchange);
 
         assertEq(otcBuffer_, address(otcBuffer));
     }
@@ -311,25 +313,26 @@ contract MainnetController_SetOTCRechargeRate_Tests is MainnetController_Admin_T
     }
 
     function test_setOTCRechargeRate_exchangeZero() external {
+        vm.expectRevert("OTCLib/exchange-zero-address");
         vm.prank(admin);
-        vm.expectRevert("MC/exchange-zero-address");
         mainnetController.setOTCRechargeRate(address(0), uint256(1_000_000e18) / 1 days);
     }
 
     function test_setOTCRechargeRate() external {
-        ( , uint256 rate18,,, ) = mainnetController.otcs(exchange);
+        ( , uint256 rate18, , , ) = mainnetController.otcs(exchange);
         assertEq(rate18, 0);
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.OTCRechargeRateSet(exchange, 0, uint256(1_000_000e18) / 1 days);
+        emit OTCLib.OTCRechargeRateSet(exchange, uint256(1_000_000e18) / 1 days);
+
+        vm.prank(admin);
         mainnetController.setOTCRechargeRate(exchange, uint256(1_000_000e18) / 1 days);
 
         _assertReentrancyGuardWrittenToTwice();
 
-        ( , rate18,,, ) = mainnetController.otcs(exchange);
+        ( , rate18, , , ) = mainnetController.otcs(exchange);
         assertEq(rate18, uint256(1_000_000e18) / 1 days);
     }
 
@@ -356,20 +359,20 @@ contract MainnetController_SetOTCWhitelistedAsset_Tests is MainnetController_Adm
     }
 
     function test_setOTCWhitelistedAsset_exchangeZero() external {
+        vm.expectRevert("OTCLib/exchange-zero-address");
         vm.prank(admin);
-        vm.expectRevert("MC/exchange-zero-address");
         mainnetController.setOTCWhitelistedAsset(address(0), asset, true);
     }
 
     function test_setOTCWhitelistedAsset_assetZero() external {
+        vm.expectRevert("OTCLib/asset-zero-address");
         vm.prank(admin);
-        vm.expectRevert("MC/asset-zero-address");
         mainnetController.setOTCWhitelistedAsset(exchange, address(0), true);
     }
 
     function test_setOTCWhitelistedAsset_otcBufferNotSet() external {
+        vm.expectRevert("OTCLib/otc-buffer-not-set");
         vm.prank(admin);
-        vm.expectRevert("MC/otc-buffer-not-set");
         mainnetController.setOTCWhitelistedAsset(makeAddr("fake-exchange"), asset, true);
     }
 
@@ -379,7 +382,8 @@ contract MainnetController_SetOTCWhitelistedAsset_Tests is MainnetController_Adm
         mainnetController.setOTCBuffer(exchange, asset);
 
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.OTCWhitelistedAssetSet(exchange, asset, true);
+        emit OTCLib.OTCWhitelistedAssetSet(exchange, asset, true);
+
         mainnetController.setOTCWhitelistedAsset(exchange, asset, true);
 
         vm.stopPrank();
@@ -388,9 +392,10 @@ contract MainnetController_SetOTCWhitelistedAsset_Tests is MainnetController_Adm
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.OTCWhitelistedAssetSet(exchange, asset, false);
+        emit OTCLib.OTCWhitelistedAssetSet(exchange, asset, false);
+
+        vm.prank(admin);
         mainnetController.setOTCWhitelistedAsset(exchange, asset, false);
 
         _assertReentrancyGuardWrittenToTwice();

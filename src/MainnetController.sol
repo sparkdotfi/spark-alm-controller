@@ -4,9 +4,6 @@ pragma solidity ^0.8.21;
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IERC20 }         from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { IERC20Metadata } from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
 import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
@@ -21,6 +18,7 @@ import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { FarmLib }          from "./libraries/FarmLib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { MapleLib }         from "./libraries/MapleLib.sol";
+import { OTCLib }           from "./libraries/OTCLib.sol";
 import { PSMLib }           from "./libraries/PSMLib.sol";
 import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
 import { SuperstateLib }    from "./libraries/SuperstateLib.sol";
@@ -30,8 +28,6 @@ import { USDELib }          from "./libraries/USDELib.sol";
 import { USDSLib }          from "./libraries/USDSLib.sol";
 import { WEETHLib }         from "./libraries/WEETHLib.sol";
 import { WSTETHLib }        from "./libraries/WSTETHLib.sol";
-
-import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IDAIUSDSLike {
 
@@ -52,49 +48,11 @@ interface IVaultLike {
 
 contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
-    struct OTC {
-        address buffer;
-        uint256 rechargeRate18;
-        uint256 sent18;
-        uint256 sentTimestamp;
-        uint256 claimed18;
-    }
-
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
-
-    event OTCBufferSet(
-        address indexed exchange,
-        address indexed oldOTCBuffer,
-        address indexed newOTCBuffer
-    );
-
-    event OTCClaimed(
-        address indexed exchange,
-        address indexed buffer,
-        address indexed assetClaimed,
-        uint256         amountClaimed,
-        uint256         amountClaimed18
-    );
-
-    event OTCRechargeRateSet(address indexed exchange, uint256 oldRate18, uint256 newRate18);
-
-    event OTCSwapSent(
-        address indexed exchange,
-        address indexed buffer,
-        address indexed tokenSent,
-        uint256         amountSent,
-        uint256         amountSent18
-    );
-
-    event OTCWhitelistedAssetSet(
-        address indexed exchange,
-        address indexed asset,
-        bool            isWhitelisted
-    );
 
     event RelayerRemoved(address indexed relayer);
 
@@ -117,7 +75,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_FARM_WITHDRAW           = FarmLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
-    bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
+    bytes32 public LIMIT_OTC_SWAP                = OTCLib.LIMIT_SWAP;
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = SparkVaultLib.LIMIT_TAKE;
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = SuperstateLib.LIMIT_SUBSCRIBE;
     bytes32 public LIMIT_SUSDE_COOLDOWN          = USDELib.LIMIT_SUSDE_COOLDOWN;
@@ -159,7 +117,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // OTC swap (also uses maxSlippages)
-    mapping(address exchange => OTC otcData) public otcs;
+    mapping(address exchange => OTCLib.OTC otcData) public otcs;
 
     mapping(address exchange => mapping(address asset => bool)) public otcWhitelistedAssets;
 
@@ -242,17 +200,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(exchange  != address(0), "MC/exchange-zero-address");
-        require(otcBuffer != address(0), "MC/otcBuffer-zero-address");
-        require(exchange  != otcBuffer,  "MC/exchange-equals-otcBuffer");
-
-        OTC storage otc = otcs[exchange];
-
-        // Prevent rotating buffer while a swap is pending and not ready
-        require(otc.sentTimestamp == 0 || isOtcSwapReady(exchange), "MC/swap-in-progress");
-
-        emit OTCBufferSet(exchange, otc.buffer, otcBuffer);
-        otc.buffer = otcBuffer;
+        OTCLib.setBuffer(exchange, otcBuffer, otcs, maxSlippages);
     }
 
     function setOTCRechargeRate(address exchange, uint256 rechargeRate18)
@@ -260,12 +208,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(exchange != address(0), "MC/exchange-zero-address");
-
-        OTC storage otc = otcs[exchange];
-
-        emit OTCRechargeRateSet(exchange, otc.rechargeRate18, rechargeRate18);
-        otc.rechargeRate18 = rechargeRate18;
+        OTCLib.setRechargeRate(exchange, rechargeRate18, otcs);
     }
 
     function setOTCWhitelistedAsset(address exchange, address asset, bool isWhitelisted)
@@ -273,12 +216,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(exchange              != address(0), "MC/exchange-zero-address");
-        require(asset                 != address(0), "MC/asset-zero-address");
-        require(otcs[exchange].buffer != address(0), "MC/otc-buffer-not-set");
-
-        emit OTCWhitelistedAssetSet(exchange, asset, isWhitelisted);
-        otcWhitelistedAssets[exchange][asset] = isWhitelisted;
+        OTCLib.setWhitelistedAsset(exchange, asset, isWhitelisted, otcWhitelistedAssets, otcs);
     }
 
     function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
@@ -869,32 +807,16 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        require(assetToSend != address(0), "MC/asset-to-send-zero");
-        require(amount > 0,                "MC/amount-to-send-zero");
-
-        require(
-            otcWhitelistedAssets[exchange][assetToSend],
-            "MC/asset-not-whitelisted"
-        );
-
-        // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 sent18 = amount * 1e18 / 10 ** IERC20Metadata(assetToSend).decimals();
-
-        _rateLimitedAddress(LIMIT_OTC_SWAP, exchange, sent18);
-
-        OTC storage otc = otcs[exchange];
-
-        // Its impossible to have zero address buffer because of whitelistedAssets.
-        require(isOtcSwapReady(exchange), "MC/last-swap-not-returned");
-
-        otc.sent18        = sent18;
-        otc.sentTimestamp = block.timestamp;
-        otc.claimed18     = 0;
-
-        // NOTE: Reentrancy not relevant here because there are no state changes after this call
-        _transfer(assetToSend, exchange, amount);
-
-        emit OTCSwapSent(exchange, otc.buffer, assetToSend, amount, sent18);
+        OTCLib.send({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            exchange          : exchange,
+            assetToSend       : assetToSend,
+            amount            : amount,
+            whitelistedAssets : otcWhitelistedAssets,
+            otcs              : otcs,
+            maxSlippages      : maxSlippages
+        });
     }
 
     function otcClaim(address exchange, address assetToClaim)
@@ -902,88 +824,21 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        address otcBuffer = otcs[exchange].buffer;
-
-        require(assetToClaim != address(0), "MC/asset-to-claim-zero");
-        require(otcBuffer    != address(0), "MC/otc-buffer-not-set");
-
-        require(
-            otcWhitelistedAssets[exchange][assetToClaim],
-            "MC/asset-not-whitelisted"
-        );
-
-        uint256 amountToClaim = IERC20(assetToClaim).balanceOf(otcBuffer);
-
-        // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 amountToClaim18
-            = amountToClaim * 1e18 / 10 ** IERC20Metadata(assetToClaim).decimals();
-
-        otcs[exchange].claimed18 += amountToClaim18;
-
-        // Transfer assets from the OTC buffer to the proxy
-        // NOTE: Reentrancy not possible here because both are known contracts.
-        _transferFrom(assetToClaim, otcBuffer, address(proxy), amountToClaim);
-
-        emit OTCClaimed(exchange, otcBuffer, assetToClaim, amountToClaim, amountToClaim18);
+        OTCLib.claim({
+            proxy             : address(proxy),
+            exchange          : exchange,
+            assetToClaim      : assetToClaim,
+            whitelistedAssets : otcWhitelistedAssets,
+            otcs              : otcs
+        });
     }
 
-    function getOtcClaimWithRecharge(address exchange) public view returns (uint256) {
-        OTC memory otc = otcs[exchange];
-
-        if (otc.sentTimestamp == 0) return 0;
-
-        return otc.claimed18 + (block.timestamp - otc.sentTimestamp) * otc.rechargeRate18;
+    function getOTCClaimWithRecharge(address exchange) external view returns (uint256) {
+        return OTCLib.getClaimWithRecharge(exchange, otcs);
     }
 
-    function isOtcSwapReady(address exchange) public view returns (bool) {
-        // If maxSlippages is not set, the exchange is not onboarded.
-        if (maxSlippages[exchange] == 0) return false;
-
-        return getOtcClaimWithRecharge(exchange)
-            >= otcs[exchange].sent18 * maxSlippages[exchange] / 1e18;
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer helper functions                                                               ***/
-    /**********************************************************************************************/
-
-    function _transfer(address asset, address destination, uint256 amount) internal {
-        bytes memory returnData = proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
-        );
-
-        require(
-            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
-            "MC/transfer-failed"
-        );
-    }
-
-    function _transferFrom(
-        address asset,
-        address source,
-        address destination,
-        uint256 amount
-    )
-        internal
-    {
-        bytes memory returnData = proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20(asset).transferFrom, (source, destination, amount))
-        );
-
-        require(
-            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
-            "MC/transferFrom-failed"
-        );
-    }
-
-    /**********************************************************************************************/
-    /*** Rate Limit helper functions                                                            ***/
-    /**********************************************************************************************/
-
-    function _rateLimitedAddress(bytes32 key, address asset, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
+    function isOTCSwapReady(address exchange) external view returns (bool) {
+        return OTCLib.isSwapReady(exchange, otcs, maxSlippages);
     }
 
 }
