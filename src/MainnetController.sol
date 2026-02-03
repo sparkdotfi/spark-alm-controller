@@ -16,6 +16,7 @@ import { AaveLib }      from "./libraries/AaveLib.sol";
 import { ApproveLib }   from "./libraries/ApproveLib.sol";
 import { CCTPLib }      from "./libraries/CCTPLib.sol";
 import { CurveLib }     from "./libraries/CurveLib.sol";
+import { DAIUSDSLib }   from "./libraries/DAIUSDSLib.sol";
 import { ERC4626Lib }   from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
 import { MapleLib }     from "./libraries/MapleLib.sol";
@@ -28,13 +29,9 @@ import { WSTETHLib }    from "./libraries/WSTETHLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
-interface IDaiUsdsLike {
+interface IDAIUSDSLike {
 
     function dai() external view returns (address);
-
-    function daiToUsds(address usr, uint256 wad) external;
-
-    function usdsToDai(address usr, uint256 wad) external;
 
 }
 
@@ -217,7 +214,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         susde = Ethereum.SUSDE;
         ustb  = IUSTBLike(Ethereum.USTB);
-        dai   = IDaiUsdsLike(daiUsds).dai();
+        dai   = IDAIUSDSLike(daiUsds).dai();
         usdc  = IPSMLike(psm).gem();
         usds  = Ethereum.USDS;
         usde  = Ethereum.USDE;
@@ -781,25 +778,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function swapUSDSToDAI(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER) {
-        // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS)
-        ApproveLib.approve(usds, address(proxy), daiUsds, usdsAmount);
-
-        // Swap USDS to DAI 1:1
-        proxy.doCall(
-            daiUsds,
-            abi.encodeCall(IDaiUsdsLike.usdsToDai, (address(proxy), usdsAmount))
-        );
+        DAIUSDSLib.swapUSDSToDAI(address(proxy), address(usds), address(daiUsds), usdsAmount);
     }
 
     function swapDAIToUSDS(uint256 daiAmount) external nonReentrant onlyRole(RELAYER) {
-        // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI)
-        ApproveLib.approve(dai, address(proxy), daiUsds, daiAmount);
-
-        // Swap DAI to USDS 1:1
-        proxy.doCall(
-            daiUsds,
-            abi.encodeCall(IDaiUsdsLike.daiToUsds, (address(proxy), daiAmount))
-        );
+        DAIUSDSLib.swapDAIToUSDS(address(proxy), address(dai), address(daiUsds), daiAmount);
     }
 
     /**********************************************************************************************/

@@ -3,9 +3,11 @@ pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract MainnetController_SwapUSDSToDAI_FailureTests is ForkTestBase {
+contract MainnetController_SwapUSDSToDAI_Tests is ForkTestBase {
 
     function test_swapUSDSToDAI_reentrancy() external {
         _setControllerEntered();
@@ -22,10 +24,6 @@ contract MainnetController_SwapUSDSToDAI_FailureTests is ForkTestBase {
         mainnetController.swapUSDSToDAI(1_000_000e18);
     }
 
-}
-
-contract MainnetController_SwapUSDSToDAI_SuccessTests is ForkTestBase {
-
     function test_swapUSDSToDAI() external {
         vm.prank(relayer);
         mainnetController.mintUSDS(1_000_000e18);
@@ -36,7 +34,7 @@ contract MainnetController_SwapUSDSToDAI_SuccessTests is ForkTestBase {
         assertEq(dai.balanceOf(address(almProxy)), 0);
         assertEq(dai.totalSupply(),                DAI_SUPPLY);
 
-        assertEq(usds.allowance(address(almProxy), DAI_USDS), 0);
+        assertEq(usds.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
 
         vm.record();
 
@@ -51,12 +49,12 @@ contract MainnetController_SwapUSDSToDAI_SuccessTests is ForkTestBase {
         assertEq(dai.balanceOf(address(almProxy)), 1_000_000e18);
         assertEq(dai.totalSupply(),                DAI_SUPPLY + 1_000_000e18);
 
-        assertEq(usds.allowance(address(almProxy), DAI_USDS), 0);
+        assertEq(usds.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
     }
 
 }
 
-contract MainnetController_SwapDAIToUSDS_FailureTests is ForkTestBase {
+contract MainnetController_SwapDAIToUSDS_Tests is ForkTestBase {
 
     function test_swapDAIToUSDS_reentrancy() external {
         _setControllerEntered();
@@ -73,10 +71,6 @@ contract MainnetController_SwapDAIToUSDS_FailureTests is ForkTestBase {
         mainnetController.swapDAIToUSDS(1_000_000e18);
     }
 
-}
-
-contract MainnetController_SwapDAIToUSDS_SuccessTests is ForkTestBase {
-
     function test_swapDAIToUSDS() external {
         deal(address(dai), address(almProxy), 1_000_000e18);
 
@@ -86,7 +80,7 @@ contract MainnetController_SwapDAIToUSDS_SuccessTests is ForkTestBase {
         assertEq(dai.balanceOf(address(almProxy)), 1_000_000e18);
         assertEq(dai.totalSupply(),                DAI_SUPPLY);  // Supply not updated on deal
 
-        assertEq(dai.allowance(address(almProxy), DAI_USDS), 0);
+        assertEq(dai.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
 
         vm.record();
 
@@ -101,7 +95,7 @@ contract MainnetController_SwapDAIToUSDS_SuccessTests is ForkTestBase {
         assertEq(dai.balanceOf(address(almProxy)), 0);
         assertEq(dai.totalSupply(),                DAI_SUPPLY - 1_000_000e18);
 
-        assertEq(dai.allowance(address(almProxy), DAI_USDS), 0);
+        assertEq(dai.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
     }
 
 }
