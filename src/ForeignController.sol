@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken }            from "../lib/aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool as IAavePool } from "../lib/aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
-
 import { OptionsBuilder } from "../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
@@ -14,6 +11,7 @@ import { IERC4626 } from "../lib/openzeppelin-contracts/contracts/interfaces/IER
 
 import { IPSM3 } from "../lib/spark-psm/src/interfaces/IPSM3.sol";
 
+import { AaveLib }      from "./libraries/AaveLib.sol";
 import { ApproveLib }   from "./libraries/ApproveLib.sol";
 import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
 
@@ -22,12 +20,6 @@ import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
-
-interface IATokenWithPool is IAToken {
-
-    function POOL() external view returns(address);
-
-}
 
 interface ISparkVaultLike {
 
@@ -72,8 +64,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     bytes32 public constant LIMIT_4626_DEPOSIT       = keccak256("LIMIT_4626_DEPOSIT");
     bytes32 public constant LIMIT_4626_WITHDRAW      = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public constant LIMIT_AAVE_DEPOSIT       = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public constant LIMIT_AAVE_WITHDRAW      = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public constant LIMIT_AAVE_DEPOSIT       = AaveLib.LIMIT_DEPOSIT;
+    bytes32 public constant LIMIT_AAVE_WITHDRAW      = AaveLib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_ASSET_TRANSFER     = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER = LayerZeroLib.LIMIT_LAYERZERO_TRANSFER;
     bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
@@ -409,67 +401,17 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /*** Relayer Aave functions                                                                 ***/
     /**********************************************************************************************/
 
-    function depositAave(address aToken, uint256 amount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        rateLimitedAddress(LIMIT_AAVE_DEPOSIT, aToken, amount)
-    {
-        require(maxSlippages[aToken] != 0, "FC/max-slippage-not-set");
-
-        IERC20    underlying = IERC20(IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS());
-        IAavePool pool       = IAavePool(IATokenWithPool(aToken).POOL());
-
-        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
-
-        // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        ApproveLib.approve(address(underlying), address(proxy), address(pool), amount);
-
-        // Deposit underlying into Aave pool, proxy receives aTokens.
-        proxy.doCall(
-            address(pool),
-            abi.encodeCall(pool.supply, (address(underlying), amount, address(proxy), 0))
-        );
-
-        uint256 newATokens = IERC20(aToken).balanceOf(address(proxy)) - aTokenBalance;
-
-        require(
-            newATokens >= amount * maxSlippages[aToken] / 1e18,
-            "FC/slippage-too-high"
-        );
+    function depositAave(address aToken, uint256 amount) external nonReentrant onlyRole(RELAYER) {
+        AaveLib.deposit(address(proxy), aToken, amount, maxSlippages[aToken], address(rateLimits));
     }
 
-    // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
         external
         nonReentrant
         onlyRole(RELAYER)
         returns (uint256 amountWithdrawn)
     {
-        IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
-
-        // Withdraw underlying from Aave pool, decode resulting amount withdrawn.
-        // Assumes proxy has adequate aTokens.
-        amountWithdrawn = abi.decode(
-            proxy.doCall(
-                address(pool),
-                abi.encodeCall(
-                    pool.withdraw,
-                    (IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS(), amount, address(proxy))
-                )
-            ),
-            (uint256)
-        );
-
-        rateLimits.triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_WITHDRAW, aToken),
-            amountWithdrawn
-        );
-
-        rateLimits.triggerRateLimitIncrease(
-            RateLimitHelpers.makeAddressKey(LIMIT_AAVE_DEPOSIT, aToken),
-            amountWithdrawn
-        );
+        return AaveLib.withdraw(address(proxy), aToken, amount, address(rateLimits));
     }
 
     /**********************************************************************************************/
