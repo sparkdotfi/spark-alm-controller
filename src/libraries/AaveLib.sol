@@ -1,73 +1,83 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken } from "../../lib/aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool }   from "../../lib/aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
-
-import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 
+import { makeAddressKey } from "../RateLimitHelpers.sol";
+
 import { ApproveLib } from "./ApproveLib.sol";
 
-import { RateLimitHelpers } from "../RateLimitHelpers.sol";
-
-interface IATokenWithPool is IAToken {
+interface IATokenWithPoolLike {
 
     function POOL() external view returns(address);
+
+    function UNDERLYING_ASSET_ADDRESS() external view returns(address);
+
+}
+
+interface IERC20Like {
+
+    function balanceOf(address account) external view returns (uint256);
+
+}
+
+interface IPoolLike {
+
+    function supply(
+        address asset,
+        uint256 amount,
+        address onBehalfOf,
+        uint16 referralCode
+    )
+        external;
+
+    function withdraw(address asset, uint256 amount, address to) external returns (uint256);
 
 }
 
 library AaveLib {
+
+    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_AAVE_WITHDRAW");
 
     function deposit(
         address proxy,
         address aToken,
         uint256 amount,
         uint256 maxSlippage,
-        address rateLimits,
-        bytes32 rateLimitId
-    ) external {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(rateLimitId, aToken),
-            amount
-        );
+        address rateLimits
+    )
+        external
+    {
+        _decreaseRateLimit(rateLimits, LIMIT_DEPOSIT, aToken, amount);
 
-        require(maxSlippage != 0, "MC/max-slippage-not-set");
+        require(maxSlippage != 0, "AaveLib/max-slippage-not-set");
 
-        address underlying = IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS();
-        address pool       = IATokenWithPool(aToken).POOL();
+        address underlying = IATokenWithPoolLike(aToken).UNDERLYING_ASSET_ADDRESS();
+        address pool       = IATokenWithPoolLike(aToken).POOL();
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
         ApproveLib.approve(underlying, proxy, pool, amount);
 
-        uint256 aTokenBalance = IERC20(aToken).balanceOf(proxy);
+        uint256 aTokenBalance = IERC20Like(aToken).balanceOf(proxy);
 
         // Deposit underlying into Aave pool, proxy receives aTokens
         IALMProxy(proxy).doCall(
             pool,
-            abi.encodeCall(IPool(pool).supply, (underlying, amount, proxy, 0))
+            abi.encodeCall(IPoolLike(pool).supply, (underlying, amount, proxy, 0))
         );
 
-        uint256 newATokens = IERC20(aToken).balanceOf(proxy) - aTokenBalance;
+        uint256 newATokens = IERC20Like(aToken).balanceOf(proxy) - aTokenBalance;
 
-        require(
-            newATokens >= amount * maxSlippage / 1e18,
-            "MC/slippage-too-high"
-        );
+        require(newATokens >= amount * maxSlippage / 1e18, "AaveLib/slippage-too-high");
     }
 
-    // NOTE: !!! Rate limited at end of function !!!
-    function withdraw(
-        address proxy,
-        address aToken,
-        uint256 amount,
-        address rateLimits,
-        bytes32 rateLimitWithdrawId,
-        bytes32 rateLimitDepositId
-    ) external returns (uint256 amountWithdrawn) {
-        address pool = IATokenWithPool(aToken).POOL();
+    function withdraw(address proxy,address aToken,uint256 amount,address rateLimits)
+        external
+        returns (uint256 amountWithdrawn)
+    {
+        address pool = IATokenWithPoolLike(aToken).POOL();
 
         // Withdraw underlying from Aave pool, decode resulting amount withdrawn.
         // Assumes proxy has adequate aTokens.
@@ -75,22 +85,27 @@ library AaveLib {
             IALMProxy(proxy).doCall(
                 pool,
                 abi.encodeCall(
-                    IPool(pool).withdraw,
-                    (IATokenWithPool(aToken).UNDERLYING_ASSET_ADDRESS(), amount, proxy)
+                    IPoolLike(pool).withdraw,
+                    (IATokenWithPoolLike(aToken).UNDERLYING_ASSET_ADDRESS(), amount, proxy)
                 )
             ),
             (uint256)
         );
 
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeAddressKey(rateLimitWithdrawId, aToken),
-            amountWithdrawn
-        );
+        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, aToken, amountWithdrawn);
+        _increaseRateLimit(rateLimits, LIMIT_DEPOSIT,  aToken, amountWithdrawn);
+    }
 
-        IRateLimits(rateLimits).triggerRateLimitIncrease(
-            RateLimitHelpers.makeAddressKey(rateLimitDepositId, aToken),
-            amountWithdrawn
-        );
+    function _decreaseRateLimit(address rateLimits, bytes32 key, address aToken, uint256 amount)
+        internal
+    {
+        IRateLimits(rateLimits).triggerRateLimitDecrease(makeAddressKey(key, aToken), amount);
+    }
+
+    function _increaseRateLimit(address rateLimits, bytes32 key, address aToken, uint256 amount)
+        internal
+    {
+        IRateLimits(rateLimits).triggerRateLimitIncrease(makeAddressKey(key, aToken), amount);
     }
 
 }

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken } from "../lib/aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
@@ -16,8 +14,8 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { ApproveLib }                     from "./libraries/ApproveLib.sol";
 import { AaveLib }                        from "./libraries/AaveLib.sol";
+import { ApproveLib }                     from "./libraries/ApproveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
@@ -27,12 +25,6 @@ import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 import { WEETHLib }                       from "./libraries/WEETHLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
-
-interface IATokenWithPool is IAToken {
-
-    function POOL() external view returns(address);
-
-}
 
 interface IEthenaMinterLike {
 
@@ -184,8 +176,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     bytes32 public LIMIT_4626_DEPOSIT            = keccak256("LIMIT_4626_DEPOSIT");
     bytes32 public LIMIT_4626_WITHDRAW           = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 public LIMIT_AAVE_DEPOSIT            = keccak256("LIMIT_AAVE_DEPOSIT");
-    bytes32 public LIMIT_AAVE_WITHDRAW           = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 public LIMIT_AAVE_DEPOSIT            = AaveLib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_AAVE_WITHDRAW           = AaveLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_ASSET_TRANSFER          = keccak256("LIMIT_ASSET_TRANSFER");
     bytes32 public LIMIT_CURVE_DEPOSIT           = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public LIMIT_CURVE_SWAP              = keccak256("LIMIT_CURVE_SWAP");
@@ -660,14 +652,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function depositAave(address aToken, uint256 amount) external nonReentrant onlyRole(RELAYER) {
-        AaveLib.deposit({
-            proxy       : address(proxy),
-            aToken      : aToken,
-            amount      : amount,
-            maxSlippage : maxSlippages[aToken],
-            rateLimits  : address(rateLimits),
-            rateLimitId : LIMIT_AAVE_DEPOSIT
-        });
+        AaveLib.deposit(address(proxy), aToken, amount, maxSlippages[aToken], address(rateLimits));
     }
 
     function withdrawAave(address aToken, uint256 amount)
@@ -676,14 +661,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
         returns (uint256 amountWithdrawn)
     {
-        return AaveLib.withdraw({
-            proxy               : address(proxy),
-            aToken              : aToken,
-            amount              : amount,
-            rateLimits          : address(rateLimits),
-            rateLimitWithdrawId : LIMIT_AAVE_WITHDRAW,
-            rateLimitDepositId  : LIMIT_AAVE_DEPOSIT
-        });
+        return AaveLib.withdraw(address(proxy), aToken, amount, address(rateLimits));
     }
 
     /**********************************************************************************************/
