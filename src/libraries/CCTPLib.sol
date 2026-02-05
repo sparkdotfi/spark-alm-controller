@@ -1,89 +1,119 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "../interfaces/CCTPInterfaces.sol";
 
-import { RateLimitHelpers } from "../RateLimitHelpers.sol";
+import { makeUint32Key } from "../RateLimitHelpers.sol";
+
+interface ICCTPLike {
+
+    function depositForBurn(
+        uint256 amount,
+        uint32  destinationDomain,
+        bytes32 mintRecipient,
+        address burnToken
+    )
+        external
+        returns (uint64 nonce);
+
+    function localMinter() external view returns (address);
+
+}
+
+interface ICCTPTokenMinterLike {
+
+    function burnLimitsPerMessage(address) external view returns (uint256);
+
+}
+
+interface IERC20Like {
+
+    function approve(address spender, uint256 amount) external returns (bool);
+
+}
 
 library CCTPLib {
-
-    /**********************************************************************************************/
-    /*** Structs                                                                                ***/
-    /**********************************************************************************************/
-
-    struct TransferUSDCToCCTPParams {
-        IALMProxy   proxy;
-        IRateLimits rateLimits;
-        ICCTPLike   cctp;
-        IERC20      usdc;
-        bytes32     domainRateLimitId;
-        bytes32     cctpRateLimitId;
-        bytes32     mintRecipient;
-        uint32      destinationDomain;
-        uint256     usdcAmount;
-    }
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
-    // NOTE: This is used to track individual transfers for offchain processing of CCTP transactions
+    // NOTE: Used to track individual transfers for off-chain processing of CCTP transactions.
     event CCTPTransferInitiated(
         uint64  indexed nonce,
         uint32  indexed destinationDomain,
         bytes32 indexed mintRecipient,
-        uint256 usdcAmount
+        uint256         usdcAmount
     );
+
+    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 indexed mintRecipient);
+
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
+
+    bytes32 public constant LIMIT_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public constant LIMIT_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
 
     /**********************************************************************************************/
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function transferUSDCToCCTP(TransferUSDCToCCTPParams calldata params) external {
-        _rateLimited(params.rateLimits, params.cctpRateLimitId, params.usdcAmount);
-        _rateLimited(
-            params.rateLimits,
-            RateLimitHelpers.makeUint32Key(params.domainRateLimitId, params.destinationDomain),
-            params.usdcAmount
+    function setMintRecipient(
+        mapping (uint32 => bytes32) storage mintRecipients,
+        bytes32                             recipient,
+        uint32                              destinationDomain
+    ) external {
+        emit MintRecipientSet(destinationDomain, mintRecipients[destinationDomain] = recipient);
+    }
+
+    function transferUSDCToCCTP(
+        address proxy,
+        address rateLimits,
+        address cctp,
+        address usdc,
+        bytes32 mintRecipient,
+        uint32  destinationDomain,
+        uint256 usdcAmount
+    )
+        external
+    {
+        _decreaseRateLimit(rateLimits, LIMIT_TO_CCTP, usdcAmount);
+
+        _decreaseRateLimit(
+            rateLimits,
+            makeUint32Key(LIMIT_TO_DOMAIN, destinationDomain),
+            usdcAmount
         );
 
-        require(params.mintRecipient != 0, "MC/domain-not-configured");
+        require(mintRecipient != 0, "CCTPLib/domain-not-configured");
 
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC)
-        _approve(params.proxy, address(params.usdc), address(params.cctp), params.usdcAmount);
+        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
+        _approve(proxy, usdc, cctp, usdcAmount);
 
-        // If amount is larger than limit it must be split into multiple calls
-        uint256 burnLimit = params.cctp.localMinter().burnLimitsPerMessage(address(params.usdc));
+        // If amount is larger than limit it must be split into multiple calls.
+        uint256 burnLimit =
+            ICCTPTokenMinterLike(ICCTPLike(cctp).localMinter()).burnLimitsPerMessage(usdc);
 
-        // This variable will get reduced in the loop below
-        uint256 usdcAmountTemp = params.usdcAmount;
+        require(burnLimit > 0, "CCTPLib/burn-limit-not-set");
 
-        while (usdcAmountTemp > burnLimit) {
+        // Copy the variable to avoid modifying the original in memory.
+        uint256 usdcAmountRemaining = usdcAmount;
+
+        while (usdcAmountRemaining > 0) {
+            uint256 amount = usdcAmountRemaining > burnLimit ? burnLimit : usdcAmountRemaining;
+
             _initiateCCTPTransfer(
-                params.proxy,
-                params.cctp,
-                params.usdc,
-                burnLimit,
-                params.mintRecipient,
-                params.destinationDomain
+                proxy,
+                cctp,
+                usdc,
+                amount,
+                mintRecipient,
+                destinationDomain
             );
-            usdcAmountTemp -= burnLimit;
-        }
 
-        // Send remaining amount (if any)
-        if (usdcAmountTemp > 0) {
-            _initiateCCTPTransfer(
-                params.proxy,
-                params.cctp,
-                params.usdc,
-                usdcAmountTemp,
-                params.mintRecipient,
-                params.destinationDomain
-            );
+            usdcAmountRemaining -= amount;
         }
     }
 
@@ -91,38 +121,31 @@ library CCTPLib {
     /*** Relayer helper functions                                                               ***/
     /**********************************************************************************************/
 
-    // NOTE: As USDC is the only asset transferred using CCTP, _forceApprove logic is unnecessary.
-    function _approve(
-        IALMProxy proxy,
-        address   token,
-        address   spender,
-        uint256   amount
-    )
-        internal
-    {
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, amount)));
+    // NOTE: As USDC is the only asset transferred using CCTP, `ApproveLib` is unnecessary.
+    function _approve(address proxy, address token, address spender, uint256 amount) internal {
+        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20Like.approve, (spender, amount)));
     }
 
     function _initiateCCTPTransfer(
-        IALMProxy proxy,
-        ICCTPLike cctp,
-        IERC20    usdc,
-        uint256   usdcAmount,
-        bytes32   mintRecipient,
-        uint32    destinationDomain
+        address proxy,
+        address cctp,
+        address usdc,
+        uint256 usdcAmount,
+        bytes32 mintRecipient,
+        uint32  destinationDomain
     )
         internal
     {
         uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
+            IALMProxy(proxy).doCall(
+                cctp,
                 abi.encodeCall(
-                    cctp.depositForBurn,
+                    ICCTPLike.depositForBurn,
                     (
                         usdcAmount,
                         destinationDomain,
                         mintRecipient,
-                        address(usdc)
+                        usdc
                     )
                 )
             ),
@@ -136,8 +159,8 @@ library CCTPLib {
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
 
-    function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(key, amount);
+    function _decreaseRateLimit(address rateLimits, bytes32 key, uint256 amount) internal {
+        IRateLimits(rateLimits).triggerRateLimitDecrease(key, amount);
     }
 
 }

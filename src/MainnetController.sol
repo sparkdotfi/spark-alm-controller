@@ -11,7 +11,6 @@ import { IERC4626 }       from "../lib/openzeppelin-contracts/contracts/interfac
 import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { AaveLib }                        from "./libraries/AaveLib.sol";
@@ -126,8 +125,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
-    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
-
     event OTCBufferSet(
         address indexed exchange,
         address indexed oldOTCBuffer,
@@ -193,8 +190,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_UNISWAP_V4_SWAP         = UniswapV4Lib.LIMIT_SWAP;
-    bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public LIMIT_USDC_TO_CCTP            = CCTPLib.LIMIT_TO_CCTP;
+    bytes32 public LIMIT_USDC_TO_DOMAIN          = CCTPLib.LIMIT_TO_DOMAIN;
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
@@ -208,7 +205,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     address public buffer;  // Allocator buffer
 
     IALMProxy         public proxy;
-    ICCTPLike         public cctp;
+    address           public cctp;
     IDaiUsdsLike      public daiUsds;
     IEthenaMinterLike public ethenaMinter;
     IPSMLike          public psm;
@@ -261,7 +258,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         buffer     = IVaultLike(vault_).buffer();
         psm        = IPSMLike(psm_);
         daiUsds    = IDaiUsdsLike(daiUsds_);
-        cctp       = ICCTPLike(cctp_);
+        cctp       = cctp_;
 
         ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
@@ -279,13 +276,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
 
-    function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
+    function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
         external
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        mintRecipients[destinationDomain] = mintRecipient;
-        emit MintRecipientSet(destinationDomain, mintRecipient);
+        CCTPLib.setMintRecipient(mintRecipients, recipient, destinationDomain);
     }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient)
@@ -1043,17 +1039,15 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
-            proxy             : proxy,
-            rateLimits        : rateLimits,
+        CCTPLib.transferUSDCToCCTP({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
             cctp              : cctp,
-            usdc              : usdc,
-            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
-            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
+            usdc              : address(usdc),
             mintRecipient     : mintRecipients[destinationDomain],
             destinationDomain : destinationDomain,
             usdcAmount        : usdcAmount
-        }));
+        });
     }
 
     /**********************************************************************************************/

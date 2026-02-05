@@ -16,10 +16,28 @@ import { ApproveLib }   from "./libraries/ApproveLib.sol";
 import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
+
+interface ICCTPLike {
+
+    function depositForBurn(
+        uint256 amount,
+        uint32  destinationDomain,
+        bytes32 mintRecipient,
+        address burnToken
+    ) external returns (uint64 nonce);
+
+    function localMinter() external view returns (ICCTPTokenMinterLike);
+
+}
+
+interface ICCTPTokenMinterLike {
+
+    function burnLimitsPerMessage(address) external view returns (uint256);
+
+}
 
 interface ISparkVaultLike {
 
