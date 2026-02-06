@@ -1,35 +1,50 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { IMapleTokenLike } from "../../src/MainnetController.sol"; // TODO: Interfaces for tests should be separated.
 
-import { IMapleTokenLike } from "../../src/MainnetController.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
+
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IPermissionManagerLike {
+
     function admin() external view returns (address);
+
     function setLenderAllowlist(
         address            poolManager_,
         address[] calldata lenders_,
         bool[]    calldata booleans_
     ) external;
+
 }
 
 interface IMapleTokenExtended is IMapleTokenLike {
+
     function manager() external view returns (address);
+
 }
 
 interface IPoolManagerLike {
+
     function withdrawalManager() external view returns (address);
+
     function poolDelegate() external view returns (address);
+
 }
 
 interface IWithdrawalManagerLike {
+
     function processRedemptions(uint256 maxSharesToProcess) external;
+
 }
 
-contract MapleTestBase is ForkTestBase {
+abstract contract Maple_TestBase is ForkTestBase {
 
     IMapleTokenExtended constant syrup = IMapleTokenExtended(0x80ac24aA929eaF5013f6436cdA2a7ba190f5Cc0b);
 
@@ -95,7 +110,7 @@ contract MapleTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
+contract MainnetController_ERC4626_Maple_Deposit_FailureTests is Maple_TestBase {
 
     function test_depositERC4626_maple_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -171,7 +186,7 @@ contract MainnetControllerDepositERC4626MapleFailureTests is MapleTestBase {
 
 }
 
-contract MainnetControllerDepositERC4626Tests is MapleTestBase {
+contract MainnetController_ERC4626_Maple_Deposit_SuccessTests is Maple_TestBase {
 
     function test_depositERC4626_maple() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
@@ -208,7 +223,7 @@ contract MainnetControllerDepositERC4626Tests is MapleTestBase {
 
 }
 
-contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
+contract MainnetController_Maple_RequestRedemption_FailureTests is Maple_TestBase {
 
     function test_requestMapleRedemption_reentrancy() external {
         _setControllerEntered();
@@ -259,7 +274,7 @@ contract MainnetControllerRequestMapleRedemptionFailureTests is MapleTestBase {
 
 }
 
-contract MainnetControllerRequestMapleRedemptionSuccessTests is MapleTestBase {
+contract MainnetController_Maple_RequestRedemption_SuccessTests is Maple_TestBase {
 
     function test_requestMapleRedemption() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
@@ -288,7 +303,7 @@ contract MainnetControllerRequestMapleRedemptionSuccessTests is MapleTestBase {
     }
 }
 
-contract MainnetControllerCancelMapleRedemptionFailureTests is MapleTestBase {
+contract MainnetController_Maple_CancelRedemption_FailureTests is Maple_TestBase {
 
     function test_cancelMapleRedemption_reentrancy() external {
         _setControllerEntered();
@@ -313,7 +328,7 @@ contract MainnetControllerCancelMapleRedemptionFailureTests is MapleTestBase {
 
 }
 
-contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
+contract MainnetController_Maple_CancelRedemption_SuccessTests is Maple_TestBase {
 
     function test_cancelMapleRedemption() public {
         address withdrawalManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
@@ -345,7 +360,7 @@ contract MainnetControllerCancelMapleRedemptionSuccessTests is MapleTestBase {
 
 }
 
-contract MainnetControllerMapleE2ETests is MapleTestBase {
+contract MainnetController_Maple_E2ETests is Maple_TestBase {
 
     function test_e2e_mapleDepositAndRedeem() external {
         // Increase withdraw rate limit so interest can be accrued

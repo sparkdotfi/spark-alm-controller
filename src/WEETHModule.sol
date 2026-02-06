@@ -1,24 +1,33 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20Metadata as IERC20 } from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { SafeERC20 }                from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    IERC20Metadata as IERC20
+} from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import { AccessControlEnumerableUpgradeable }
-    from "openzeppelin-contracts-upgradeable/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
+import { SafeERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { UUPSUpgradeable } from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {
+    AccessControlEnumerableUpgradeable
+} from "../lib/oz-upgradeable/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { UUPSUpgradeable } from "../lib/oz-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+
+import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IEETHLike, ILiquidityPoolLike, IWETHLike, IWEETHLike } from "./libraries/WEETHLib.sol";
 
 interface IWithdrawRequestNFTLike {
+
     function claimWithdraw(uint256 requestId) external;
+
     function isFinalized(uint256 requestId) external view returns (bool);
+
     function isValid(uint256 requestId) external view returns (bool);
+
 }
 
+// NOTE: This contract is is specifically for Mainnet Ethereum.
 contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     using SafeERC20 for IERC20;
@@ -95,8 +104,8 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         IERC20(Ethereum.WETH).safeTransfer(msg.sender, ethReceived);
     }
 
-    function onERC721Received(address, address, uint256, bytes calldata) 
-        external pure returns (bytes4) 
+    function onERC721Received(address, address, uint256, bytes calldata)
+        external pure returns (bytes4)
     {
         return this.onERC721Received.selector;
     }

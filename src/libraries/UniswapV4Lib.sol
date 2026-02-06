@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { Currency } from "../../lib/uniswap-v4-core/src/types/Currency.sol";
-import { PoolKey }  from "../../lib/uniswap-v4-core/src/types/PoolKey.sol";
+import { Currency } from "../../lib/uniswap-v4-periphery/lib/v4-core/src/types/Currency.sol";
+import { PoolKey }  from "../../lib/uniswap-v4-periphery/lib/v4-core/src/types/PoolKey.sol";
 
 import { IV4Router }    from "../../lib/uniswap-v4-periphery/src/interfaces/IV4Router.sol";
 import { Actions }      from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
@@ -385,7 +385,8 @@ library UniswapV4Lib {
     /**********************************************************************************************/
 
     function _checkTickLimits(TickLimits memory limits, int24 tickLower, int24 tickUpper)
-        internal pure
+        internal
+        pure
     {
         require(limits.maxTickSpacing != 0,       "MC/tickLimits-not-set");
         require(tickLower < tickUpper,            "MC/ticks-misordered");
@@ -415,7 +416,9 @@ library UniswapV4Lib {
         uint128        amount0Max,
         uint128        amount1Max
     )
-        internal view returns (bytes memory callData)
+        internal
+        view
+        returns (bytes memory callData)
     {
         bytes memory actions = abi.encodePacked(
             uint8(Actions.MINT_POSITION),
@@ -449,7 +452,9 @@ library UniswapV4Lib {
         uint128        amount0Max,
         uint128        amount1Max
     )
-        internal view returns (bytes memory callData)
+        internal
+        view
+        returns (bytes memory callData)
     {
         bytes memory actions = abi.encodePacked(
             uint8(Actions.INCREASE_LIQUIDITY),
@@ -482,7 +487,9 @@ library UniswapV4Lib {
         uint128        amount0Min,
         uint128        amount1Min
     )
-        internal view returns (bytes memory callData)
+        internal
+        view
+        returns (bytes memory callData)
     {
         bytes memory actions = abi.encodePacked(
             uint8(Actions.DECREASE_LIQUIDITY),
@@ -509,7 +516,9 @@ library UniswapV4Lib {
     }
 
     function _getModifyLiquiditiesCallData(bytes memory actions, bytes[] memory params)
-        internal view returns (bytes memory callData)
+        internal
+        view
+        returns (bytes memory callData)
     {
         return abi.encodeCall(
             IPositionManagerLike.modifyLiquidities,
@@ -518,13 +527,17 @@ library UniswapV4Lib {
     }
 
     function _getNormalizedBalance(address token, uint256 balance)
-        internal view returns (uint256 normalizedBalance)
+        internal
+        view
+        returns (uint256 normalizedBalance)
     {
         return balance * 1e18 / (10 ** IERC20Like(token).decimals());
     }
 
     function _getPoolKeyAndPositionInfo(uint256 tokenId)
-        internal view returns (PoolKey memory poolKey, PositionInfo info)
+        internal
+        view
+        returns (PoolKey memory poolKey, PositionInfo info)
     {
         return IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
     }
@@ -534,7 +547,9 @@ library UniswapV4Lib {
     }
 
     function _getPoolKeyFromTokenId(uint256 tokenId)
-        internal view returns (PoolKey memory poolKey)
+        internal
+        view
+        returns (PoolKey memory poolKey)
     {
         (poolKey, ) = _getPoolKeyAndPositionInfo(tokenId);
     }

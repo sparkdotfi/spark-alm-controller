@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.21;
 
-import { ScriptTools } from "dss-test/ScriptTools.sol";
+import { ScriptTools } from "../lib/dss-test/src/ScriptTools.sol";
 
-import "forge-std/Script.sol";
+import { Script }  from "../lib/forge-std/src/Script.sol";
+import { stdJson } from "../lib/forge-std/src/StdJson.sol";
+import { console } from "../lib/forge-std/src/console.sol";
 
-import { ControllerInstance } from "../deploy/ControllerInstance.sol";
-
+import { ControllerInstance }                               from "../deploy/ControllerInstance.sol";
 import { ForeignControllerDeploy, MainnetControllerDeploy } from "../deploy/ControllerDeploy.sol";
 
 contract DeployMainnetFull is Script {

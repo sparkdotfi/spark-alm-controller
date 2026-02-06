@@ -1,39 +1,60 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
+
+import { ERC1967Proxy }    from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { IEETHLike } from "../../src/libraries/WEETHLib.sol";
+import { IEETHLike } from "../../src/libraries/WEETHLib.sol"; // TODO: Interfaces for tests should be separated.
 
-import { WEETHModule } from "../../src/WEETHModule.sol";
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+import { WEETHModule }      from "../../src/WEETHModule.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface ILiquidityPoolLike {
+
     function amountForShare(uint256 shareAmount) external view returns (uint256);
+
     function sharesForAmount(uint256 amount) external view returns (uint256);
+
     function withdrawRequestNFT() external view returns (address);
+
 }
 
 interface IWithdrawRequestNFTLike {
+
     function finalizeRequests(uint256 requestId) external;
+
     function getClaimableAmount(uint256 requestId) external view returns (uint256);
+
     function isClaimed(uint256 requestId) external view returns (bool);
+
     function isFinalized(uint256 requestId) external view returns (bool);
+
     function isValid(uint256 requestId) external view returns (bool);
+
     function invalidateRequest(uint256 requestId) external;
+
     function ownerOf(uint256 requestId) external view returns (address);
+
     function roleRegistry() external view returns (address);
+
 }
 
 interface IWEETHLike is IERC20 {
+
     function eETH() external view returns (address);
+
     function getEETHByWeETH(uint256 weETHAmount) external view returns (uint256);
+
 }
 
-contract MainnetControllerWeETHTestBase is ForkTestBase {
+abstract contract WEETH_TestBase is ForkTestBase {
 
     IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
     IERC20     weth  = IERC20(Ethereum.WETH);
@@ -73,7 +94,7 @@ contract MainnetControllerWeETHTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTestBase {
+contract MainnetController_DepositToWEETH_FailureTests is WEETH_TestBase {
 
     function test_depositToWeETH_reentrancy() external {
         _setControllerEntered();
@@ -132,7 +153,7 @@ contract MainnetControllerDepositToWeETHFailureTests is MainnetControllerWeETHTe
 
 }
 
-contract MainnetControllerDepositToWeETHTests is MainnetControllerWeETHTestBase {
+contract MainnetController_DepositToWeETH_SuccessTests is WEETH_TestBase {
 
     function test_depositToWeETH() external {
         bytes32 key = mainnetController.LIMIT_WEETH_DEPOSIT();
@@ -178,7 +199,7 @@ contract MainnetControllerDepositToWeETHTests is MainnetControllerWeETHTestBase 
 
 }
 
-contract MainnetControllerRequestWithdrawFromWeETHFailureTests is MainnetControllerWeETHTestBase {
+contract MainnetController_RequestWithdrawFromWEETH_FailureTests is WEETH_TestBase {
 
     function test_requestWithdrawFromWeETH_reentrancy() external {
         _setControllerEntered();
@@ -226,7 +247,7 @@ contract MainnetControllerRequestWithdrawFromWeETHFailureTests is MainnetControl
 
 }
 
-contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeETHTestBase {
+contract MainnetController_RequestWithdrawFromWEETH_SuccessTests is WEETH_TestBase {
 
     function test_requestWithdrawFromWeETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
@@ -285,7 +306,7 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
 
 }
 
-contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControllerWeETHTestBase {
+contract MainnetController_ClaimWithdrawalFromWEETH_FailureTests is WEETH_TestBase {
 
     function test_claimWithdrawalFromWeETH_reentrancy() external {
         _setControllerEntered();
@@ -437,7 +458,7 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
 }
 
-contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeETHTestBase {
+contract MainnetController_ClaimWithdrawalFromWEETH_SuccessTests is WEETH_TestBase {
 
     function test_claimWithdrawalFromWeETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();

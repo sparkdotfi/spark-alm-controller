@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
-import { DataTypes }          from "aave-v3-origin/src/core/contracts/protocol/libraries/types/DataTypes.sol";
-import { IPoolConfigurator }  from "aave-v3-origin/src/core/contracts/interfaces/IPoolConfigurator.sol";
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
+
+import { IAToken }            from "../../lib/aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
+import { IPool as IAavePool } from "../../lib/aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
+import { DataTypes }          from "../../lib/aave-v3-origin/src/core/contracts/protocol/libraries/types/DataTypes.sol";
+import { IPoolConfigurator }  from "../../lib/aave-v3-origin/src/core/contracts/interfaces/IPoolConfigurator.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { SparkLend } from "lib/spark-address-registry/src/SparkLend.sol";
+import { Ethereum }  from "../../lib/spark-address-registry/src/Ethereum.sol";
+import { SparkLend } from "../../lib/spark-address-registry/src/SparkLend.sol";
 
-import "./ForkTestBase.t.sol";
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-contract AaveV3MainMarketBaseTest is ForkTestBase {
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract AaveV3_Market_TestBase is ForkTestBase {
 
     address constant ATOKEN_USDS = 0x32a6268f9Ba3642Dda7892aDd74f1D34469A4259;
     address constant ATOKEN_USDC = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c;
@@ -79,7 +84,7 @@ contract AaveV3MainMarketBaseTest is ForkTestBase {
 
 // NOTE: Only testing USDS for non-rate limit failures as it doesn't matter which asset is used
 
-contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
+contract MainnetController_AaveV3_MarketDeposit_FailureTests is AaveV3_Market_TestBase {
 
     function test_depositAave_reentrancy() external {
         _setControllerEntered();
@@ -173,7 +178,7 @@ contract AaveV3MainMarketDepositFailureTests is AaveV3MainMarketBaseTest {
 
 }
 
-contract AaveV3MainMarketDepositSuccessTests is AaveV3MainMarketBaseTest {
+contract MainnetController_AaveV3_MarketDeposit_SuccessTests is AaveV3_Market_TestBase {
 
     function test_depositAave_usds() public {
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
@@ -223,7 +228,7 @@ contract AaveV3MainMarketDepositSuccessTests is AaveV3MainMarketBaseTest {
 
 }
 
-contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
+contract MainnetController_AaveV3_MarketWithdraw_FailureTests is AaveV3_Market_TestBase {
 
     function test_withdrawAave_reentrancy() external {
         _setControllerEntered();
@@ -295,7 +300,7 @@ contract AaveV3MainMarketWithdrawFailureTests is AaveV3MainMarketBaseTest {
 
 }
 
-contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
+contract MainnetController_AaveV3_MarketWithdraw_SuccessTests is AaveV3_Market_TestBase {
 
     function test_withdrawAave_usds() public {
         bytes32 depositKey = RateLimitHelpers.makeAddressKey(
@@ -509,7 +514,7 @@ contract AaveV3MainMarketWithdrawSuccessTests is AaveV3MainMarketBaseTest {
 
 }
 
-contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
+abstract contract AaveV3_MarketAttack_TestBase is ForkTestBase {
 
     IAToken apyusd = IAToken(SparkLend.PYUSD_SPTOKEN);
     IERC20  pyusd  = IERC20(Ethereum.PYUSD);
@@ -552,7 +557,7 @@ contract AaveV3MainMarketAttackBaseTest is ForkTestBase {
 
 }
 
-contract AaveV3MainMarketLiquidityIndexInflationAttackTest is AaveV3MainMarketAttackBaseTest {
+contract MainnetController_AaveV3_MarketLiquidityIndexInflationAttack_Test is AaveV3_MarketAttack_TestBase {
 
     function test_depositAave_liquidityIndexInflationAttackFailure() public {
         vm.prank(Ethereum.SPARK_PROXY);

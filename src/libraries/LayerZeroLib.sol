@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { 
-    ILayerZero,
+import {
+    ILayerZeroLike,
     SendParam,
     OFTReceipt,
     MessagingFee,
@@ -15,7 +15,9 @@ import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
 
-import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import {
+    OptionsBuilder
+} from "../../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
 library LayerZeroLib {
 
@@ -34,7 +36,9 @@ library LayerZeroLib {
         uint256     amount,
         uint32      destinationEndpointId,
         bytes32     layerZeroRecipient
-    ) external {
+    )
+        external
+    {
         _rateLimited(
             rateLimits,
             keccak256(
@@ -52,9 +56,9 @@ library LayerZeroLib {
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before
         //       using in production.
-        if (ILayerZero(oftAddress).approvalRequired()) {
+        if (ILayerZeroLike(oftAddress).approvalRequired()) {
             ApproveLib.approve(
-                ILayerZero(oftAddress).token(),
+                ILayerZeroLike(oftAddress).token(),
                 address(proxy),
                 oftAddress,
                 amount
@@ -77,18 +81,18 @@ library LayerZeroLib {
         ( ,, OFTReceipt memory receipt ) = abi.decode(
             proxy.doCall(
                 oftAddress,
-                abi.encodeCall(ILayerZero.quoteOFT, (sendParams))
+                abi.encodeCall(ILayerZeroLike.quoteOFT, (sendParams))
             ),
             (OFTLimit, OFTFeeDetail[], OFTReceipt)
         );
 
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
-        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZeroLike(oftAddress).quoteSend(sendParams, false);
 
         proxy.doCallWithValue{value: fee.nativeFee}(
             oftAddress,
-            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
+            abi.encodeCall(ILayerZeroLike.send, (sendParams, fee, address(proxy))),
             fee.nativeFee
         );
     }

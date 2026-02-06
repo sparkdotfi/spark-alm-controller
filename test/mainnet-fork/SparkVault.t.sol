@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { ERC20Mock as MockERC20 } from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import { ERC1967Proxy }           from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ReentrancyGuard }        from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import { ERC1967Proxy }    from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { SparkVault } from "spark-vaults-v2/src/SparkVault.sol";
+import { SparkVault } from "../../lib/spark-vaults-v2/src/SparkVault.sol";
 
-import "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract TakeFromSparkVault_TestBase is ForkTestBase {
 
     struct TestState {
         uint256 rateLimit;
@@ -64,7 +68,7 @@ contract MainnetControllerTakeFromSparkVaultTestBase is ForkTestBase {
     }
 }
 
-contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTakeFromSparkVaultTestBase {
+contract MainnetController_TakeFromSparkVault_FailureTests is TakeFromSparkVault_TestBase {
 
     function test_takeFromSparkVault_reentrancy() external {
         _setControllerEntered();
@@ -110,7 +114,7 @@ contract MainnetControllerTakeFromSparkVaultFailureTests is MainnetControllerTak
 
 }
 
-contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSparkVaultTestBase {
+contract MainnetController_TakeFromSparkVault_SuccessTests is TakeFromSparkVault_TestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
         deal(address(usdc), address(user), 10_000_000e6);
@@ -201,7 +205,7 @@ contract MainnetControllerTakeFromSparkVaultTests is MainnetControllerTakeFromSp
 
 }
 
-contract MainnetControllerTakeFromSparkVaultE2ETests is ForkTestBase {
+contract MainnetController_TakeFromSparkVault_E2ETests is ForkTestBase {
 
     struct E2ETestState {
         uint256 takeRateLimit;

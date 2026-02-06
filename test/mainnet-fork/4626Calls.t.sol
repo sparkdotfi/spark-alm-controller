@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-contract SUSDSTestBase is ForkTestBase {
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract ERC4626_SUSDS_TestBase is ForkTestBase {
 
     uint256 SUSDS_CONVERTED_ASSETS;
     uint256 SUSDS_CONVERTED_SHARES;
@@ -50,7 +54,7 @@ contract SUSDSTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
+contract MainnetController_ERC4626_Deposit_FailureTests is ERC4626_SUSDS_TestBase {
 
     function test_depositERC4626_reentrancy() external {
         _setControllerEntered();
@@ -144,7 +148,7 @@ contract MainnetControllerDepositERC4626FailureTests is SUSDSTestBase {
 
 }
 
-contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
+contract MainnetController_ERC4626_Deposit_SuccessTests is ERC4626_SUSDS_TestBase {
 
     function test_depositERC4626() external {
         vm.prank(relayer);
@@ -188,7 +192,7 @@ contract MainnetControllerDepositERC4626Tests is SUSDSTestBase {
 
 }
 
-contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
+contract MainnetController_ERC4626_Withdraw_FailureTests is ERC4626_SUSDS_TestBase {
 
     function test_withdrawERC4626_reentrancy() external {
         _setControllerEntered();
@@ -247,7 +251,7 @@ contract MainnetControllerWithdrawERC4626FailureTests is SUSDSTestBase {
 
 }
 
-contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
+contract MainnetController_ERC4626_Withdraw_SuccessTests is ERC4626_SUSDS_TestBase {
 
     function test_withdrawERC4626() external {
         bytes32 depositKey = RateLimitHelpers.makeAddressKey(
@@ -309,7 +313,7 @@ contract MainnetControllerWithdrawERC4626Tests is SUSDSTestBase {
 
 }
 
-contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
+contract MainnetController_ERC4626_Redeem_FailureTests is ERC4626_SUSDS_TestBase {
 
     function test_redeemERC4626_reentrancy() external {
         _setControllerEntered();
@@ -393,7 +397,7 @@ contract MainnetControllerRedeemERC4626FailureTests is SUSDSTestBase {
 
 }
 
-contract MainnetControllerRedeemERC4626Tests is SUSDSTestBase {
+contract MainnetController_ERC4626_Redeem_SuccessTests is ERC4626_SUSDS_TestBase {
 
     function test_redeemERC4626() external {
         bytes32 depositKey = RateLimitHelpers.makeAddressKey(

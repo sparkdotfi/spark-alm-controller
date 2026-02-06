@@ -3,9 +3,13 @@ pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-contract MainnetControllerMintUSDSFailureTests is ForkTestBase {
+import { RateLimits } from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+contract MainnetController_MintUSDS_FailureTests is ForkTestBase {
 
     function test_mintUSDS_reentrancy() external {
         _setControllerEntered();
@@ -43,7 +47,7 @@ contract MainnetControllerMintUSDSFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
+contract MainnetController_MintUSDS_SuccessTests is ForkTestBase {
 
     function test_mintUSDS() external {
         ( uint256 ink, uint256 art ) = dss.vat.urns(ilk, vault);
@@ -109,7 +113,7 @@ contract MainnetControllerMintUSDSSuccessTests is ForkTestBase {
 
 }
 
-contract MainnetControllerBurnUSDSFailureTests is ForkTestBase {
+contract MainnetController_BurnUSDS_FailureTests is ForkTestBase {
 
     function test_burnUSDS_reentrancy() external {
         _setControllerEntered();
@@ -138,7 +142,7 @@ contract MainnetControllerBurnUSDSFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerBurnUSDSSuccessTests is ForkTestBase {
+contract MainnetController_BurnUSDS_SuccessTests is ForkTestBase {
 
     function test_burnUSDS() external {
         // Setup

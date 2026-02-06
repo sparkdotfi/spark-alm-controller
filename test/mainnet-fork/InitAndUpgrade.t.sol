@@ -1,14 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import "test/mainnet-fork/ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { IRateLimits } from "src/interfaces/IRateLimits.sol";
+import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
-import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
-import { MainnetControllerDeploy } from "../../deploy/ControllerDeploy.sol";
-
+import { ControllerInstance }            from "../../deploy/ControllerInstance.sol";
+import { MainnetControllerDeploy }       from "../../deploy/ControllerDeploy.sol";
 import { MainnetControllerInit as Init } from "../../deploy/MainnetControllerInit.sol";
+
+import { ALMProxy }          from "../../src/ALMProxy.sol";
+import { MainnetController } from "../../src/MainnetController.sol";
+import { RateLimits }        from "../../src/RateLimits.sol";
+
+import { ForkTestBase, IPSMLike } from "./ForkTestBase.t.sol";
+
+interface IVaultLike {
+
+    function rely(address) external;
+
+    function wards(address) external returns (uint256);
+
+}
 
 // Necessary to get error message assertions to work
 contract LibraryWrapper {
@@ -63,7 +76,7 @@ contract LibraryWrapper {
 
 }
 
-contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
+abstract contract InitAndUpgrade_TestBase is ForkTestBase {
 
     uint32 constant destinationEndpointId = 30110;  // Arbitrum EID
 
@@ -119,7 +132,7 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndUpgradeTestBase {
+contract MainnetController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBase {
 
     // NOTE: `initAlmSystem` and `upgradeController` are tested in the same contract because
     //       they both use _initController and have similar specific setups, so it
@@ -358,7 +371,7 @@ contract MainnetControllerInitAndUpgradeFailureTest is MainnetControllerInitAndU
 
 }
 
-contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndUpgradeTestBase {
+contract MainnetController_InitAlmSystem_SuccessTests is InitAndUpgrade_TestBase {
 
     LibraryWrapper wrapper;
 
@@ -504,7 +517,7 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
 
 }
 
-contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInitAndUpgradeTestBase {
+contract MainnetController_UpgradeController_SuccessTests is InitAndUpgrade_TestBase {
 
     LibraryWrapper wrapper;
 

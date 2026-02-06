@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "forge-std/interfaces/IERC20.sol";
+import { IERC20 } from "../../../lib/forge-std/src/interfaces/IERC20.sol";
 
-import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import { Ownable } from "../../../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract MockUsdsJoin is Ownable {
 

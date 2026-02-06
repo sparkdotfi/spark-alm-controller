@@ -1,73 +1,76 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { ScriptTools } from "dss-test/ScriptTools.sol";
+import { ScriptTools } from "../../../lib/dss-test/src/ScriptTools.sol";
 
-import "forge-std/Test.sol";
+import { Test }    from "../../../lib/forge-std/src/Test.sol";
+import { stdJson } from "../../../lib/forge-std/src/StdJson.sol";
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+import { IERC20 }   from "../../../lib/forge-std/src/interfaces/IERC20.sol";
+import { IERC4626 } from "../../../lib/forge-std/src/interfaces/IERC4626.sol";
 
-import { IMetaMorpho, Id } from "metamorpho/interfaces/IMetaMorpho.sol";
+import { Base }     from "../../../lib/spark-address-registry/src/Base.sol";
+import { Ethereum } from "../../../lib/spark-address-registry/src/Ethereum.sol";
+import { PSM3 }     from "../../../lib/spark-psm/src/PSM3.sol";
 
-import { MarketParamsLib }       from "morpho-blue/src/libraries/MarketParamsLib.sol";
-import { IMorpho, MarketParams } from "morpho-blue/src/interfaces/IMorpho.sol";
-
-import { Usds } from "usds/src/Usds.sol";
-
-import { SUsds } from "sdai/src/SUsds.sol";
-
-import { Base }     from "spark-address-registry/Base.sol";
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
-import { SparkLend } from "spark-address-registry/SparkLend.sol";
-
-import { PSM3 } from "spark-psm/src/PSM3.sol";
-
-import { Bridge }                from "xchain-helpers/testing/Bridge.sol";
-import { Domain, DomainHelpers } from "xchain-helpers/testing/Domain.sol";
-import { CCTPBridgeTesting }     from "xchain-helpers/testing/bridges/CCTPBridgeTesting.sol";
-import { CCTPForwarder }         from "xchain-helpers/forwarders/CCTPForwarder.sol";
-
-import { MainnetControllerDeploy } from "../../../deploy/ControllerDeploy.sol";
-import { MainnetControllerInit }   from "../../../deploy/MainnetControllerInit.sol";
-
-import { IRateLimits } from "../../../src/interfaces/IRateLimits.sol";
+import { Bridge }                from "../../../lib/xchain-helpers/src/testing/Bridge.sol";
+import { Domain, DomainHelpers } from "../../../lib/xchain-helpers/src/testing/Domain.sol";
+import { CCTPBridgeTesting }     from "../../../lib/xchain-helpers/src/testing/bridges/CCTPBridgeTesting.sol";
+import { CCTPForwarder }         from "../../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
 import { ALMProxy }          from "../../../src/ALMProxy.sol";
 import { ForeignController } from "../../../src/ForeignController.sol";
 import { MainnetController } from "../../../src/MainnetController.sol";
 import { RateLimits }        from "../../../src/RateLimits.sol";
 
-import { RateLimitHelpers }  from "../../../src/RateLimitHelpers.sol";
+interface IERC20Like {
+
+    function balanceOf(address owner) external view returns (uint256);
+
+}
 
 interface IVatLike {
+
     function can(address, address) external view returns (uint256);
+
 }
 
 interface ICurvePoolLike {
+
     function get_virtual_price() external view returns (uint256);
+
 }
 
 interface IMapleTokenExtended is IERC4626 {
+
     function manager() external view returns (address);
+
 }
 
 interface IWithdrawalManagerLike {
+
     function processRedemptions(uint256 maxSharesToProcess) external;
+
 }
 
 interface IPoolManagerLike {
+
     function withdrawalManager() external view returns (IWithdrawalManagerLike);
+
     function poolDelegate() external view returns (address);
+
 }
 
 interface IPermissionManagerLike {
+
     function admin() external view returns (address);
+
     function setLenderAllowlist(
         address            poolManager_,
         address[] calldata lenders_,
         bool[]    calldata booleans_
     ) external;
+
 }
 
 contract StagingDeploymentTestBase is Test {
@@ -100,10 +103,10 @@ contract StagingDeploymentTestBase is Test {
 
     // Mainnet contracts
 
-    Usds   usds;
-    SUsds  susds;
-    IERC20 usdc;
-    IERC20 dai;
+    IERC20Like usds;
+    address    susds;
+    IERC20     usdc;
+    IERC20     dai;
 
     address vault;
     address relayerSafe;
@@ -151,8 +154,8 @@ contract StagingDeploymentTestBase is Test {
         relayerSafe = inputMainnet.readAddress(".relayer");
 
         // Tokens
-        usds  = Usds(inputMainnet.readAddress(".usds"));
-        susds = SUsds(inputMainnet.readAddress(".susds"));
+        usds  = IERC20Like(inputMainnet.readAddress(".usds"));
+        susds = inputMainnet.readAddress(".susds");
         usdc  = IERC20(inputMainnet.readAddress(".usdc"));
         dai   = IERC20(inputMainnet.readAddress(".dai"));
 
@@ -213,7 +216,7 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
 
     function test_depositAndWithdrawUsdsFromSUsds() public {
         vm.skip(true);
-        
+
         uint256 startingBalance = usds.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -236,7 +239,7 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
         mainnetController.depositERC4626(Ethereum.SUSDS, 10e18, 0);
-        
+
         skip(1 days);
 
         mainnetController.redeemERC4626(

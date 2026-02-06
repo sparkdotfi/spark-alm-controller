@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import "./ForkTestBase.t.sol";
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
+
+import { ERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { ForeignController } from "../../src/ForeignController.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
@@ -11,11 +15,14 @@ import { CurveLib }   from "../../src/libraries/CurveLib.sol";
 
 import { IALMProxy } from "../../src/interfaces/IALMProxy.sol";
 
-import { ERC20 } from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IHarness {
+
     function approve(address token, address spender, uint256 amount) external;
+
     function approveCurve(address proxy, address token, address spender, uint256 amount) external;
+
 }
 
 contract ERC20ApproveFalseExistingAllowance is ERC20 {
@@ -87,7 +94,7 @@ contract ForeignControllerHarness is ForeignController {
 
 }
 
-contract ApproveTestBase is ForkTestBase {
+abstract contract Approve_TestBase is ForkTestBase {
 
     function _approveTest(address token, address harness) internal {
         address spender = makeAddr("spender");
@@ -119,7 +126,7 @@ contract ApproveTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerApproveSuccessTests is ApproveTestBase {
+abstract contract MainnetController_Approve_SuccessTests is Approve_TestBase {
 
     address harness;
 
@@ -188,7 +195,7 @@ contract MainnetControllerApproveSuccessTests is ApproveTestBase {
 // NOTE: This code is running against mainnet, but is used to demonstrate equivalent approve behaviour
 //       for USDT-type contracts. Because of this, the foreignController has to be onboarded in the same
 //       way as the mainnetController.
-contract ForeignControllerApproveSuccessTests is ApproveTestBase {
+abstract contract ForeignController_Approve_SuccessTests is Approve_TestBase {
 
     address harness;
 
@@ -248,7 +255,7 @@ contract ForeignControllerApproveSuccessTests is ApproveTestBase {
 
 }
 
-contract ERC20ApproveReturningFalseExistingAllowanceMainnetTest is MainnetControllerApproveSuccessTests {
+contract MainnetController_Approve_ReturningFalseExistingAllowance_Test is MainnetController_Approve_SuccessTests {
 
     function test_approveReturningFalseOnExistingAllowance() public {
         ERC20ApproveFalseExistingAllowance mock = new ERC20ApproveFalseExistingAllowance("Mock", "MOCK");
@@ -258,7 +265,7 @@ contract ERC20ApproveReturningFalseExistingAllowanceMainnetTest is MainnetContro
 
 }
 
-contract ERC20ApproveReturningFalseNonZeroAmountMainnetTest is MainnetControllerApproveSuccessTests {
+contract MainnetController_Approve_ReturningFalseNonZeroAmount_Test is MainnetController_Approve_SuccessTests {
 
     function test_approveReturningFalseOnNonZeroAmount() public {
         ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
@@ -272,7 +279,7 @@ contract ERC20ApproveReturningFalseNonZeroAmountMainnetTest is MainnetController
 
 }
 
-contract ERC20ApproveReturningFalseExistingAllowanceForeignTest is ForeignControllerApproveSuccessTests {
+contract ForeignController_Approve_ReturningFalseExistingAllowance_Test is ForeignController_Approve_SuccessTests {
 
     function test_approveCustom() public {
         ERC20ApproveFalseExistingAllowance mock = new ERC20ApproveFalseExistingAllowance("Mock", "MOCK");
@@ -281,7 +288,7 @@ contract ERC20ApproveReturningFalseExistingAllowanceForeignTest is ForeignContro
 
 }
 
-contract ERC20ApproveReturningFalseNonZeroAmountForeignTest is ForeignControllerApproveSuccessTests {
+contract ForeignController_Approve_ReturningFalseNonZeroAmount_Test is ForeignController_Approve_SuccessTests {
 
     function test_approveReturningFalseOnNonZeroAmount() public {
         ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");

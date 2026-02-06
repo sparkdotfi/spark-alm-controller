@@ -1,35 +1,41 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { IERC20 } from "forge-std/interfaces/IERC20.sol";
-
-import "./ForkTestBase.t.sol";
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
 import { ERC20Mock }       from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { Arbitrum } from "spark-address-registry/Arbitrum.sol";
+import { Arbitrum } from "../../lib/spark-address-registry/src/Arbitrum.sol";
 
-import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
-import { IPSM3 }      from "spark-psm/src/PSM3.sol";
+import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
+import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
+import { ForeignControllerInit }   from "../../deploy/ForeignControllerInit.sol";
 
-import { ForeignControllerInit } from "../../deploy/ForeignControllerInit.sol";
+import {
+    OptionsBuilder
+} from "../../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
-import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
-import { ALMProxy }                from "../../src/ALMProxy.sol";
-import { ForeignController }       from "../../src/ForeignController.sol";
-import { IRateLimits, RateLimits } from "../../src/RateLimits.sol";
-import { RateLimitHelpers }        from "../../src/RateLimitHelpers.sol";
+import {
+    ILayerZeroLike,
+    MessagingFee,
+    SendParam
+} from "../../src/interfaces/ILayerZero.sol"; // TODO: Interfaces for tests should be separated.
 
-import "src/interfaces/ILayerZero.sol";
+import { ALMProxy }          from "../../src/ALMProxy.sol";
+import { ForeignController } from "../../src/ForeignController.sol";
+import { RateLimits }        from "../../src/RateLimits.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
-contract MainnetControllerLayerZeroTestBase is ForkTestBase {
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract LayerZero_TestBase is ForkTestBase {
 
     uint32 constant destinationEndpointId = 30110;  // Arbitrum EID
 
@@ -41,7 +47,7 @@ contract MainnetControllerLayerZeroTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLayerZeroTestBase {
+contract MainnetController_TransferLayerZero_FailureTests is LayerZero_TestBase {
 
     using OptionsBuilder for bytes;
 
@@ -120,7 +126,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
             oftCmd       : ""
         });
 
-        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -168,7 +174,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
             oftCmd       : ""
         });
 
-        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
 
         deal(relayer, fee.nativeFee);
 
@@ -183,7 +189,7 @@ contract MainnetControllerTransferLayerZeroFailureTests is MainnetControllerLaye
 
 }
 
-contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLayerZeroTestBase {
+contract MainnetController_TransferLayerZero_SuccessTests is LayerZero_TestBase {
 
     using OptionsBuilder for bytes;
 
@@ -236,7 +242,7 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
             oftCmd       : ""
         });
 
-        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
 
         vm.record();
 
@@ -266,7 +272,7 @@ contract MainnetControllerTransferLayerZeroSuccessTests is MainnetControllerLaye
 
 }
 
-contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
+abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
     using DomainHelpers for *;
 
@@ -399,7 +405,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
 
 }
 
-contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZeroTestBase {
+contract ForeignController_TransferLayerZero_FailureTests is ArbitrumChain_LayerZero_TestBase {
 
     using DomainHelpers  for *;
     using OptionsBuilder for bytes;
@@ -487,7 +493,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
             oftCmd       : ""
         });
 
-        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
 
         vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -535,7 +541,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
             oftCmd       : ""
         });
 
-        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
 
         deal(relayer, fee.nativeFee);
 
@@ -550,7 +556,7 @@ contract ForeignControllerTransferLayerZeroFailureTests is ArbitrumChainLayerZer
 
 }
 
-contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZeroTestBase {
+contract ForeignController_TransferLayerZero_SuccessTests is ArbitrumChain_LayerZero_TestBase {
 
     using DomainHelpers  for *;
     using OptionsBuilder for bytes;
@@ -607,7 +613,7 @@ contract ForeignControllerTransferLayerZeroSuccessTests is ArbitrumChainLayerZer
             oftCmd       : ""
         });
 
-        MessagingFee memory fee = ILayerZero(USDT_OFT).quoteSend(sendParams, false);
+        MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
 
         vm.record();
 

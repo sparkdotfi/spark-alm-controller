@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { ForeignController } from "../src/ForeignController.sol";
 
@@ -9,11 +9,17 @@ import { IRateLimits } from "../src/interfaces/IRateLimits.sol";
 import { ControllerInstance } from "./ControllerInstance.sol";
 
 interface IPSM3Like {
+
     function susds() external view returns (address);
+
     function totalAssets() external view returns (uint256);
+
     function totalShares() external view returns (uint256);
+
     function usdc() external view returns (address);
+
     function usds() external view returns (address);
+
 }
 
 library ForeignControllerInit {

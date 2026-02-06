@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken }            from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool as IAavePool } from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
+import { IAToken }            from "../lib/aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
+import { IPool as IAavePool } from "../lib/aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
-import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-
-import { IMetaMorpho, Id, MarketAllocation } from "metamorpho/interfaces/IMetaMorpho.sol";
+import { OptionsBuilder } from "../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
@@ -14,7 +12,7 @@ import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts
 import { IERC20 }   from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { IERC4626 } from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
-import { IPSM3 } from "spark-psm/src/interfaces/IPSM3.sol";
+import { IPSM3 } from "../lib/spark-psm/src/interfaces/IPSM3.sol";
 
 import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
 
@@ -22,16 +20,18 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import  "./interfaces/ILayerZero.sol";
-
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
+
     function POOL() external view returns(address);
+
 }
 
 interface ISparkVaultLike {
+
     function take(uint256 assetAmount) external;
+
 }
 
 contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
@@ -47,13 +47,17 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         uint64  indexed nonce,
         uint32  indexed destinationDomain,
         bytes32 indexed mintRecipient,
-        uint256 usdcAmount
+        uint256         usdcAmount
     );
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
+
     event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
+
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
+
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
+
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
@@ -127,20 +131,14 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         _;
     }
 
-    modifier rateLimitExists(bytes32 key) {
-        require(
-            rateLimits.getRateLimitData(key).maxAmount > 0,
-            "FC/invalid-action"
-        );
-        _;
-    }
-
     /**********************************************************************************************/
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
 
     function setMaxSlippage(address pool, uint256 maxSlippage)
-        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(pool != address(0), "FC/pool-zero-address");
 
@@ -149,21 +147,27 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
-        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
     }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient)
-        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
         emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
     }
 
     function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
-        external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(token != address(0), "FC/token-zero-address");
 
@@ -221,7 +225,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         _approve(asset, address(psm), amount);
 
         // Deposit `amount` of `asset` in the PSM, decode the result to get `shares`.
-        shares = abi.decode(
+        return abi.decode(
             proxy.doCall(
                 address(psm),
                 abi.encodeCall(
@@ -372,7 +376,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     // NOTE: !!! Rate limited at end of function !!!
     function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
-        external nonReentrant onlyRole(RELAYER) returns (uint256 assets)
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        returns (uint256 assets)
     {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
@@ -390,6 +397,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             RateLimitHelpers.makeAddressKey(LIMIT_4626_WITHDRAW, token),
             assets
         );
+
         rateLimits.triggerRateLimitIncrease(
             RateLimitHelpers.makeAddressKey(LIMIT_4626_DEPOSIT, token),
             assets
@@ -432,7 +440,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     // NOTE: !!! Rate limited at end of function !!!
     function withdrawAave(address aToken, uint256 amount)
-        external nonReentrant onlyRole(RELAYER) returns (uint256 amountWithdrawn)
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        returns (uint256 amountWithdrawn)
     {
         IAavePool pool = IAavePool(IATokenWithPool(aToken).POOL());
 

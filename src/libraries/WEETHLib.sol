@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
 
@@ -13,32 +13,50 @@ import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
 interface IEETHLike is IERC20 {
+
     function liquidityPool() external view returns (address);
+
     function shares(address account) external view returns (uint256);
+
 }
 
 interface ILiquidityPoolLike {
+
     function amountForShare(uint256 shareAmount) external view returns (uint256);
+
     function deposit() external payable returns (uint256 shareAmount);
+
     function requestWithdraw(address receiver,uint256 amount) external returns (uint256 requestId);
+
     function withdrawRequestNFT() external view returns (address);
+
 }
 
 interface IWEETHLike is IERC20 {
+
     function eETH() external view returns (address);
+
     function unwrap(uint256 amount) external returns (uint256);
+
     function wrap(uint256 amount) external returns (uint256);
+
 }
 
 interface IWeEthModuleLike {
+
     function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceived);
+
 }
 
 interface IWETHLike {
+
     function deposit() external payable;
+
     function withdraw(uint256 amount) external;
+
 }
 
+// NOTE: This library is is specifically for Mainnet Ethereum.
 library WEETHLib {
 
     bytes32 public constant LIMIT_WEETH_CLAIM_WITHDRAW   = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
@@ -54,7 +72,10 @@ library WEETHLib {
         IRateLimits rateLimits,
         uint256     amount,
         uint256     minSharesOut
-    ) external returns (uint256 shares) {
+    )
+        external
+        returns (uint256 shares)
+    {
         _rateLimited(rateLimits, LIMIT_WEETH_DEPOSIT, amount);
 
         // Unwrap WETH to ETH.
@@ -98,7 +119,8 @@ library WEETHLib {
         uint256     weETHShares,
         address     weETHModule
     )
-        external returns (uint256 requestId)
+        external
+        returns (uint256 requestId)
     {
         IWEETHLike weETH = IWEETHLike(Ethereum.WEETH);
 
@@ -145,7 +167,8 @@ library WEETHLib {
         uint256     requestId,
         address     weETHModule
     )
-        external returns (uint256 ethReceived)
+        external
+        returns (uint256 ethReceived)
     {
         ethReceived =  abi.decode(
             proxy.doCall(

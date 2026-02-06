@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { ERC1967Proxy }                  from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ERC20Mock }                     from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import { IERC20Metadata }                from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { IERC20 as OzIERC20, SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ReentrancyGuard }               from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import { ERC20Mock }         from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { ERC1967Proxy }      from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { IERC20, SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard }   from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { OTCBuffer } from "src/OTCBuffer.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
+
+import { OTCBuffer }        from "../../src/OTCBuffer.sol";
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
 
 import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 // Mock ERC20 with variable decimals
 contract ERC20 is ERC20Mock {
@@ -28,7 +31,7 @@ contract ERC20 is ERC20Mock {
 
 }
 
-contract MainnetControllerOTCSwapBase is ForkTestBase {
+abstract contract OTC_TestBase is ForkTestBase {
 
     bytes32 LIMIT_OTC_SWAP = keccak256("LIMIT_OTC_SWAP");
 
@@ -111,7 +114,7 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
 
 // NOTE: This test requires the send to be executed first which requires ForkTestBase,
 //       therefore it is placed here instead of Admin.t.sol.
-contract MainnetControllerSetOTCBufferFailureTests is MainnetControllerOTCSwapBase {
+contract MainnetController_SetOTCBuffer_FailureTests is OTC_TestBase {
 
     function test_setOTCBuffer_swapInProgress() external {
         deal(address(usdt), address(almProxy), 5_000_000e6);
@@ -127,7 +130,7 @@ contract MainnetControllerSetOTCBufferFailureTests is MainnetControllerOTCSwapBa
 
 }
 
-contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
+contract MainnetController_OTCSend_FailureTests is OTC_TestBase {
 
     function test_otcSend_reentrancy() external {
         _setControllerEntered();
@@ -378,7 +381,7 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
 
 }
 
-contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
+contract MainnetController_OTCSend_SuccessTests is OTC_TestBase {
 
     // NOTE: This test covers the case where token returns null for transfer
     function test_otcSend_usdt() external {
@@ -463,7 +466,7 @@ contract MainnetControllerOtcSendSuccessTests is MainnetControllerOTCSwapBase {
 
 }
 
-contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
+contract MainnetController_OTCClaim_FailureTests is OTC_TestBase {
 
     function test_otcClaim_reentrancy() external {
         _setControllerEntered();
@@ -519,7 +522,7 @@ contract MainnetControllerOTCClaimFailureTests is MainnetControllerOTCSwapBase {
 
 }
 
-contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
+contract MainnetController_OTCClaim_SuccessTests is OTC_TestBase {
 
     // NOTE: This test covers the case where token returns null for transferFrom
     function test_otcClaim_usdt() external {
@@ -590,7 +593,7 @@ contract MainnetControllerOTCClaimSuccessTests is MainnetControllerOTCSwapBase {
 
 }
 
-contract MainnetControllerE2ETests is MainnetControllerOTCSwapBase {
+contract MainnetController_OTC_E2ETests is OTC_TestBase {
 
     function test_e2e_swapUsdtToUsds() external {
         uint48 startingTimestamp = uint48(block.timestamp);
@@ -796,7 +799,7 @@ contract MainnetControllerE2ETests is MainnetControllerOTCSwapBase {
         deal(address(usdt), address(exchange), 9_980_000e6);
 
         vm.prank(exchange);
-        SafeERC20.safeTransfer(OzIERC20(address(usdt)), otcBuffer, 9_980_000e6);
+        SafeERC20.safeTransfer(IERC20(address(usdt)), otcBuffer, 9_980_000e6);
 
         assertEq(usdt.balanceOf(address(otcBuffer)), 9_980_000e6);
         assertEq(usdt.balanceOf(address(almProxy)),  0);
@@ -896,9 +899,9 @@ contract MainnetControllerE2ETests is MainnetControllerOTCSwapBase {
 
 }
 
-contract MainnetControlerGetOtcClaimedWithRechargeTests is MainnetControllerOTCSwapBase {
+contract MainnetController_GetOTCClaimedWithRecharge_Tests is OTC_TestBase {
 
-    function test_getOtcClaimedWithRecharge_noSentTimestamp() external {
+    function test_getOtcClaimedWithRecharge_noSentTimestamp() external view {
         // Would return non-zero without early return, because it would use (block.timestamp - 0) * rechargeRate18
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
     }
@@ -1006,7 +1009,7 @@ contract MainnetControlerGetOtcClaimedWithRechargeTests is MainnetControllerOTCS
 
 }
 
-contract MainnetControllerIsOtcSwapReadySuccessTests is MainnetControllerOTCSwapBase {
+contract MainnetController_IsOTCSwapReady_SuccessTests is OTC_TestBase {
 
     function test_isOtcSwapReady_falseWithZeroSlippage() external {
         assertFalse(mainnetController.isOtcSwapReady(makeAddr("fake-exchange")));

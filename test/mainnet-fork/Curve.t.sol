@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
+
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
-
 import { ICurvePoolLike } from "../../src/libraries/CurveLib.sol";
 
-contract CurveTestBase is ForkTestBase {
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract Curve_TestBase is ForkTestBase {
 
     address constant CURVE_POOL = 0x4f493B7dE8aAC7d55F71853688b1F7C8F0243C85;
 
@@ -38,7 +43,8 @@ contract CurveTestBase is ForkTestBase {
     }
 
     function _addLiquidity(uint256 usdcAmount, uint256 usdtAmount)
-        internal returns (uint256 lpTokensReceived)
+        internal
+        returns (uint256 lpTokensReceived)
     {
         deal(address(usdc), address(almProxy), usdcAmount);
         deal(address(usdt), address(almProxy), usdtAmount);
@@ -63,7 +69,7 @@ contract CurveTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
+contract MainnetController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
     function test_addLiquidityCurve_reentrancy() external {
         uint256[] memory amounts = new uint256[](2);
@@ -218,7 +224,7 @@ contract MainnetControllerAddLiquidityCurveFailureTests is CurveTestBase {
 
 }
 
-contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
+contract MainnetController_Curve_AddLiquidity_SuccessTests is Curve_TestBase {
 
     function test_addLiquidityCurve() public {
         deal(address(usdc), address(almProxy), 1_000_000e6);
@@ -393,7 +399,7 @@ contract MainnetControllerAddLiquiditySuccessTests is CurveTestBase {
 
 }
 
-contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
+contract MainnetController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase {
 
     function test_removeLiquidityCurve_reentrancy() external {
         uint256[] memory minWithdrawAmounts = new uint256[](2);
@@ -538,7 +544,7 @@ contract MainnetControllerRemoveLiquidityCurveFailureTests is CurveTestBase {
 
 }
 
-contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
+contract MainnetController_Curve_RemoveLiquidity_SuccessTests is Curve_TestBase {
 
     function test_removeLiquidityCurve() public {
         uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e6);
@@ -604,7 +610,7 @@ contract MainnetControllerRemoveLiquiditySuccessTests is CurveTestBase {
 
 }
 
-contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
+contract MainnetController_Curve_Swap_FailureTests is Curve_TestBase {
 
     function test_swapCurve_reentrancy() external {
         _setControllerEntered();
@@ -719,7 +725,7 @@ contract MainnetControllerSwapCurveFailureTests is CurveTestBase {
 
 }
 
-contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
+contract MainnetController_Curve_Swap_SuccessTests is Curve_TestBase {
 
     function test_swapCurve() public {
         _addLiquidity(1_000_000e6, 1_000_000e6);
@@ -767,7 +773,7 @@ contract MainnetControllerSwapCurveSuccessTests is CurveTestBase {
 
 }
 
-contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
+contract MainnetController_Curve_GetVirtualPrice_StressTests is Curve_TestBase {
 
     function test_getVirtualPrice_stressTest() public {
         vm.startPrank(SPARK_PROXY);
@@ -830,7 +836,7 @@ contract MainnetControllerGetVirtualPriceStressTests is CurveTestBase {
 
 }
 
-contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
+contract MainnetController_Curve_3Pool_Tests is ForkTestBase {
 
     // Working in BTC terms because only high TVL active NG three asset pool is BTC
     address CURVE_POOL = 0xabaf76590478F2fE0b396996f55F0b61101e9502;
@@ -910,7 +916,7 @@ contract MainnetController3PoolSwapRateLimitTest is ForkTestBase {
 
 }
 
-contract MainnetControllerSUsdsUsdtSwapRateLimitTest is ForkTestBase {
+contract MainnetController_Curve_SUSDS_USDT_Pool_Tests is ForkTestBase {
 
     address constant CURVE_POOL = 0x00836Fe54625BE242BcFA286207795405ca4fD10;
 
@@ -1003,7 +1009,7 @@ contract MainnetControllerSUsdsUsdtSwapRateLimitTest is ForkTestBase {
 
 }
 
-contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
+contract MainnetController_Curve_USDT_USDC_Pool_E2ETests is Curve_TestBase {
 
     function test_e2e_addSwapAndRemoveLiquidityCurve() public {
         // Set a higher slippage to allow for successes
@@ -1124,7 +1130,7 @@ contract MainnetControllerE2ECurveUsdtUsdcPoolTest is CurveTestBase {
 
 }
 
-contract MainnetControllerE2ECurveSUsdsUsdtPoolTest is ForkTestBase {
+contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
 
     address constant CURVE_POOL = 0x00836Fe54625BE242BcFA286207795405ca4fD10;
 

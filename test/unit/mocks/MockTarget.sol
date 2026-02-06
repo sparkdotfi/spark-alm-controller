@@ -12,7 +12,9 @@ contract MockTarget {
     );
 
     function exampleCall(address exampleAddress, uint256 exampleValue)
-        public payable returns (uint256 exampleReturn)
+        public
+        payable
+        returns (uint256 exampleReturn)
     {
         exampleReturn = exampleValue * 2;
         emit ExampleEvent(

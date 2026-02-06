@@ -1,33 +1,34 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { IERC20 } from "forge-std/interfaces/IERC20.sol";
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
 import { ERC20Mock }       from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { Base } from "spark-address-registry/Base.sol";
+import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { PSM3Deploy }       from "spark-psm/deploy/PSM3Deploy.sol";
-import { IPSM3 }            from "spark-psm/src/PSM3.sol";
-import { MockRateProvider } from "spark-psm/test/mocks/MockRateProvider.sol";
+import { PSM3Deploy }       from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
+import { IPSM3 }            from "../../lib/spark-psm/src/PSM3.sol";
+import { MockRateProvider } from "../../lib/spark-psm/test/mocks/MockRateProvider.sol";
 
-import { CCTPBridgeTesting } from "xchain-helpers/testing/bridges/CCTPBridgeTesting.sol";
-import { CCTPForwarder }     from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPForwarder }     from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
+import { Bridge }            from "../../lib/xchain-helpers/src/testing/Bridge.sol";
+import { DomainHelpers }     from "../../lib/xchain-helpers/src/testing/Domain.sol";
+import { CCTPBridgeTesting } from "../../lib/xchain-helpers/src/testing/bridges/CCTPBridgeTesting.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
-
-import { ForeignControllerInit } from "../../deploy/ForeignControllerInit.sol";
+import { ForeignControllerInit }   from "../../deploy/ForeignControllerInit.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
+contract MainnetController_TransferUSDCToCCTP_FailureTests is ForkTestBase {
 
     function test_transferUSDCToCCTP_reentrancy() external {
         _setControllerEntered();
@@ -160,7 +161,7 @@ contract MainnetControllerTransferUSDCToCCTPFailureTests is ForkTestBase {
 }
 
 // TODO: Figure out finalized structure for this repo/testing structure wise
-contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
+abstract contract BaseChain_USDCToCCTP_TestBase is ForkTestBase {
 
     using DomainHelpers     for *;
     using CCTPBridgeTesting for Bridge;
@@ -312,7 +313,7 @@ contract BaseChainUSDCToCCTPTestBase is ForkTestBase {
 
 }
 
-contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPTestBase {
+contract ForeignController_TransferUSDCToCCTP_FailureTests is BaseChain_USDCToCCTP_TestBase {
 
     using DomainHelpers for *;
 
@@ -451,7 +452,7 @@ contract ForeignControllerTransferUSDCToCCTPFailureTests is BaseChainUSDCToCCTPT
 
 }
 
-contract USDCToCCTPIntegrationTests is BaseChainUSDCToCCTPTestBase {
+contract USDCToCCTP_IntegrationTests is BaseChain_USDCToCCTP_TestBase {
 
     using DomainHelpers     for *;
     using CCTPBridgeTesting for Bridge;

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract MainnetControllerSwapUSDSToDAIFailureTests is ForkTestBase {
+contract MainnetController_SwapUSDSToDAI_FailureTests is ForkTestBase {
 
     function test_swapUSDSToDAI_reentrancy() external {
         _setControllerEntered();
@@ -24,7 +24,7 @@ contract MainnetControllerSwapUSDSToDAIFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerSwapUSDSToDAITests is ForkTestBase {
+contract MainnetController_SwapUSDSToDAI_SuccessTests is ForkTestBase {
 
     function test_swapUSDSToDAI() external {
         vm.prank(relayer);
@@ -56,7 +56,7 @@ contract MainnetControllerSwapUSDSToDAITests is ForkTestBase {
 
 }
 
-contract MainnetControllerSwapDAIToUSDSFailureTests is ForkTestBase {
+contract MainnetController_SwapDAIToUSDS_FailureTests is ForkTestBase {
 
     function test_swapDAIToUSDS_reentrancy() external {
         _setControllerEntered();
@@ -75,7 +75,7 @@ contract MainnetControllerSwapDAIToUSDSFailureTests is ForkTestBase {
 
 }
 
-contract MainnetControllerSwapDAIToUSDSTests is ForkTestBase {
+contract MainnetController_SwapDAIToUSDS_SuccessTests is ForkTestBase {
 
     function test_swapDAIToUSDS() external {
         deal(address(dai), address(almProxy), 1_000_000e18);

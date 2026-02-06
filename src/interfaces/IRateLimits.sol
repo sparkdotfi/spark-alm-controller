@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { IAccessControl } from "openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {
+    IAccessControl
+} from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
 interface IRateLimits is IAccessControl {
 
@@ -40,10 +42,10 @@ interface IRateLimits is IAccessControl {
      */
     event RateLimitDataSet(
         bytes32 indexed key,
-        uint256 maxAmount,
-        uint256 slope,
-        uint256 lastAmount,
-        uint256 lastUpdated
+        uint256         maxAmount,
+        uint256         slope,
+        uint256         lastAmount,
+        uint256         lastUpdated
     );
 
     /**
@@ -55,9 +57,9 @@ interface IRateLimits is IAccessControl {
      */
     event RateLimitDecreaseTriggered(
         bytes32 indexed key,
-        uint256 amountToDecrease,
-        uint256 oldRateLimit,
-        uint256 newRateLimit
+        uint256         amountToDecrease,
+        uint256         oldRateLimit,
+        uint256         newRateLimit
     );
 
     /**
@@ -69,9 +71,9 @@ interface IRateLimits is IAccessControl {
      */
     event RateLimitIncreaseTriggered(
         bytes32 indexed key,
-        uint256 amountToIncrease,
-        uint256 oldRateLimit,
-        uint256 newRateLimit
+        uint256         amountToIncrease,
+        uint256         oldRateLimit,
+        uint256         newRateLimit
     );
 
     /**********************************************************************************************/
@@ -149,7 +151,8 @@ interface IRateLimits is IAccessControl {
      * @return newLimit         The updated rate limit after the deduction.
      */
     function triggerRateLimitDecrease(bytes32 key, uint256 amountToDecrease)
-        external returns (uint256 newLimit);
+        external
+        returns (uint256 newLimit);
 
     /**
      * @dev    Increases the rate limit for a given key up to the maxAmount. Does not revert if
@@ -159,6 +162,7 @@ interface IRateLimits is IAccessControl {
      * @return newLimit         The updated rate limit after the addition.
      */
     function triggerRateLimitIncrease(bytes32 key, uint256 amountToIncrease)
-        external returns (uint256 newLimit);
+        external
+        returns (uint256 newLimit);
 
 }

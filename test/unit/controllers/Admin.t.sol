@@ -2,8 +2,6 @@
 pragma solidity ^0.8.21;
 
 import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
-import { IERC20Metadata }  from "../../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { IERC4626 }        from "../../../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
@@ -13,9 +11,9 @@ import { MockDaiUsds } from "../mocks/MockDaiUsds.sol";
 import { MockPSM }     from "../mocks/MockPSM.sol";
 import { MockVault }   from "../mocks/MockVault.sol";
 
-import "../UnitTestBase.t.sol";
+import { UnitTestBase } from "../UnitTestBase.t.sol";
 
-contract MainnetControllerAdminTestBase is UnitTestBase {
+abstract contract MainnetController_Admin_TestBase is UnitTestBase {
 
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
@@ -50,7 +48,7 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
 
 }
 
-contract MainnetControllerSetMintRecipientTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetMintRecipient_Tests is MainnetController_Admin_TestBase {
 
     function test_setMintRecipient_reentrancy() external {
         _setControllerEntered();
@@ -107,7 +105,7 @@ contract MainnetControllerSetMintRecipientTests is MainnetControllerAdminTestBas
 
 }
 
-contract MainnetControllerSetLayerZeroRecipientTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetLayerZeroRecipient_Tests is MainnetController_Admin_TestBase {
 
     function test_setLayerZeroRecipient_reentrancy() external {
         _setControllerEntered();
@@ -164,7 +162,7 @@ contract MainnetControllerSetLayerZeroRecipientTests is MainnetControllerAdminTe
 
 }
 
-contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetMaxSlippage_Tests is MainnetController_Admin_TestBase {
 
     function test_setMaxSlippage_reentrancy() external {
         _setControllerEntered();
@@ -221,7 +219,7 @@ contract MainnetControllerSetMaxSlippageTests is MainnetControllerAdminTestBase 
 
 }
 
-contract MainnetControllerSetOTCBufferTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetOTCBuffer_Tests is MainnetController_Admin_TestBase {
 
     address exchange  = makeAddr("exchange");
     address otcBuffer = makeAddr("otcBuffer");
@@ -280,7 +278,7 @@ contract MainnetControllerSetOTCBufferTests is MainnetControllerAdminTestBase {
 
 }
 
-contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetOTCRechargeRate_Tests is MainnetController_Admin_TestBase {
 
     address exchange = makeAddr("exchange");
 
@@ -324,7 +322,7 @@ contract MainnetControllerSetOTCRechargeRateTests is MainnetControllerAdminTestB
 
 }
 
-contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetOTCWhitelistedAsset_Tests is MainnetController_Admin_TestBase {
 
     address asset    = makeAddr("asset");
     address exchange = makeAddr("exchange");
@@ -389,7 +387,7 @@ contract MainnetControllerSetOTCWhitelistedAssetTests is MainnetControllerAdminT
 
 }
 
-contract MainnetControllerSetMaxExchangeRateTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetMaxExchangeRate_Tests is MainnetController_Admin_TestBase {
 
     function test_setMaxExchangeRate_reentrancy() external {
         _setControllerEntered();
@@ -445,7 +443,7 @@ contract MainnetControllerSetMaxExchangeRateTests is MainnetControllerAdminTestB
 
 }
 
-contract MainnetControllerSetUniswapV4TickLimitsTests is MainnetControllerAdminTestBase {
+contract MainnetController_SetUniswapV4TickLimits_Tests is MainnetController_Admin_TestBase {
 
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
 
@@ -506,7 +504,7 @@ contract MainnetControllerSetUniswapV4TickLimitsTests is MainnetControllerAdminT
 
 }
 
-contract ForeignControllerAdminTests is UnitTestBase {
+contract ForeignController_Admin_Tests is UnitTestBase {
 
     ForeignController foreignController;
 

@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
+
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { ForkTestBase, IERC20, Ethereum } from "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-contract WrapETHTestBase is ForkTestBase {
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract WrapAllProxyETH_TestBase is ForkTestBase {
 
     IERC20 weth = IERC20(Ethereum.WETH);
 
 }
 
-contract WrapETHFailureTests is WrapETHTestBase {
+contract MainnetController_WrapAllProxyETH_FailureTests is WrapAllProxyETH_TestBase {
 
     function test_wrapAllProxyETH_reentrancy() external {
         _setControllerEntered();
@@ -31,7 +35,7 @@ contract WrapETHFailureTests is WrapETHTestBase {
 
 }
 
-contract WrapETHSuccessTests is WrapETHTestBase {
+contract MainnetController_WrapAllProxyETH_SuccessTests is WrapAllProxyETH_TestBase {
 
     function test_wrapAllProxyETH_zeroBalance() external {
         assertEq(address(almProxy).balance,         0);

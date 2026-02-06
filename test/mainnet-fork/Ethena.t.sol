@@ -1,22 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
+
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IEthenaMinterLike {
+
     function delegatedSigner(address signer, address owner) external view returns (uint8);
+
 }
 
-contract EthenaTestBase is ForkTestBase {
+abstract contract Ethena_TestBase is ForkTestBase {
 
     function _getBlock() internal pure override returns (uint256) {
         return 21417200;  // Dec 16, 2024
     }
+
 }
 
-contract MainnetControllerSetDelegatedSignerFailureTests is EthenaTestBase {
+contract MainnetController_SetDelegatedSigner_FailureTests is Ethena_TestBase {
 
     function test_setDelegatedSigner_reentrancy() external {
         _setControllerEntered();
@@ -35,7 +43,7 @@ contract MainnetControllerSetDelegatedSignerFailureTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerSetDelegatedSignerSuccessTests is EthenaTestBase {
+contract MainnetController_SetDelegatedSigner_SuccessTests is Ethena_TestBase {
 
     event DelegatedSignerInitiated(address indexed delegateTo, address indexed initiatedBy);
 
@@ -60,7 +68,7 @@ contract MainnetControllerSetDelegatedSignerSuccessTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerRemoveDelegatedSignerFailureTests is EthenaTestBase {
+contract MainnetController_RemoveDelegatedSigner_FailureTests is Ethena_TestBase {
 
     function test_removeDelegatedSigner_reentrancy() external {
         _setControllerEntered();
@@ -79,7 +87,7 @@ contract MainnetControllerRemoveDelegatedSignerFailureTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerRemoveDelegatedSignerSuccessTests is EthenaTestBase {
+contract MainnetController_RemoveDelegatedSigner_SuccessTests is Ethena_TestBase {
 
     event DelegatedSignerRemoved(address indexed removedSigner, address indexed initiatedBy);
 
@@ -107,7 +115,7 @@ contract MainnetControllerRemoveDelegatedSignerSuccessTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
+contract MainnetController_PrepareUSDeMint_FailureTests is Ethena_TestBase {
 
     function test_prepareUSDeMint_reentrancy() external {
         _setControllerEntered();
@@ -153,7 +161,7 @@ contract MainnetControllerPrepareUSDeMintFailureTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
+contract MainnetController_PrepareUSDeMint_SuccessTests is Ethena_TestBase {
 
     bytes32 key;
 
@@ -199,7 +207,7 @@ contract MainnetControllerPrepareUSDeMintSuccessTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
+contract MainnetController_PrepareUSDeBurn_FailureTests is Ethena_TestBase {
 
     function test_prepareUSDeBurn_reentrancy() external {
         _setControllerEntered();
@@ -245,7 +253,7 @@ contract MainnetControllerPrepareUSDeBurnFailureTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
+contract MainnetController_PrepareUSDeBurn_SuccessTests is Ethena_TestBase {
 
     bytes32 key;
 
@@ -291,7 +299,7 @@ contract MainnetControllerPrepareUSDeBurnSuccessTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
+contract MainnetController_CooldownAssetsSUSDe_FailureTests is Ethena_TestBase {
 
     function test_cooldownAssetsSUSDe_reentrancy() external {
         _setControllerEntered();
@@ -340,7 +348,7 @@ contract MainnetControllerCooldownAssetsSUSDeFailureTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
+contract MainnetController_CooldownAssetsSUSDe_SuccessTests is Ethena_TestBase {
 
     event Withdraw(
         address indexed sender,
@@ -411,7 +419,7 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
+contract MainnetController_CooldownSharesSUSDe_FailureTests is Ethena_TestBase {
 
     function test_cooldownSharesSUSDe_reentrancy() external {
         _setControllerEntered();
@@ -468,7 +476,7 @@ contract MainnetControllerCooldownSharesSUSDeFailureTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
+contract MainnetController_CooldownSharesSUSDe_SuccessTests is Ethena_TestBase {
 
     event Withdraw(
         address indexed sender,
@@ -551,7 +559,7 @@ contract MainnetControllerCooldownSharesSUSDeSuccessTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerUnstakeSUSDeFailureTests is EthenaTestBase {
+contract MainnetController_UnstakeSUSDe_FailureTests is Ethena_TestBase {
 
     function test_unstakeSUSDe_reentrancy() external {
         _setControllerEntered();
@@ -597,7 +605,7 @@ contract MainnetControllerUnstakeSUSDeFailureTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerUnstakeSUSDeSuccessTests is EthenaTestBase {
+contract MainnetController_UnstakeSUSDe_SuccessTests is Ethena_TestBase {
 
     function test_unstakeSUSDe() external {
         // Setting higher rate limit so shares can be used for cooldown
@@ -638,7 +646,7 @@ contract MainnetControllerUnstakeSUSDeSuccessTests is EthenaTestBase {
 
 }
 
-contract MainnetControllerEthenaE2ETests is EthenaTestBase {
+contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
 
     address signer = makeAddr("signer");
 

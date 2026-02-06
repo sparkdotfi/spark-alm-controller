@@ -3,9 +3,9 @@ pragma solidity ^0.8.21;
 
 import { ALMProxy } from "../../../src/ALMProxy.sol";
 
-import "../UnitTestBase.t.sol";
+import { UnitTestBase } from "../UnitTestBase.t.sol";
 
-contract ALMProxyConstructorTests is UnitTestBase {
+contract ALMProxy_Constructor_Tests is UnitTestBase {
 
     function test_constructor() public {
         ALMProxy newAlmProxy = new ALMProxy(admin);

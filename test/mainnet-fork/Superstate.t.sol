@@ -1,22 +1,28 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
+
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IAllowlistV2Like {
+
     function owner() external view returns (address);
+
     function setEntityIdForAddress(uint256 entityId, address account) external;
+
     function setEntityAllowedForFund(uint256 entityId, string memory fundSymbol, bool isAllowed) external;
+
 }
 
-interface ISSRedemptionLike {
-    function calculateUsdcOut(uint256 ustbAmount) external view returns (uint256 usdcOutAmount, uint256 usdPerUstbChainlinkRaw);
-    function calculateUstbIn(uint256 usdcOutAmount) external view returns (uint256 ustbInAmount, uint256 usdPerUstbChainlinkRaw);
-}
-
-contract SuperstateTestBase is ForkTestBase {
+abstract contract Superstate_TestBase is ForkTestBase {
 
     IAllowlistV2Like allowlist = IAllowlistV2Like(0x02f1fA8B196d21c7b733EB2700B825611d8A38E5);
 
@@ -26,7 +32,7 @@ contract SuperstateTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase {
+contract MainnetController_SubscribeSuperstate_FailureTests is Superstate_TestBase {
 
     function test_subscribeSuperstate_reentrancy() external {
         _setControllerEntered();
@@ -76,7 +82,7 @@ contract MainnetControllerSubscribeSuperstateFailureTests is SuperstateTestBase 
 
 }
 
-contract MainnetControllerSubscribeSuperstateSuccessTests is SuperstateTestBase {
+contract MainnetController_SubscribeSuperstate_SuccessTests is Superstate_TestBase {
 
     address sweepDestination;
 
@@ -143,7 +149,7 @@ contract MainnetControllerSubscribeSuperstateSuccessTests is SuperstateTestBase 
 
 }
 
-contract MainnetControllerSuperstateE2ETests is SuperstateTestBase {
+contract MainnetController_Superstate_E2ETests is Superstate_TestBase {
 
     address usccDepositAddress = makeAddr("usccDepositAddress");
 

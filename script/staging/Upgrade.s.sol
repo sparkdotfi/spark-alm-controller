@@ -1,31 +1,35 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.21;
 
-import { ScriptTools } from "dss-test/ScriptTools.sol";
+import { ScriptTools } from "../../lib/dss-test/src/ScriptTools.sol";
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+import { IERC20 }   from "../../lib/forge-std/src/interfaces/IERC20.sol";
+import { IERC4626 } from "../../lib/forge-std/src/interfaces/IERC4626.sol";
+import { console }  from "../../lib/forge-std/src/console.sol";
+import { Script }   from "../../lib/forge-std/src/Script.sol";
+import { stdJson }  from "../../lib/forge-std/src/StdJson.sol";
 
-import "forge-std/Script.sol";
+import { Base }      from "../../lib/spark-address-registry/src/Base.sol";
+import { Ethereum }  from "../../lib/spark-address-registry/src/Ethereum.sol";
+import { SparkLend } from "../../lib/spark-address-registry/src/SparkLend.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
 import { ControllerInstance }                   from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerInit as ForeignInit } from "../../deploy/ForeignControllerInit.sol";
 import { MainnetControllerInit as MainnetInit } from "../../deploy/MainnetControllerInit.sol";
 
-import { ForeignController } from "src/ForeignController.sol";
-import { MainnetController } from "src/MainnetController.sol";
-import { RateLimitHelpers }  from "src/RateLimitHelpers.sol";
-import { RateLimits }        from "src/RateLimits.sol";
-
-import { Base }      from "spark-address-registry/Base.sol";
-import { Ethereum }  from "spark-address-registry/Ethereum.sol";
-import { SparkLend } from "spark-address-registry/SparkLend.sol";
+import { ForeignController } from "../../src/ForeignController.sol";
+import { MainnetController } from "../../src/MainnetController.sol";
+import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
+import { RateLimits }        from "../../src/RateLimits.sol";
 
 interface IAccessControlLike {
+
     function grantRole(bytes32 role, address account) external;
+
     function revokeRole(bytes32 role, address account) external;
+
 }
 
 contract UpgradeMainnetController is Script {

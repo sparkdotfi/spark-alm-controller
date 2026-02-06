@@ -1,30 +1,43 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
+
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
+
+import { RateLimits } from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IWithdrawalQueue {
+
+    struct RequestStatus {
+        uint256 amountOfStETH;
+        uint256 amountOfShares;
+        address owner;
+        uint256 timestamp;
+        bool    isFinalized;
+        bool    isClaimed;
+    }
+
     function getWithdrawalStatus(uint256[] calldata _requestIds)
-        external view returns (WithdrawalRequestStatus[] memory statuses);
+        external
+        view
+        returns (RequestStatus[] memory statuses);
+
     function finalize(uint256 _lastRequestIdToBeFinalized, uint256 _maxShareRate) external payable;
+
 }
 
 interface IWSTETH is IERC20 {
+
     function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
+
 }
 
-struct WithdrawalRequestStatus {
-    uint256 amountOfStETH;
-    uint256 amountOfShares;
-    address owner;
-    uint256 timestamp;
-    bool    isFinalized;
-    bool    isClaimed;
-}
-
-contract MainnetControllerWstETHTestBase is ForkTestBase {
+abstract contract WSTETH_TestBase is ForkTestBase {
 
     IWithdrawalQueue constant withdrawQueue = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE);
 
@@ -37,7 +50,7 @@ contract MainnetControllerWstETHTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerDepositToWstETHFailureTests is MainnetControllerWstETHTestBase {
+contract MainnetController_DepositToWSTETH_FailureTests is WSTETH_TestBase {
 
     function test_depositToWstETH_reentrancy() external {
         _setControllerEntered();
@@ -78,7 +91,7 @@ contract MainnetControllerDepositToWstETHFailureTests is MainnetControllerWstETH
 
 }
 
-contract MainnetControllerDepositToWstETHTests is MainnetControllerWstETHTestBase {
+contract MainnetController_DepositToWSTETH_SuccessTests is WSTETH_TestBase {
 
     function test_depositToWstETH() external {
         bytes32 key = mainnetController.LIMIT_WSTETH_DEPOSIT();
@@ -110,7 +123,7 @@ contract MainnetControllerDepositToWstETHTests is MainnetControllerWstETHTestBas
 
 }
 
-contract MainnetControllerRequestWithdrawFromWstETHFailureTests is MainnetControllerWstETHTestBase {
+contract MainnetController_RequestWithdrawFromWSTETH_FailureTests is WSTETH_TestBase {
 
     function test_requestWithdrawFromWstETH_reentrancy() external {
         _setControllerEntered();
@@ -153,7 +166,7 @@ contract MainnetControllerRequestWithdrawFromWstETHFailureTests is MainnetContro
 
 }
 
-contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWstETHTestBase {
+contract MainnetController_RequestWithdrawFromWSTETH_SuccessTests is WSTETH_TestBase {
 
     function test_requestWithdrawFromWstETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
@@ -202,7 +215,7 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
 
         assertEq(requestIds.length, 1);
 
-        WithdrawalRequestStatus[] memory statuses = withdrawQueue.getWithdrawalStatus(requestIds);
+        IWithdrawalQueue.RequestStatus[] memory statuses = withdrawQueue.getWithdrawalStatus(requestIds);
 
         assertApproxEqAbs(statuses[0].amountOfShares, 500e18, 1);
 
@@ -215,7 +228,7 @@ contract MainnetControllerRequestWithdrawFromWstETHTests is MainnetControllerWst
 
 }
 
-contract MainnetControllerClaimWithdrawalFromWstETHFailureTests is MainnetControllerWstETHTestBase {
+contract MainnetController_ClaimWithdrawalFromWSTETH_FailureTests is WSTETH_TestBase {
 
     function test_claimWithdrawalFromWstETH_reentrancy() external {
         _setControllerEntered();
@@ -234,7 +247,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHFailureTests is MainnetContro
 
 }
 
-contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWstETHTestBase {
+contract MainnetController_ClaimWithdrawalFromWSTETH_SuccessTests is WSTETH_TestBase {
 
     address finalizer = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
 
@@ -282,7 +295,7 @@ contract MainnetControllerClaimWithdrawalFromWstETHTests is MainnetControllerWst
 
         assertEq(requestIds.length, 1);
 
-        WithdrawalRequestStatus[] memory statuses = withdrawQueue.getWithdrawalStatus(requestIds);
+        IWithdrawalQueue.RequestStatus[] memory statuses = withdrawQueue.getWithdrawalStatus(requestIds);
 
         assertApproxEqAbs(statuses[0].amountOfShares, 5e18, 1);
 

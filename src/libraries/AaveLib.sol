@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IAToken } from "aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
-import { IPool }   from "aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
+import { IAToken } from "../../lib/aave-v3-origin/src/core/contracts/interfaces/IAToken.sol";
+import { IPool }   from "../../lib/aave-v3-origin/src/core/contracts/interfaces/IPool.sol";
 
 import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -14,7 +14,9 @@ import { ApproveLib } from "./ApproveLib.sol";
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
 interface IATokenWithPool is IAToken {
+
     function POOL() external view returns(address);
+
 }
 
 library AaveLib {

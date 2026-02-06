@@ -3,21 +3,31 @@ pragma solidity ^0.8.21;
 
 import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import { IRateLimits }  from "../interfaces/IRateLimits.sol";
-import { IALMProxy }    from "../interfaces/IALMProxy.sol";
+import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
 interface IDaiUsdsLike {
+
     function dai() external view returns (address);
+
     function daiToUsds(address usr, uint256 wad) external;
+
     function usdsToDai(address usr, uint256 wad) external;
+
 }
 
 interface IPSMLike {
+
     function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
+
     function fill() external returns (uint256 wad);
+
     function gem() external view returns (address);
+
     function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
+
     function to18ConversionFactor() external view returns (uint256);
+
 }
 
 library PSMLib {

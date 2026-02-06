@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+import { ERC1967Proxy }    from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { ERC20Mock as MockERC20 } from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
-import { ERC1967Proxy }           from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import { ReentrancyGuard }        from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { SparkVault } from "spark-vaults-v2/src/SparkVault.sol";
+import { SparkVault } from "../../lib/spark-vaults-v2/src/SparkVault.sol";
 
-import "./ForkTestBase.t.sol";
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-contract ForeignControllerTakeFromSparkVaultTestBase is ForkTestBase {
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract TakeFromSparkVault_TestBase is ForkTestBase {
 
     struct TestState {
         uint256 rateLimit;
@@ -71,7 +72,7 @@ contract ForeignControllerTakeFromSparkVaultTestBase is ForkTestBase {
 
 }
 
-contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTakeFromSparkVaultTestBase {
+contract ForeignController_TakeFromSparkVault_FailureTests is TakeFromSparkVault_TestBase {
 
     function test_takeFromSparkVault_reentrancy() external {
         _setControllerEntered();
@@ -117,7 +118,7 @@ contract ForeignControllerTakeFromSparkVaultFailureTests is ForeignControllerTak
 
 }
 
-contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSparkVaultTestBase {
+contract ForeignController_TakeFromSparkVault_SuccessTests is TakeFromSparkVault_TestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
         deal(address(usdcBase), address(user), 10_000_000e6);
@@ -208,7 +209,7 @@ contract ForeignControllerTakeFromSparkVaultTests is ForeignControllerTakeFromSp
 
 }
 
-contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
+contract ForeignController_TakeFromSparkVault_E2ETests is ForkTestBase {
 
     struct E2ETestState {
         uint256 takeRateLimit;
