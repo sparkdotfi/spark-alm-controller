@@ -89,7 +89,7 @@ contract ForeignControllerHarness is ForeignController {
     ) ForeignController(admin_, proxy_, rateLimits_, psm_, usdc_, cctp_) {}
 
     function approve(address token, address spender, uint256 amount) external {
-        _approve(token, spender, amount);
+        ApproveLib.approve(token, address(proxy), spender, amount);
     }
 
 }
@@ -211,9 +211,9 @@ contract MainnetController_Approve_Tests is Approve_TestBase {
 // NOTE: This code is running against mainnet, but is used to demonstrate equivalent approve behaviour
 //       for USDT-type contracts. Because of this, the foreignController has to be onboarded in the same
 //       way as the mainnetController.
-abstract contract ForeignController_Approve_SuccessTests is Approve_TestBase {
+contract ForeignController_Approve_Tests is Approve_TestBase {
 
-    address harness;
+    address internal harness;
 
     function setUp() public virtual override {
         super.setUp();
@@ -248,7 +248,7 @@ abstract contract ForeignController_Approve_SuccessTests is Approve_TestBase {
         harness = address(ForeignControllerHarness(address(foreignController)));
     }
 
-    function test_approveTokens() public {
+    function test_approve_tokens() external {
         _approveTest(Ethereum.CBBTC,  harness);
         _approveTest(Ethereum.DAI,    harness);
         _approveTest(Ethereum.GNO,    harness);
@@ -269,23 +269,15 @@ abstract contract ForeignController_Approve_SuccessTests is Approve_TestBase {
         _approveTest(Ethereum.WSTETH, harness);
     }
 
-}
-
-contract ForeignController_Approve_ReturningFalseExistingAllowance_Test is ForeignController_Approve_SuccessTests {
-
-    function test_approveCustom() public {
+    function test_approve_returningFalseOnExistingAllowance() external {
         ERC20ApproveFalseExistingAllowance mock = new ERC20ApproveFalseExistingAllowance("Mock", "MOCK");
         _approveTest(address(mock), harness);
     }
 
-}
-
-contract ForeignController_Approve_ReturningFalseNonZeroAmount_Test is ForeignController_Approve_SuccessTests {
-
-    function test_approveReturningFalseOnNonZeroAmount() public {
+    function test_approve_returningFalseOnNonZeroAmount() external {
         ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
 
-        vm.expectRevert("FC/approve-failed");
+        vm.expectRevert("ApproveLib/approve-failed");
         IHarness(harness).approve(address(mock), makeAddr("spender"), 100);
     }
 

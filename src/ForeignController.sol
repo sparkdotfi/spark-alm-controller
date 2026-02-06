@@ -14,6 +14,7 @@ import { IERC4626 } from "../lib/openzeppelin-contracts/contracts/interfaces/IER
 
 import { IPSM3 } from "../lib/spark-psm/src/interfaces/IPSM3.sol";
 
+import { ApproveLib }   from "./libraries/ApproveLib.sol";
 import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
@@ -222,7 +223,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         returns (uint256 shares)
     {
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
-        _approve(asset, address(psm), amount);
+        ApproveLib.approve(asset, address(proxy), address(psm), amount);
 
         // Deposit `amount` of `asset` in the PSM, decode the result to get `shares`.
         return abi.decode(
@@ -279,7 +280,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         require(mintRecipient != 0, "FC/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
-        _approve(address(usdc), address(cctp), usdcAmount);
+        ApproveLib.approve(address(usdc), address(proxy), address(cctp), usdcAmount);
 
         // If amount is larger than limit it must be split into multiple calls.
         uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
@@ -330,7 +331,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         returns (uint256 shares)
     {
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        _approve(IERC4626(token).asset(), token, amount);
+        ApproveLib.approve(IERC4626(token).asset(), address(proxy), token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
@@ -422,7 +423,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         uint256 aTokenBalance = IERC20(aToken).balanceOf(address(proxy));
 
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
-        _approve(address(underlying), address(pool), amount);
+        ApproveLib.approve(address(underlying), address(proxy), address(pool), amount);
 
         // Deposit underlying into Aave pool, proxy receives aTokens.
         proxy.doCall(
@@ -491,43 +492,6 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
     /*** Internal helper functions                                                              ***/
     /**********************************************************************************************/
-
-    // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library
-    function _approve(address token, address spender, uint256 amount) internal {
-        bytes memory approveData = abi.encodeCall(IERC20.approve, (spender, amount));
-
-        // Call doCall on proxy to approve the token
-        ( bool success, bytes memory data )
-            = address(proxy).call(abi.encodeCall(IALMProxy.doCall, (token, approveData)));
-
-        bytes memory approveCallReturnData;
-
-        if (success) {
-            // Data is the ABI-encoding of the approve call bytes return data, need to
-            // decode it first
-            approveCallReturnData = abi.decode(data, (bytes));
-            // Approve was successful if 1) no return value or 2) true return value
-            if (
-                approveCallReturnData.length == 0 ||
-                (approveCallReturnData.length == 32 && abi.decode(approveCallReturnData, (bool)))
-            ) {
-                return;
-            }
-        }
-
-        // If call was unsuccessful, set to zero and try again
-        proxy.doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
-
-        approveCallReturnData = proxy.doCall(token, approveData);
-
-        // Revert if approve returns false
-        require(
-            approveCallReturnData.length == 0 ||
-            (approveCallReturnData.length == 32 && abi.decode(approveCallReturnData, (bool))
-        ),
-            "FC/approve-failed"
-        );
-    }
 
     function _initiateCCTPTransfer(
         uint256 usdcAmount,
