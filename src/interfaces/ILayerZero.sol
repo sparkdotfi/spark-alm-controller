@@ -51,6 +51,14 @@ struct SendParam {
 
 interface ILayerZeroLike {
 
+    event OFTSent(
+        bytes32 indexed guid, // GUID of the OFT message.
+        uint32          dstEid, // Destination Endpoint ID.
+        address indexed fromAddress, // Address of the sender on the src chain.
+        uint256         amountSentLD, // Amount of tokens sent in local decimals.
+        uint256         amountReceivedLD // Amount of tokens received in local decimals.
+    );
+
     function quoteOFT(SendParam calldata sendParam)
         external
         view

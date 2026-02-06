@@ -2,6 +2,10 @@
 pragma solidity ^0.8.21;
 
 import {
+    OptionsBuilder
+} from "../../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
+
+import {
     ILayerZeroLike,
     SendParam,
     OFTReceipt,
@@ -10,48 +14,49 @@ import {
     OFTFeeDetail
 } from "../interfaces/ILayerZero.sol";
 
+import { makeAddressUint32Key } from "../RateLimitHelpers.sol";
+
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
 
-import {
-    OptionsBuilder
-} from "../../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
-
 library LayerZeroLib {
 
     using OptionsBuilder for bytes;
 
-    bytes32 public constant LIMIT_LAYERZERO_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
+
+    bytes32 public constant LIMIT_TRANSFER = keccak256("LIMIT_TRANSFER");
 
     /**********************************************************************************************/
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function transferTokenLayerZero(
-        IALMProxy   proxy,
-        IRateLimits rateLimits,
-        address     oftAddress,
-        uint256     amount,
-        uint32      destinationEndpointId,
-        bytes32     layerZeroRecipient
+    function setLayerZeroRecipient(
+        mapping(uint32 => bytes32) storage layerZeroRecipients,
+        uint32                             destinationEndpointId,
+        bytes32                            recipient
     )
         external
     {
-        _rateLimited(
-            rateLimits,
-            keccak256(
-                abi.encode(
-                    LIMIT_LAYERZERO_TRANSFER,
-                    oftAddress,
-                    destinationEndpointId
-                )
-            ),
-            amount
-        );
+        layerZeroRecipients[destinationEndpointId] = recipient;
+        emit LayerZeroRecipientSet(destinationEndpointId, recipient);
+    }
 
-        require(layerZeroRecipient != bytes32(0), "LayerZeroLib/recipient-not-set");
+    function transferTokenLayerZero(
+        address                            proxy,
+        address                            rateLimits,
+        address                            oftAddress,
+        uint256                            amount,
+        uint32                             destinationEndpointId,
+        mapping(uint32 => bytes32) storage layerZeroRecipients
+    ) external {
+        _decreaseRateLimit(rateLimits, LIMIT_TRANSFER, oftAddress, destinationEndpointId, amount);
+
+        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
+
+        require(recipient != bytes32(0), "LayerZeroLib/recipient-not-set");
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before
@@ -59,27 +64,25 @@ library LayerZeroLib {
         if (ILayerZeroLike(oftAddress).approvalRequired()) {
             ApproveLib.approve(
                 ILayerZeroLike(oftAddress).token(),
-                address(proxy),
+                proxy,
                 oftAddress,
                 amount
             );
         }
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
         SendParam memory sendParams = SendParam({
             dstEid       : destinationEndpointId,
-            to           : layerZeroRecipient,
+            to           : recipient,
             amountLD     : amount,
             minAmountLD  : 0,
-            extraOptions : options,
+            extraOptions : OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0),
             composeMsg   : "",
             oftCmd       : ""
         });
 
         // Query the min amount received on the destination chain and set it.
-        ( ,, OFTReceipt memory receipt ) = abi.decode(
-            proxy.doCall(
+        ( , , OFTReceipt memory receipt ) = abi.decode(
+            IALMProxy(proxy).doCall(
                 oftAddress,
                 abi.encodeCall(ILayerZeroLike.quoteOFT, (sendParams))
             ),
@@ -90,9 +93,9 @@ library LayerZeroLib {
 
         MessagingFee memory fee = ILayerZeroLike(oftAddress).quoteSend(sendParams, false);
 
-        proxy.doCallWithValue{value: fee.nativeFee}(
+        IALMProxy(proxy).doCallWithValue{value: fee.nativeFee}(
             oftAddress,
-            abi.encodeCall(ILayerZeroLike.send, (sendParams, fee, address(proxy))),
+            abi.encodeCall(ILayerZeroLike.send, (sendParams, fee, proxy)),
             fee.nativeFee
         );
     }
@@ -101,8 +104,17 @@ library LayerZeroLib {
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
 
-    function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(key, amount);
+    function _decreaseRateLimit(
+        address rateLimits,
+        bytes32 key,
+        address oftAddress,
+        uint32  destinationEndpointId,
+        uint256 amount
+    ) internal {
+        IRateLimits(rateLimits).triggerRateLimitDecrease(
+            makeAddressUint32Key(key, oftAddress, destinationEndpointId),
+            amount
+        );
     }
 
 }

@@ -119,8 +119,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
-    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
-
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event OTCBufferSet(
@@ -179,7 +177,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_CURVE_WITHDRAW          = CurveLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_FARM_DEPOSIT            = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW           = keccak256("LIMIT_FARM_WITHDRAW");
-    bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_LAYERZERO_TRANSFER;
+    bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_MAPLE_REDEEM            = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
@@ -287,8 +285,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        layerZeroRecipients[destinationEndpointId] = layerZeroRecipient;
-        emit LayerZeroRecipientSet(destinationEndpointId, layerZeroRecipient);
+        LayerZeroLib.setLayerZeroRecipient(
+            layerZeroRecipients,
+            destinationEndpointId,
+            layerZeroRecipient
+        );
     }
 
     function setMaxSlippage(address pool, uint256 maxSlippage)
@@ -995,12 +996,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
     {
         LayerZeroLib.transferTokenLayerZero({
-            proxy                 : proxy,
-            rateLimits            : rateLimits,
+            proxy                 : address(proxy),
+            rateLimits            : address(rateLimits),
             oftAddress            : oftAddress,
             amount                : amount,
             destinationEndpointId : destinationEndpointId,
-            layerZeroRecipient    : layerZeroRecipients[destinationEndpointId]
+            layerZeroRecipients   : layerZeroRecipients
         });
     }
 
