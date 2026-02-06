@@ -5,6 +5,8 @@ import { Id, MarketParams } from "../../lib/metamorpho/lib/morpho-blue/src/libra
 
 interface IERC20Like {
 
+    function allowance(address owner, address spender) external view returns (uint256);
+
     function balanceOf(address owner) external view returns (uint256);
 
 }
@@ -15,11 +17,17 @@ interface IERC20MetadataLike {
 
 }
 
-interface IERC4626Like {
+interface IERC4626Like is IERC20MetadataLike, IERC20Like {
 
     function deposit(uint256 assets, address receiver) external returns (uint256 shares);
 
     function convertToAssets(uint256 shares) external view returns (uint256 assets);
+
+    function convertToShares(uint256 assets) external view returns (uint256 shares);
+
+    function previewRedeem(uint256 shares) external view returns (uint256 assets);
+
+    function previewWithdraw(uint256 assets) external view returns (uint256 shares);
 
     function totalAssets() external view returns (uint256);
 
@@ -36,7 +44,7 @@ struct Market {
     uint128 fee;
 }
 
-interface IMetaMorphoLike is IERC4626Like, IERC20MetadataLike, IERC20Like {
+interface IMetaMorphoLike is IERC4626Like {
 
     function acceptCap(MarketParams memory marketParams) external;
 
@@ -69,6 +77,8 @@ interface IMetaMorphoLike is IERC4626Like, IERC20MetadataLike, IERC20Like {
 }
 
 interface IMorphoLike {
+
+    function createMarket(MarketParams memory marketParams) external;
 
     function supply(
         MarketParams memory marketParams,

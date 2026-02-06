@@ -8,7 +8,7 @@ import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { SparkVault } from "../../lib/spark-vaults-v2/src/SparkVault.sol";
 
-import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey, makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -22,13 +22,13 @@ abstract contract TakeFromSparkVault_TestBase is ForkTestBase {
         uint256 vaultTotalSupply;
     }
 
-    address user = makeAddr("user");
+    bytes32 internal constant LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
-    bytes32 LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    address internal user = makeAddr("user");
 
-    bytes32 key;
+    bytes32 internal key;
 
-    SparkVault sparkVault;
+    SparkVault internal sparkVault;
 
     function setUp() public override {
         super.setUp();
@@ -43,10 +43,7 @@ abstract contract TakeFromSparkVault_TestBase is ForkTestBase {
             ))
         );
 
-        key = RateLimitHelpers.makeAddressKey(
-            LIMIT_SPARK_VAULT_TAKE,
-            address(sparkVault)
-        );
+        key = makeAddressKey(LIMIT_SPARK_VAULT_TAKE, address(sparkVault));
 
         vm.startPrank(Base.SPARK_EXECUTOR);
         sparkVault.grantRole(sparkVault.TAKER_ROLE(), address(almProxy));
@@ -100,6 +97,7 @@ contract ForeignController_TakeFromSparkVault_FailureTests is TakeFromSparkVault
 
     function test_takeFromSparkVault_rateLimitBoundary() external {
         deal(address(usdcBase), address(user), 10_000_000e6);
+
         vm.startPrank(user);
         usdcBase.approve(address(sparkVault), 10_000_000e6);
         sparkVault.deposit(10_000_000e6, address(user));
@@ -122,6 +120,7 @@ contract ForeignController_TakeFromSparkVault_SuccessTests is TakeFromSparkVault
 
     function test_takeFromSparkVault_rateLimited() external {
         deal(address(usdcBase), address(user), 10_000_000e6);
+
         vm.startPrank(user);
         usdcBase.approve(address(sparkVault), 10_000_000e6);
         sparkVault.deposit(10_000_000e6, address(user));
@@ -182,6 +181,7 @@ contract ForeignController_TakeFromSparkVault_SuccessTests is TakeFromSparkVault
         takeAmount    = _bound(depositAmount, 1e18, depositAmount);
 
         deal(address(usdcBase), address(user), depositAmount);
+
         vm.startPrank(user);
         usdcBase.approve(address(sparkVault), depositAmount);
         sparkVault.deposit(depositAmount, address(user));
@@ -221,20 +221,18 @@ contract ForeignController_TakeFromSparkVault_E2ETests is ForkTestBase {
         uint256 vaultTotalSupply;
     }
 
-    address morphoUsdcVault = Base.MORPHO_VAULT_SUSDC;
+    bytes32 internal constant LIMIT_4626_DEPOSIT     = keccak256("LIMIT_4626_DEPOSIT");
+    bytes32 internal constant LIMIT_4626_WITHDRAW    = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 internal constant LIMIT_ASSET_TRANSFER   = keccak256("LIMIT_ASSET_TRANSFER");
+    bytes32 internal constant LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 internal constant LIMIT_USDS_TO_USDC     = keccak256("LIMIT_USDS_TO_USDC");
 
-    bytes32 LIMIT_4626_DEPOSIT     = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 LIMIT_4626_WITHDRAW    = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 LIMIT_ASSET_TRANSFER   = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
-    bytes32 LIMIT_USDS_TO_USDC     = keccak256("LIMIT_USDS_TO_USDC");
+    address internal user = makeAddr("user");
 
-    address user = makeAddr("user");
+    bytes32 internal takeKey;
+    bytes32 internal transferKey;
 
-    bytes32 takeKey;
-    bytes32 transferKey;
-
-    SparkVault sparkVault;
+    SparkVault internal sparkVault;
 
     function setUp() public override {
         super.setUp();
@@ -262,37 +260,23 @@ contract ForeignController_TakeFromSparkVault_E2ETests is ForkTestBase {
 
         // Step 3 (spell): Set the rate limits
 
-        takeKey = RateLimitHelpers.makeAddressKey(
-            LIMIT_SPARK_VAULT_TAKE,
-            address(sparkVault)
-        );
+        takeKey = makeAddressKey(LIMIT_SPARK_VAULT_TAKE, address(sparkVault));
 
-        transferKey = RateLimitHelpers.makeAddressAddressKey(
-            LIMIT_ASSET_TRANSFER,
-            address(usdcBase),
-            address(sparkVault)
-        );
+        transferKey = makeAddressAddressKey(LIMIT_ASSET_TRANSFER, address(usdcBase), address(sparkVault));
 
-        bytes32 morphoKey = RateLimitHelpers.makeAddressKey(
-            LIMIT_4626_DEPOSIT,
-            address(morphoUsdcVault)
-        );
-
-        bytes32 morphoWithdrawKey = RateLimitHelpers.makeAddressKey(
-            LIMIT_4626_WITHDRAW,
-            address(morphoUsdcVault)
-        );
+        bytes32 morphoDepositKey  = makeAddressKey(LIMIT_4626_DEPOSIT,  Base.MORPHO_VAULT_SUSDC);
+        bytes32 morphoWithdrawKey = makeAddressKey(LIMIT_4626_WITHDRAW, Base.MORPHO_VAULT_SUSDC);
 
         rateLimits.setRateLimitData(takeKey,            10_000_000e6, uint256(10_000_000e6) / 1 days);
         rateLimits.setRateLimitData(transferKey,        10_000_000e6, uint256(10_000_000e6) / 1 days);
-        rateLimits.setRateLimitData(morphoKey,          10_000_000e6, uint256(10_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(morphoDepositKey,   10_000_000e6, uint256(10_000_000e6) / 1 days);
         rateLimits.setRateLimitData(LIMIT_USDS_TO_USDC, 10_000_000e6, uint256(10_000_000e6) / 1 days);
 
         rateLimits.setUnlimitedRateLimitData(morphoWithdrawKey);
 
         // Step 4 (spell): Set maxExchangeRate for ERC4626 deposit
 
-        foreignController.setMaxExchangeRate(morphoUsdcVault, 1e18, 1.2e18);
+        foreignController.setMaxExchangeRate(Base.MORPHO_VAULT_SUSDC, 1e18, 1.2e18);
 
         vm.stopPrank();
     }
@@ -336,6 +320,7 @@ contract ForeignController_TakeFromSparkVault_E2ETests is ForkTestBase {
         // Step 2: Deposit usdc into the spark vault
 
         deal(address(usdcBase), address(user), 10_000_000e6);
+
         vm.startPrank(user);
         usdcBase.approve(address(sparkVault), 10_000_000e6);
         sparkVault.deposit(10_000_000e6, address(user));
@@ -366,7 +351,7 @@ contract ForeignController_TakeFromSparkVault_E2ETests is ForkTestBase {
         // Step 4: Deposit into Morpho and set the VSR to 4% APY
 
         vm.startPrank(relayer);
-        uint256 shares = foreignController.depositERC4626(morphoUsdcVault, 9_000_000e6, 0);
+        uint256 shares = foreignController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 9_000_000e6, 0);
         sparkVault.setVsr(1.000000001243680656318820312e27);  // 4% APY
         vm.stopPrank();
 
@@ -389,7 +374,7 @@ contract ForeignController_TakeFromSparkVault_E2ETests is ForkTestBase {
         // Step 6: Redeem assets from Morpho, swap DAI to USDC and transfer outstanding assets to the vault
 
         vm.startPrank(relayer);
-        uint256 assets = foreignController.redeemERC4626(morphoUsdcVault, shares, 0);
+        uint256 assets = foreignController.redeemERC4626(Base.MORPHO_VAULT_SUSDC, shares, 0);
         foreignController.transferAsset(address(usdcBase), address(sparkVault), 9_400_000e6);
         vm.stopPrank();
 

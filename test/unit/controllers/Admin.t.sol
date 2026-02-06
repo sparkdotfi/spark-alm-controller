@@ -721,8 +721,8 @@ contract ForeignController_Admin_Tests is UnitTestBase {
     }
 
     function test_setMaxExchangeRate_tokenZeroAddress() external {
+        vm.expectRevert("ERC4626Lib/token-zero-address");
         vm.prank(admin);
-        vm.expectRevert("FC/token-zero-address");
         foreignController.setMaxExchangeRate(address(0), 1e18, 1e18);
     }
 
@@ -733,25 +733,28 @@ contract ForeignController_Admin_Tests is UnitTestBase {
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MaxExchangeRateSet(token, 1e36);
+        emit ERC4626Lib.MaxExchangeRateSet(token, 1e36);
+
+        vm.prank(admin);
         foreignController.setMaxExchangeRate(token, 1e18, 1e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(foreignController.maxExchangeRates(token), 1e36);
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MaxExchangeRateSet(token, 1e24);
+        emit ERC4626Lib.MaxExchangeRateSet(token, 1e24);
+
+        vm.prank(admin);
         foreignController.setMaxExchangeRate(token, 1e18, 1e6);
 
         assertEq(foreignController.maxExchangeRates(token), 1e24);
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MaxExchangeRateSet(token, 1e48);
+        emit ERC4626Lib.MaxExchangeRateSet(token, 1e48);
+
+        vm.prank(admin);
         foreignController.setMaxExchangeRate(token, 1e6, 1e18);
 
         assertEq(foreignController.maxExchangeRates(token), 1e48);
