@@ -201,9 +201,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
     bytes32 public LIMIT_USDS_TO_USDC            = PSMLib.LIMIT_USDS_TO_USDC;
-    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = WEETHLib.LIMIT_WEETH_CLAIM_WITHDRAW;
-    bytes32 public LIMIT_WEETH_DEPOSIT           = WEETHLib.LIMIT_WEETH_DEPOSIT;
-    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WEETHLib.LIMIT_WEETH_REQUEST_WITHDRAW;
+    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = WEETHLib.LIMIT_CLAIM_WITHDRAW;
+    bytes32 public LIMIT_WEETH_DEPOSIT           = WEETHLib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WEETHLib.LIMIT_REQUEST_WITHDRAW;
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
@@ -519,46 +519,41 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** weETH Integration                                                                      ***/
     /**********************************************************************************************/
 
-    function depositToWeETH(uint256 amount, uint256 minSharesOut)
+    function depositToWEETH(uint256 amount, uint256 minSharesOut)
         external
         nonReentrant
         onlyRole(RELAYER)
         returns (uint256 shares)
     {
-        return WEETHLib.deposit({
-            proxy        : proxy,
-            rateLimits   : rateLimits,
-            amount       : amount,
-            minSharesOut : minSharesOut
-        });
+        return WEETHLib.deposit(address(proxy), address(rateLimits), amount, minSharesOut);
     }
 
-    function requestWithdrawFromWeETH(address weETHModule, uint256 weETHShares)
+    function requestWithdrawFromWEETH(address weethModule, uint256 weethShares)
         external
         nonReentrant
         onlyRole(RELAYER)
         returns (uint256 requestId)
     {
-        return WEETHLib.requestWithdraw({
-            proxy       : proxy,
-            rateLimits  : rateLimits,
-            weETHShares : weETHShares,
-            weETHModule : weETHModule
-        });
+        return WEETHLib.requestWithdraw(
+            address(proxy),
+            address(rateLimits),
+            weethShares,
+            weethModule
+        );
     }
 
-    function claimWithdrawalFromWeETH(address weETHModule, uint256 requestId)
+    function claimWithdrawalFromWEETH(address weethModule, uint256 requestId)
         external
         nonReentrant
         onlyRole(RELAYER)
         returns (uint256 ethReceived)
     {
-        return WEETHLib.claimWithdrawal({
-            proxy       : proxy,
-            rateLimits  : rateLimits,
-            requestId   : requestId,
-            weETHModule : weETHModule
-        });
+        return WEETHLib.claimWithdrawal(
+            address(proxy),
+            address(rateLimits),
+            requestId,
+            weethModule
+        );
     }
 
     /**********************************************************************************************/
