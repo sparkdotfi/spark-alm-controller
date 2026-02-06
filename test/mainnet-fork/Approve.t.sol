@@ -126,9 +126,9 @@ abstract contract Approve_TestBase is ForkTestBase {
 
 }
 
-abstract contract MainnetController_Approve_SuccessTests is Approve_TestBase {
+contract MainnetController_Approve_Tests is Approve_TestBase {
 
-    address harness;
+    address internal harness;
 
     function setUp() public virtual override {
         super.setUp();
@@ -148,7 +148,7 @@ abstract contract MainnetController_Approve_SuccessTests is Approve_TestBase {
         harness = address(MainnetControllerHarness(address(mainnetController)));
     }
 
-    function test_approveTokens() public {
+    function test_approve_tokens() external {
         _approveTest(Ethereum.CBBTC,  harness);
         _approveTest(Ethereum.DAI,    harness);
         _approveTest(Ethereum.GNO,    harness);
@@ -169,7 +169,7 @@ abstract contract MainnetController_Approve_SuccessTests is Approve_TestBase {
         _approveTest(Ethereum.WSTETH, harness);
     }
 
-    function test_approveCurveTokens() public {
+    function test_approve_curveTokens() external {
         _approveCurveTest(Ethereum.CBBTC,  harness);
         _approveCurveTest(Ethereum.DAI,    harness);
         _approveCurveTest(Ethereum.GNO,    harness);
@@ -188,6 +188,22 @@ abstract contract MainnetController_Approve_SuccessTests is Approve_TestBase {
         _approveCurveTest(Ethereum.WEETH,  harness);
         _approveCurveTest(Ethereum.WETH,   harness);
         _approveCurveTest(Ethereum.WSTETH, harness);
+    }
+
+    function test_approve_returningFalseOnExistingAllowance() external {
+        ERC20ApproveFalseExistingAllowance mock = new ERC20ApproveFalseExistingAllowance("Mock", "MOCK");
+        _approveTest(address(mock), harness);
+        _approveCurveTest(address(mock), harness);
+    }
+
+    function test_approve_returningFalseOnNonZeroAmount() external {
+        ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
+
+        vm.expectRevert("ApproveLib/approve-failed");
+        IHarness(harness).approve(address(mock), makeAddr("spender"), 100);
+
+        vm.expectRevert("ApproveLib/approve-failed");
+        IHarness(harness).approveCurve(address(almProxy), address(mock), makeAddr("spender"), 100);
     }
 
 }
@@ -251,30 +267,6 @@ abstract contract ForeignController_Approve_SuccessTests is Approve_TestBase {
         _approveTest(Ethereum.WEETH,  harness);
         _approveTest(Ethereum.WETH,   harness);
         _approveTest(Ethereum.WSTETH, harness);
-    }
-
-}
-
-contract MainnetController_Approve_ReturningFalseExistingAllowance_Test is MainnetController_Approve_SuccessTests {
-
-    function test_approveReturningFalseOnExistingAllowance() public {
-        ERC20ApproveFalseExistingAllowance mock = new ERC20ApproveFalseExistingAllowance("Mock", "MOCK");
-        _approveTest(address(mock), harness);
-        _approveCurveTest(address(mock), harness);
-    }
-
-}
-
-contract MainnetController_Approve_ReturningFalseNonZeroAmount_Test is MainnetController_Approve_SuccessTests {
-
-    function test_approveReturningFalseOnNonZeroAmount() public {
-        ERC20ApproveFalseNonZeroAmount mock = new ERC20ApproveFalseNonZeroAmount("Mock", "MOCK");
-
-        vm.expectRevert("MC/approve-failed");
-        IHarness(harness).approve(address(mock), makeAddr("spender"), 100);
-
-        vm.expectRevert("MC/approve-failed");
-        IHarness(harness).approveCurve(address(almProxy), address(mock), makeAddr("spender"), 100);
     }
 
 }
