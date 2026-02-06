@@ -13,7 +13,7 @@ import { IALMProxy }                                  from "../interfaces/IALMPr
 import { IRateLimits }                                from "../interfaces/IRateLimits.sol";
 import { IPositionManagerLike, IUniversalRouterLike } from "../interfaces/UniswapV4.sol";
 
-import { RateLimitHelpers } from "../RateLimitHelpers.sol";
+import { makeBytes32Key } from "../RateLimitHelpers.sol";
 
 library UniswapV4Lib {
 
@@ -22,6 +22,13 @@ library UniswapV4Lib {
         int24  tickUpperMax;
         uint24 maxTickSpacing;
     }
+
+    event UniswapV4TickLimitsSet(
+        bytes32 indexed poolId,
+        int24           tickLowerMin,
+        int24           tickUpperMax,
+        uint24          maxTickSpacing
+    );
 
     bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
     bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
@@ -38,16 +45,36 @@ library UniswapV4Lib {
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
+    function setUniswapV4TickLimits(
+        bytes32                                poolId,
+        int24                                  tickLowerMin,
+        int24                                  tickUpperMax,
+        uint24                                 maxTickSpacing,
+        mapping(bytes32 => TickLimits) storage tickLimits
+    )
+        external
+    {
+        require(
+            ((tickLowerMin == 0) && (tickUpperMax == 0) && (maxTickSpacing == 0)) ||
+            ((maxTickSpacing > 0) && (tickLowerMin < tickUpperMax)),
+            "UniswapV4Lib/invalid-ticks"
+        );
+
+        tickLimits[poolId] = TickLimits(tickLowerMin, tickUpperMax, maxTickSpacing);
+
+        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax, maxTickSpacing);
+    }
+
     function mintPosition(
-        address proxy,
-        address rateLimits,
-        bytes32 poolId,
-        int24   tickLower,
-        int24   tickUpper,
-        uint128 liquidity,
-        uint128 amount0Max,
-        uint128 amount1Max,
-        mapping(bytes32 poolId => TickLimits tickLimits) storage tickLimits
+        address                                proxy,
+        address                                rateLimits,
+        bytes32                                poolId,
+        int24                                  tickLower,
+        int24                                  tickUpper,
+        uint128                                liquidity,
+        uint128                                amount0Max,
+        uint128                                amount1Max,
+        mapping(bytes32 => TickLimits) storage tickLimits
     )
         external
     {
@@ -80,21 +107,21 @@ library UniswapV4Lib {
     }
 
     function increasePosition(
-        address proxy,
-        address rateLimits,
-        bytes32 poolId,
-        uint256 tokenId,
-        uint128 liquidityIncrease,
-        uint128 amount0Max,
-        uint128 amount1Max,
-        mapping(bytes32 poolId => TickLimits tickLimits) storage tickLimits
+        address                                proxy,
+        address                                rateLimits,
+        bytes32                                poolId,
+        uint256                                tokenId,
+        uint128                                liquidityIncrease,
+        uint128                                amount0Max,
+        uint128                                amount1Max,
+        mapping(bytes32 => TickLimits) storage tickLimits
     )
         external
     {
         // Must not increase liquidity on a position that is not owned by the ALMProxy.
         require(
             IPositionManagerLike(_POSITION_MANAGER).ownerOf(tokenId) == proxy,
-            "MC/non-proxy-position"
+            "UniswapV4Lib/non-proxy-position"
         );
 
         ( PoolKey memory poolKey, PositionInfo info ) = _getPoolKeyAndPositionInfo(tokenId);
@@ -174,7 +201,7 @@ library UniswapV4Lib {
     )
         external
     {
-        require(maxSlippage != 0, "MC/max-slippage-not-set");
+        require(maxSlippage != 0, "UniswapV4Lib/max-slippage-not-set");
 
         PoolKey memory poolKey = _getPoolKeyFromPoolId(poolId);
 
@@ -183,15 +210,14 @@ library UniswapV4Lib {
         require(
             tokenIn == Currency.unwrap(poolKey.currency0) ||
             tokenIn == Currency.unwrap(poolKey.currency1),
-            "MC/invalid-tokenIn"
+            "UniswapV4Lib/invalid-tokenIn"
         );
+
+        uint256 normalizedAmountIn = _getNormalizedBalance(tokenIn, amountIn);
 
         // Perform rate limit decrease.
         // NOTE: Rate limit decrease does not account for the net amount of tokenIn actually taken.
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeBytes32Key(LIMIT_SWAP, poolId),
-            _getNormalizedBalance(tokenIn, amountIn)
-        );
+        _decreaseRateLimit(rateLimits, LIMIT_SWAP, poolId, normalizedAmountIn);
 
         bytes memory actions = abi.encodePacked(
             uint8(Actions.SWAP_EXACT_IN_SINGLE),
@@ -207,8 +233,8 @@ library UniswapV4Lib {
 
         require(
             _getNormalizedBalance(tokenOut, amountOutMin) * 1e18 >=
-            _getNormalizedBalance(tokenIn, amountIn) * maxSlippage,
-            "MC/amountOutMin-too-low"
+            normalizedAmountIn * maxSlippage,
+            "UniswapV4Lib/amountOutMin-too-low"
         );
 
         bytes[] memory params = new bytes[](3);
@@ -250,12 +276,7 @@ library UniswapV4Lib {
     /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function _approveWithPermit2(
-        address proxy,
-        address token,
-        address spender,
-        uint128 amount
-    )
+    function _approveWithPermit2(address proxy,address token,address spender,uint128 amount)
         internal
     {
         // Approve the Permit2 contract to spend none of the token (success is optional).
@@ -282,7 +303,7 @@ library UniswapV4Lib {
             require(
                 approveResult.length == 0 ||
                 (approveResult.length == 32 && abi.decode(approveResult, (bool))),
-                "MC/permit2-approve-failed"
+                "UniswapV4Lib/permit2-approve-failed"
             );
         }
 
@@ -335,10 +356,7 @@ library UniswapV4Lib {
 
         // Perform rate limit decrease.
         // NOTE: Rate limit decrease is net of any token0 or token1 received due to fees.
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeBytes32Key(LIMIT_DEPOSIT, poolId),
-            rateLimitDecrease
-        );
+        _decreaseRateLimit(rateLimits, LIMIT_DEPOSIT, poolId, rateLimitDecrease);
 
         // Reset approvals for token0 and token1.
         _approveWithPermit2(proxy, token0, _POSITION_MANAGER, 0);
@@ -374,10 +392,13 @@ library UniswapV4Lib {
 
         // Perform rate limit decrease.
         // NOTE: Rate limit decrease includes any token0 or token1 received due to fees.
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
-            RateLimitHelpers.makeBytes32Key(LIMIT_WITHDRAW, poolId),
-            rateLimitDecrease
-        );
+        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, poolId, rateLimitDecrease);
+    }
+
+    function _decreaseRateLimit(address rateLimits, bytes32 key, bytes32 poolId, uint256 amount)
+        internal
+    {
+        IRateLimits(rateLimits).triggerRateLimitDecrease(makeBytes32Key(key, poolId), amount);
     }
 
     /**********************************************************************************************/
@@ -388,14 +409,14 @@ library UniswapV4Lib {
         internal
         pure
     {
-        require(limits.maxTickSpacing != 0,       "MC/tickLimits-not-set");
-        require(tickLower < tickUpper,            "MC/ticks-misordered");
-        require(tickLower >= limits.tickLowerMin, "MC/tickLower-too-low");
-        require(tickUpper <= limits.tickUpperMax, "MC/tickUpper-too-high");
+        require(limits.maxTickSpacing != 0,       "UniswapV4Lib/tickLimits-not-set");
+        require(tickLower < tickUpper,            "UniswapV4Lib/ticks-misordered");
+        require(tickLower >= limits.tickLowerMin, "UniswapV4Lib/tickLower-too-low");
+        require(tickUpper <= limits.tickUpperMax, "UniswapV4Lib/tickUpper-too-high");
 
         require(
             uint256(int256(tickUpper) - int256(tickLower)) <= limits.maxTickSpacing,
-            "MC/tickSpacing-too-wide"
+            "UniswapV4Lib/tickSpacing-too-wide"
         );
     }
 
@@ -555,7 +576,7 @@ library UniswapV4Lib {
     }
 
     function _requirePoolIdMatch(bytes32 poolId, PoolKey memory poolKey) internal pure {
-        require(keccak256(abi.encode(poolKey)) == poolId, "MC/poolKey-poolId-mismatch");
+        require(keccak256(abi.encode(poolKey)) == poolId, "UniswapV4Lib/poolKey-poolId-mismatch");
     }
 
 }

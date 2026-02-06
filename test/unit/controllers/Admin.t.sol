@@ -7,6 +7,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 import { CCTPLib }      from "../../../src/libraries/CCTPLib.sol";
 import { ERC4626Lib }   from "../../../src/libraries/ERC4626Lib.sol";
 import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
+import { UniswapV4Lib } from "../../../src/libraries/UniswapV4Lib.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
 import { MainnetController } from "../../../src/MainnetController.sol";
@@ -484,15 +485,15 @@ contract MainnetController_SetUniswapV4TickLimits_Tests is MainnetController_Adm
     }
 
     function test_setUniswapV4TickLimits_revertsWhenInvalidTicks() external {
+        vm.expectRevert("UniswapV4Lib/invalid-ticks");
         vm.prank(admin);
-        vm.expectRevert("MC/invalid-ticks");
         mainnetController.setUniswapV4TickLimits(bytes32(0), 1, 1, 1); // Reverts when lower >= upper
 
         vm.prank(admin);
         mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 1); // lower must be less than upper
 
+        vm.expectRevert("UniswapV4Lib/invalid-ticks");
         vm.prank(admin);
-        vm.expectRevert("MC/invalid-ticks");
         mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 0); // Reverts when maxTickSpacing is zero
 
         vm.prank(admin);
@@ -501,7 +502,7 @@ contract MainnetController_SetUniswapV4TickLimits_Tests is MainnetController_Adm
 
     function test_setUniswapV4TickLimits() external {
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.UniswapV4TickLimitsSet(_POOL_ID, -60, 60, 20);
+        emit UniswapV4Lib.UniswapV4TickLimitsSet(_POOL_ID, -60, 60, 20);
 
         vm.record();
 

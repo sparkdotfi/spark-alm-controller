@@ -169,13 +169,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     event RelayerRemoved(address indexed relayer);
 
-    event UniswapV4TickLimitsSet(
-        bytes32 indexed poolId,
-        int24           tickLowerMin,
-        int24           tickUpperMax,
-        uint24          maxTickSpacing
-    );
-
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
     /**********************************************************************************************/
@@ -377,19 +370,13 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(
-            ((tickLowerMin == 0) && (tickUpperMax == 0) && (maxTickSpacing == 0)) ||
-            ((maxTickSpacing > 0) && (tickLowerMin < tickUpperMax)),
-            "MC/invalid-ticks"
+        UniswapV4Lib.setUniswapV4TickLimits(
+            poolId,
+            tickLowerMin,
+            tickUpperMax,
+            maxTickSpacing,
+            uniswapV4TickLimits
         );
-
-        uniswapV4TickLimits[poolId] = UniswapV4Lib.TickLimits({
-            tickLowerMin   : tickLowerMin,
-            tickUpperMax   : tickUpperMax,
-            maxTickSpacing : maxTickSpacing
-        });
-
-        emit UniswapV4TickLimitsSet(poolId, tickLowerMin, tickUpperMax, maxTickSpacing);
     }
 
     /**********************************************************************************************/
