@@ -176,9 +176,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_AAVE_DEPOSIT            = AaveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_AAVE_WITHDRAW           = AaveLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_ASSET_TRANSFER          = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 public LIMIT_CURVE_DEPOSIT           = keccak256("LIMIT_CURVE_DEPOSIT");
-    bytes32 public LIMIT_CURVE_SWAP              = keccak256("LIMIT_CURVE_SWAP");
-    bytes32 public LIMIT_CURVE_WITHDRAW          = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public LIMIT_CURVE_DEPOSIT           = CurveLib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_CURVE_SWAP              = CurveLib.LIMIT_SWAP;
+    bytes32 public LIMIT_CURVE_WITHDRAW          = CurveLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_FARM_DEPOSIT            = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW           = keccak256("LIMIT_FARM_WITHDRAW");
     bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_LAYERZERO_TRANSFER;
@@ -676,17 +676,18 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
         returns (uint256 amountOut)
     {
-        return CurveLib.swap(CurveLib.SwapCurveParams({
-            proxy        : proxy,
-            rateLimits   : rateLimits,
+        uint256 maxSlippage = maxSlippages[pool];
+
+        return CurveLib.swap({
+            proxy        : address(proxy),
+            rateLimits   : address(rateLimits),
             pool         : pool,
-            rateLimitId  : LIMIT_CURVE_SWAP,
             inputIndex   : inputIndex,
             outputIndex  : outputIndex,
             amountIn     : amountIn,
             minAmountOut : minAmountOut,
-            maxSlippage  : maxSlippages[pool]
-        }));
+            maxSlippage  : maxSlippage
+        });
     }
 
     function addLiquidityCurve(address pool, uint256[] memory depositAmounts, uint256 minLpAmount)
@@ -695,37 +696,34 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
         returns (uint256 shares)
     {
-        return CurveLib.addLiquidity(CurveLib.AddLiquidityParams({
-            proxy                   : proxy,
-            rateLimits              : rateLimits,
-            pool                    : pool,
-            addLiquidityRateLimitId : LIMIT_CURVE_DEPOSIT,
-            swapRateLimitId         : LIMIT_CURVE_SWAP,
-            minLpAmount             : minLpAmount,
-            maxSlippage             : maxSlippages[pool],
-            depositAmounts          : depositAmounts
-        }));
+        return CurveLib.addLiquidity({
+            proxy          : address(proxy),
+            rateLimits     : address(rateLimits),
+            pool           : pool,
+            minLpAmount    : minLpAmount,
+            maxSlippage    : maxSlippages[pool],
+            depositAmounts : depositAmounts
+        });
     }
 
     function removeLiquidityCurve(
-        address          pool,
-        uint256          lpBurnAmount,
-        uint256[] memory minWithdrawAmounts
+        address            pool,
+        uint256            lpBurnAmount,
+        uint256[] calldata minWithdrawAmounts
     )
         external
         nonReentrant
         onlyRole(RELAYER)
         returns (uint256[] memory withdrawnTokens)
     {
-        return CurveLib.removeLiquidity(CurveLib.RemoveLiquidityParams({
-            proxy              : proxy,
-            rateLimits         : rateLimits,
+        return CurveLib.removeLiquidity({
+            proxy              : address(proxy),
+            rateLimits         : address(rateLimits),
             pool               : pool,
-            rateLimitId        : LIMIT_CURVE_WITHDRAW,
             lpBurnAmount       : lpBurnAmount,
             minWithdrawAmounts : minWithdrawAmounts,
             maxSlippage        : maxSlippages[pool]
-        }));
+        });
     }
 
     /**********************************************************************************************/
