@@ -1,47 +1,47 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IMetaMorpho, Id } from "../../lib/metamorpho/src/interfaces/IMetaMorpho.sol";
-
-import { MarketParamsLib }               from "../../lib/metamorpho/lib/morpho-blue/src/libraries/MarketParamsLib.sol";
-import { IMorpho, MarketParams, Market } from "../../lib/metamorpho/lib/morpho-blue/src/interfaces/IMorpho.sol";
+import { MarketParamsLib } from "../../lib/metamorpho/lib/morpho-blue/src/libraries/MarketParamsLib.sol";
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
+
+import { IMetaMorphoLike, IMorphoLike, Id, Market, MarketParams } from "../interfaces/Morpho.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 abstract contract ERC4626DonationAttack_TestBase is ForkTestBase {
 
-    IMetaMorpho morphoVault = IMetaMorpho(0xe41a0583334f0dc4E023Acd0bFef3667F6FE0597);
+    IMetaMorphoLike internal morphoVault = IMetaMorphoLike(0xe41a0583334f0dc4E023Acd0bFef3667F6FE0597);
 
-    IMorpho morpho;
+    address internal morpho;
 
-    MarketParams marketParams = MarketParams({
+    MarketParams internal marketParams = MarketParams({
         loanToken: Ethereum.USDS,
         collateralToken: address(0x0),
         oracle: address(0x0),
         irm: address(0x0),
         lltv: 0
     });
-    Id marketId = MarketParamsLib.id(marketParams);
 
-    address curator       = makeAddr("curator");
-    address guardian      = makeAddr("guardian");
-    address feeRecipient  = makeAddr("feeRecipient");
-    address allocator     = makeAddr("allocator");
-    address skimRecipient = makeAddr("skimRecipient");
+    Id internal marketId = MarketParamsLib.id(marketParams);
 
-    address attacker = makeAddr("attacker");
+    address internal curator       = makeAddr("curator");
+    address internal guardian      = makeAddr("guardian");
+    address internal feeRecipient  = makeAddr("feeRecipient");
+    address internal allocator     = makeAddr("allocator");
+    address internal skimRecipient = makeAddr("skimRecipient");
+
+    address internal attacker = makeAddr("attacker");
 
     function setUp() override public {
         super.setUp();
 
         morpho = morphoVault.MORPHO();
 
-        bytes32 depositKey  = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  address(morphoVault));
-        bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), address(morphoVault));
+        bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  address(morphoVault));
+        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), address(morphoVault));
 
         // Basic validation
         assertEq(keccak256(abi.encode(morphoVault.symbol())), keccak256(abi.encode("sparkUSDS")));
@@ -96,7 +96,7 @@ contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626DonationAttack
         _doAttack();
 
         vm.prank(relayer);
-        vm.expectRevert("MC/exchange-rate-too-high");
+        vm.expectRevert("ERC4626Lib/exchange-rate-too-high");
         mainnetController.depositERC4626(address(morphoVault), 2_000_000e18, 0);
     }
 
@@ -138,7 +138,7 @@ contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626DonationAttack
     }
 
     function _doAttack() internal {
-        Market memory market = morpho.market(marketId);
+        Market memory market = IMorphoLike(morpho).market(marketId);
 
         assertEq(market.totalSupplyAssets, 36_095_481.319542091092211965e18); // ~36M USDS
         assertEq(market.totalSupplyShares, 36_095_481.319542091092211965000000e24);
@@ -148,10 +148,10 @@ contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626DonationAttack
         vm.startPrank(attacker);
         usds.approve(address(morphoVault), 1);
         morphoVault.deposit(1, attacker);
-        usds.approve(address(morpho), 1_000_000e18);
+        usds.approve(morpho, 1_000_000e18);
 
         // Donation attack performed by donating shares of Morpho market supply to Morpho vault
-        (uint256 assets, uint256 shares) = morpho.supply(
+        (uint256 assets, uint256 shares) = IMorphoLike(morpho).supply(
             marketParams, 1_000_000e18, 0, address(morphoVault), hex""
         );
         vm.stopPrank();

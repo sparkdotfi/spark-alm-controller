@@ -4,7 +4,8 @@ pragma solidity ^0.8.21;
 import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { CCTPLib } from "../../../src/libraries/CCTPLib.sol";
+import { CCTPLib }    from "../../../src/libraries/CCTPLib.sol";
+import { ERC4626Lib } from "../../../src/libraries/ERC4626Lib.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
 import { MainnetController } from "../../../src/MainnetController.sol";
@@ -412,8 +413,8 @@ contract MainnetController_SetMaxExchangeRate_Tests is MainnetController_Admin_T
     }
 
     function test_setMaxExchangeRate_tokenZeroAddress() external {
+        vm.expectRevert("ERC4626Lib/token-zero-address");
         vm.prank(admin);
-        vm.expectRevert("MC/token-zero-address");
         mainnetController.setMaxExchangeRate(address(0), 1e18, 1e18);
     }
 
@@ -424,25 +425,28 @@ contract MainnetController_SetMaxExchangeRate_Tests is MainnetController_Admin_T
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.MaxExchangeRateSet(token, 1e36);
+        emit ERC4626Lib.MaxExchangeRateSet(token, 1e36);
+
+        vm.prank(admin);
         mainnetController.setMaxExchangeRate(token, 1e18, 1e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(mainnetController.maxExchangeRates(token), 1e36);
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.MaxExchangeRateSet(token, 1e24);
+        emit ERC4626Lib.MaxExchangeRateSet(token, 1e24);
+
+        vm.prank(admin);
         mainnetController.setMaxExchangeRate(token, 1e18, 1e6);
 
         assertEq(mainnetController.maxExchangeRates(token), 1e24);
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.MaxExchangeRateSet(token, 1e48);
+        emit ERC4626Lib.MaxExchangeRateSet(token, 1e48);
+
+        vm.prank(admin);
         mainnetController.setMaxExchangeRate(token, 1e6, 1e18);
 
         assertEq(mainnetController.maxExchangeRates(token), 1e48);
