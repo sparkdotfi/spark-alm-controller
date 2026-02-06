@@ -619,25 +619,28 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         assertEq(foreignController.mintRecipients(1), bytes32(0));
         assertEq(foreignController.mintRecipients(2), bytes32(0));
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MintRecipientSet(1, mintRecipient1);
+        emit CCTPLib.MintRecipientSet(1, mintRecipient1);
+
+        vm.prank(admin);
         foreignController.setMintRecipient(1, mintRecipient1);
 
         assertEq(foreignController.mintRecipients(1), mintRecipient1);
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MintRecipientSet(2, mintRecipient2);
+        emit CCTPLib.MintRecipientSet(2, mintRecipient2);
+
+        vm.prank(admin);
         foreignController.setMintRecipient(2, mintRecipient2);
 
         assertEq(foreignController.mintRecipients(2), mintRecipient2);
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MintRecipientSet(1, mintRecipient2);
+        emit CCTPLib.MintRecipientSet(1, mintRecipient2);
+
+        vm.prank(admin);
         foreignController.setMintRecipient(1, mintRecipient2);
 
         assertEq(foreignController.mintRecipients(1), mintRecipient2);

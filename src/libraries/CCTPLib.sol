@@ -33,6 +33,7 @@ interface IERC20Like {
 
 }
 
+// NOTE: This library makes the assumption that the token is USDC.
 library CCTPLib {
 
     /**********************************************************************************************/

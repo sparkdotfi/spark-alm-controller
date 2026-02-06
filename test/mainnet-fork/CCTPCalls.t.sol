@@ -7,7 +7,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { PSM3Deploy }       from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
-import { IPSM3 }            from "../../lib/spark-psm/src/PSM3.sol";
 import { MockRateProvider } from "../../lib/spark-psm/test/mocks/MockRateProvider.sol";
 
 import { CCTPForwarder }     from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
@@ -36,6 +35,10 @@ interface IERC20Like {
 
     function totalSupply() external view returns (uint256);
 
+}
+
+interface IPSM3Like {
+    function setPocket(address pocket) external;
 }
 
 contract MainnetController_TransferUSDCToCCTP_FailureTests is ForkTestBase {
@@ -208,7 +211,7 @@ abstract contract BaseChain_USDCToCCTP_TestBase is ForkTestBase {
 
     MockRateProvider rateProvider;
 
-    IPSM3 psmBase;
+    address psmBase;
 
     uint256 USDC_BASE_SUPPLY;
 
@@ -226,21 +229,19 @@ abstract contract BaseChain_USDCToCCTP_TestBase is ForkTestBase {
 
         deal(usdsBase, address(this), 1e18);  // For seeding PSM during deployment
 
-        psmBase = IPSM3(PSM3Deploy.deploy(
-            SPARK_EXECUTOR, USDC_BASE, usdsBase, susdsBase, SSR_ORACLE
-        ));
+        psmBase = PSM3Deploy.deploy(SPARK_EXECUTOR, USDC_BASE, usdsBase, susdsBase, SSR_ORACLE);
 
         vm.prank(SPARK_EXECUTOR);
-        psmBase.setPocket(pocket);
+        IPSM3Like(psmBase).setPocket(pocket);
 
         vm.prank(pocket);
-        IERC20Like(USDC_BASE).approve(address(psmBase), type(uint256).max);
+        IERC20Like(USDC_BASE).approve(psmBase, type(uint256).max);
 
         /*** Step 3: Deploy and configure ALM system ***/
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
             admin : SPARK_EXECUTOR,
-            psm   : address(psmBase),
+            psm   : psmBase,
             usdc  : USDC_BASE,
             cctp  : CCTP_MESSENGER_BASE
         });
@@ -260,7 +261,7 @@ abstract contract BaseChain_USDCToCCTP_TestBase is ForkTestBase {
 
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
             admin : Base.SPARK_EXECUTOR,
-            psm   : address(psmBase),
+            psm   : psmBase,
             cctp  : Base.CCTP_TOKEN_MESSENGER,
             usdc  : USDC_BASE,
             susds : susdsBase,
@@ -453,7 +454,7 @@ contract ForeignController_TransferUSDCToCCTP_FailureTests is BaseChain_USDCToCC
 
         vm.stopPrank();
 
-        vm.expectRevert("FC/domain-not-configured");
+        vm.expectRevert("CCTPLib/domain-not-configured");
         vm.prank(relayer);
         foreignController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
     }

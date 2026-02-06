@@ -13,31 +13,13 @@ import { IPSM3 } from "../lib/spark-psm/src/interfaces/IPSM3.sol";
 
 import { AaveLib }      from "./libraries/AaveLib.sol";
 import { ApproveLib }   from "./libraries/ApproveLib.sol";
+import { CCTPLib }      from "./libraries/CCTPLib.sol";
 import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
-
-interface ICCTPLike {
-
-    function depositForBurn(
-        uint256 amount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient,
-        address burnToken
-    ) external returns (uint64 nonce);
-
-    function localMinter() external view returns (ICCTPTokenMinterLike);
-
-}
-
-interface ICCTPTokenMinterLike {
-
-    function burnLimitsPerMessage(address) external view returns (uint256);
-
-}
 
 interface ISparkVaultLike {
 
@@ -53,21 +35,11 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
-    // NOTE: This is used to track individual transfers for offchain processing of CCTP transactions
-    event CCTPTransferInitiated(
-        uint64  indexed nonce,
-        uint32  indexed destinationDomain,
-        bytes32 indexed mintRecipient,
-        uint256         usdcAmount
-    );
-
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
 
     event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
 
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
-
-    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     event RelayerRemoved(address indexed relayer);
 
@@ -89,15 +61,15 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
     bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = keccak256("LIMIT_SPARK_VAULT_TAKE");
-    bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public constant LIMIT_USDC_TO_CCTP       = CCTPLib.LIMIT_TO_CCTP;
+    bytes32 public constant LIMIT_USDC_TO_DOMAIN     = CCTPLib.LIMIT_TO_DOMAIN;
 
     IALMProxy   public immutable proxy;
-    ICCTPLike   public immutable cctp;
+    address     public immutable cctp;
     IPSM3       public immutable psm;
     IRateLimits public immutable rateLimits;
 
-    IERC20 public immutable usdc;
+    address public immutable usdc;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -124,8 +96,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         proxy      = IALMProxy(proxy_);
         rateLimits = IRateLimits(rateLimits_);
         psm        = IPSM3(psm_);
-        usdc       = IERC20(usdc_);
-        cctp       = ICCTPLike(cctp_);
+        usdc       = usdc_;
+        cctp       = cctp_;
     }
 
     /**********************************************************************************************/
@@ -157,13 +129,12 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         emit MaxSlippageSet(pool, maxSlippage);
     }
 
-    function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
+    function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
         external
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        mintRecipients[destinationDomain] = mintRecipient;
-        emit MintRecipientSet(destinationDomain, mintRecipient);
+        CCTPLib.setMintRecipient(mintRecipients, recipient, destinationDomain);
     }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient)
@@ -279,31 +250,16 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         external
         nonReentrant
         onlyRole(RELAYER)
-        rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
-        rateLimited(
-            RateLimitHelpers.makeUint32Key(LIMIT_USDC_TO_DOMAIN, destinationDomain),
-            usdcAmount
-        )
     {
-        bytes32 mintRecipient = mintRecipients[destinationDomain];
-
-        require(mintRecipient != 0, "FC/domain-not-configured");
-
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
-        ApproveLib.approve(address(usdc), address(proxy), address(cctp), usdcAmount);
-
-        // If amount is larger than limit it must be split into multiple calls.
-        uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
-
-        while (usdcAmount > burnLimit) {
-            _initiateCCTPTransfer(burnLimit, destinationDomain, mintRecipient);
-            usdcAmount -= burnLimit;
-        }
-
-        // Send remaining amount (if any)
-        if (usdcAmount > 0) {
-            _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
-        }
+        CCTPLib.transferUSDCToCCTP({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            cctp              : cctp,
+            usdc              : usdc,
+            mintRecipient     : mintRecipients[destinationDomain],
+            destinationDomain : destinationDomain,
+            usdcAmount        : usdcAmount
+        });
     }
 
     // NOTE: !!! This function was deployed without integration testing !!!
@@ -447,36 +403,6 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             sparkVault,
             abi.encodeCall(ISparkVaultLike.take, (assetAmount))
         );
-    }
-
-    /**********************************************************************************************/
-    /*** Internal helper functions                                                              ***/
-    /**********************************************************************************************/
-
-    function _initiateCCTPTransfer(
-        uint256 usdcAmount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient
-    )
-        internal
-    {
-        uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
-                abi.encodeCall(
-                    cctp.depositForBurn,
-                    (
-                        usdcAmount,
-                        destinationDomain,
-                        mintRecipient,
-                        address(usdc)
-                    )
-                )
-            ),
-            (uint64)
-        );
-
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
     }
 
     /**********************************************************************************************/
