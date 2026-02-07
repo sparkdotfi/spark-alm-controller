@@ -69,7 +69,7 @@ abstract contract TakeFromSparkVault_TestBase is ForkTestBase {
 
 }
 
-contract ForeignController_TakeFromSparkVault_FailureTests is TakeFromSparkVault_TestBase {
+contract ForeignController_TakeFromSparkVault_Tests is TakeFromSparkVault_TestBase {
 
     function test_takeFromSparkVault_reentrancy() external {
         _setControllerEntered();
@@ -90,8 +90,8 @@ contract ForeignController_TakeFromSparkVault_FailureTests is TakeFromSparkVault
         vm.prank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 0, 0);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), 1e18);
     }
 
@@ -106,17 +106,13 @@ contract ForeignController_TakeFromSparkVault_FailureTests is TakeFromSparkVault
         vm.prank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(key, 10_000_000e6, uint256(10_000_000e6) / 1 days);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), 10_000_000e6 + 1);
 
         vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), 10_000_000e6);
     }
-
-}
-
-contract ForeignController_TakeFromSparkVault_SuccessTests is TakeFromSparkVault_TestBase {
 
     function test_takeFromSparkVault_rateLimited() external {
         deal(address(usdcBase), address(user), 10_000_000e6);
@@ -168,8 +164,8 @@ contract ForeignController_TakeFromSparkVault_SuccessTests is TakeFromSparkVault
 
         _assertTestState(testState);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), 1);
     }
 
@@ -260,8 +256,7 @@ contract ForeignController_TakeFromSparkVault_E2ETests is ForkTestBase {
 
         // Step 3 (spell): Set the rate limits
 
-        takeKey = makeAddressKey(LIMIT_SPARK_VAULT_TAKE, address(sparkVault));
-
+        takeKey     = makeAddressKey(LIMIT_SPARK_VAULT_TAKE, address(sparkVault));
         transferKey = makeAddressAddressKey(LIMIT_ASSET_TRANSFER, address(usdcBase), address(sparkVault));
 
         bytes32 morphoDepositKey  = makeAddressKey(LIMIT_4626_DEPOSIT,  Base.MORPHO_VAULT_SUSDC);

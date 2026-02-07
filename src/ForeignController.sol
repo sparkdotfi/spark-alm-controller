@@ -12,6 +12,7 @@ import { AaveLib }          from "./libraries/AaveLib.sol";
 import { ApproveLib }       from "./libraries/ApproveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
+import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
 import { TransferAssetLib } from "./libraries/TransferAssetLib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 
@@ -53,7 +54,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public constant LIMIT_PSM_DEPOSIT        = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 public constant LIMIT_PSM_WITHDRAW       = keccak256("LIMIT_PSM_WITHDRAW");
-    bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = SparkVaultLib.LIMIT_TAKE;
     bytes32 public constant LIMIT_USDC_TO_CCTP       = CCTPLib.LIMIT_TO_CCTP;
     bytes32 public constant LIMIT_USDC_TO_DOMAIN     = CCTPLib.LIMIT_TO_DOMAIN;
 
@@ -331,13 +332,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         external
         nonReentrant
         onlyRole(RELAYER)
-        rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
     {
-        // Take assets from the vault
-        proxy.doCall(
-            sparkVault,
-            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
-        );
+        SparkVaultLib.take(address(proxy), address(rateLimits), sparkVault, assetAmount);
     }
 
 }
