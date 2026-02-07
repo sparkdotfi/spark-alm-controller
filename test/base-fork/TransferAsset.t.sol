@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
 
 import { MockTokenReturnFalse, MockTokenReturnNull } from "../mocks/Mocks.sol";
 
@@ -13,7 +13,7 @@ import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 abstract contract TransferAsset_TestBase is ForkTestBase {
 
-    address receiver = makeAddr("receiver");
+    address internal receiver = makeAddr("receiver");
 
     function setUp() public override {
         super.setUp();
@@ -21,7 +21,7 @@ abstract contract TransferAsset_TestBase is ForkTestBase {
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAddressAddressKey(
+            makeAddressAddressKey(
                 foreignController.LIMIT_ASSET_TRANSFER(),
                 address(usdcBase),
                 receiver
@@ -35,7 +35,7 @@ abstract contract TransferAsset_TestBase is ForkTestBase {
 
 }
 
-contract ForeignController_TransferAsset_FailureTests is TransferAsset_TestBase {
+contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
 
     function test_transferAsset_reentrancy() external {
         _setControllerEntered();
@@ -53,16 +53,16 @@ contract ForeignController_TransferAsset_FailureTests is TransferAsset_TestBase 
     }
 
     function test_transferAsset_zeroMaxAmount() external {
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(relayer);
         foreignController.transferAsset(makeAddr("fake-token"), receiver, 1e18);
     }
 
     function test_transferAsset_rateLimitedBoundary() external {
         deal(address(usdcBase), address(almProxy), 1_000_000e6 + 1);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(relayer);
         foreignController.transferAsset(address(usdcBase), receiver, 1_000_000e6 + 1);
 
         vm.prank(relayer);
@@ -75,7 +75,7 @@ contract ForeignController_TransferAsset_FailureTests is TransferAsset_TestBase 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAddressAddressKey(
+            makeAddressAddressKey(
                 foreignController.LIMIT_ASSET_TRANSFER(),
                 address(token),
                 receiver
@@ -89,13 +89,9 @@ contract ForeignController_TransferAsset_FailureTests is TransferAsset_TestBase 
         deal(address(token), address(almProxy), 1_000_000e18);
 
         vm.prank(relayer);
-        vm.expectRevert("FC/transfer-failed");
+        vm.expectRevert("TransferAssetLib/transfer-failed");
         foreignController.transferAsset(address(token), receiver, 1_000_000e18);
     }
-
-}
-
-contract ForeignController_TransferAsset_SuccessTests is TransferAsset_TestBase {
 
     function test_transferAsset() external {
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
@@ -120,7 +116,7 @@ contract ForeignController_TransferAsset_SuccessTests is TransferAsset_TestBase 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         rateLimits.setRateLimitData(
-            RateLimitHelpers.makeAddressAddressKey(
+            makeAddressAddressKey(
                 foreignController.LIMIT_ASSET_TRANSFER(),
                 address(token),
                 receiver
