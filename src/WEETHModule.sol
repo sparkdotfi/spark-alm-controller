@@ -50,8 +50,8 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     }
 
     function initialize(address admin, address almProxy_) external initializer {
-        require(almProxy_ != address(0), "WEETHModule/invalid-alm-proxy");
-        require(admin     != address(0), "WEETHModule/invalid-admin");
+        require(almProxy_ != address(0), "WeEthModule/invalid-alm-proxy");
+        require(admin     != address(0), "WeEthModule/invalid-admin");
 
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
@@ -62,7 +62,7 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     }
 
     // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
-    function _authorizeUpgrade(address) internal view override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /**********************************************************************************************/
     /*** External functions                                                                     ***/
