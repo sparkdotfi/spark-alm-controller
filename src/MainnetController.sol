@@ -511,17 +511,19 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function requestWithdrawFromWeETH(
         address weETHModule,
-        uint256 weETHShares
+        uint256 weETHShares,
+        uint256 minEETHAmount
     )
         external nonReentrant returns (uint256 requestId)
     {
         _checkRole(RELAYER);
 
         requestId = WEETHLib.requestWithdraw({
-            proxy       : proxy,
-            rateLimits  : rateLimits,
-            weETHShares : weETHShares,
-            weETHModule : weETHModule
+            proxy         : proxy,
+            rateLimits    : rateLimits,
+            weETHModule   : weETHModule,
+            weETHShares   : weETHShares,
+            minEETHAmount : minEETHAmount
         });
     }
 
@@ -536,8 +538,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         ethReceived = WEETHLib.claimWithdrawal({
             proxy       : proxy,
             rateLimits  : rateLimits,
-            requestId   : requestId,
-            weETHModule : weETHModule
+            weETHModule : weETHModule,
+            requestId   : requestId
         });
     }
 
@@ -551,7 +553,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         uint256 proxyBalance = address(proxy).balance;
 
         if (proxyBalance == 0) return;
-        
+
         proxy.doCallWithValue(
             Ethereum.WETH,
             "",

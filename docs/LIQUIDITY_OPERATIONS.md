@@ -69,6 +69,7 @@ All Uniswap V4 operations require `maxSlippage` to be configured (cannot be zero
 
 - Only 1:1 stablecoin pools can be onboarded
 - Tick limits must be configured.
+- Only hookless pools can be onboarded. Rate limit decreases are calculated from token balance differences before and after pool interactions, and empty `hookData` is passed. Pool hooks (if present) could manipulate token balances during the call to bypass the rate limit decrease.
 
 ### Seeding Requirement
 

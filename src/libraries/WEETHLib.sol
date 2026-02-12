@@ -95,8 +95,9 @@ library WEETHLib {
     function requestWithdraw(
         IALMProxy   proxy,
         IRateLimits rateLimits,
+        address     weETHModule,
         uint256     weETHShares,
-        address     weETHModule
+        uint256     minEETHAmount
     )
         external returns (uint256 requestId)
     {
@@ -116,6 +117,9 @@ library WEETHLib {
             ),
             (uint256)
         );
+
+        // Protect against cumulative rate slippage across both conversions.
+        require(eETHAmount >= minEETHAmount, "MC/slippage-too-high");
 
         // NOTE: weETHModule is enforced to be correct by the rate limit key
         _rateLimited(
@@ -142,8 +146,8 @@ library WEETHLib {
     function claimWithdrawal(
         IALMProxy   proxy,
         IRateLimits rateLimits,
-        uint256     requestId,
-        address     weETHModule
+        address     weETHModule,
+        uint256     requestId
     )
         external returns (uint256 ethReceived)
     {
