@@ -165,7 +165,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
     bytes32 public LIMIT_USDS_TO_USDC            = keccak256("LIMIT_USDS_TO_USDC");
-    bytes32 public LIMIT_WEETH_CLAIM_WITHDRAW    = WEETHLib.LIMIT_WEETH_CLAIM_WITHDRAW;
     bytes32 public LIMIT_WEETH_DEPOSIT           = WEETHLib.LIMIT_WEETH_DEPOSIT;
     bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WEETHLib.LIMIT_WEETH_REQUEST_WITHDRAW;
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");

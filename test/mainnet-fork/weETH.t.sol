@@ -349,21 +349,22 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
         mainnetController.claimWithdrawalFromWeETH(weETHModule, 1);
     }
 
+    function test_claimWithdrawalFromWeETH_failsWhenRequestRateLimitDoesNotExist() external {
+        vm.expectRevert("MC/invalid-action");
+        vm.prank(relayer);
+        mainnetController.claimWithdrawalFromWeETH(makeAddr("invalid-weETHModule"), 1);
+    }
+
     function test_claimWithdrawalFromWeETH_failsOnClaimingTwice() external {
         bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
         bytes32 requestWithdrawKey = RateLimitHelpers.makeAddressKey(
             mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(),
             weETHModule
         );
-        bytes32 claimWithdrawKey = RateLimitHelpers.makeAddressKey(
-            mainnetController.LIMIT_WEETH_CLAIM_WITHDRAW(),
-            weETHModule
-        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
-        rateLimits.setRateLimitData(claimWithdrawKey,   1_000e18, uint256(1_000e18) / 1 days);
         vm.stopPrank();
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
@@ -402,15 +403,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
             mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(),
             weETHModule
         );
-        bytes32 claimWithdrawKey = RateLimitHelpers.makeAddressKey(
-            mainnetController.LIMIT_WEETH_CLAIM_WITHDRAW(),
-            weETHModule
-        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
-        rateLimits.setRateLimitData(claimWithdrawKey,   1_000e18, uint256(1_000e18) / 1 days);
         vm.stopPrank();
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
@@ -447,15 +443,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
             mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(),
             weETHModule
         );
-        bytes32 claimWithdrawKey = RateLimitHelpers.makeAddressKey(
-            mainnetController.LIMIT_WEETH_CLAIM_WITHDRAW(),
-            weETHModule
-        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
-        rateLimits.setRateLimitData(claimWithdrawKey,   1_000e18, uint256(1_000e18) / 1 days);
         vm.stopPrank();
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
@@ -494,15 +485,10 @@ contract MainnetControllerClaimWithdrawalFromWeETHTests is MainnetControllerWeET
             mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(),
             weETHModule
         );
-        bytes32 claimWithdrawKey = RateLimitHelpers.makeAddressKey(
-            mainnetController.LIMIT_WEETH_CLAIM_WITHDRAW(),
-            weETHModule
-        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
-        rateLimits.setRateLimitData(claimWithdrawKey,   1_000e18, uint256(1_000e18) / 1 days);
         vm.stopPrank();
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
