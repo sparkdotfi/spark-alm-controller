@@ -62,14 +62,14 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     }
 
     // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
-    function _authorizeUpgrade(address) internal view override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /**********************************************************************************************/
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
     function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceived) {
-        require(msg.sender == almProxy(), "WeEthModule/invalid-sender");
+        require(msg.sender == almProxy(), "WEETHModule/invalid-sender");
 
         address eETH               = IWEETHLike(Ethereum.WEETH).eETH();
         address liquidityPool      = IEETHLike(eETH).liquidityPool();
@@ -77,12 +77,12 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
         require(
             IWithdrawRequestNFTLike(withdrawRequestNFT).isValid(requestId),
-            "WeEthModule/invalid-request-id"
+            "WEETHModule/invalid-request-id"
         );
 
         require(
             IWithdrawRequestNFTLike(withdrawRequestNFT).isFinalized(requestId),
-            "WeEthModule/request-not-finalized"
+            "WEETHModule/request-not-finalized"
         );
 
         IWithdrawRequestNFTLike(withdrawRequestNFT).claimWithdraw(requestId);
@@ -95,8 +95,8 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         IERC20(Ethereum.WETH).safeTransfer(msg.sender, ethReceived);
     }
 
-    function onERC721Received(address, address, uint256, bytes calldata) 
-        external pure returns (bytes4) 
+    function onERC721Received(address, address, uint256, bytes calldata)
+        external pure returns (bytes4)
     {
         return this.onERC721Received.selector;
     }

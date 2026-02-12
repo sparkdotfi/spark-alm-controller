@@ -435,7 +435,7 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
         IWithdrawRequestNFTLike(withdrawRequestNFT).invalidateRequest(requestId);
 
         vm.prank(relayer);
-        vm.expectRevert("WeEthModule/invalid-request-id");
+        vm.expectRevert("WEETHModule/invalid-request-id");
         mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
 
         assertEq(weETH.balanceOf(address(almProxy)), 427.715236537415314851e18);
@@ -480,7 +480,7 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
         assertEq(withdrawRequestNFT.isFinalized(requestId), false);
 
         vm.prank(relayer);
-        vm.expectRevert("WeEthModule/request-not-finalized");
+        vm.expectRevert("WEETHModule/request-not-finalized");
         mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
     }
 
