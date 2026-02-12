@@ -349,6 +349,12 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
         mainnetController.claimWithdrawalFromWeETH(weETHModule, 1);
     }
 
+    function test_claimWithdrawalFromWeETH_failsWhenRequestRateLimitDoesNotExist() external {
+        vm.expectRevert("MC/invalid-action");
+        vm.prank(relayer);
+        mainnetController.claimWithdrawalFromWeETH(makeAddr("invalid-weETHModule"), 1);
+    }
+
     function test_claimWithdrawalFromWeETH_failsOnClaimingTwice() external {
         bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
         bytes32 requestWithdrawKey = RateLimitHelpers.makeAddressKey(
@@ -466,47 +472,6 @@ contract MainnetControllerClaimWithdrawalFromWeETHFailureTests is MainnetControl
 
         vm.prank(relayer);
         vm.expectRevert("WEETHModule/request-not-finalized");
-        mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
-    }
-
-    function test_claimWithdrawalFromWeETH_failsWhenRequestRateLimitDoesNotExist() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
-        bytes32 requestWithdrawKey = RateLimitHelpers.makeAddressKey(
-            mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(),
-            weETHModule
-        );
-
-        vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
-        rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
-        vm.stopPrank();
-
-        deal(Ethereum.WETH, address(almProxy), 1_000e18);
-
-        uint256 minSharesOut = _getMinSharesOut(1_000e18);
-
-        vm.prank(relayer);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
-
-        uint256 expectedEEthBalance = weETH.getEETHByWeETH(500e18);
-
-        vm.prank(relayer);
-        uint256 requestId = mainnetController.requestWithdrawFromWeETH(
-            weETHModule,
-            500e18,
-            0
-        );
-
-        IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
-
-        vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
-        IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
-
-        vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(requestWithdrawKey, 0, 0);
-
-        vm.expectRevert("MC/invalid-action");
-        vm.prank(relayer);
         mainnetController.claimWithdrawalFromWeETH(weETHModule, requestId);
     }
 
