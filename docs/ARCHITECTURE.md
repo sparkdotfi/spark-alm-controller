@@ -55,7 +55,7 @@ A variant of the `ALMProxy` that is not intended to hold funds or have critical 
 
 ### OTCBuffer
 
-Buffer contract used for OTC swap operations. See [OTC_SWAPS.md](./OTC_SWAPS.md) for details.
+Buffer contract used for OTC swap operations. See [LIQUIDITY_OPERATIONS.md](./LIQUIDITY_OPERATIONS.md#otc-buffer-configuration) for details.
 
 ### WEETHModule
 
