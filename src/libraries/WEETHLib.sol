@@ -147,19 +147,18 @@ library WEETHLib {
     )
         external returns (uint256 ethReceived)
     {
+        // NOTE: weETHModule is enforced to be correct by the rate limit key
+        _rateLimitExists(
+            rateLimits,
+            RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule)
+        );
+
         ethReceived =  abi.decode(
             proxy.doCall(
                 weETHModule,
                 abi.encodeCall(IWeEthModuleLike(weETHModule).claimWithdrawal, (requestId))
             ),
             (uint256)
-        );
-
-        // NOTE: weETHModule is enforced to be correct by the rate limit key
-        _rateLimited(
-            rateLimits,
-            RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule),
-            ethReceived
         );
     }
 
@@ -169,6 +168,13 @@ library WEETHLib {
 
     function _rateLimited(IRateLimits rateLimits, bytes32 key, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(key, amount);
+    }
+
+    function _rateLimitExists(IRateLimits rateLimits, bytes32 key) internal view {
+        require(
+            rateLimits.getRateLimitData(key).maxAmount > 0,
+            "MC/invalid-action"
+        );
     }
 
 }
