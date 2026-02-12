@@ -309,6 +309,7 @@ contract MainnetControllerRequestWithdrawFromWeETHTests is MainnetControllerWeET
         assertEq(weETH.balanceOf(address(almProxy)), initialWeETHBalance - 500e18);
 
         assertEq(expectedEEthBalance, 538.958486729386273830e18);
+        assertEq(expectedEEthBalance, expectedEETHAmount);
 
         assertEq(
             rateLimits.getCurrentRateLimit(requestWithdrawKey),
