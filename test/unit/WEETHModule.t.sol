@@ -18,7 +18,7 @@ contract WEETHModuleInitializeTest is WEETHModuleTestBase {
     function test_initialize_invalidAdmin() public {
         address implementation = address(new WEETHModule());
 
-        vm.expectRevert("WeEthModule/invalid-admin");
+        vm.expectRevert("WEETHModule/invalid-admin");
         new ERC1967Proxy(
             implementation,
             abi.encodeCall(
@@ -31,7 +31,7 @@ contract WEETHModuleInitializeTest is WEETHModuleTestBase {
     function test_initialize_invalidAlmProxy() public {
         address implementation = address(new WEETHModule());
 
-        vm.expectRevert("WeEthModule/invalid-alm-proxy");
+        vm.expectRevert("WEETHModule/invalid-alm-proxy");
         new ERC1967Proxy(
             implementation,
             abi.encodeCall(
