@@ -50,8 +50,8 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     }
 
     function initialize(address admin, address almProxy_) external initializer {
-        require(almProxy_ != address(0), "WeEthModule/invalid-alm-proxy");
-        require(admin     != address(0), "WeEthModule/invalid-admin");
+        require(almProxy_ != address(0), "WEETHModule/invalid-alm-proxy");
+        require(admin     != address(0), "WEETHModule/invalid-admin");
 
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
@@ -69,7 +69,7 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     /**********************************************************************************************/
 
     function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceived) {
-        require(msg.sender == almProxy(), "WeEthModule/invalid-sender");
+        require(msg.sender == almProxy(), "WEETHModule/invalid-sender");
 
         address eETH               = IWEETHLike(Ethereum.WEETH).eETH();
         address liquidityPool      = IEETHLike(eETH).liquidityPool();
@@ -77,12 +77,12 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
         require(
             IWithdrawRequestNFTLike(withdrawRequestNFT).isValid(requestId),
-            "WeEthModule/invalid-request-id"
+            "WEETHModule/invalid-request-id"
         );
 
         require(
             IWithdrawRequestNFTLike(withdrawRequestNFT).isFinalized(requestId),
-            "WeEthModule/request-not-finalized"
+            "WEETHModule/request-not-finalized"
         );
 
         IWithdrawRequestNFTLike(withdrawRequestNFT).claimWithdraw(requestId);
@@ -95,8 +95,8 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         IERC20(Ethereum.WETH).safeTransfer(msg.sender, ethReceived);
     }
 
-    function onERC721Received(address, address, uint256, bytes calldata) 
-        external pure returns (bytes4) 
+    function onERC721Received(address, address, uint256, bytes calldata)
+        external pure returns (bytes4)
     {
         return this.onERC721Received.selector;
     }
