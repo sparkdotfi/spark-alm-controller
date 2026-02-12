@@ -41,7 +41,6 @@ interface IWETHLike {
 
 library WEETHLib {
 
-    bytes32 public constant LIMIT_WEETH_CLAIM_WITHDRAW   = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
     bytes32 public constant LIMIT_WEETH_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
     bytes32 public constant LIMIT_WEETH_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
 
@@ -154,7 +153,7 @@ library WEETHLib {
         // NOTE: weETHModule is enforced to be correct by the rate limit key
         _rateLimitExists(
             rateLimits,
-            RateLimitHelpers.makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule)
+            RateLimitHelpers.makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule)
         );
 
         ethReceived =  abi.decode(
