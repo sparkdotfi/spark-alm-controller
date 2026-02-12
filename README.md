@@ -86,7 +86,7 @@ Max slippage values throughout ALM controller integrations are defined as how cl
 
 ### How It Works
 
-In common DeFi terminology, a 0.1% max slippage typically means the resulting value can be 0.1% away from the expected or spot rate/value. However, throughout this codebase, such an expectation would be denoted as a max slippage of 0.999% (or 0.999e18 when scaled).
+In common DeFi terminology, a 0.1% max slippage typically means the resulting value can be 0.1% away from the expected or spot rate/value. However, throughout this codebase, such an expectation would be denoted as a max slippage of 99.9% (or 0.999e18 when scaled).
 
 ### Historical Context
 
