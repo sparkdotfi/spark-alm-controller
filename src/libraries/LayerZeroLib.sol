@@ -84,7 +84,10 @@ library LayerZeroLib {
 
         sendParams.minAmountLD = receipt.amountReceivedLD;
 
-        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
+        MessagingFee memory fee = abi.decode(
+            proxy.doCall(oftAddress, abi.encodeCall(ILayerZero.quoteSend, (sendParams, false))),
+            (MessagingFee)
+        );
 
         proxy.doCallWithValue{value: fee.nativeFee}(
             oftAddress,
