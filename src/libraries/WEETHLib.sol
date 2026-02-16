@@ -19,6 +19,7 @@ interface IEETHLike is IERC20 {
 
 interface ILiquidityPoolLike {
     function amountForShare(uint256 shareAmount) external view returns (uint256);
+    function sharesForAmount(uint256 amount) external view returns (uint256);
     function deposit() external payable returns (uint256 shareAmount);
     function requestWithdraw(address receiver,uint256 amount) external returns (uint256 requestId);
     function withdrawRequestNFT() external view returns (address);
@@ -96,7 +97,7 @@ library WEETHLib {
         IRateLimits rateLimits,
         address     weETHModule,
         uint256     weETHShares,
-        uint256     minEETHAmount
+        uint256     minEETHShares
     )
         external returns (uint256 requestId)
     {
@@ -118,7 +119,10 @@ library WEETHLib {
         );
 
         // Protect against cumulative rate slippage across both conversions.
-        require(eETHAmount >= minEETHAmount, "MC/slippage-too-high");
+        require(
+            ILiquidityPoolLike(liquidityPool).sharesForAmount(eETHAmount) >= minEETHShares,
+            "MC/slippage-too-high"
+        );
 
         // NOTE: weETHModule is enforced to be correct by the rate limit key
         _rateLimited(

@@ -511,7 +511,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function requestWithdrawFromWeETH(
         address weETHModule,
         uint256 weETHShares,
-        uint256 minEETHAmount
+        uint256 minEETHShares
     )
         external nonReentrant returns (uint256 requestId)
     {
@@ -522,7 +522,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             rateLimits    : rateLimits,
             weETHModule   : weETHModule,
             weETHShares   : weETHShares,
-            minEETHAmount : minEETHAmount
+            minEETHShares : minEETHShares
         });
     }
 
