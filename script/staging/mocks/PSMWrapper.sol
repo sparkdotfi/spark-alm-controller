@@ -1,20 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "forge-std/interfaces/IERC20.sol";
+import { IERC20 } from "../../../lib/forge-std/src/interfaces/IERC20.sol";
 
 interface IPSMLike {
+
     function buyGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
+
     function fill() external returns (uint256 wad);
+
     function gem() external view returns(address);
+
     function pocket() external view returns(address);
+
     function sellGemNoFee(address usr, uint256 usdcAmount) external returns (uint256 usdsAmount);
+
     function to18ConversionFactor() external view returns (uint256);
+
 }
 
 interface ILivePSMLike is IPSMLike {
+
     function buyGem(address usr, uint256 usdcAmount) external returns (uint256 swappedAmount);
+
     function sellGem(address usr, uint256 usdcAmount) external returns (uint256 swappedAmount);
+
 }
 
 // TODO: Add admin that can withdraw

@@ -1,42 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import "./ForkTestBase.t.sol";
+import { MainnetController_Ethena_E2ETests } from "./Ethena.t.sol";
+import { Maple_TestBase }                    from "./Maple.t.sol";
 
-import { MainnetControllerBUIDLTestBase }  from "./Buidl.t.sol";
-import { MainnetControllerEthenaE2ETests } from "./Ethena.t.sol";
-import { MapleTestBase }                   from "./Maple.t.sol";
-
-import { IMapleTokenLike } from "../../src/MainnetController.sol";
-
-interface IBuidlLike is IERC20 {
-    function issueTokens(address to, uint256 amount) external;
-}
-
-interface IMapleTokenExtended is IMapleTokenLike {
-    function manager() external view returns (address);
-}
-
-interface IPermissionManagerLike {
-    function admin() external view returns (address);
-    function setLenderAllowlist(
-        address            poolManager_,
-        address[] calldata lenders_,
-        bool[]    calldata booleans_
-    ) external;
-}
-
-interface IPoolManagerLike {
-    function withdrawalManager() external view returns (address);
-    function poolDelegate() external view returns (address);
-}
-
-interface IWhitelistLike {
-    function addWallet(address account, string memory id) external;
-    function registerInvestor(string memory id, string memory collisionHash) external;
-}
-
-contract EthenaAttackTests is MainnetControllerEthenaE2ETests {
+contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETests {
 
     function test_attack_compromisedRelayer_lockingFundsInEthenaSilo() external {
         deal(address(susde), address(almProxy), 1_000_000e18);
@@ -88,7 +56,7 @@ contract EthenaAttackTests is MainnetControllerEthenaE2ETests {
 
 }
 
-contract MapleAttackTests is MapleTestBase {
+contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
 
     function test_attack_compromisedRelayer_delayRequestMapleRedemption() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);

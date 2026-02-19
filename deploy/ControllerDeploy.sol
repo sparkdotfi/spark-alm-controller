@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { ALMProxy }          from "../src/ALMProxy.sol";
 import { ForeignController } from "../src/ForeignController.sol";
@@ -18,7 +18,8 @@ library ForeignControllerDeploy {
         address usdc,
         address cctp
     )
-        internal returns (address controller)
+        internal
+        returns (address controller)
     {
         controller = address(new ForeignController({
             admin_      : admin,
@@ -36,7 +37,8 @@ library ForeignControllerDeploy {
         address usdc,
         address cctp
     )
-        internal returns (ControllerInstance memory instance)
+        internal
+        returns (ControllerInstance memory instance)
     {
         instance.almProxy   = address(new ALMProxy(admin));
         instance.rateLimits = address(new RateLimits(admin));
@@ -64,7 +66,8 @@ library MainnetControllerDeploy {
         address daiUsds,
         address cctp
     )
-        internal returns (address controller)
+        internal
+        returns (address controller)
     {
         controller = address(new MainnetController({
             admin_      : admin,
@@ -84,7 +87,8 @@ library MainnetControllerDeploy {
         address daiUsds,
         address cctp
     )
-        internal returns (ControllerInstance memory instance)
+        internal
+        returns (ControllerInstance memory instance)
     {
         instance.almProxy   = address(new ALMProxy(admin));
         instance.rateLimits = address(new RateLimits(admin));

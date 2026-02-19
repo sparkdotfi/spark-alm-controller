@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { MainnetController } from "../src/MainnetController.sol";
 
@@ -9,16 +9,23 @@ import { IRateLimits } from "../src/interfaces/IRateLimits.sol";
 import { ControllerInstance } from "./ControllerInstance.sol";
 
 interface IBufferLike {
+
     function approve(address, address, uint256) external;
+
 }
 
 interface IPSMLike {
+
     function kiss(address) external;
+
 }
 
 interface IVaultLike {
+
     function buffer() external view returns (address);
+
     function rely(address) external;
+
 }
 
 library MainnetControllerInit {

@@ -3,17 +3,17 @@ pragma solidity ^0.8.21;
 
 import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { WEETHModule } from "src/WEETHModule.sol";
+import { WEETHModule } from "../../src/WEETHModule.sol";
 
 import { UnitTestBase } from "./UnitTestBase.t.sol";
 
-contract WEETHModuleTestBase is UnitTestBase {
+abstract contract WEETHModule_TestBase is UnitTestBase {
 
     address almProxy = makeAddr("almProxy");
 
 }
 
-contract WEETHModuleInitializeTest is WEETHModuleTestBase {
+contract WEETHModule_Initialize_Tests is WEETHModule_TestBase {
 
     function test_initialize_invalidAdmin() public {
         address implementation = address(new WEETHModule());

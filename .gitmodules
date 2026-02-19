@@ -13,15 +13,6 @@
 [submodule "lib/xchain-helpers"]
 	path = lib/xchain-helpers
 	url = https://github.com/marsfoundation/xchain-helpers
-[submodule "lib/usds"]
-	path = lib/usds
-	url = https://github.com/makerdao/usds
-[submodule "lib/sdai"]
-	path = lib/sdai
-	url = https://github.com/makerdao/sdai
-[submodule "lib/erc20-helpers"]
-	path = lib/erc20-helpers
-	url = https://github.com/marsfoundation/erc20-helpers
 [submodule "lib/dss-test"]
 	path = lib/dss-test
 	url = https://github.com/makerdao/dss-test
@@ -34,9 +25,6 @@
 [submodule "lib/spark-address-registry"]
 	path = lib/spark-address-registry
 	url = https://github.com/sparkdotfi/spark-address-registry
-[submodule "lib/devtools"]
-	path = lib/devtools
-	url = https://github.com/LayerZero-Labs/devtools
 [submodule "lib/layerzero-v2"]
 	path = lib/layerzero-v2
 	url = https://github.com/LayerZero-Labs/layerzero-v2
@@ -50,6 +38,6 @@
 [submodule "lib/uniswap-v4-periphery"]
 	path = lib/uniswap-v4-periphery
 	url = https://github.com/Uniswap/v4-periphery.git
-[submodule "lib/uniswap-v4-core"]
-	path = lib/uniswap-v4-core
-	url = https://github.com/Uniswap/v4-core.git
+[submodule "lib/oz-upgradeable"]
+	path = lib/oz-upgradeable
+	url = git@github.com:OpenZeppelin/openzeppelin-contracts-upgradeable.git

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-contract UnitTestBase is Test {
+abstract contract UnitTestBase is Test {
 
     bytes32 internal constant _REENTRANCY_GUARD_SLOT        = bytes32(uint256(0));
     bytes32 internal constant _REENTRANCY_GUARD_NOT_ENTERED = bytes32(uint256(1));

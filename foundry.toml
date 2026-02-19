@@ -1,6 +1,7 @@
 [profile.default]
 src = "src"
 out = "out"
+script = "script"
 libs = ["lib"]
 solc_version = '0.8.25'
 optimizer = true
@@ -11,14 +12,10 @@ fs_permissions = [
 ]
 evm_version = 'cancun'
 remappings = [
-    '@layerzerolabs/oft-evm/=lib/devtools/packages/oft-evm/',
-    'layerzerolabs/oapp-evm/=lib/devtools/packages/oapp-evm/',
+    '@layerzerolabs/lz-evm-messagelib-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib/',
     '@layerzerolabs/lz-evm-protocol-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/protocol',
     '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/',
-    '@layerzerolabs/lz-evm-messagelib-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib/',
-    'solidity-bytes-utils/=lib/solidity-bytes-utils/',
-    'forge-std/=lib/forge-std/src/',
-    '@uniswap/v4-core/=lib/uniswap-v4-core/'
+    'solidity-bytes-utils/=lib/solidity-bytes-utils/'
 ]
 
 [fuzz]

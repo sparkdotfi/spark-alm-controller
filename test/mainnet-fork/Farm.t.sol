@@ -1,15 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
+
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
+
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import "./ForkTestBase.t.sol";
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IFarmLike {
+
     function balanceOf(address account) external view returns (uint256);
+
 }
 
-contract MainnetControllerFarmTestBase is ForkTestBase {
+abstract contract Farm_TestBase is ForkTestBase {
 
     address farm = 0x173e314C7635B45322cd8Cb14f44b312e079F3af;  // USDS SPK farm
 
@@ -44,7 +53,7 @@ contract MainnetControllerFarmTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerFarmDepositFailureTests is MainnetControllerFarmTestBase {
+contract MainnetController_Farm_Deposit_FailureTests is Farm_TestBase {
 
     function test_depositToFarm_reentrancy() external {
         _setControllerEntered();
@@ -88,7 +97,7 @@ contract MainnetControllerFarmDepositFailureTests is MainnetControllerFarmTestBa
 
 }
 
-contract MainnetControllerFarmDepositSuccessTests is MainnetControllerFarmTestBase {
+contract MainnetController_Farm_Deposit_SuccessTests is Farm_TestBase {
 
     function test_depositToFarm() external {
         bytes32 depositKey = RateLimitHelpers.makeAddressKey(
@@ -118,7 +127,7 @@ contract MainnetControllerFarmDepositSuccessTests is MainnetControllerFarmTestBa
 
 }
 
-contract MainnetControllerFarmWithdrawFailureTests is MainnetControllerFarmTestBase {
+contract MainnetController_Farm_Withdraw_FailureTests is Farm_TestBase {
 
     function test_withdrawFromFarm_reentrancy() external {
         _setControllerEntered();
@@ -166,7 +175,7 @@ contract MainnetControllerFarmWithdrawFailureTests is MainnetControllerFarmTestB
 
 }
 
-contract MainnetControllerFarmWithdrawSuccessTests is MainnetControllerFarmTestBase {
+contract MainnetController_Farm_Withdraw_SuccessTests is Farm_TestBase {
 
     function test_withdrawFromFarm() external {
         bytes32 withdrawKey = RateLimitHelpers.makeAddressKey(

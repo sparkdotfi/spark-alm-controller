@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
+
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from"./ForkTestBase.t.sol";
 
-contract ForeignControllerPSMSuccessTestBase is ForkTestBase {
+abstract contract PSM_Success_TestBase is ForkTestBase {
 
     function _assertState(
         IERC20  token,
@@ -19,7 +21,8 @@ contract ForeignControllerPSMSuccessTestBase is ForkTestBase {
         bytes32 rateLimitKey,
         uint256 currentRateLimit
     )
-        internal view
+        internal
+        view
     {
         address custodian = address(token) == address(usdcBase) ? pocket : address(psmBase);
 
@@ -41,8 +44,7 @@ contract ForeignControllerPSMSuccessTestBase is ForkTestBase {
 
 }
 
-
-contract ForeignControllerDepositPSMFailureTests is ForkTestBase {
+contract ForeignController_PSM_Deposit_FailureTests is ForkTestBase {
 
     function test_depositPSM_reentrancy() external {
         _setControllerEntered();
@@ -106,7 +108,7 @@ contract ForeignControllerDepositPSMFailureTests is ForkTestBase {
 
 }
 
-contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase {
+contract ForeignController_PSM_Deposit_SuccessTests is PSM_Success_TestBase {
 
     function test_depositPSM_depositUsds() external {
         bytes32 key = foreignController.LIMIT_PSM_DEPOSIT();
@@ -221,7 +223,7 @@ contract ForeignControllerDepositPSMTests is ForeignControllerPSMSuccessTestBase
 
 }
 
-contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
+contract ForeignController_PSM_Withdraw_FailureTests is ForkTestBase {
 
     function test_withdrawPSM_reentrancy() external {
         _setControllerEntered();
@@ -342,7 +344,7 @@ contract ForeignControllerWithdrawPSMFailureTests is ForkTestBase {
 
 }
 
-contract ForeignControllerWithdrawPSMTests is ForeignControllerPSMSuccessTestBase {
+contract ForeignController_PSM_Withdraw_SuccessTests is PSM_Success_TestBase {
 
     function test_withdrawPSM_withdrawUsds() external {
         bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();

@@ -1,39 +1,36 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+import { AllocatorDeploy } from "../../lib/dss-allocator/deploy/AllocatorDeploy.sol";
+
 import {
-    AllocatorDeploy,
     AllocatorIlkInstance,
     AllocatorSharedInstance
-} from "dss-allocator/deploy/AllocatorDeploy.sol";
+} from "../../lib/dss-allocator/deploy/AllocatorInstances.sol";
 
 import {
     BufferLike,
     RegistryLike,
     RolesLike,
     VaultLike
-} from "dss-allocator/deploy/AllocatorInit.sol";
+} from "../../lib/dss-allocator/deploy/AllocatorInit.sol";
 
-import { AllocatorBuffer } from "dss-allocator/src/AllocatorBuffer.sol";
-import { AllocatorVault }  from "dss-allocator/src/AllocatorVault.sol";
+import { ScriptTools } from "../../lib/dss-test/src/ScriptTools.sol";
 
-import { ScriptTools } from "dss-test/ScriptTools.sol";
+import { IERC20 }  from "../../lib/forge-std/src/interfaces/IERC20.sol";
+import { Script }  from "../../lib/forge-std/src/Script.sol";
+import { stdJson } from "../../lib/forge-std/src/StdJson.sol";
 
-import { IERC20 }  from "forge-std/interfaces/IERC20.sol";
-import { Script }  from "forge-std/Script.sol";
-import { stdJson } from "forge-std/StdJson.sol";
+import { Base }      from "../../lib/spark-address-registry/src/Base.sol";
+import { Ethereum }  from "../../lib/spark-address-registry/src/Ethereum.sol";
+import { SparkLend } from "../../lib/spark-address-registry/src/SparkLend.sol";
 
-import { Base }      from "lib/spark-address-registry/src/Base.sol";
-import { Ethereum }  from "lib/spark-address-registry/src/Ethereum.sol";
-import { SparkLend } from "lib/spark-address-registry/src/SparkLend.sol";
+import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { ControllerInstance } from "../../deploy/ControllerInstance.sol";
 
 import {
-    ControllerInstance,
-    ForeignController,
     ForeignControllerDeploy,
-    MainnetController,
     MainnetControllerDeploy
 } from "../../deploy/ControllerDeploy.sol";
 
@@ -42,12 +39,14 @@ import { MainnetControllerInit } from "../../deploy/MainnetControllerInit.sol";
 
 import { IRateLimits } from "../../src/interfaces/IRateLimits.sol";
 
-import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { ForeignController } from "../../src/ForeignController.sol";
+import { MainnetController } from "../../src/MainnetController.sol";
+import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 
-import { MockJug }          from "./mocks/MockJug.sol";
-import { MockUsdsJoin }     from "./mocks/MockUsdsJoin.sol";
-import { MockVat }          from "./mocks/MockVat.sol";
-import { PSMWrapper }       from "./mocks/PSMWrapper.sol";
+import { MockJug }      from "./mocks/MockJug.sol";
+import { MockUsdsJoin } from "./mocks/MockUsdsJoin.sol";
+import { MockVat }      from "./mocks/MockVat.sol";
+import { PSMWrapper }   from "./mocks/PSMWrapper.sol";
 
 struct Domain {
     string  input;

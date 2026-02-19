@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
+
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { MainnetControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 
-import "./ForkTestBase.t.sol";
+import { ALMProxy }          from "../../src/ALMProxy.sol";
+import { MainnetController } from "../../src/MainnetController.sol";
+import { RateLimits }        from "../../src/RateLimits.sol";
 
-contract MainnetControllerDeploySuccessTests is ForkTestBase {
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+contract MainnetController_Deploy_SuccessTests is ForkTestBase {
 
     function test_deployFull() external {
         // Perform new deployments against existing fork environment
@@ -48,7 +54,16 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
         _assertControllerInitState(newController, address(almProxy), address(rateLimits), vault, buffer);
     }
 
-    function _assertControllerInitState(MainnetController controller, address almProxy, address rateLimits, address vault, address buffer) internal view {
+    function _assertControllerInitState(
+        MainnetController controller,
+        address           almProxy,
+        address           rateLimits,
+        address           vault,
+        address           buffer
+    )
+        internal
+        view
+    {
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, SPARK_PROXY),   true);
         assertEq(controller.hasRole(DEFAULT_ADMIN_ROLE, address(this)), false);
 

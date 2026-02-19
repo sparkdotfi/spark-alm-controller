@@ -1,32 +1,29 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import "forge-std/Test.sol";
+import { Test } from "../../lib/forge-std/src/Test.sol";
 
-import { IERC20 }   from "forge-std/interfaces/IERC20.sol";
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
-import { ERC20Mock } from "openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
+import { ERC20Mock } from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
-import { Base } from "spark-address-registry/Base.sol";
+import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { PSM3Deploy } from "spark-psm/deploy/PSM3Deploy.sol";
-import { IPSM3 }      from "spark-psm/src/PSM3.sol";
+import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
+import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
-import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
-import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
-
+import { ForeignControllerDeploy }       from "../../deploy/ControllerDeploy.sol";
+import { ControllerInstance }            from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerInit as Init } from "../../deploy/ForeignControllerInit.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
+import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 
-import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
-
-contract ForkTestBase is Test {
+abstract contract ForkTestBase is Test {
 
     // TODO: Refactor to use live addresses
 
@@ -44,8 +41,8 @@ contract ForkTestBase is Test {
     bytes32 FREEZER;
     bytes32 RELAYER;
 
-    address freezer = Base.ALM_FREEZER;
-    address relayer = Base.ALM_RELAYER;
+    address freezer = Base.ALM_FREEZER_MULTISIG;
+    address relayer = Base.ALM_RELAYER_MULTISIG;
 
     address pocket = makeAddr("pocket");
 

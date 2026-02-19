@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
-
 import { ALMProxyFreezable } from "../../../src/ALMProxyFreezable.sol";
 
 import { MockTarget } from "../mocks/MockTarget.sol";
 
-import "../UnitTestBase.t.sol";
+import { UnitTestBase } from "../UnitTestBase.t.sol";
 
-contract ALMProxyFreezableRemoveControllerTestBase is UnitTestBase {
+abstract contract Freezable_RemoveController_TestBase is UnitTestBase {
 
     event ExampleEvent(
         address indexed exampleAddress,
@@ -47,7 +45,7 @@ contract ALMProxyFreezableRemoveControllerTestBase is UnitTestBase {
 
 }
 
-contract ALMProxyFreezableRemoveControllerFailureTests is ALMProxyFreezableRemoveControllerTestBase {
+contract ALMProxy_Freezable_RemoveController_FailureTests is Freezable_RemoveController_TestBase {
 
     function test_removeController_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -68,7 +66,7 @@ contract ALMProxyFreezableRemoveControllerFailureTests is ALMProxyFreezableRemov
 
 }
 
-contract ALMProxyFreezableRemoveControllerSuccessTests is ALMProxyFreezableRemoveControllerTestBase {
+contract ALMProxy_Freezable_RemoveController_SuccessTests is Freezable_RemoveController_TestBase {
 
     function test_removeController() public {
         // ALM Proxy Freezable is msg.sender, target emits the event

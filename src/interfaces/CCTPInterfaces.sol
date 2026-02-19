@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 interface ICCTPLike {
 
@@ -8,7 +8,9 @@ interface ICCTPLike {
         uint32  destinationDomain,
         bytes32 mintRecipient,
         address burnToken
-    ) external returns (uint64 nonce);
+    )
+        external
+        returns (uint64 nonce);
 
     function localMinter() external view returns (ICCTPTokenMinterLike);
 

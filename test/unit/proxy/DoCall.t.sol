@@ -6,9 +6,9 @@ import { ALMProxyFreezable } from "../../../src/ALMProxyFreezable.sol";
 
 import { MockTarget } from "../mocks/MockTarget.sol";
 
-import "../UnitTestBase.t.sol";
+import { UnitTestBase } from "../UnitTestBase.t.sol";
 
-contract ALMProxyCallTestBase is UnitTestBase {
+abstract contract ALMProxy_Call_TestBase is UnitTestBase {
 
     event ExampleEvent(
         address indexed exampleAddress,
@@ -42,7 +42,7 @@ contract ALMProxyCallTestBase is UnitTestBase {
 
 }
 
-contract ALMProxyDoCallFailureTests is ALMProxyCallTestBase {
+contract ALMProxy_DoCall_FailureTests is ALMProxy_Call_TestBase {
 
     function test_doCall_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -63,7 +63,7 @@ contract ALMProxyDoCallFailureTests is ALMProxyCallTestBase {
 
 }
 
-contract ALMProxyDoCallTests is ALMProxyCallTestBase {
+contract ALMProxy_DoCall_SuccessTests is ALMProxy_Call_TestBase {
 
     function test_doCall() public {
         // ALM Proxy is msg.sender, target emits the event
@@ -77,7 +77,7 @@ contract ALMProxyDoCallTests is ALMProxyCallTestBase {
 
 }
 
-contract ALMProxyDoCallWithValueFailureTests is ALMProxyCallTestBase {
+contract ALMProxy_DoCallWithValue_FailureTests is ALMProxy_Call_TestBase {
 
     function test_doCallWithValue_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -114,7 +114,7 @@ contract ALMProxyDoCallWithValueFailureTests is ALMProxyCallTestBase {
 
 }
 
-contract ALMProxyDoCallWithValueTests is ALMProxyCallTestBase {
+contract ALMProxy_DoCallWithValue_SuccessTests is ALMProxy_Call_TestBase {
 
     function test_doCallWithValue() public {
         vm.deal(address(almProxy), 1e18);
@@ -142,7 +142,7 @@ contract ALMProxyDoCallWithValueTests is ALMProxyCallTestBase {
 
 }
 
-contract ALMProxyDoDelegateCallFailureTests is ALMProxyCallTestBase {
+contract ALMProxy_DoDelegateCall_FailureTests is ALMProxy_Call_TestBase {
 
     function test_doDelegateCall_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -163,7 +163,7 @@ contract ALMProxyDoDelegateCallFailureTests is ALMProxyCallTestBase {
 
 }
 
-contract ALMProxyDoDelegateCallTests is ALMProxyCallTestBase {
+contract ALMProxy_DoDelegateCall_SuccessTests is ALMProxy_Call_TestBase {
 
     function test_doDelegateCall() public {
         // L1 Controller is msg.sender, almProxy emits the event
@@ -177,13 +177,13 @@ contract ALMProxyDoDelegateCallTests is ALMProxyCallTestBase {
 
 }
 
-contract ALMProxyFreezableTests is
-    ALMProxyDoCallFailureTests,
-    ALMProxyDoCallTests,
-    ALMProxyDoCallWithValueFailureTests,
-    ALMProxyDoCallWithValueTests,
-    ALMProxyDoDelegateCallFailureTests,
-    ALMProxyDoDelegateCallTests
+contract ALMProxy_Freezable_Tests is
+    ALMProxy_DoCall_FailureTests,
+    ALMProxy_DoCall_SuccessTests,
+    ALMProxy_DoCallWithValue_FailureTests,
+    ALMProxy_DoCallWithValue_SuccessTests,
+    ALMProxy_DoDelegateCall_FailureTests,
+    ALMProxy_DoDelegateCall_SuccessTests
 {
 
     function setUp() public override {

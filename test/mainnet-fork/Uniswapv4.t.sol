@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 import { console } from "../../lib/forge-std/src/console.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { Currency }     from "../../lib/uniswap-v4-core/src/types/Currency.sol";
-import { PoolId }       from "../../lib/uniswap-v4-core/src/types/PoolId.sol";
-import { PoolKey }      from "../../lib/uniswap-v4-core/src/types/PoolKey.sol";
+import { Currency } from "../../lib/uniswap-v4-periphery/lib/v4-core/src/types/Currency.sol";
+import { PoolId }   from "../../lib/uniswap-v4-periphery/lib/v4-core/src/types/PoolId.sol";
+import { PoolKey }  from "../../lib/uniswap-v4-periphery/lib/v4-core/src/types/PoolKey.sol";
+import { FullMath } from "../../lib/uniswap-v4-periphery/lib/v4-core/src/libraries/FullMath.sol";
+import { TickMath } from "../../lib/uniswap-v4-periphery/lib/v4-core/src/libraries/TickMath.sol";
+
 import { PositionInfo } from "../../lib/uniswap-v4-periphery/src/libraries/PositionInfoLibrary.sol";
-import { FullMath }     from "../../lib/uniswap-v4-core/src/libraries/FullMath.sol";
-import { TickMath }     from "../../lib/uniswap-v4-core/src/libraries/TickMath.sol";
 
 import { IV4Router }     from "../../lib/uniswap-v4-periphery/src/interfaces/IV4Router.sol";
 import { Actions }       from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
@@ -38,13 +39,9 @@ interface IPermit2Like {
     function approve(address token, address spender, uint160 amount, uint48 expiration) external;
 
     function allowance(address user, address token, address spender)
-        external view returns (uint160 amount, uint48 expiration, uint48 nonce);
-
-}
-
-interface IPoolManagerLike {
-
-    error CurrencyNotSettled();
+        external
+        view
+        returns (uint160 amount, uint48 expiration, uint48 nonce);
 
 }
 
@@ -53,7 +50,9 @@ interface IPositionManagerLike {
     function transferFrom(address from, address to, uint256 id) external;
 
     function getPoolAndPositionInfo(uint256 tokenId)
-        external view returns (PoolKey memory poolKey, PositionInfo info);
+        external
+        view
+        returns (PoolKey memory poolKey, PositionInfo info);
 
     function getPositionLiquidity(uint256 tokenId) external view returns (uint128 liquidity);
 
@@ -68,7 +67,9 @@ interface IPositionManagerLike {
 interface IStateViewLike {
 
     function getSlot0(PoolId poolId)
-        external view returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee);
+        external
+        view
+        returns (uint160 sqrtPriceX96, int24 tick, uint24 protocolFee, uint24 lpFee);
 
 }
 
@@ -88,7 +89,8 @@ interface IV4QuoterLike {
     }
 
     function quoteExactInputSingle(QuoteExactSingleParams memory params)
-        external returns (uint256 amountOut, uint256 gasEstimate);
+        external
+        returns (uint256 amountOut, uint256 gasEstimate);
 
 }
 
@@ -98,7 +100,7 @@ interface IV4RouterLike {
 
 }
 
-contract UniswapV4TestBase is ForkTestBase {
+abstract contract UniswapV4_TestBase is ForkTestBase {
 
     struct IncreasePositionResult {
         uint256 tokenId;
@@ -138,7 +140,8 @@ contract UniswapV4TestBase is ForkTestBase {
     /**********************************************************************************************/
 
     function _setupLiquidity(bytes32 poolId, int24 tickLower, int24 tickUpper, uint128 liquidity)
-        internal returns (IncreasePositionResult memory minted)
+        internal
+        returns (IncreasePositionResult memory minted)
     {
         bytes32 depositLimitKey = keccak256(abi.encode(_LIMIT_DEPOSIT,  poolId));
 
@@ -164,7 +167,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 liquidity,
         uint256 maxSlippage
     )
-        internal returns (uint128 amount0Max, uint128 amount1Max)
+        internal
+        view
+        returns (uint128 amount0Max, uint128 amount1Max)
     {
         ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             poolId,
@@ -185,7 +190,8 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 amount0Max,
         uint128 amount1Max
     )
-        internal returns (IncreasePositionResult memory result)
+        internal
+        returns (IncreasePositionResult memory result)
     {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
@@ -246,7 +252,8 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 amount0Max,
         uint128 amount1Max
     )
-        internal returns (IncreasePositionResult memory result)
+        internal
+        returns (IncreasePositionResult memory result)
     {
         (
             PoolKey memory poolKey,
@@ -311,7 +318,9 @@ contract UniswapV4TestBase is ForkTestBase {
     }
 
     function _getDecreasePositionMinAmounts(uint256 tokenId, uint128 liquidity, uint256 maxSlippage)
-        internal returns (uint128 amount0Min, uint128 amount1Min)
+        internal
+        view
+        returns (uint128 amount0Min, uint128 amount1Min)
     {
         (
             PoolKey memory poolKey,
@@ -335,7 +344,8 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 amount0Min,
         uint128 amount1Min
     )
-        internal returns (DecreasePositionResult memory result)
+        internal
+        returns (DecreasePositionResult memory result)
     {
         (
             PoolKey memory poolKey,
@@ -389,7 +399,8 @@ contract UniswapV4TestBase is ForkTestBase {
         uint128 amountIn,
         uint256 maxSlippage
     )
-        internal returns (uint128 amountOutMin)
+        internal
+        returns (uint128 amountOutMin)
     {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
@@ -409,7 +420,8 @@ contract UniswapV4TestBase is ForkTestBase {
     }
 
     function _swap(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
-        internal returns (uint256 amountOut)
+        internal
+        returns (uint256 amountOut)
     {
         Currency currencyIn  = Currency.wrap(tokenIn);
         Currency currencyOut = _getCurrencyOut(poolId, tokenIn);
@@ -454,7 +466,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint256 sqrtPriceBX96,
         uint256 liquidity
     )
-        internal pure returns (uint256 amount0)
+        internal
+        pure
+        returns (uint256 amount0)
     {
         require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices-0");
 
@@ -470,7 +484,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint160 sqrtPriceBX96,
         uint128 liquidity
     )
-        internal pure returns (uint256 amount1)
+        internal
+        pure
+        returns (uint256 amount1)
     {
         require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices-1");
 
@@ -483,7 +499,9 @@ contract UniswapV4TestBase is ForkTestBase {
         uint160 sqrtPriceBX96,
         uint128 liquidity
     )
-        internal pure returns (uint256 amount0, uint256 amount1)
+        internal
+        pure
+        returns (uint256 amount0, uint256 amount1)
     {
         require(sqrtPriceAX96 < sqrtPriceBX96, "invalid-sqrtPrices");
 
@@ -507,13 +525,13 @@ contract UniswapV4TestBase is ForkTestBase {
         );
     }
 
-    function _getPrice(uint256 sqrtPriceX96) internal view returns (uint256 price) {
+    function _getPrice(uint256 sqrtPriceX96) internal pure returns (uint256 price) {
         uint256 priceRoot = (sqrtPriceX96 * 1e18) >> 96;
 
         return (priceRoot * priceRoot) / 1e18;
     }
 
-    function _getPrice(int24 tick) internal view returns (uint256 price) {
+    function _getPrice(int24 tick) internal pure returns (uint256 price) {
         return _getPrice(TickMath.getSqrtPriceAtTick(tick));
     }
 
@@ -615,7 +633,9 @@ contract UniswapV4TestBase is ForkTestBase {
         int24   tickUpper,
         uint128 liquidityAmount
     )
-        internal view returns (uint128 amount0, uint128 amount1)
+        internal
+        view
+        returns (uint128 amount0, uint128 amount1)
     {
         ( uint160 sqrtPriceX96, , , ) = IStateViewLike(_STATE_VIEW).getSlot0(PoolId.wrap(poolId));
 
@@ -629,7 +649,7 @@ contract UniswapV4TestBase is ForkTestBase {
         return (uint128(amount0Raw), uint128(amount1Raw));
     }
 
-    function _assertZeroAllowances(address token) internal {
+    function _assertZeroAllowances(address token) internal view {
         ( uint160 allowance, , ) = IPermit2Like(_PERMIT2).allowance(address(almProxy), token, _POSITION_MANAGER);
 
         assertEq(allowance, 0, "permit2 allowance not 0");
@@ -642,13 +662,17 @@ contract UniswapV4TestBase is ForkTestBase {
     }
 
     function _toNormalizedAmount(address token, uint256 amount)
-        internal view returns (uint256 normalizedAmount)
+        internal
+        view
+        returns (uint256 normalizedAmount)
     {
         return amount * 1e18 / (10 ** IERC20Like(token).decimals());
     }
 
     function _toNormalizedAmount(Currency currency, uint256 amount)
-        internal view returns (uint256 normalizedAmount)
+        internal
+        view
+        returns (uint256 normalizedAmount)
     {
         return amount * 1e18 / (10 ** IERC20Like(Currency.unwrap(currency)).decimals());
     }
@@ -658,7 +682,8 @@ contract UniswapV4TestBase is ForkTestBase {
     }
 
     function _externalSwap(bytes32 poolId, address account, address tokenIn, uint128 amountIn)
-        internal returns (uint256 amountOut)
+        internal
+        returns (uint256 amountOut)
     {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
@@ -709,13 +734,17 @@ contract UniswapV4TestBase is ForkTestBase {
     }
 
     function _getBalanceOf(Currency currency, address  account)
-        internal view returns (uint256 balance)
+        internal
+        view
+        returns (uint256 balance)
     {
         return IERC20Like(Currency.unwrap(currency)).balanceOf(account);
     }
 
     function _getCurrencyOut(bytes32 poolId, address tokenIn)
-        internal view returns (Currency currencyOut)
+        internal
+        view
+        returns (Currency currencyOut)
     {
         PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
@@ -724,7 +753,7 @@ contract UniswapV4TestBase is ForkTestBase {
 
 }
 
-contract MainnetController_UniswapV4_Tests is UniswapV4TestBase {
+contract MainnetController_UniswapV4_Tests is UniswapV4_TestBase {
 
     /**********************************************************************************************/
     /*** mintPositionUniswapV4 Tests                                                            ***/
@@ -858,7 +887,7 @@ contract MainnetController_UniswapV4_Tests is UniswapV4TestBase {
 
 }
 
-contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
+contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
 
     // Uniswap V4 USDC/USDT pool
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
@@ -2627,7 +2656,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4TestBase {
 
 }
 
-contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4TestBase {
+contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
 
     bytes32 internal constant _POOL_ID = 0xb54ece65cc2ddd3eaec0ad18657470fb043097220273d87368a062c7d4e59180;
 

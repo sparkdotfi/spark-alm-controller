@@ -1,24 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-interface IWhitelistLike {
-    function addWallet(address account, string memory id) external;
-    function registerInvestor(string memory id, string memory collisionHash) external;
-}
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-interface IBuidlLike is IERC20 {
-    function issueTokens(address to, uint256 amount) external;
-}
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract MainnetControllerBUIDLTestBase is ForkTestBase {
+abstract contract BUIDL_TestBase is ForkTestBase {
 
     address buidlDeposit = makeAddr("buidlDeposit");
 
 }
 
-contract MainnetControllerDepositBUIDLFailureTests is MainnetControllerBUIDLTestBase {
+contract MainnetController_BUIDL_Deposit_FailureTests is BUIDL_TestBase {
 
     function test_transferAsset_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -57,7 +52,7 @@ contract MainnetControllerDepositBUIDLFailureTests is MainnetControllerBUIDLTest
 
 }
 
-contract MainnetControllerDepositBUIDLSuccessTests is MainnetControllerBUIDLTestBase {
+contract MainnetController_BUIDL_Deposit_SuccessTests is BUIDL_TestBase {
 
     function test_transferAsset() external {
         bytes32 key = RateLimitHelpers.makeAddressAddressKey(

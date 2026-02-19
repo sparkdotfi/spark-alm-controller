@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { IMetaMorpho, Id } from "metamorpho/interfaces/IMetaMorpho.sol";
+import { IMetaMorpho, Id } from "../../lib/metamorpho/src/interfaces/IMetaMorpho.sol";
 
-import { MarketParamsLib }               from "morpho-blue/src/libraries/MarketParamsLib.sol";
-import { IMorpho, MarketParams, Market } from "morpho-blue/src/interfaces/IMorpho.sol";
+import { MarketParamsLib }               from "../../lib/metamorpho/lib/morpho-blue/src/libraries/MarketParamsLib.sol";
+import { IMorpho, MarketParams, Market } from "../../lib/metamorpho/lib/morpho-blue/src/interfaces/IMorpho.sol";
 
-import "./ForkTestBase.t.sol";
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-contract ERC4626DonationAttackTestBase is ForkTestBase {
+import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+abstract contract ERC4626DonationAttack_TestBase is ForkTestBase {
 
     IMetaMorpho morphoVault = IMetaMorpho(0xe41a0583334f0dc4E023Acd0bFef3667F6FE0597);
 
@@ -82,7 +86,7 @@ contract ERC4626DonationAttackTestBase is ForkTestBase {
 
 }
 
-contract ERC4626DonationAttack is ERC4626DonationAttackTestBase {
+contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626DonationAttack_TestBase {
 
     function test_depositERC4626_donationAttackFailure() external {
         vm.startPrank(Ethereum.SPARK_PROXY);

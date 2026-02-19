@@ -22,7 +22,10 @@ library ERC4626Lib {
         uint256 maxExchangeRate,
         address rateLimits,
         bytes32 rateLimitId
-    ) external returns (uint256 shares) {
+    )
+        external
+        returns (uint256 shares)
+    {
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressKey(rateLimitId, token),
             amount
@@ -53,7 +56,10 @@ library ERC4626Lib {
         address rateLimits,
         bytes32 withdrawRateLimitId,
         bytes32 depositRateLimitId
-    ) external returns (uint256 shares) {
+    )
+        external
+        returns (uint256 shares)
+    {
         IRateLimits(rateLimits).triggerRateLimitDecrease(
             RateLimitHelpers.makeAddressKey(withdrawRateLimitId, token),
             amount
@@ -85,7 +91,10 @@ library ERC4626Lib {
         address rateLimits,
         bytes32 withdrawRateLimitId,
         bytes32 depositRateLimitId
-    ) external returns (uint256 assets) {
+    )
+        external
+        returns (uint256 assets)
+    {
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
         assets = abi.decode(

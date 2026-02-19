@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import "../UnitTestBase.t.sol";
-
 import { RateLimits, IRateLimits } from "../../../src/RateLimits.sol";
 
-contract RateLimitsTestBase is UnitTestBase {
+import { UnitTestBase } from "../UnitTestBase.t.sol";
+
+abstract contract RateLimits_TestBase is UnitTestBase {
 
     event RateLimitDataSet(
         bytes32 indexed key,
@@ -64,7 +64,7 @@ contract RateLimitsTestBase is UnitTestBase {
 
 }
 
-contract RateLimitsConstructorTest is RateLimitsTestBase {
+contract RateLimits_Constructor_Tests is RateLimits_TestBase {
 
     function test_constructor() public {
         rateLimits = new RateLimits(admin);
@@ -75,7 +75,7 @@ contract RateLimitsConstructorTest is RateLimitsTestBase {
 
 }
 
-contract RateLimitsSetRateLimitDataTest is RateLimitsTestBase {
+contract RateLimits_SetRateLimitData_Tests is RateLimits_TestBase {
 
     // Testing for setRateLimitData(bytes32,uint256,uint256,uint256,uint256)
 
@@ -170,7 +170,7 @@ contract RateLimitsSetRateLimitDataTest is RateLimitsTestBase {
 
 }
 
-contract RateLimitsSetRateLimitDataVariant1Test is RateLimitsTestBase {
+contract RateLimits_SetRateLimitData_Variant1_Tests is RateLimits_TestBase {
 
     // Testing for setRateLimitData(bytes32,uint256,uint256,uint256,uint256)
 
@@ -218,7 +218,7 @@ contract RateLimitsSetRateLimitDataVariant1Test is RateLimitsTestBase {
 
 }
 
-contract RateLimitsSetRateLimitDataVariant2Test is RateLimitsTestBase {
+contract RateLimits_SetRateLimitData_Variant2_Tests is RateLimits_TestBase {
 
     // Testing for setRateLimitData(bytes32,uint256,uint256)
 
@@ -248,7 +248,7 @@ contract RateLimitsSetRateLimitDataVariant2Test is RateLimitsTestBase {
 
 }
 
-contract RateLimitsSetUnlimitedRateLimitDataTest is RateLimitsTestBase {
+contract RateLimits_SetUnlimitedRateLimitData_Tests is RateLimits_TestBase {
 
     function test_setUnlimitedRateLimitData_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -275,7 +275,7 @@ contract RateLimitsSetUnlimitedRateLimitDataTest is RateLimitsTestBase {
 
 }
 
-contract RateLimitsGetRateLimitDataTest is RateLimitsTestBase {
+contract RateLimits_GetRateLimitData_Tests is RateLimits_TestBase {
 
     function test_getRateLimitData() public {
         vm.prank(admin);
@@ -291,7 +291,7 @@ contract RateLimitsGetRateLimitDataTest is RateLimitsTestBase {
 
 }
 
-contract RateLimitsGetCurrentRateLimitTest is RateLimitsTestBase {
+contract RateLimits_GetCurrentRateLimit_Tests is RateLimits_TestBase {
 
     function test_getCurrentRateLimit_empty() public view {
         assertEq(rateLimits.getCurrentRateLimit(TEST_KEY1), 0);
@@ -378,7 +378,7 @@ contract RateLimitsGetCurrentRateLimitTest is RateLimitsTestBase {
 
 }
 
-contract RateLimitsTriggerRateLimitDecreaseTest is RateLimitsTestBase {
+contract RateLimits_TriggerRateLimitDecrease_Tests is RateLimits_TestBase {
 
     function test_triggerRateLimitDecrease_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -696,7 +696,7 @@ contract RateLimitsTriggerRateLimitDecreaseTest is RateLimitsTestBase {
 
 }
 
-contract RateLimitsTriggerRateLimitIncreaseTest is RateLimitsTestBase {
+contract RateLimits_TriggerRateLimitIncrease_Tests is RateLimits_TestBase {
 
     function test_triggerRateLimitIncrease_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(

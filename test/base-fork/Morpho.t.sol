@@ -1,19 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
-import { IERC4626 } from "forge-std/interfaces/IERC4626.sol";
+import { IERC20 }   from "../../lib/forge-std/src/interfaces/IERC20.sol";
+import { IERC4626 } from "../../lib/forge-std/src/interfaces/IERC4626.sol";
 
-import { IMetaMorpho, Id }       from "metamorpho/interfaces/IMetaMorpho.sol";
-import { MarketParamsLib }       from "morpho-blue/src/libraries/MarketParamsLib.sol";
-import { IMorpho, MarketParams } from "morpho-blue/src/interfaces/IMorpho.sol";
+import { IMetaMorpho, Id } from "../../lib/metamorpho/src/interfaces/IMetaMorpho.sol";
+
+import { MarketParamsLib }       from "../../lib/metamorpho/lib/morpho-blue/src/libraries/MarketParamsLib.sol";
+import { IMorpho, MarketParams } from "../../lib/metamorpho/lib/morpho-blue/src/interfaces/IMorpho.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+import { Base } from "../../lib/spark-address-registry/src/Base.sol";
+
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract MorphoBaseTest is ForkTestBase {
+abstract contract Morpho_TestBase is ForkTestBase {
 
     address constant MORPHO = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
 
@@ -117,7 +121,7 @@ contract MorphoBaseTest is ForkTestBase {
 // NOTE: Only testing USDS for non-rate limit failures as it doesn't matter which asset is used
 // TODO: Refactor tests here to be generic 4626, testing morpho as a subset, rename file and functions
 
-contract MorphoDepositFailureTests is MorphoBaseTest {
+contract ForeignController_Morpho_Deposit_FailureTests is Morpho_TestBase {
 
     function test_morpho_deposit_reentrancy() external {
         _setControllerEntered();
@@ -207,7 +211,7 @@ contract MorphoDepositFailureTests is MorphoBaseTest {
 
 }
 
-contract MorphoDepositSuccessTests is MorphoBaseTest {
+contract ForeignController_Morpho_Deposit_SuccessTests is Morpho_TestBase {
 
     function test_morpho_usds_deposit() public {
         deal(Base.USDS, address(almProxy), 1_000_000e18);
@@ -251,7 +255,7 @@ contract MorphoDepositSuccessTests is MorphoBaseTest {
 
 }
 
-contract MorphoWithdrawFailureTests is MorphoBaseTest {
+contract ForeignController_Morpho_Withdraw_FailureTests is Morpho_TestBase {
 
     function test_morpho_withdraw_reentrancy() external {
         _setControllerEntered();
@@ -315,7 +319,7 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
 
         uint256 underBoundaryShares = usdsVault.previewWithdraw(10_000_000e18) - 1;
         uint256 atBoundaryShares    = usdsVault.previewWithdraw(10_000_000e18);
-        
+
         vm.startPrank(relayer);
 
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 10_000_000e18, 0);
@@ -331,7 +335,7 @@ contract MorphoWithdrawFailureTests is MorphoBaseTest {
 
 }
 
-contract MorphoWithdrawSuccessTests is MorphoBaseTest {
+contract ForeignController_Morpho_Withdraw_SuccessTests is Morpho_TestBase {
 
     function test_morpho_usds_withdraw() public {
         bytes32 depositKey = RateLimitHelpers.makeAddressKey(
@@ -411,7 +415,7 @@ contract MorphoWithdrawSuccessTests is MorphoBaseTest {
 
 }
 
-contract MorphoRedeemFailureTests is MorphoBaseTest {
+contract ForeignController_Morpho_Redeem_FailureTests is Morpho_TestBase {
 
     function test_morpho_redeem_reentrancy() external {
         _setControllerEntered();
@@ -500,7 +504,7 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
 
         uint256 overBoundaryAssets = usdsVault.convertToAssets(10_000_000e18) + 1;
         uint256 atBoundaryAssets   = usdsVault.convertToAssets(10_000_000e18);
-        
+
         vm.startPrank(relayer);
 
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 10_000_000e18, 10_000_000e18);
@@ -509,13 +513,13 @@ contract MorphoRedeemFailureTests is MorphoBaseTest {
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 10_000_000e18, overBoundaryAssets);
 
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 10_000_000e18, atBoundaryAssets);
-        
+
         vm.stopPrank();
     }
 
 }
 
-contract MorphoRedeemSuccessTests is MorphoBaseTest {
+contract ForeignController_Morpho_Redeem_SuccessTests is Morpho_TestBase {
 
     function test_morpho_usds_redeem() public {
         bytes32 depositKey = RateLimitHelpers.makeAddressKey(

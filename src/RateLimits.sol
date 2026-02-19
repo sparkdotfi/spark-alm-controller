@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { AccessControl } from "openzeppelin-contracts/contracts/access/AccessControl.sol";
+import { AccessControl } from "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
@@ -34,7 +34,9 @@ contract RateLimits is IRateLimits, AccessControl {
         uint256 lastAmount,
         uint256 lastUpdated
     )
-        public override onlyRole(DEFAULT_ADMIN_ROLE)
+        public
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(lastAmount  <= maxAmount,       "RateLimits/invalid-lastAmount");
         require(lastUpdated <= block.timestamp, "RateLimits/invalid-lastUpdated");

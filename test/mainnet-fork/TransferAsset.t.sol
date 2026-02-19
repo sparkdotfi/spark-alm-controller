@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
+
+import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
 
 import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract TransferAssetBaseTest is ForkTestBase {
+abstract contract TransferAsset_TestBase is ForkTestBase {
 
     address receiver = makeAddr("receiver");
 
@@ -33,7 +37,7 @@ contract TransferAssetBaseTest is ForkTestBase {
 
 }
 
-contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
+contract MainnetController_TransferAsset_FailureTests is TransferAsset_TestBase {
 
     function test_transferAsset_reentrancy() external {
         _setControllerEntered();
@@ -93,7 +97,7 @@ contract MainnetControllerTransferAssetFailureTests is TransferAssetBaseTest {
 
 }
 
-contract MainnetControllerTransferAssetSuccessTests is TransferAssetBaseTest {
+contract MainnetController_TransferAsset_SuccessTests is TransferAsset_TestBase {
 
     function test_transferAsset() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);

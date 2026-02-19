@@ -11,28 +11,37 @@ import { ApproveLib } from "./ApproveLib.sol";
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
 interface ICurvePoolLike is IERC20 {
-    function add_liquidity(
-        uint256[] memory amounts,
-        uint256 minMintAmount,
-        address receiver
-    ) external;
+
+    function add_liquidity(uint256[] memory amounts, uint256 minMintAmount, address receiver)
+        external;
+
     function balances(uint256 index) external view returns (uint256);
+
     function coins(uint256 index) external returns (address);
+
     function exchange(
         int128  inputIndex,
         int128  outputIndex,
         uint256 amountIn,
         uint256 minAmountOut,
         address receiver
-    ) external returns (uint256 tokensOut);
+    )
+        external
+        returns (uint256 tokensOut);
+
     function get_virtual_price() external view returns (uint256);
+
     function N_COINS() external view returns (uint256);
+
     function remove_liquidity(
         uint256 burnAmount,
         uint256[] memory minAmounts,
         address receiver
-    ) external;
+    )
+        external;
+
     function stored_rates() external view returns (uint256[] memory);
+
 }
 
 library CurveLib {

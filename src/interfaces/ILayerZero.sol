@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.21;
 
 struct MessagingFee {
     uint256 nativeFee; // gas amount in native gas token
@@ -39,32 +39,36 @@ struct OFTReceipt {
 /**
  * @dev Struct representing token parameters for the OFT send() operation.
  */
- struct SendParam {
-     uint32  dstEid; // Destination endpoint ID.
-     bytes32 to; // Recipient address.
-     uint256 amountLD; // Amount to send in local decimals.
-     uint256 minAmountLD; // Minimum amount to send in local decimals.
-     bytes   extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
-     bytes   composeMsg; // The composed message for the send() operation.
-     bytes   oftCmd; // The OFT command to be executed, unused in default OFT implementations.
+struct SendParam {
+    uint32  dstEid; // Destination endpoint ID.
+    bytes32 to; // Recipient address.
+    uint256 amountLD; // Amount to send in local decimals.
+    uint256 minAmountLD; // Minimum amount to send in local decimals.
+    bytes   extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
+    bytes   composeMsg; // The composed message for the send() operation.
+    bytes   oftCmd; // The OFT command to be executed, unused in default OFT implementations.
  }
 
-interface ILayerZero {
+interface ILayerZeroLike {
 
-    function quoteOFT(
-        SendParam calldata _sendParam
-    ) external view returns (OFTLimit memory, OFTFeeDetail[] memory oftFeeDetails, OFTReceipt memory);
+    function quoteOFT(SendParam calldata sendParam)
+        external
+        view
+        returns (
+            OFTLimit       memory oftLimit,
+            OFTFeeDetail[] memory oftFeeDetails,
+            OFTReceipt     memory oftReceipt
+        );
 
-    function quoteSend(
-        SendParam calldata _sendParam,
-        bool _payInLzToken
-    ) external view returns (MessagingFee memory msgFee);
+    function quoteSend(SendParam calldata sendParam, bool payInLzToken)
+        external
+        view
+        returns (MessagingFee memory msgFee);
 
-    function send(
-        SendParam calldata _sendParam,
-        MessagingFee calldata _fee,
-        address _refundAddress
-    ) external payable returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
+    function send(SendParam calldata sendParam, MessagingFee calldata fee, address refundAddress)
+        external
+        payable
+        returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
 
     function token() external view returns (address);
 
