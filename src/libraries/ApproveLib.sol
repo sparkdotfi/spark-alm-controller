@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
 import { IALMProxy } from "../interfaces/IALMProxy.sol";
+
+interface IERC20Like {
+
+    function approve(address spender, uint256 amount) external returns (bool success);
+
+}
 
 library ApproveLib {
 
     // NOTE: This logic was inspired by OpenZeppelin's forceApprove in SafeERC20 library.
     function approve(address token, address proxy, address spender, uint256 amount) internal {
-        bytes memory approveData = abi.encodeCall(IERC20.approve, (spender, amount));
+        bytes memory approveData = abi.encodeCall(IERC20Like.approve, (spender, amount));
 
         // Call doCall on proxy to approve the token.
         ( bool success, bytes memory data )
@@ -29,14 +33,14 @@ library ApproveLib {
         }
 
         // If call was unsuccessful, set to zero and try again.
-        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20.approve, (spender, 0)));
+        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20Like.approve, (spender, 0)));
 
         returnData = IALMProxy(proxy).doCall(token, approveData);
 
         // Revert if approve returns false.
         require(
             returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
-            "MC/approve-failed"
+            "ApproveLib/approve-failed"
         );
     }
 
