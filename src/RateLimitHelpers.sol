@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
+function makeAddressKey(bytes32 key, address a) pure returns (bytes32) {
+    return keccak256(abi.encode(key, a));
+}
+
 library RateLimitHelpers {
 
     function makeAddressKey(bytes32 key, address a) internal pure returns (bytes32) {
