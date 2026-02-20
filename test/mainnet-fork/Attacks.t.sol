@@ -62,17 +62,17 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
-        mainnetController.depositERC4626(address(syrup), 1_000_000e6, 0);
+        mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, 0);
 
         // Malicious relayer delays the request for redemption for 1m
         // because new requests can't be fulfilled until the previous is fulfilled or cancelled
         vm.prank(relayer);
-        mainnetController.requestMapleRedemption(address(syrup), 1);
+        mainnetController.requestMapleRedemption(address(SYRUP), 1);
 
         // Cannot process request
         vm.prank(relayer);
         vm.expectRevert("WM:AS:IN_QUEUE");
-        mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
+        mainnetController.requestMapleRedemption(address(SYRUP), 500_000e6);
 
         // Frezer can remove the compromised relayer and fallback to the governance relayer
         vm.prank(freezer);
@@ -85,12 +85,12 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
             relayer,
             RELAYER
         ));
-        mainnetController.requestMapleRedemption(address(syrup), 1);
+        mainnetController.requestMapleRedemption(address(SYRUP), 1);
 
         // Governance relayer can cancel and submit the real request
         vm.startPrank(backstopRelayer);
-        mainnetController.cancelMapleRedemption(address(syrup), 1);
-        mainnetController.requestMapleRedemption(address(syrup), 500_000e6);
+        mainnetController.cancelMapleRedemption(address(SYRUP), 1);
+        mainnetController.requestMapleRedemption(address(SYRUP), 500_000e6);
         vm.stopPrank();
     }
 

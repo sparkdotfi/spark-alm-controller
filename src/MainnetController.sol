@@ -118,8 +118,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
 
-    event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
-
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
@@ -170,8 +168,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
 
-    bytes32 public LIMIT_4626_DEPOSIT            = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 public LIMIT_4626_WITHDRAW           = keccak256("LIMIT_4626_WITHDRAW");
+    bytes32 public LIMIT_4626_DEPOSIT            = ERC4626Lib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_4626_WITHDRAW           = ERC4626Lib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_AAVE_DEPOSIT            = AaveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_AAVE_WITHDRAW           = AaveLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_ASSET_TRANSFER          = keccak256("LIMIT_ASSET_TRANSFER");
@@ -352,12 +350,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(token != address(0), "MC/token-zero-address");
-
-        emit MaxExchangeRateSet(
-            token,
-            maxExchangeRates[token] = ERC4626Lib.getExchangeRate(shares, maxExpectedAssets)
-        );
+        ERC4626Lib.setMaxExchangeRate(maxExchangeRates, token, shares, maxExpectedAssets);
     }
 
     function setUniswapV4TickLimits(
@@ -570,13 +563,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         returns (uint256 shares)
     {
         return ERC4626Lib.deposit({
-            proxy           : address(proxy),
-            token           : token,
-            amount          : amount,
-            minSharesOut    : minSharesOut,
-            maxExchangeRate : maxExchangeRates[token],
-            rateLimits      : address(rateLimits),
-            rateLimitId     : LIMIT_4626_DEPOSIT
+            proxy            : address(proxy),
+            rateLimits       : address(rateLimits),
+            token            : token,
+            amount           : amount,
+            minSharesOut     : minSharesOut,
+            maxExchangeRates : maxExchangeRates
         });
     }
 
@@ -586,15 +578,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
         returns (uint256 shares)
     {
-        return ERC4626Lib.withdraw({
-            proxy               : address(proxy),
-            token               : token,
-            amount              : amount,
-            maxSharesIn         : maxSharesIn,
-            rateLimits          : address(rateLimits),
-            withdrawRateLimitId : LIMIT_4626_WITHDRAW,
-            depositRateLimitId  : LIMIT_4626_DEPOSIT
-        });
+        return ERC4626Lib.withdraw(address(proxy), address(rateLimits), token, amount, maxSharesIn);
     }
 
     function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
@@ -603,15 +587,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
         returns (uint256 assets)
     {
-        return ERC4626Lib.redeem({
-            proxy               : address(proxy),
-            token               : token,
-            shares              : shares,
-            minAssetsOut        : minAssetsOut,
-            rateLimits          : address(rateLimits),
-            withdrawRateLimitId : LIMIT_4626_WITHDRAW,
-            depositRateLimitId  : LIMIT_4626_DEPOSIT
-        });
+        return ERC4626Lib.redeem(address(proxy), address(rateLimits), token, shares, minAssetsOut);
     }
 
     function EXCHANGE_RATE_PRECISION() external pure returns (uint256) {
