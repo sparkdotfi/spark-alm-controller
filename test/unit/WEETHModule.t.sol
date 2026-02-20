@@ -9,13 +9,13 @@ import { UnitTestBase } from "./UnitTestBase.t.sol";
 
 abstract contract WEETHModule_TestBase is UnitTestBase {
 
-    address almProxy = makeAddr("almProxy");
+    address internal almProxy = makeAddr("almProxy");
 
 }
 
 contract WEETHModule_Initialize_Tests is WEETHModule_TestBase {
 
-    function test_initialize_invalidAdmin() public {
+    function test_initialize_invalidAdmin() external {
         address implementation = address(new WEETHModule());
 
         vm.expectRevert("WEETHModule/invalid-admin");
@@ -28,7 +28,7 @@ contract WEETHModule_Initialize_Tests is WEETHModule_TestBase {
         );
     }
 
-    function test_initialize_invalidAlmProxy() public {
+    function test_initialize_invalidAlmProxy() external {
         address implementation = address(new WEETHModule());
 
         vm.expectRevert("WEETHModule/invalid-alm-proxy");
@@ -41,7 +41,7 @@ contract WEETHModule_Initialize_Tests is WEETHModule_TestBase {
         );
     }
 
-    function test_initialize_cannotInitializeAgain() public {
+    function test_initialize_cannotInitializeAgain() external {
         WEETHModule weethModule = WEETHModule(
             payable(
                 address(
@@ -60,14 +60,14 @@ contract WEETHModule_Initialize_Tests is WEETHModule_TestBase {
         weethModule.initialize(admin, almProxy);
     }
 
-    function test_initialize_cannotInitializeImplementation() public {
+    function test_initialize_cannotInitializeImplementation() external {
         WEETHModule implementation = new WEETHModule();
 
         vm.expectRevert("InvalidInitialization()");
         implementation.initialize(admin, almProxy);
     }
 
-    function test_initialize_success() public {
+    function test_initialize_success() external {
         WEETHModule weethModule = WEETHModule(
             payable(
                 address(
