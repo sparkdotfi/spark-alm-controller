@@ -40,4 +40,4 @@
 	url = https://github.com/Uniswap/v4-periphery.git
 [submodule "lib/oz-upgradeable"]
 	path = lib/oz-upgradeable
-	url = git@github.com:OpenZeppelin/openzeppelin-contracts-upgradeable.git
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git
