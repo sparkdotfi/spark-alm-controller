@@ -6,7 +6,6 @@ import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts
 
 import { IERC20 }         from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from "../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { IERC4626 }       from "../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 
 import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 
@@ -20,6 +19,7 @@ import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
+import { MapleLib }                       from "./libraries/MapleLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 import { USDSLib }                        from "./libraries/USDSLib.sol";
@@ -46,21 +46,13 @@ interface IFarmLike {
 
 }
 
-interface IMapleTokenLike is IERC4626 {
-
-    function requestRedeem(uint256 shares, address receiver) external;
-
-    function removeShares(uint256 shares, address receiver) external;
-
-}
-
 interface ISparkVaultLike {
 
     function take(uint256 assetAmount) external;
 
 }
 
-interface ISUSDELike is IERC4626 {
+interface ISUSDELike {
 
     function cooldownAssets(uint256 usdeAmount) external returns (uint256);
 
@@ -158,7 +150,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_FARM_DEPOSIT            = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW           = keccak256("LIMIT_FARM_WITHDRAW");
     bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_LAYERZERO_TRANSFER;
-    bytes32 public LIMIT_MAPLE_REDEEM            = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
     bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
@@ -801,16 +793,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        _rateLimitedAddress(
-            LIMIT_MAPLE_REDEEM,
-            mapleToken,
-            IMapleTokenLike(mapleToken).convertToAssets(shares)
-        );
-
-        proxy.doCall(
-            mapleToken,
-            abi.encodeCall(IMapleTokenLike(mapleToken).requestRedeem, (shares, address(proxy)))
-        );
+        MapleLib.requestRedemption(address(proxy), address(rateLimits), mapleToken, shares);
     }
 
     function cancelMapleRedemption(address mapleToken, uint256 shares)
@@ -818,12 +801,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        _rateLimitExists(RateLimitHelpers.makeAddressKey(LIMIT_MAPLE_REDEEM, mapleToken));
-
-        proxy.doCall(
-            mapleToken,
-            abi.encodeCall(IMapleTokenLike(mapleToken).removeShares, (shares, address(proxy)))
-        );
+        MapleLib.cancelRedemption(address(proxy), address(rateLimits), mapleToken, shares);
     }
 
     /**********************************************************************************************/
@@ -1134,13 +1112,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function _rateLimitedAddress(bytes32 key, address asset, uint256 amount) internal {
         rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
-    }
-
-    function _rateLimitExists(bytes32 key) internal view {
-        require(
-            rateLimits.getRateLimitData(key).maxAmount > 0,
-            "MC/invalid-action"
-        );
     }
 
 }
