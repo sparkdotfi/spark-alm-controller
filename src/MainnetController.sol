@@ -24,6 +24,7 @@ import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 import { USDSLib }                        from "./libraries/USDSLib.sol";
 import { WEETHLib }                       from "./libraries/WEETHLib.sol";
+import { WSTETHLib }                      from "./libraries/WSTETHLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -78,28 +79,6 @@ interface IUSTBLike is IERC20 {
 interface IVaultLike {
 
     function buffer() external view returns (address);
-}
-
-interface IWETH {
-
-    function withdraw(uint256 amount) external;
-
-}
-
-interface IWithdrawalQueue {
-
-    function requestWithdrawalsWstETH(uint256[] calldata _amounts, address _owner)
-        external
-        returns (uint256[] memory requestIds);
-
-    function claimWithdrawal(uint256 _requestId) external;
-
-}
-
-interface IWstETHLike {
-
-    function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
-
 }
 
 contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
@@ -420,74 +399,38 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** wstETH Integration                                                                     ***/
     /**********************************************************************************************/
 
-    function depositToWstETH(uint256 amount) external nonReentrant onlyRole(RELAYER) {
-        _rateLimited(LIMIT_WSTETH_DEPOSIT, amount);
-
-        proxy.doCall(
-            Ethereum.WETH,
-            abi.encodeCall((IWETH(Ethereum.WETH)).withdraw, (amount))
-        );
-
-        proxy.doCallWithValue(
-            Ethereum.WSTETH,
-            "",
-            amount
-        );
+    function depositToWSTETH(uint256 amount) external nonReentrant onlyRole(RELAYER) {
+        WSTETHLib.deposit({
+            proxy      : address(proxy),
+            rateLimits : address(rateLimits),
+            weth       : Ethereum.WETH,
+            wsteth     : Ethereum.WSTETH,
+            amount     : amount
+        });
     }
 
-    function requestWithdrawFromWstETH(uint256 amountToRedeem)
+    function requestWithdrawFromWSTETH(uint256 amountToRedeem)
         external
         nonReentrant
         onlyRole(RELAYER)
         returns (uint256[] memory requestIds)
     {
-        _rateLimited(
-            LIMIT_WSTETH_REQUEST_WITHDRAW,
-            IWstETHLike(Ethereum.WSTETH).getStETHByWstETH(amountToRedeem)
-        );
-
-        proxy.doCall(
-            Ethereum.WSTETH,
-            abi.encodeCall(
-                IERC20(Ethereum.WSTETH).approve,
-                (Ethereum.WSTETH_WITHDRAW_QUEUE, amountToRedeem)
-            )
-        );
-
-        uint256[] memory amountsToRedeem = new uint256[](1);
-        amountsToRedeem[0] = amountToRedeem;
-
-        ( requestIds ) = abi.decode(
-            proxy.doCall(
-                Ethereum.WSTETH_WITHDRAW_QUEUE,
-                abi.encodeCall(
-                    IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).requestWithdrawalsWstETH,
-                    (amountsToRedeem, address(proxy))
-                )
-            ),
-            (uint256[])
-        );
+        return WSTETHLib.requestWithdraw({
+            proxy          : address(proxy),
+            rateLimits     : address(rateLimits),
+            wsteth         : Ethereum.WSTETH,
+            withdrawQueue  : Ethereum.WSTETH_WITHDRAW_QUEUE,
+            amountToRedeem : amountToRedeem
+        });
     }
 
-    function claimWithdrawalFromWstETH(uint256 requestId) external nonReentrant onlyRole(RELAYER) {
-        uint256 initialEthBalance = address(proxy).balance;
-
-        proxy.doCall(
-            Ethereum.WSTETH_WITHDRAW_QUEUE,
-            abi.encodeCall(
-                IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE).claimWithdrawal,
-                (requestId)
-            )
-        );
-
-        uint256 ethReceived = address(proxy).balance - initialEthBalance;
-
-        // Wrap into WETH
-        proxy.doCallWithValue(
-            Ethereum.WETH,
-            "",
-            ethReceived
-        );
+    function claimWithdrawalFromWSTETH(uint256 requestId) external nonReentrant onlyRole(RELAYER) {
+        WSTETHLib.claimWithdrawal({
+            proxy         : address(proxy),
+            withdrawQueue : Ethereum.WSTETH_WITHDRAW_QUEUE,
+            weth          : Ethereum.WETH,
+            requestId     : requestId
+        });
     }
 
     /**********************************************************************************************/
