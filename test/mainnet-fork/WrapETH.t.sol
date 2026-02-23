@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.21;
 
-import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
-
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-abstract contract WrapAllProxyETH_TestBase is ForkTestBase {
+interface IERC20Like {
 
-    IERC20 weth = IERC20(Ethereum.WETH);
+    function balanceOf(address account) external view returns (uint256);
 
 }
 
-contract MainnetController_WrapAllProxyETH_FailureTests is WrapAllProxyETH_TestBase {
+contract MainnetController_WrapAllProxyETH_Tests is ForkTestBase {
+
+    IERC20Like internal constant WETH = IERC20Like(Ethereum.WETH);
 
     function test_wrapAllProxyETH_reentrancy() external {
         _setControllerEntered();
@@ -33,13 +33,9 @@ contract MainnetController_WrapAllProxyETH_FailureTests is WrapAllProxyETH_TestB
         mainnetController.wrapAllProxyETH();
     }
 
-}
-
-contract MainnetController_WrapAllProxyETH_SuccessTests is WrapAllProxyETH_TestBase {
-
     function test_wrapAllProxyETH_zeroBalance() external {
         assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), 0);
+        assertEq(WETH.balanceOf(address(almProxy)), 0);
 
         vm.record();
 
@@ -49,14 +45,14 @@ contract MainnetController_WrapAllProxyETH_SuccessTests is WrapAllProxyETH_TestB
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), 0);
+        assertEq(WETH.balanceOf(address(almProxy)), 0);
     }
 
     function test_wrapAllProxyETH() external {
         vm.deal(address(almProxy), 1 ether);
 
         assertEq(address(almProxy).balance,         1 ether);
-        assertEq(weth.balanceOf(address(almProxy)), 0);
+        assertEq(WETH.balanceOf(address(almProxy)), 0);
 
         vm.record();
 
@@ -66,7 +62,7 @@ contract MainnetController_WrapAllProxyETH_SuccessTests is WrapAllProxyETH_TestB
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(address(almProxy).balance,         0);
-        assertEq(weth.balanceOf(address(almProxy)), 1 ether);
+        assertEq(WETH.balanceOf(address(almProxy)), 1 ether);
     }
 
 }
