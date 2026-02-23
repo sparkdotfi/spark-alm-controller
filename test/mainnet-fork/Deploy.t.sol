@@ -20,7 +20,7 @@ contract MainnetController_Deploy_SuccessTests is ForkTestBase {
         ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
             admin   : SPARK_PROXY,
             vault   : vault,
-            psm     : PSM,
+            psm     : Ethereum.PSM,
             daiUsds : DAI_USDS,
             cctp    : CCTP_MESSENGER
         });
@@ -46,7 +46,7 @@ contract MainnetController_Deploy_SuccessTests is ForkTestBase {
             almProxy   : address(almProxy),
             rateLimits : address(rateLimits),
             vault      : vault,
-            psm        : PSM,
+            psm        : Ethereum.PSM,
             daiUsds    : DAI_USDS,
             cctp       : CCTP_MESSENGER
         }));

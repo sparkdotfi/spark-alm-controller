@@ -55,18 +55,6 @@ interface ISUSDELike is IERC4626 {
 
 }
 
-interface IPSMLike {
-
-    function bud(address) external view returns (uint256);
-
-    function pocket() external view returns (address);
-
-    function kiss(address) external;
-
-    function rush() external view returns (uint256);
-
-}
-
 abstract contract ForkTestBase is DssTest {
 
     using DomainHelpers for *;
@@ -107,7 +95,6 @@ abstract contract ForkTestBase is DssTest {
     address constant DAI_USDS       = Ethereum.DAI_USDS;
     address constant ETHENA_MINTER  = Ethereum.ETHENA_MINTER;
     address constant PAUSE_PROXY    = Ethereum.PAUSE_PROXY;
-    address constant PSM            = Ethereum.PSM;
     address constant SPARK_PROXY    = Ethereum.SPARK_PROXY;
 
     IERC20 constant dai  = IERC20(Ethereum.DAI);
@@ -119,8 +106,6 @@ abstract contract ForkTestBase is DssTest {
     IERC4626 constant susds = IERC4626(Ethereum.SUSDS);
 
     ISUSDELike constant susde = ISUSDELike(Ethereum.SUSDE);
-
-    IPSMLike constant psm = IPSMLike(PSM);
 
     address POCKET;
     address USDS_JOIN;
@@ -173,7 +158,7 @@ abstract contract ForkTestBase is DssTest {
         USDS_JOIN = IChainlogLike(LOG).getAddress("USDS_JOIN");
         POCKET    = IChainlogLike(LOG).getAddress("MCD_LITE_PSM_USDC_A_POCKET");
 
-        DAI_BAL_PSM       = dai.balanceOf(PSM);
+        DAI_BAL_PSM       = dai.balanceOf(Ethereum.PSM);
         DAI_SUPPLY        = dai.totalSupply();
         USDC_BAL_PSM      = usdc.balanceOf(POCKET);
         USDC_SUPPLY       = usdc.totalSupply();

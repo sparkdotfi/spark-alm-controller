@@ -13,7 +13,13 @@ import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 
-import { ForkTestBase, IPSMLike } from "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
+
+interface IPSMLike {
+
+    function bud(address) external view returns (uint256);
+
+}
 
 interface IVaultLike {
 
@@ -174,7 +180,7 @@ contract MainnetController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBas
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_,, ) = _getDefaultParams();
+        ( configAddresses, checkAddresses, mintRecipients_, , ) = _getDefaultParams();
 
         // NOTE: This would need to be refactored to a for loop if more than one recipient
         mintRecipients.push(mintRecipients_[0]);

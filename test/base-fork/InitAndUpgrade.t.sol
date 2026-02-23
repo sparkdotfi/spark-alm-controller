@@ -148,7 +148,7 @@ contract ForeignController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBas
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
 
-        ( configAddresses, checkAddresses, mintRecipients_,, ) = _getDefaultParams();
+        ( configAddresses, checkAddresses, mintRecipients_, , ) = _getDefaultParams();
 
         // NOTE: This would need to be refactored to a for loop if more than one recipient
         mintRecipients.push(mintRecipients_[0]);
