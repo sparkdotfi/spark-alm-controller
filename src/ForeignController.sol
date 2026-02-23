@@ -6,23 +6,18 @@ import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts
 
 import { IERC20 }   from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import { AaveLib }      from "./libraries/AaveLib.sol";
-import { ApproveLib }   from "./libraries/ApproveLib.sol";
-import { ERC4626Lib }   from "./libraries/ERC4626Lib.sol";
-import { LayerZeroLib } from "./libraries/LayerZeroLib.sol";
-import { PSM3Lib }      from "./libraries/PSM3Lib.sol";
+import { AaveLib }       from "./libraries/AaveLib.sol";
+import { ApproveLib }    from "./libraries/ApproveLib.sol";
+import { ERC4626Lib }    from "./libraries/ERC4626Lib.sol";
+import { LayerZeroLib }  from "./libraries/LayerZeroLib.sol";
+import { SparkVaultLib } from "./libraries/SparkVaultLib.sol";
+import { PSM3Lib }       from "./libraries/PSM3Lib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
-
-interface ISparkVaultLike {
-
-    function take(uint256 assetAmount) external;
-
-}
 
 contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
@@ -59,7 +54,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public constant LIMIT_PSM_DEPOSIT        = PSM3Lib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_PSM_WITHDRAW       = PSM3Lib.LIMIT_WITHDRAW;
-    bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = SparkVaultLib.LIMIT_TAKE;
     bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
 
@@ -330,13 +325,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         external
         nonReentrant
         onlyRole(RELAYER)
-        rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount)
     {
-        // Take assets from the vault
-        proxy.doCall(
-            sparkVault,
-            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
-        );
+        SparkVaultLib.take(address(proxy), address(rateLimits), sparkVault, assetAmount);
     }
 
     /**********************************************************************************************/

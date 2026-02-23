@@ -22,6 +22,7 @@ import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
 import { MapleLib }                       from "./libraries/MapleLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { SparkVaultLib }                  from "./libraries/SparkVaultLib.sol";
 import { SuperstateLib }                  from "./libraries/SuperstateLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 import { USDSLib }                        from "./libraries/USDSLib.sol";
@@ -46,12 +47,6 @@ interface IFarmLike {
     function withdraw(uint256 amount) external;
 
     function getReward() external;
-
-}
-
-interface ISparkVaultLike {
-
-    function take(uint256 assetAmount) external;
 
 }
 
@@ -140,7 +135,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
     bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
-    bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 public LIMIT_SPARK_VAULT_TAKE        = SparkVaultLib.LIMIT_TAKE;
     bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = SuperstateLib.LIMIT_SUBSCRIBE;
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
@@ -923,13 +918,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        _rateLimitedAddress(LIMIT_SPARK_VAULT_TAKE, sparkVault, assetAmount);
-
-        // Take assets from the vault
-        proxy.doCall(
-            sparkVault,
-            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
-        );
+        SparkVaultLib.take(address(proxy), address(rateLimits), sparkVault, assetAmount);
     }
 
     /**********************************************************************************************/
