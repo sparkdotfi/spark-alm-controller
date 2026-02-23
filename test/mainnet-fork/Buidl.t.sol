@@ -3,17 +3,25 @@ pragma solidity ^0.8.21;
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { RateLimitHelpers } from "../../src/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-abstract contract BUIDL_TestBase is ForkTestBase {
+interface IERC20Like {
 
-    address buidlDeposit = makeAddr("buidlDeposit");
+    function balanceOf(address account) external view returns (uint256);
 
 }
 
-contract MainnetController_BUIDL_Deposit_FailureTests is BUIDL_TestBase {
+abstract contract BUIDL_TestBase is ForkTestBase {
+
+    IERC20Like internal constant USDC = IERC20Like(Ethereum.USDC);
+
+    address internal buidlDeposit = makeAddr("buidlDeposit");
+
+}
+
+contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
 
     function test_transferAsset_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -21,63 +29,59 @@ contract MainnetController_BUIDL_Deposit_FailureTests is BUIDL_TestBase {
             address(this),
             RELAYER
         ));
-        mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6);
+        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
     }
 
     function test_transferAsset_zeroMaxAmount() external {
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.transferAsset(address(usdc), buidlDeposit, 0);
+        vm.prank(relayer);
+        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 0);
     }
 
     function test_transferAsset_rateLimitsBoundary() external {
-        bytes32 key = RateLimitHelpers.makeAddressAddressKey(
+        bytes32 key = makeAddressAddressKey(
             mainnetController.LIMIT_ASSET_TRANSFER(),
-            address(usdc),
-            address(buidlDeposit)
+            Ethereum.USDC,
+            buidlDeposit
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
 
-        vm.prank(relayer);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6 + 1);
+        vm.prank(relayer);
+        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6 + 1);
 
         vm.prank(relayer);
-        mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6);
+        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
     }
 
-}
-
-contract MainnetController_BUIDL_Deposit_SuccessTests is BUIDL_TestBase {
-
     function test_transferAsset() external {
-        bytes32 key = RateLimitHelpers.makeAddressAddressKey(
+        bytes32 key = makeAddressAddressKey(
             mainnetController.LIMIT_ASSET_TRANSFER(),
-            address(usdc),
-            address(buidlDeposit)
+            Ethereum.USDC,
+            buidlDeposit
         );
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
-        assertEq(usdc.balanceOf(buidlDeposit),      0);
+        assertEq(USDC.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(USDC.balanceOf(buidlDeposit),      0);
 
         vm.prank(relayer);
-        mainnetController.transferAsset(address(usdc), buidlDeposit, 1_000_000e6);
+        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
-        assertEq(usdc.balanceOf(buidlDeposit),      1_000_000e6);
+        assertEq(USDC.balanceOf(address(almProxy)), 0);
+        assertEq(USDC.balanceOf(buidlDeposit),      1_000_000e6);
     }
 
 }
