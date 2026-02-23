@@ -47,7 +47,7 @@ struct SendParam {
     bytes   extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
     bytes   composeMsg; // The composed message for the send() operation.
     bytes   oftCmd; // The OFT command to be executed, unused in default OFT implementations.
- }
+}
 
 interface ILayerZeroLike {
 

@@ -5,6 +5,7 @@ import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/a
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { ERC4626Lib }   from "../../../src/libraries/ERC4626Lib.sol";
+import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
 import { UniswapV4Lib } from "../../../src/libraries/UniswapV4Lib.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
@@ -18,12 +19,12 @@ import { UnitTestBase } from "../UnitTestBase.t.sol";
 
 abstract contract MainnetController_Admin_TestBase is UnitTestBase {
 
-    bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
-    bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
-    bytes32 mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
-    bytes32 mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
+    bytes32 internal layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
+    bytes32 internal layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
+    bytes32 internal mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
+    bytes32 internal mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
 
-    MainnetController mainnetController;
+    MainnetController internal mainnetController;
 
     function setUp() public {
         MockDaiUsds daiUsds = new MockDaiUsds(makeAddr("dai"));
@@ -124,12 +125,12 @@ contract MainnetController_Admin_SetLayerZeroRecipient_Tests is MainnetControlle
         ));
         mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
 
-        vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
+        vm.prank(freezer);
         mainnetController.setMintRecipient(1, mintRecipient1);
     }
 
@@ -137,25 +138,28 @@ contract MainnetController_Admin_SetLayerZeroRecipient_Tests is MainnetControlle
         assertEq(mainnetController.layerZeroRecipients(1), bytes32(0));
         assertEq(mainnetController.layerZeroRecipients(2), bytes32(0));
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.LayerZeroRecipientSet(1, layerZeroRecipient1);
+        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient1);
+
+        vm.prank(admin);
         mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
 
         assertEq(mainnetController.layerZeroRecipients(1), layerZeroRecipient1);
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.LayerZeroRecipientSet(2, layerZeroRecipient2);
+        emit LayerZeroLib.LayerZeroRecipientSet(2, layerZeroRecipient2);
+
+        vm.prank(admin);
         mainnetController.setLayerZeroRecipient(2, layerZeroRecipient2);
 
         assertEq(mainnetController.layerZeroRecipients(2), layerZeroRecipient2);
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.LayerZeroRecipientSet(1, layerZeroRecipient2);
+        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient2);
+
+        vm.prank(admin);
         mainnetController.setLayerZeroRecipient(1, layerZeroRecipient2);
 
         assertEq(mainnetController.layerZeroRecipients(1), layerZeroRecipient2);
@@ -658,12 +662,12 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         ));
         foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
 
-        vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
+        vm.prank(freezer);
         foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
     }
 
@@ -671,25 +675,28 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         assertEq(foreignController.layerZeroRecipients(1), bytes32(0));
         assertEq(foreignController.layerZeroRecipients(2), bytes32(0));
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.LayerZeroRecipientSet(1, layerZeroRecipient1);
+        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient1);
+
+        vm.prank(admin);
         foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
 
         assertEq(foreignController.layerZeroRecipients(1), layerZeroRecipient1);
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.LayerZeroRecipientSet(2, layerZeroRecipient2);
+        emit LayerZeroLib.LayerZeroRecipientSet(2, layerZeroRecipient2);
+
+        vm.prank(admin);
         foreignController.setLayerZeroRecipient(2, layerZeroRecipient2);
 
         assertEq(foreignController.layerZeroRecipients(2), layerZeroRecipient2);
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.LayerZeroRecipientSet(1, layerZeroRecipient2);
+        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient2);
+
+        vm.prank(admin);
         foreignController.setLayerZeroRecipient(1, layerZeroRecipient2);
 
         assertEq(foreignController.layerZeroRecipients(1), layerZeroRecipient2);
