@@ -290,7 +290,7 @@ contract Mainnet_StagingDeployment_Tests is StagingDeployment_TestBase {
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
         mainnetController.swapUSDSToUSDC(10e6);
-        mainnetController.prepareUSDeMint(10e6);
+        mainnetController.prepareUSDEMint(10e6);
         vm.stopPrank();
 
         _simulateUsdeMint(10e6);
@@ -298,10 +298,10 @@ contract Mainnet_StagingDeployment_Tests is StagingDeployment_TestBase {
         vm.startPrank(relayerSafe);
         mainnetController.depositERC4626(Ethereum.SUSDE, 10e18, 0);
         skip(1 days);
-        mainnetController.cooldownAssetsSUSDe(10e18 - 1);  // Rounding
+        mainnetController.cooldownAssetsSUSDE(10e18 - 1);  // Rounding
         skip(7 days);
-        mainnetController.unstakeSUSDe();
-        mainnetController.prepareUSDeBurn(10e18 - 1);
+        mainnetController.unstakeSUSDE();
+        mainnetController.prepareUSDEBurn(10e18 - 1);
         vm.stopPrank();
 
         _simulateUsdeBurn(10e18 - 1);
@@ -317,7 +317,7 @@ contract Mainnet_StagingDeployment_Tests is StagingDeployment_TestBase {
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
         mainnetController.swapUSDSToUSDC(10e6);
-        mainnetController.prepareUSDeMint(10e6);
+        mainnetController.prepareUSDEMint(10e6);
         vm.stopPrank();
 
         uint256 startingBalance = usdc.balanceOf(address(almProxy));
@@ -327,14 +327,14 @@ contract Mainnet_StagingDeployment_Tests is StagingDeployment_TestBase {
         vm.startPrank(relayerSafe);
         mainnetController.depositERC4626(Ethereum.SUSDE, 10e18, 0);
         skip(1 days);
-        uint256 usdeAmount = mainnetController.cooldownSharesSUSDe(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)));
+        uint256 usdeAmount = mainnetController.cooldownSharesSUSDE(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)));
         skip(7 days);
-        mainnetController.unstakeSUSDe();
+        mainnetController.unstakeSUSDE();
 
         // Handle situation where usde balance of ALM Proxy is higher than max rate limit
         uint256 maxBurnAmount = rateLimits.getCurrentRateLimit(mainnetController.LIMIT_USDE_BURN());
         uint256 burnAmount    = usdeAmount > maxBurnAmount ? maxBurnAmount : usdeAmount;
-        mainnetController.prepareUSDeBurn(burnAmount);
+        mainnetController.prepareUSDEBurn(burnAmount);
 
         vm.stopPrank();
 
