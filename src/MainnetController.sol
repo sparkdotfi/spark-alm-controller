@@ -19,6 +19,7 @@ import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { DAIUSDSLib }                     from "./libraries/DAIUSDSLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
+import { FarmLib }                        from "./libraries/FarmLib.sol";
 import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
 import { MapleLib }                       from "./libraries/MapleLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
@@ -33,16 +34,6 @@ import { WrapProxyETHLib }                from "./libraries/WrapProxyETHLib.sol"
 import { WSTETHLib }                      from "./libraries/WSTETHLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
-
-interface IFarmLike {
-
-    function stake(uint256 amount) external;
-
-    function withdraw(uint256 amount) external;
-
-    function getReward() external;
-
-}
 
 interface IVaultLike {
 
@@ -114,8 +105,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_CURVE_DEPOSIT           = CurveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_CURVE_SWAP              = CurveLib.LIMIT_SWAP;
     bytes32 public LIMIT_CURVE_WITHDRAW          = CurveLib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_FARM_DEPOSIT            = keccak256("LIMIT_FARM_DEPOSIT");
-    bytes32 public LIMIT_FARM_WITHDRAW           = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 public LIMIT_FARM_DEPOSIT            = FarmLib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_FARM_WITHDRAW           = FarmLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
     bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
@@ -828,42 +819,16 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Relayer SPK Farm functions                                                             ***/
     /**********************************************************************************************/
 
-    function depositToFarm(address farm, uint256 usdsAmount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        _rateLimited(
-            keccak256(abi.encode(LIMIT_FARM_DEPOSIT, farm)),
-            usdsAmount
-        );
-
-        ApproveLib.approve(address(usds), address(proxy), farm, usdsAmount);
-
-        proxy.doCall(
-            farm,
-            abi.encodeCall(IFarmLike.stake, (usdsAmount))
-        );
+    function depositToFarm(address farm, uint256 amount) external nonReentrant onlyRole(RELAYER) {
+        FarmLib.deposit(address(proxy), address(rateLimits), farm, amount);
     }
 
-    function withdrawFromFarm(address farm, uint256 usdsAmount)
+    function withdrawFromFarm(address farm, uint256 amount)
         external
         nonReentrant
         onlyRole(RELAYER)
     {
-        _rateLimited(
-            keccak256(abi.encode(LIMIT_FARM_WITHDRAW, farm)),
-            usdsAmount
-        );
-
-        proxy.doCall(
-            farm,
-            abi.encodeCall(IFarmLike.withdraw, (usdsAmount))
-        );
-        proxy.doCall(
-            farm,
-            abi.encodeCall(IFarmLike.getReward, ())
-        );
+        FarmLib.withdraw(address(proxy), address(rateLimits), farm, amount);
     }
 
     /**********************************************************************************************/
