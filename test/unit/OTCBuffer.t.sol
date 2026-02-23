@@ -10,10 +10,10 @@ import { UnitTestBase } from "./UnitTestBase.t.sol";
 
 abstract contract OTCBuffer_TestBase is UnitTestBase {
 
-    OTCBuffer public buffer;
-    ERC20Mock public usdt;
+    OTCBuffer internal buffer;
+    ERC20Mock internal usdt;
 
-    address almProxy = makeAddr("almProxy");
+    address internal almProxy = makeAddr("almProxy");
 
     function setUp() public {
         buffer = OTCBuffer(
@@ -35,7 +35,7 @@ abstract contract OTCBuffer_TestBase is UnitTestBase {
 
 contract OTCBuffer_Initialize_Tests is OTCBuffer_TestBase {
 
-    function test_initialize_invalidAdmin() public {
+    function test_initialize_invalidAdmin() external {
         address otcBuffer = address(new OTCBuffer());
 
         vm.expectRevert("OTCBuffer/invalid-admin");
@@ -48,7 +48,7 @@ contract OTCBuffer_Initialize_Tests is OTCBuffer_TestBase {
         );
     }
 
-    function test_initialize_invalidAlmProxy() public {
+    function test_initialize_invalidAlmProxy() external {
         address otcBuffer = address(new OTCBuffer());
 
         vm.expectRevert("OTCBuffer/invalid-alm-proxy");
@@ -61,19 +61,19 @@ contract OTCBuffer_Initialize_Tests is OTCBuffer_TestBase {
         );
     }
 
-    function test_initialize_cannotInitializeTwice() public {
+    function test_initialize_cannotInitializeTwice() external {
         vm.expectRevert("InvalidInitialization()");
         buffer.initialize(admin, almProxy);
     }
 
-    function test_initialize_cannotInitializeImplementation() public {
+    function test_initialize_cannotInitializeImplementation() external {
         OTCBuffer newBuffer = new OTCBuffer();
 
         vm.expectRevert("InvalidInitialization()");
         newBuffer.initialize(admin, almProxy);
     }
 
-    function test_initialize() public {
+    function test_initialize() external {
         address newAdmin = makeAddr("new-admin");
 
         OTCBuffer newBuffer = OTCBuffer(
@@ -94,9 +94,9 @@ contract OTCBuffer_Initialize_Tests is OTCBuffer_TestBase {
 
 }
 
-contract OTCBuffer_Approve_FailureTests is OTCBuffer_TestBase {
+contract OTCBuffer_Approve_Tests is OTCBuffer_TestBase {
 
-    function test_approve_notAuthorized() public {
+    function test_approve_notAuthorized() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -105,11 +105,7 @@ contract OTCBuffer_Approve_FailureTests is OTCBuffer_TestBase {
         buffer.approve(address(usdt), 1_000_000e6);
     }
 
-}
-
-contract OTCBuffer_Approve_SuccessTests is OTCBuffer_TestBase {
-
-    function test_approve() public {
+    function test_approve() external {
         assertEq(usdt.allowance(address(buffer), almProxy), 0);
 
         vm.prank(admin);
