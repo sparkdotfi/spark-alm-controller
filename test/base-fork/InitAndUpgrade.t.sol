@@ -310,7 +310,7 @@ contract ForeignController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBas
         controllerInst = ForeignControllerDeploy.deployFull(
             SPARK_EXECUTOR,
             address(psmBase),
-            USDC_BASE,
+            Base.USDC,
             CCTP_MESSENGER_BASE
         );
 
@@ -326,14 +326,14 @@ contract ForeignController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBas
 
         // Deploy a new PSM with the wrong USDS
         psmBase = IPSM3(PSM3Deploy.deploy(
-            SPARK_EXECUTOR, USDC_BASE, address(wrongUsds), address(susdsBase), SSR_ORACLE
+            SPARK_EXECUTOR, Base.USDC, address(wrongUsds), address(susdsBase), SSR_ORACLE
         ));
 
         // Deploy a new controller pointing to misconfigured PSM
         controllerInst = ForeignControllerDeploy.deployFull(
             SPARK_EXECUTOR,
             address(psmBase),
-            USDC_BASE,
+            Base.USDC,
             CCTP_MESSENGER_BASE
         );
 
@@ -349,14 +349,14 @@ contract ForeignController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBas
 
         // Deploy a new PSM with the wrong SUSDS
         psmBase = IPSM3(PSM3Deploy.deploy(
-            SPARK_EXECUTOR, USDC_BASE, address(usdsBase), address(wrongSUsds), SSR_ORACLE
+            SPARK_EXECUTOR, Base.USDC, address(usdsBase), address(wrongSUsds), SSR_ORACLE
         ));
 
         // Deploy a new controller pointing to misconfigured PSM
         controllerInst = ForeignControllerDeploy.deployFull(
             SPARK_EXECUTOR,
             address(psmBase),
-            USDC_BASE,
+            Base.USDC,
             CCTP_MESSENGER_BASE
         );
 

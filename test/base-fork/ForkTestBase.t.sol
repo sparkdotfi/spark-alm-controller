@@ -52,7 +52,6 @@ abstract contract ForkTestBase is Test {
 
     address constant SPARK_EXECUTOR      = Base.SPARK_EXECUTOR;
     address constant CCTP_MESSENGER_BASE = Base.CCTP_TOKEN_MESSENGER;
-    address constant USDC_BASE           = Base.USDC;
     address constant SSR_ORACLE          = Base.SSR_AUTH_ORACLE;
 
     /**********************************************************************************************/
@@ -84,14 +83,14 @@ abstract contract ForkTestBase is Test {
 
         usdsBase  = IERC20(address(new ERC20Mock()));
         susdsBase = IERC20(address(new ERC20Mock()));
-        usdcBase  = IERC20(USDC_BASE);
+        usdcBase  = IERC20(Base.USDC);
 
         /*** Step 2: Deploy and configure PSM with a pocket ***/
 
         deal(address(usdsBase), address(this), 1e18);  // For seeding PSM during deployment
 
         psmBase = IPSM3(PSM3Deploy.deploy(
-            SPARK_EXECUTOR, USDC_BASE, address(usdsBase), address(susdsBase), SSR_ORACLE
+            SPARK_EXECUTOR, Base.USDC, address(usdsBase), address(susdsBase), SSR_ORACLE
         ));
 
         vm.prank(SPARK_EXECUTOR);
@@ -105,7 +104,7 @@ abstract contract ForkTestBase is Test {
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
             admin : SPARK_EXECUTOR,
             psm   : address(psmBase),
-            usdc  : USDC_BASE,
+            usdc  : Base.USDC,
             cctp  : CCTP_MESSENGER_BASE
         });
 
