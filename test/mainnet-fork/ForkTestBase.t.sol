@@ -67,27 +67,6 @@ interface IPSMLike {
 
 }
 
-interface ISSTokenLike is IERC20 {
-
-    function calculateSuperstateTokenOut(uint256 amountIn, address stablecoin)
-        external
-        view
-        returns (
-            uint256 superstateTokenOutAmount,
-            uint256 stablcoinInAmountAfterFee,
-            uint256 feeOnStablecoinInAmount
-        );
-
-    function mint(address to, uint256 amount) external;
-
-    function burn(address src, uint256 amount) external;
-
-    function owner() external view returns (address);
-
-    function supportedStablecoins(address stablecoin) external view returns (address sweepDestination, uint256 fee);
-
-}
-
 abstract contract ForkTestBase is DssTest {
 
     using DomainHelpers for *;
@@ -139,9 +118,7 @@ abstract contract ForkTestBase is DssTest {
 
     IERC4626 constant susds = IERC4626(Ethereum.SUSDS);
 
-    ISSTokenLike constant uscc  = ISSTokenLike(Ethereum.USCC);
-    ISSTokenLike constant ustb  = ISSTokenLike(Ethereum.USTB);
-    ISUSDELike   constant susde = ISUSDELike(Ethereum.SUSDE);
+    ISUSDELike constant susde = ISUSDELike(Ethereum.SUSDE);
 
     IPSMLike constant psm = IPSMLike(PSM);
 

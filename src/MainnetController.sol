@@ -22,6 +22,7 @@ import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
 import { MapleLib }                       from "./libraries/MapleLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
+import { SuperstateLib }                  from "./libraries/SuperstateLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
 import { USDSLib }                        from "./libraries/USDSLib.sol";
 import { WEETHLib }                       from "./libraries/WEETHLib.sol";
@@ -60,12 +61,6 @@ interface ISUSDELike {
     function cooldownShares(uint256 susdeAmount) external returns (uint256);
 
     function unstake(address receiver) external;
-
-}
-
-interface IUSTBLike is IERC20 {
-
-    function subscribe(uint256 inAmount, address stablecoin) external;
 
 }
 
@@ -147,7 +142,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
     bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
-    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
+    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = SuperstateLib.LIMIT_SUBSCRIBE;
     bytes32 public LIMIT_SUSDE_COOLDOWN          = keccak256("LIMIT_SUSDE_COOLDOWN");
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
@@ -177,7 +172,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     IERC20     public usds;
     address    public usde;
     IERC20     public usdc;
-    IUSTBLike  public ustb;
+    address    public ustb;
     ISUSDELike public susde;
 
     uint256 public psmTo18ConversionFactor;
@@ -224,7 +219,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
         susde = ISUSDELike(Ethereum.SUSDE);
-        ustb  = IUSTBLike(Ethereum.USTB);
+        ustb  = Ethereum.USTB;
         dai   = IERC20(daiUsds.dai());
         usdc  = IERC20(psm.gem());
         usds  = IERC20(Ethereum.USDS);
@@ -797,14 +792,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function subscribeSuperstate(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER) {
-        _rateLimited(LIMIT_SUPERSTATE_SUBSCRIBE, usdcAmount);
-
-        ApproveLib.approve(address(usdc), address(proxy), address(ustb), usdcAmount);
-
-        proxy.doCall(
-            address(ustb),
-            abi.encodeCall(ustb.subscribe, (usdcAmount, address(usdc)))
-        );
+        SuperstateLib.subscribe(address(proxy), address(rateLimits), address(usdc), ustb, usdcAmount);
     }
 
     /**********************************************************************************************/
