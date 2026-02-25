@@ -4,6 +4,7 @@ pragma solidity ^0.8.21;
 import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+import { CCTPLib }      from "../../../src/libraries/CCTPLib.sol";
 import { ERC4626Lib }   from "../../../src/libraries/ERC4626Lib.sol";
 import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
 import { OTCLib }       from "../../../src/libraries/OTCLib.sol";
@@ -61,7 +62,7 @@ contract MainnetController_Admin_SetMintRecipient_Tests is MainnetController_Adm
         mainnetController.setMintRecipient(1, mintRecipient1);
     }
 
-    function test_setMintRecipient_unauthorizedAccount() public {
+    function test_setMintRecipient_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -69,38 +70,41 @@ contract MainnetController_Admin_SetMintRecipient_Tests is MainnetController_Adm
         ));
         mainnetController.setMintRecipient(1, mintRecipient1);
 
-        vm.prank(freezer);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             freezer,
             DEFAULT_ADMIN_ROLE
         ));
+        vm.prank(freezer);
         mainnetController.setMintRecipient(1, mintRecipient1);
     }
 
-    function test_setMintRecipient() public {
+    function test_setMintRecipient() external {
         assertEq(mainnetController.mintRecipients(1), bytes32(0));
         assertEq(mainnetController.mintRecipients(2), bytes32(0));
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.MintRecipientSet(1, mintRecipient1);
+        emit CCTPLib.MintRecipientSet(1, mintRecipient1);
+
+        vm.prank(admin);
         mainnetController.setMintRecipient(1, mintRecipient1);
 
         assertEq(mainnetController.mintRecipients(1), mintRecipient1);
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.MintRecipientSet(2, mintRecipient2);
+        emit CCTPLib.MintRecipientSet(2, mintRecipient2);
+
+        vm.prank(admin);
         mainnetController.setMintRecipient(2, mintRecipient2);
 
         assertEq(mainnetController.mintRecipients(2), mintRecipient2);
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(mainnetController));
-        emit MainnetController.MintRecipientSet(1, mintRecipient2);
+        emit CCTPLib.MintRecipientSet(1, mintRecipient2);
+
+        vm.prank(admin);
         mainnetController.setMintRecipient(1, mintRecipient2);
 
         assertEq(mainnetController.mintRecipients(1), mintRecipient2);
@@ -118,7 +122,7 @@ contract MainnetController_Admin_SetLayerZeroRecipient_Tests is MainnetControlle
         mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
     }
 
-    function test_setLayerZeroRecipient_unauthorizedAccount() public {
+    function test_setLayerZeroRecipient_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -135,7 +139,7 @@ contract MainnetController_Admin_SetLayerZeroRecipient_Tests is MainnetControlle
         mainnetController.setMintRecipient(1, mintRecipient1);
     }
 
-    function test_setLayerZeroRecipient() public {
+    function test_setLayerZeroRecipient() external {
         assertEq(mainnetController.layerZeroRecipients(1), bytes32(0));
         assertEq(mainnetController.layerZeroRecipients(2), bytes32(0));
 
@@ -178,7 +182,7 @@ contract MainnetController_Admin_SetMaxSlippage_Tests is MainnetController_Admin
         mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
-    function test_setMaxSlippage_unauthorizedAccount() public {
+    function test_setMaxSlippage_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -195,13 +199,13 @@ contract MainnetController_Admin_SetMaxSlippage_Tests is MainnetController_Admin
         mainnetController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
-    function test_setMaxSlippage_poolZeroAddress() public {
+    function test_setMaxSlippage_poolZeroAddress() external {
         vm.prank(admin);
         vm.expectRevert("MC/pool-zero-address");
         mainnetController.setMaxSlippage(address(0), 0.98e18);
     }
 
-    function test_setMaxSlippage() public {
+    function test_setMaxSlippage() external {
         address pool = makeAddr("pool");
 
         assertEq(mainnetController.maxSlippages(pool), 0);
@@ -553,7 +557,7 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
-    function test_setMaxSlippage_unauthorizedAccount() public {
+    function test_setMaxSlippage_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -570,13 +574,13 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
-    function test_setMaxSlippage_poolZeroAddress() public {
+    function test_setMaxSlippage_poolZeroAddress() external {
         vm.prank(admin);
         vm.expectRevert("FC/pool-zero-address");
         foreignController.setMaxSlippage(address(0), 0.98e18);
     }
 
-    function test_setMaxSlippage() public {
+    function test_setMaxSlippage() external {
         address pool = makeAddr("pool");
 
         assertEq(foreignController.maxSlippages(pool), 0);
@@ -606,7 +610,7 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMintRecipient(1, mintRecipient1);
     }
 
-    function test_setMintRecipient_unauthorizedAccount() public {
+    function test_setMintRecipient_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -623,29 +627,32 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMintRecipient(1, mintRecipient1);
     }
 
-    function test_setMintRecipient() public {
+    function test_setMintRecipient() external {
         assertEq(foreignController.mintRecipients(1), bytes32(0));
         assertEq(foreignController.mintRecipients(2), bytes32(0));
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MintRecipientSet(1, mintRecipient1);
+        emit CCTPLib.MintRecipientSet(1, mintRecipient1);
+
+        vm.prank(admin);
         foreignController.setMintRecipient(1, mintRecipient1);
 
         assertEq(foreignController.mintRecipients(1), mintRecipient1);
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MintRecipientSet(2, mintRecipient2);
+        emit CCTPLib.MintRecipientSet(2, mintRecipient2);
+
+        vm.prank(admin);
         foreignController.setMintRecipient(2, mintRecipient2);
 
         assertEq(foreignController.mintRecipients(2), mintRecipient2);
 
         vm.record();
 
-        vm.prank(admin);
         vm.expectEmit(address(foreignController));
-        emit ForeignController.MintRecipientSet(1, mintRecipient2);
+        emit CCTPLib.MintRecipientSet(1, mintRecipient2);
+
+        vm.prank(admin);
         foreignController.setMintRecipient(1, mintRecipient2);
 
         assertEq(foreignController.mintRecipients(1), mintRecipient2);
@@ -659,7 +666,7 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
     }
 
-    function test_setLayerZeroRecipient_unauthorizedAccount() public {
+    function test_setLayerZeroRecipient_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -676,7 +683,7 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
     }
 
-    function test_setLayerZeroRecipient() public {
+    function test_setLayerZeroRecipient() external {
         assertEq(foreignController.layerZeroRecipients(1), bytes32(0));
         assertEq(foreignController.layerZeroRecipients(2), bytes32(0));
 

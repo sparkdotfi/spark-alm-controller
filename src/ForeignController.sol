@@ -4,10 +4,8 @@ pragma solidity ^0.8.21;
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
 import { AaveLib }          from "./libraries/AaveLib.sol";
-import { ApproveLib }       from "./libraries/ApproveLib.sol";
+import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { PSM3Lib }          from "./libraries/PSM3Lib.sol";
@@ -15,10 +13,7 @@ import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
 import { TransferAssetLib } from "./libraries/TransferAssetLib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
-
-import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
@@ -26,17 +21,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
-    // NOTE: This is used to track individual transfers for offchain processing of CCTP transactions
-    event CCTPTransferInitiated(
-        uint64  indexed nonce,
-        uint32  indexed destinationDomain,
-        bytes32 indexed mintRecipient,
-        uint256         usdcAmount
-    );
-
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
-
-    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     event RelayerRemoved(address indexed relayer);
 
@@ -56,15 +41,15 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public constant LIMIT_PSM_DEPOSIT        = PSM3Lib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_PSM_WITHDRAW       = PSM3Lib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = SparkVaultLib.LIMIT_TAKE;
-    bytes32 public constant LIMIT_USDC_TO_CCTP       = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_USDC_TO_DOMAIN     = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public constant LIMIT_USDC_TO_CCTP       = CCTPLib.LIMIT_TO_CCTP;
+    bytes32 public constant LIMIT_USDC_TO_DOMAIN     = CCTPLib.LIMIT_TO_DOMAIN;
 
     IALMProxy   public immutable proxy;
-    ICCTPLike   public immutable cctp;
+    address     public immutable cctp;
     address     public immutable psm;
     IRateLimits public immutable rateLimits;
 
-    IERC20 public immutable usdc;
+    address public immutable usdc;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -91,22 +76,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         proxy      = IALMProxy(proxy_);
         rateLimits = IRateLimits(rateLimits_);
         psm        = psm_;
-        usdc       = IERC20(usdc_);
-        cctp       = ICCTPLike(cctp_);
-    }
-
-    /**********************************************************************************************/
-    /*** Modifiers                                                                              ***/
-    /**********************************************************************************************/
-
-    modifier rateLimited(bytes32 key, uint256 amount) {
-        rateLimits.triggerRateLimitDecrease(key, amount);
-        _;
-    }
-
-    modifier rateLimitedAddress(bytes32 key, address asset, uint256 amount) {
-        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
-        _;
+        usdc       = usdc_;
+        cctp       = cctp_;
     }
 
     /**********************************************************************************************/
@@ -124,13 +95,12 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         emit MaxSlippageSet(pool, maxSlippage);
     }
 
-    function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
+    function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
         external
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        mintRecipients[destinationDomain] = mintRecipient;
-        emit MintRecipientSet(destinationDomain, mintRecipient);
+        CCTPLib.setMintRecipient(mintRecipients, recipient, destinationDomain);
     }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
@@ -184,7 +154,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     function withdrawPSM(address asset, uint256 maxAmount)
-        external nonReentrant onlyRole(RELAYER) returns (uint256 assetsWithdrawn)
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        returns (uint256 assetsWithdrawn)
     {
         return PSM3Lib.withdraw(address(proxy), address(rateLimits), psm, asset, maxAmount);
     }
@@ -197,31 +170,16 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         external
         nonReentrant
         onlyRole(RELAYER)
-        rateLimited(LIMIT_USDC_TO_CCTP, usdcAmount)
-        rateLimited(
-            RateLimitHelpers.makeUint32Key(LIMIT_USDC_TO_DOMAIN, destinationDomain),
-            usdcAmount
-        )
     {
-        bytes32 mintRecipient = mintRecipients[destinationDomain];
-
-        require(mintRecipient != 0, "FC/domain-not-configured");
-
-        // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
-        ApproveLib.approve(address(usdc), address(proxy), address(cctp), usdcAmount);
-
-        // If amount is larger than limit it must be split into multiple calls.
-        uint256 burnLimit = cctp.localMinter().burnLimitsPerMessage(address(usdc));
-
-        while (usdcAmount > burnLimit) {
-            _initiateCCTPTransfer(burnLimit, destinationDomain, mintRecipient);
-            usdcAmount -= burnLimit;
-        }
-
-        // Send remaining amount (if any)
-        if (usdcAmount > 0) {
-            _initiateCCTPTransfer(usdcAmount, destinationDomain, mintRecipient);
-        }
+        CCTPLib.transfer({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            cctp              : cctp,
+            usdc              : usdc,
+            destinationDomain : destinationDomain,
+            usdcAmount        : usdcAmount,
+            mintRecipients    : mintRecipients
+        });
     }
 
     // NOTE: !!! This function was deployed without integration testing !!!
@@ -316,36 +274,6 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
     {
         SparkVaultLib.take(address(proxy), address(rateLimits), sparkVault, assetAmount);
-    }
-
-    /**********************************************************************************************/
-    /*** Internal helper functions                                                              ***/
-    /**********************************************************************************************/
-
-    function _initiateCCTPTransfer(
-        uint256 usdcAmount,
-        uint32  destinationDomain,
-        bytes32 mintRecipient
-    )
-        internal
-    {
-        uint64 nonce = abi.decode(
-            proxy.doCall(
-                address(cctp),
-                abi.encodeCall(
-                    cctp.depositForBurn,
-                    (
-                        usdcAmount,
-                        destinationDomain,
-                        mintRecipient,
-                        address(usdc)
-                    )
-                )
-            ),
-            (uint64)
-        );
-
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
     }
 
 }

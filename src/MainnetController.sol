@@ -4,12 +4,9 @@ pragma solidity ^0.8.21;
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IERC20 } from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-
 import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { AaveLib }          from "./libraries/AaveLib.sol";
@@ -32,8 +29,6 @@ import { USDSLib }          from "./libraries/USDSLib.sol";
 import { WEETHLib }         from "./libraries/WEETHLib.sol";
 import { WrapProxyETHLib }  from "./libraries/WrapProxyETHLib.sol";
 import { WSTETHLib }        from "./libraries/WSTETHLib.sol";
-
-import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
 interface IDaiUsdsLike {
 
@@ -59,8 +54,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
-
-    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
 
     event RelayerRemoved(address indexed relayer);
 
@@ -90,21 +83,21 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_UNISWAP_V4_SWAP         = UniswapV4Lib.LIMIT_SWAP;
-    bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public LIMIT_USDC_TO_CCTP            = CCTPLib.LIMIT_TO_CCTP;
+    bytes32 public LIMIT_USDC_TO_DOMAIN          = CCTPLib.LIMIT_TO_DOMAIN;
     bytes32 public LIMIT_USDE_BURN               = USDELib.LIMIT_USDE_BURN;
     bytes32 public LIMIT_USDE_MINT               = USDELib.LIMIT_USDE_MINT;
     bytes32 public LIMIT_USDS_MINT               = USDSLib.LIMIT_MINT;
     bytes32 public LIMIT_USDS_TO_USDC            = PSMLib.LIMIT_USDS_TO_USDC;
     bytes32 public LIMIT_WEETH_DEPOSIT           = WEETHLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WEETHLib.LIMIT_REQUEST_WITHDRAW;
-    bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
-    bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
+    bytes32 public LIMIT_WSTETH_DEPOSIT          = WSTETHLib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = WSTETHLib.LIMIT_REQUEST_WITHDRAW;
 
     address public buffer;  // Allocator buffer
 
     IALMProxy   public proxy;
-    ICCTPLike   public cctp;
+    address     public cctp;
     address     public daiUsds;
     address     public ethenaMinter;
     address     public psm;
@@ -114,7 +107,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     address public dai;
     address public usds;
     address public usde;
-    IERC20  public usdc;
+    address public usdc;
     address public ustb;
     address public susde;
 
@@ -155,14 +148,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         buffer     = IVaultLike(vault_).buffer();
         psm        = psm_;
         daiUsds    = daiUsds_;
-        cctp       = ICCTPLike(cctp_);
+        cctp       = cctp_;
 
         ethenaMinter = Ethereum.ETHENA_MINTER;
 
         susde = Ethereum.SUSDE;
         ustb  = Ethereum.USTB;
         dai   = IDaiUsdsLike(daiUsds).dai();
-        usdc  = IERC20(IPSMLike(psm).gem());
+        usdc  = IPSMLike(psm).gem();
         usds  = Ethereum.USDS;
         usde  = Ethereum.USDE;
     }
@@ -171,13 +164,12 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
 
-    function setMintRecipient(uint32 destinationDomain, bytes32 mintRecipient)
+    function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
         external
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        mintRecipients[destinationDomain] = mintRecipient;
-        emit MintRecipientSet(destinationDomain, mintRecipient);
+        CCTPLib.setMintRecipient(mintRecipients, recipient, destinationDomain);
     }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
@@ -614,7 +606,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         USDELib.prepareMint({
             proxy      : address(proxy),
             rateLimits : address(rateLimits),
-            usdc       : address(usdc),
+            usdc       : usdc,
             minter     : ethenaMinter,
             usdcAmount : usdcAmount
         });
@@ -671,7 +663,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function subscribeSuperstate(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER) {
-        SuperstateLib.subscribe(address(proxy), address(rateLimits), address(usdc), ustb, usdcAmount);
+        SuperstateLib.subscribe(address(proxy), address(rateLimits), usdc, ustb, usdcAmount);
     }
 
     /**********************************************************************************************/
@@ -711,7 +703,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             daiUSDS    : daiUsds,
             psm        : psm,
             dai        : dai,
-            usdc       : address(usdc),
+            usdc       : usdc,
             usdcAmount : usdcAmount
         });
     }
@@ -752,17 +744,15 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         nonReentrant
         onlyRole(RELAYER)
     {
-        CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
-            proxy             : proxy,
-            rateLimits        : rateLimits,
+        CCTPLib.transfer({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
             cctp              : cctp,
             usdc              : usdc,
-            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
-            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
-            mintRecipient     : mintRecipients[destinationDomain],
             destinationDomain : destinationDomain,
-            usdcAmount        : usdcAmount
-        }));
+            usdcAmount        : usdcAmount,
+            mintRecipients    : mintRecipients
+        });
     }
 
     /**********************************************************************************************/
@@ -834,53 +824,6 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function isOTCSwapReady(address exchange) external view returns (bool) {
         return OTCLib.isSwapReady(exchange, otcs, maxSlippages);
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer helper functions                                                               ***/
-    /**********************************************************************************************/
-
-    function _transfer(address asset, address destination, uint256 amount) internal {
-        bytes memory returnData = proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20(asset).transfer, (destination, amount))
-        );
-
-        require(
-            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
-            "MC/transfer-failed"
-        );
-    }
-
-    function _transferFrom(
-        address asset,
-        address source,
-        address destination,
-        uint256 amount
-    )
-        internal
-    {
-        bytes memory returnData = proxy.doCall(
-            asset,
-            abi.encodeCall(IERC20(asset).transferFrom, (source, destination, amount))
-        );
-
-        require(
-            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
-            "MC/transferFrom-failed"
-        );
-    }
-
-    /**********************************************************************************************/
-    /*** Rate Limit helper functions                                                            ***/
-    /**********************************************************************************************/
-
-    function _rateLimited(bytes32 key, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(key, amount);
-    }
-
-    function _rateLimitedAddress(bytes32 key, address asset, uint256 amount) internal {
-        rateLimits.triggerRateLimitDecrease(RateLimitHelpers.makeAddressKey(key, asset), amount);
     }
 
 }
