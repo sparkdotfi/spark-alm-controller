@@ -8,6 +8,7 @@ import { AaveLib }          from "./libraries/AaveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
+import { MerklLib }         from "./libraries/MerklLib.sol";
 import { PSM3Lib }          from "./libraries/PSM3Lib.sol";
 import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
 import { TransferAssetLib } from "./libraries/TransferAssetLib.sol";
@@ -24,6 +25,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event RelayerRemoved(address indexed relayer);
+
+    event MerklDistributorSet(address indexed merklDistributor);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -50,6 +53,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     IRateLimits public immutable rateLimits;
 
     address public immutable usdc;
+
+    address public merklDistributor;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -117,6 +122,15 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         ERC4626Lib.setMaxExchangeRate(maxExchangeRates, token, shares, maxExpectedAssets);
+    }
+
+    function setMerklDistributor(address merklDistributor_)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        merklDistributor = merklDistributor_;
+        emit MerklDistributorSet(merklDistributor_);
     }
 
     /**********************************************************************************************/
@@ -262,6 +276,18 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         returns (uint256 amountWithdrawn)
     {
         return AaveLib.withdraw(address(proxy), address(rateLimits), aToken, amount);
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Merkl functions                                                                ***/
+    /**********************************************************************************************/
+
+    function toggleOperatorMerkl(address operator) external nonReentrant onlyRole(RELAYER) {
+        MerklLib.toggleOperator({
+            proxy       : address(proxy),
+            distributor : merklDistributor,
+            operator    : operator
+        });
     }
 
     /**********************************************************************************************/

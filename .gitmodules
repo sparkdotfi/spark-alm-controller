@@ -41,3 +41,6 @@
 [submodule "lib/oz-upgradeable"]
 	path = lib/oz-upgradeable
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git
+[submodule "lib/grove-address-registry"]
+	path = lib/grove-address-registry
+	url = https://github.com/grove-labs/grove-address-registry

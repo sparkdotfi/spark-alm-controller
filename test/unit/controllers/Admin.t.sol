@@ -523,7 +523,49 @@ contract MainnetController_Admin_SetUniswapV4TickLimits_Tests is MainnetControll
 
 }
 
+contract MainnetController_Admin_SetMerklDistributor_Tests is MainnetController_Admin_TestBase {
+
+    event MerklDistributorSet(address indexed merklDistributor);
+
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setMerklDistributor_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setMerklDistributor(makeAddr("merklDistributor"));
+    }
+
+    function test_setMerklDistributor_unauthorizedAccount() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                mainnetController.DEFAULT_ADMIN_ROLE()
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setMerklDistributor(makeAddr("merklDistributor"));
+    }
+
+    function test_setMerklDistributor() public {
+        address merklDistributor = makeAddr("merklDistributor");
+
+        assertEq(address(mainnetController.merklDistributor()), address(0));
+
+        vm.prank(admin);
+        vm.expectEmit(address(mainnetController));
+        emit MerklDistributorSet(merklDistributor);
+        mainnetController.setMerklDistributor(merklDistributor);
+
+        assertEq(address(mainnetController.merklDistributor()), merklDistributor);
+    }
+
+}
+
 contract ForeignController_Admin_Tests is UnitTestBase {
+
+    event MerklDistributorSet(address indexed merklDistributor);
 
     ForeignController foreignController;
 
@@ -769,6 +811,34 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMaxExchangeRate(token, 1e6, 1e18);
 
         assertEq(foreignController.maxExchangeRates(token), 1e48);
+    }
+
+    function test_setMerklDistributor_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setMerklDistributor(makeAddr("merklDistributor"));
+    }
+
+    function test_setMerklDistributor_unauthorizedAccount() public {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        foreignController.setMerklDistributor(makeAddr("merklDistributor"));
+    }
+
+    function test_setMerklDistributor() public {
+        address merklDistributor = makeAddr("merklDistributor");
+
+        assertEq(address(foreignController.merklDistributor()), address(0));
+
+        vm.prank(admin);
+        vm.expectEmit(address(foreignController));
+        emit MerklDistributorSet(merklDistributor);
+        foreignController.setMerklDistributor(merklDistributor);
+
+        assertEq(address(foreignController.merklDistributor()), merklDistributor);
     }
 
 }
