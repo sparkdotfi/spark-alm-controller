@@ -8,6 +8,7 @@ import { AaveLib }          from "./libraries/AaveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
+import { PendleLib }        from "./libraries/PendleLib.sol";
 import { MerklLib }         from "./libraries/MerklLib.sol";
 import { PSM3Lib }          from "./libraries/PSM3Lib.sol";
 import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
@@ -25,6 +26,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event RelayerRemoved(address indexed relayer);
+
+    event PendleRouterSet(address indexed pendleRouter);
 
     event MerklDistributorSet(address indexed merklDistributor);
 
@@ -46,6 +49,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public constant LIMIT_SPARK_VAULT_TAKE   = SparkVaultLib.LIMIT_TAKE;
     bytes32 public constant LIMIT_USDC_TO_CCTP       = CCTPLib.LIMIT_TO_CCTP;
     bytes32 public constant LIMIT_USDC_TO_DOMAIN     = CCTPLib.LIMIT_TO_DOMAIN;
+    bytes32 public constant LIMIT_PENDLE_PT_REDEEM   = PendleLib.LIMIT_REDEEM;
 
     IALMProxy   public immutable proxy;
     address     public immutable cctp;
@@ -63,6 +67,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     // ERC4626 exchange rate thresholds (1e36 precision)
     mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
+
+    address public pendleRouter;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -122,6 +128,15 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         ERC4626Lib.setMaxExchangeRate(maxExchangeRates, token, shares, maxExpectedAssets);
+    }
+
+    function setPendleRouter(address pendleRouter_)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        pendleRouter = pendleRouter_;
+        emit PendleRouterSet(pendleRouter_);
     }
 
     function setMerklDistributor(address merklDistributor_)
@@ -300,6 +315,25 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
     {
         SparkVaultLib.take(address(proxy), address(rateLimits), sparkVault, assetAmount);
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer Pendle functions                                                               ***/
+    /**********************************************************************************************/
+
+    function redeemPendlePT(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut)
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+    {
+        PendleLib.redeem({
+            proxy        : address(proxy),
+            rateLimits   : address(rateLimits),
+            market       : pendleMarket,
+            router       : pendleRouter,
+            pyAmountIn   : pyAmountIn,
+            minAmountOut : minAmountOut
+        });
     }
 
 }
