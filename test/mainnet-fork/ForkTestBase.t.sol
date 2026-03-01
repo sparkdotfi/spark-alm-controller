@@ -18,9 +18,8 @@ import { IERC4626 } from "../../lib/forge-std/src/interfaces/IERC4626.sol";
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { Bridge }                from "../../lib/xchain-helpers/src/testing/Bridge.sol";
-import { CCTPForwarder }         from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
-import { Domain, DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
+import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
+import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { MainnetControllerDeploy }       from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }            from "../../deploy/ControllerInstance.sol";
@@ -124,14 +123,6 @@ abstract contract ForkTestBase is DssTest {
     address vault;
 
     /**********************************************************************************************/
-    /*** Bridging setup                                                                         ***/
-    /**********************************************************************************************/
-
-    Bridge bridge;
-    Domain source;
-    Domain destination;
-
-    /**********************************************************************************************/
     /*** Cached mainnet state variables                                                         ***/
     /**********************************************************************************************/
 
@@ -151,7 +142,7 @@ abstract contract ForkTestBase is DssTest {
 
         /*** Step 1: Set up environment, cast addresses ***/
 
-        source = getChain("mainnet").createSelectFork(_getBlock());
+        getChain("mainnet").createSelectFork(_getBlock());
 
         dss = MCD.loadFromChainlog(LOG);
 
@@ -204,7 +195,7 @@ abstract contract ForkTestBase is DssTest {
             vault   : ilkInst.vault,
             psm     : Ethereum.PSM,
             daiUsds : Ethereum.DAI_USDS,
-            cctp    : Ethereum.CCTP_TOKEN_MESSENGER
+            cctp    : CCTP_MESSENGER
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -233,7 +224,7 @@ abstract contract ForkTestBase is DssTest {
                 vault      : address(vault),
                 psm        : Ethereum.PSM,
                 daiUsds    : Ethereum.DAI_USDS,
-                cctp       : Ethereum.CCTP_TOKEN_MESSENGER
+                cctp       : CCTP_MESSENGER
             });
 
         Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);

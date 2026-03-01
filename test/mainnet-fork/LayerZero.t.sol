@@ -13,8 +13,8 @@ import { Arbitrum } from "../../lib/spark-address-registry/src/Arbitrum.sol";
 
 import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
 
-import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
-import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
+import { CCTPForwarder }         from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
+import { Domain, DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
@@ -336,6 +336,8 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
     address internal susdsArb;
 
     address internal psmArb;
+
+    Domain internal destination;
 
     function setUp() public override virtual {
         super.setUp();

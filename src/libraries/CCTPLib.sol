@@ -12,10 +12,11 @@ interface ICCTPLike {
         uint256 amount,
         uint32  destinationDomain,
         bytes32 mintRecipient,
-        address burnToken
-    )
-        external
-        returns (uint64 nonce);
+        address burnToken,
+        bytes32 destinationCaller,
+        uint256 maxFee,
+        uint32  minFinalityThreshold
+    ) external;
 
     function localMinter() external view returns (address);
 
@@ -42,7 +43,6 @@ library CCTPLib {
 
     // NOTE: Used to track individual transfers for off-chain processing of CCTP transactions.
     event CCTPTransferInitiated(
-        uint64  indexed nonce,
         uint32  indexed destinationDomain,
         bytes32 indexed mintRecipient,
         uint256         usdcAmount
@@ -56,6 +56,10 @@ library CCTPLib {
 
     bytes32 public constant LIMIT_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
     bytes32 public constant LIMIT_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
+
+    bytes32 public constant DESTINATION_CALLER     = 0;      // 0 means anyone can relay
+    uint256 public constant MAX_FEE                = 0;      // 0 for standard burns (no fast burn fee)
+    uint32  public constant MAX_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
 
     /**********************************************************************************************/
     /*** External functions                                                                     ***/
@@ -134,18 +138,23 @@ library CCTPLib {
     )
         internal
     {
-        uint64 nonce = abi.decode(
-            IALMProxy(proxy).doCall(
-                cctp,
-                abi.encodeCall(
-                    ICCTPLike.depositForBurn,
-                    (usdcAmount, destinationDomain, mintRecipient, usdc)
+        IALMProxy(proxy).doCall(
+            cctp,
+            abi.encodeCall(
+                ICCTPLike.depositForBurn,
+                (
+                    usdcAmount,
+                    destinationDomain,
+                    mintRecipient,
+                    usdc,
+                    DESTINATION_CALLER,
+                    MAX_FEE,
+                    MAX_FINALITY_THRESHOLD
                 )
-            ),
-            (uint64)
+            )
         );
 
-        emit CCTPTransferInitiated(nonce, destinationDomain, mintRecipient, usdcAmount);
+        emit CCTPTransferInitiated(destinationDomain, mintRecipient, usdcAmount);
     }
 
     /**********************************************************************************************/

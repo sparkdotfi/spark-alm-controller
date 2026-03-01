@@ -44,3 +44,6 @@
 [submodule "lib/grove-address-registry"]
 	path = lib/grove-address-registry
 	url = https://github.com/grove-labs/grove-address-registry
+[submodule "lib/grove-xchain-helpers"]
+	path = lib/grove-xchain-helpers
+	url = https://github.com/grove-labs/xchain-helpers.git
