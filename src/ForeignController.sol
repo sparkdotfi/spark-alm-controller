@@ -15,6 +15,7 @@ import { MerklLib }         from "./libraries/MerklLib.sol";
 import { PSM3Lib }          from "./libraries/PSM3Lib.sol";
 import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
 import { TransferAssetLib } from "./libraries/TransferAssetLib.sol";
+import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
@@ -32,6 +33,10 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     event PendleRouterSet(address indexed pendleRouter);
 
     event MerklDistributorSet(address indexed merklDistributor);
+
+    event UniswapV3SwapRouterSet(address indexed swapRouter);
+
+    event UniswapV3PositionManagerSet(address indexed manager);
 
     /**********************************************************************************************/
     /*** State variables                                                                        ***/
@@ -55,15 +60,23 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public constant LIMIT_USDC_TO_CCTP        = CCTPLib.LIMIT_TO_CCTP;
     bytes32 public constant LIMIT_USDC_TO_DOMAIN      = CCTPLib.LIMIT_TO_DOMAIN;
     bytes32 public constant LIMIT_PENDLE_PT_REDEEM    = PendleLib.LIMIT_REDEEM;
+    bytes32 public constant LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
+    bytes32 public constant LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
+    bytes32 public constant LIMIT_UNISWAP_V3_WITHDRAW = UniswapV3Lib.LIMIT_WITHDRAW;
 
     IALMProxy   public immutable proxy;
     address     public immutable cctp;
     address     public immutable psm;
     IRateLimits public immutable rateLimits;
 
+    address public uniswapV3Router;
+    address public uniswapV3PositionManager;
+
     address public immutable usdc;
 
     address public merklDistributor;
+
+    address public pendleRouter;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -74,7 +87,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     // ERC4626 exchange rate thresholds (1e36 precision)
     mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
-    address public pendleRouter;
+    // Uniswap V3 pool params
+    mapping(address pool => UniswapV3Lib.PoolParams params) public uniswapV3PoolParams;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -162,6 +176,54 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         CentrifugeLib.setCentrifugeRecipient(centrifugeRecipients, centrifugeId, recipient);
     }
 
+    function setUniswapV3PositionManager(address manager)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        emit UniswapV3PositionManagerSet(uniswapV3PositionManager = manager);
+    }
+
+    function setUniswapV3SwapRouter(address swapRouter)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        emit UniswapV3SwapRouterSet(uniswapV3Router = swapRouter);
+    }
+
+    function setUniswapV3PoolMaxTickDelta(address pool, uint24 maxTickDelta)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        UniswapV3Lib.setPoolMaxTickDelta(pool, maxTickDelta, uniswapV3PoolParams);
+    }
+
+    function setUniswapV3AddLiquidityLowerTickBound(address pool, int24 lowerTickBound)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        UniswapV3Lib.setAddLiquidityLowerTickBound(pool, lowerTickBound, uniswapV3PoolParams);
+    }
+
+    function setUniswapV3AddLiquidityUpperTickBound(address pool, int24 upperTickBound)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        UniswapV3Lib.setAddLiquidityUpperTickBound(pool, upperTickBound, uniswapV3PoolParams);
+    }
+
+    function setUniswapV3TWAPSecondsAgo(address pool, uint32 twapSecondsAgo)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        UniswapV3Lib.setTWAPSecondsAgo(pool, twapSecondsAgo, uniswapV3PoolParams);
+    }
+
     /**********************************************************************************************/
     /*** Freezer functions                                                                      ***/
     /**********************************************************************************************/
@@ -181,6 +243,88 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         onlyRole(RELAYER)
     {
         TransferAssetLib.transfer(address(proxy), address(rateLimits), asset, destination, amount);
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer UniswapV3 functions                                                            ***/
+    /**********************************************************************************************/
+
+    function swapUniswapV3(
+        address pool,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        uint24  maxTickDelta
+    )
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        returns (uint256 amountOut)
+    {
+        return UniswapV3Lib.swap({
+            proxy        : address(proxy),
+            rateLimits   : address(rateLimits),
+            pool         : pool,
+            router       : uniswapV3Router,
+            tokenIn      : tokenIn,
+            amountIn     : amountIn,
+            minAmountOut : minAmountOut,
+            tickDelta    : maxTickDelta,
+            poolParams   : uniswapV3PoolParams
+        });
+    }
+
+    function addLiquidityUniswapV3(
+        address                            pool,
+        uint256                            tokenId,
+        UniswapV3Lib.Ticks        calldata ticks,
+        UniswapV3Lib.TokenAmounts calldata target,
+        UniswapV3Lib.TokenAmounts calldata min,
+        uint256                            deadline
+    )
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        returns (uint256 tokenId_, uint128 liquidity_, UniswapV3Lib.TokenAmounts memory amounts_)
+    {
+        ( tokenId_, liquidity_, amounts_ ) = UniswapV3Lib.addLiquidity({
+            proxy           : address(proxy),
+            rateLimits      : address(rateLimits),
+            pool            : pool,
+            positionManager : uniswapV3PositionManager,
+            tokenId         : tokenId,
+            ticks           : ticks,
+            target          : target,
+            min             : min,
+            deadline        : deadline,
+            maxSlippages    : maxSlippages,
+            poolParams      : uniswapV3PoolParams
+        });
+    }
+
+    function removeLiquidityUniswapV3(
+        address                            pool,
+        uint256                            tokenId,
+        uint128                            liquidity,
+        UniswapV3Lib.TokenAmounts calldata min,
+        uint256                            deadline
+    )
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+        returns (UniswapV3Lib.TokenAmounts memory amounts_)
+    {
+        return UniswapV3Lib.removeLiquidity({
+            proxy           : address(proxy),
+            rateLimits      : address(rateLimits),
+            pool            : pool,
+            positionManager : uniswapV3PositionManager,
+            tokenId         : tokenId,
+            liquidity       : liquidity,
+            min             : min,
+            deadline        : deadline,
+            maxSlippages    : maxSlippages
+        });
     }
 
     /**********************************************************************************************/

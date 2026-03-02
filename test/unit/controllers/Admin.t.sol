@@ -8,6 +8,7 @@ import { CCTPLib }      from "../../../src/libraries/CCTPLib.sol";
 import { ERC4626Lib }   from "../../../src/libraries/ERC4626Lib.sol";
 import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
 import { OTCLib }       from "../../../src/libraries/OTCLib.sol";
+import { UniswapV3Lib } from "../../../src/libraries/UniswapV3Lib.sol";
 import { UniswapV4Lib } from "../../../src/libraries/UniswapV4Lib.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
@@ -462,6 +463,387 @@ contract MainnetController_Admin_SetMaxExchangeRate_Tests is MainnetController_A
 
 }
 
+contract MainnetController_Admin_SetUniswapV3PositionManager_Tests is MainnetController_Admin_TestBase {
+
+    address internal immutable _positionManager = makeAddr("positionManager");
+    address internal immutable _unauthorized    = makeAddr("unauthorized");
+
+    function test_setUniswapV3PositionManager_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV3PositionManager(_positionManager);
+    }
+
+    function test_setUniswapV3PositionManager_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV3PositionManager(_positionManager);
+    }
+
+    function test_setUniswapV3PositionManager() external {
+        assertEq(mainnetController.uniswapV3PositionManager(), address(0));
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit MainnetController.UniswapV3PositionManagerSet(_positionManager);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3PositionManager(_positionManager);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(mainnetController.uniswapV3PositionManager(), _positionManager);
+    }
+
+}
+
+contract MainnetController_Admin_SetUniswapV3SwapRouter_Tests is MainnetController_Admin_TestBase {
+
+    address internal immutable _swapRouter   = makeAddr("swapRouter");
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setUniswapV3SwapRouter_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV3SwapRouter(_swapRouter);
+    }
+
+    function test_setUniswapV3SwapRouter_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV3SwapRouter(_swapRouter);
+    }
+
+    function test_setUniswapV3SwapRouter() external {
+        assertEq(mainnetController.uniswapV3Router(), address(0));
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit MainnetController.UniswapV3SwapRouterSet(_swapRouter);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3SwapRouter(_swapRouter);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(mainnetController.uniswapV3Router(), _swapRouter);
+    }
+
+}
+
+contract MainnetController_Admin_SetUniswapV3PoolMaxTickDelta_Tests is MainnetController_Admin_TestBase {
+
+    uint24 internal constant _MAX_TICK_DELTA = 887_272;
+
+    address internal immutable _pool         = makeAddr("pool");
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setUniswapV3PoolMaxTickDelta_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV3PoolMaxTickDelta(_pool, 10);
+    }
+
+    function test_setUniswapV3PoolMaxTickDelta_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV3PoolMaxTickDelta(_pool, 1000);
+    }
+
+    function test_setUniswapV3PoolMaxTickDelta_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/max-tick-delta-oob");
+        vm.prank(admin);
+        mainnetController.setUniswapV3PoolMaxTickDelta(_pool, 0);
+
+        vm.prank(admin);
+        vm.expectRevert("UniswapV3Lib/max-tick-delta-oob");
+        mainnetController.setUniswapV3PoolMaxTickDelta(_pool, _MAX_TICK_DELTA + 1);
+
+        // Can set at boundary
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3PoolMaxTickDelta(_pool, 1);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3PoolMaxTickDelta(_pool, _MAX_TICK_DELTA);
+    }
+
+    function test_setUniswapV3PoolMaxTickDelta() external {
+        ( uint24 maxTickDelta, , ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(maxTickDelta, 0);
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit UniswapV3Lib.UniswapV3PoolMaxTickDeltaSet(_pool, 1000);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3PoolMaxTickDelta(_pool, 1000);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( maxTickDelta, , ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(maxTickDelta, 1000);
+    }
+
+}
+
+contract MainnetController_Admin_SetUniswapV3AddLiquidityLowerTickBound_Tests is MainnetController_Admin_TestBase {
+
+    int24 internal constant _MIN_UNISWAP_TICK = -887_272;
+
+    address internal immutable _pool         = makeAddr("pool");
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setUniswapV3AddLiquidityLowerTickBound_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityLowerTickBound_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityLowerTickBound_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/lower-tick-oob");
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, _MIN_UNISWAP_TICK - 1);
+
+        // First set an upper tick bound
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, 1000);
+
+        // Try to set lower tick at the upper tick
+        vm.prank(admin);
+        vm.expectRevert("UniswapV3Lib/lower-tick-oob");
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, 1000);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, _MIN_UNISWAP_TICK);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, 999);
+    }
+
+    function test_setUniswapV3AddLiquidityLowerTickBound() external {
+        // First set an upper tick bound so we have room to set lower
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, 5000);
+
+        ( , UniswapV3Lib.Ticks memory tickBounds, ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, 0);
+        assertEq(tickBounds.upper, 5000);
+
+        vm.expectEmit(address(mainnetController));
+        emit UniswapV3Lib.UniswapV3PoolLowerTickUpdated(_pool, -1000);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, -1000);
+
+        ( , tickBounds, ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, -1000);
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit UniswapV3Lib.UniswapV3PoolLowerTickUpdated(_pool, _MIN_UNISWAP_TICK);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityLowerTickBound(_pool, _MIN_UNISWAP_TICK);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( , tickBounds, ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, _MIN_UNISWAP_TICK);
+    }
+
+}
+
+contract MainnetController_Admin_SetUniswapV3AddLiquidityUpperTickBound_Tests is MainnetController_Admin_TestBase {
+
+    int24 internal constant _MAX_UNISWAP_TICK = 887_272;
+
+    address internal immutable _pool         = makeAddr("pool");
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setUniswapV3AddLiquidityUpperTickBound_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityUpperTickBound_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityUpperTickBound_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/upper-tick-oob");
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, _MAX_UNISWAP_TICK + 1);
+
+        vm.expectRevert("UniswapV3Lib/upper-tick-oob");
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, 0); // Current lower tick is 0
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, _MAX_UNISWAP_TICK);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, 1);
+    }
+
+    function test_setUniswapV3AddLiquidityUpperTickBound() external {
+        ( , UniswapV3Lib.Ticks memory tickBounds, ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, 0);
+        assertEq(tickBounds.upper, 0);
+
+        vm.expectEmit(address(mainnetController));
+        emit UniswapV3Lib.UniswapV3PoolUpperTickUpdated(_pool, 1000);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, 1000);
+
+        ( , tickBounds, ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, 0);
+        assertEq(tickBounds.upper, 1000);
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit UniswapV3Lib.UniswapV3PoolUpperTickUpdated(_pool, _MAX_UNISWAP_TICK);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3AddLiquidityUpperTickBound(_pool, _MAX_UNISWAP_TICK);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( , tickBounds, ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.upper, _MAX_UNISWAP_TICK);
+    }
+
+}
+
+contract MainnetController_Admin_SetUniswapV3TWAPSecondsAgo_Tests is MainnetController_Admin_TestBase {
+
+    address internal immutable _pool         = makeAddr("pool");
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setUniswapV3TWAPSecondsAgo_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV3TWAPSecondsAgo(_pool, 100);
+    }
+
+    function test_setUniswapV3TWAPSecondsAgo_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV3TWAPSecondsAgo(_pool, 300);
+    }
+
+    function test_setUniswapV3TWAPSecondsAgo_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/twap-seconds-ago-oob");
+        vm.prank(admin);
+        mainnetController.setUniswapV3TWAPSecondsAgo(_pool, uint32(type(int32).max));
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3TWAPSecondsAgo(_pool, uint32(type(int32).max) - 1);
+    }
+
+    function test_setUniswapV3TWAPSecondsAgo() external {
+        ( , , uint32 twapSecondsAgo ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(twapSecondsAgo, 0);
+
+        vm.expectEmit(address(mainnetController));
+        emit UniswapV3Lib.UniswapV3PoolTWAPSecondsAgoUpdated(_pool, 300);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3TWAPSecondsAgo(_pool, 300);
+
+        ( , , twapSecondsAgo ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(twapSecondsAgo, 300);
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit UniswapV3Lib.UniswapV3PoolTWAPSecondsAgoUpdated(_pool, 1800);
+
+        vm.prank(admin);
+        mainnetController.setUniswapV3TWAPSecondsAgo(_pool, 1800);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( , , twapSecondsAgo ) = mainnetController.uniswapV3PoolParams(_pool);
+
+        assertEq(twapSecondsAgo, 1800);
+    }
+
+}
+
 contract MainnetController_Admin_SetUniswapV4TickLimits_Tests is MainnetController_Admin_TestBase {
 
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
@@ -479,7 +861,7 @@ contract MainnetController_Admin_SetUniswapV4TickLimits_Tests is MainnetControll
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _unauthorized,
-                mainnetController.DEFAULT_ADMIN_ROLE()
+                DEFAULT_ADMIN_ROLE
             )
         );
 
@@ -540,7 +922,7 @@ contract MainnetController_Admin_SetMerklDistributor_Tests is MainnetController_
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _unauthorized,
-                mainnetController.DEFAULT_ADMIN_ROLE()
+                DEFAULT_ADMIN_ROLE
             )
         );
 
@@ -566,6 +948,16 @@ contract MainnetController_Admin_SetMerklDistributor_Tests is MainnetController_
 contract ForeignController_Admin_Tests is UnitTestBase {
 
     event MerklDistributorSet(address indexed merklDistributor);
+
+    uint24 internal constant _MAX_TICK_DELTA = 887272;
+
+    int24 internal constant _MIN_UNISWAP_TICK = -887_272;
+    int24 internal constant _MAX_UNISWAP_TICK =  887_272;
+
+    address internal immutable _pool            = makeAddr("pool");
+    address internal immutable _positionManager = makeAddr("positionManager");
+    address internal immutable _swapRouter      = makeAddr("swapRouter");
+    address internal immutable _unauthorized    = makeAddr("unauthorized");
 
     ForeignController foreignController;
 
@@ -811,6 +1203,339 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMaxExchangeRate(token, 1e6, 1e18);
 
         assertEq(foreignController.maxExchangeRates(token), 1e48);
+    }
+
+    function test_setUniswapV3PositionManager_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setUniswapV3PositionManager(_positionManager);
+    }
+
+    function test_setUniswapV3PositionManager_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        foreignController.setUniswapV3PositionManager(_positionManager);
+    }
+
+    function test_setUniswapV3PositionManager() external {
+        assertEq(foreignController.uniswapV3PositionManager(), address(0));
+
+        vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit ForeignController.UniswapV3PositionManagerSet(_positionManager);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3PositionManager(_positionManager);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(foreignController.uniswapV3PositionManager(), _positionManager);
+    }
+
+    function test_setUniswapV3SwapRouter_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setUniswapV3SwapRouter(_swapRouter);
+    }
+
+    function test_setUniswapV3SwapRouter_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        foreignController.setUniswapV3SwapRouter(_swapRouter);
+    }
+
+    function test_setUniswapV3SwapRouter() external {
+        assertEq(foreignController.uniswapV3Router(), address(0));
+
+        vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit ForeignController.UniswapV3SwapRouterSet(_swapRouter);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3SwapRouter(_swapRouter);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(foreignController.uniswapV3Router(), _swapRouter);
+    }
+
+    function test_setUniswapV3PoolMaxTickDelta_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setUniswapV3PoolMaxTickDelta(_pool, 10);
+    }
+
+    function test_setUniswapV3PoolMaxTickDelta_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        foreignController.setUniswapV3PoolMaxTickDelta(_pool, 1000);
+    }
+
+    function test_setUniswapV3PoolMaxTickDelta_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/max-tick-delta-oob");
+        vm.prank(admin);
+        foreignController.setUniswapV3PoolMaxTickDelta(_pool, 0);
+
+        vm.prank(admin);
+        vm.expectRevert("UniswapV3Lib/max-tick-delta-oob");
+        foreignController.setUniswapV3PoolMaxTickDelta(_pool, _MAX_TICK_DELTA + 1);
+
+        // Can set at boundary
+
+        vm.prank(admin);
+        foreignController.setUniswapV3PoolMaxTickDelta(_pool, 1);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3PoolMaxTickDelta(_pool, _MAX_TICK_DELTA);
+    }
+
+    function test_setUniswapV3PoolMaxTickDelta() external {
+        ( uint24 maxTickDelta, , ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(maxTickDelta, 0);
+
+        vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit UniswapV3Lib.UniswapV3PoolMaxTickDeltaSet(_pool, 1000);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3PoolMaxTickDelta(_pool, 1000);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( maxTickDelta, , ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(maxTickDelta, 1000);
+    }
+
+    function test_setUniswapV3AddLiquidityLowerTickBound_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityLowerTickBound_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityLowerTickBound_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/lower-tick-oob");
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, _MIN_UNISWAP_TICK - 1);
+
+        // First set an upper tick bound
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, 1000);
+
+        // Try to set lower tick at the upper tick
+        vm.prank(admin);
+        vm.expectRevert("UniswapV3Lib/lower-tick-oob");
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, 1000);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, _MIN_UNISWAP_TICK);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, 999);
+    }
+
+    function test_setUniswapV3AddLiquidityLowerTickBound() external {
+        // First set an upper tick bound so we have room to set lower
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, 5000);
+
+        ( , UniswapV3Lib.Ticks memory tickBounds, ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, 0);
+        assertEq(tickBounds.upper, 5000);
+
+        vm.expectEmit(address(foreignController));
+        emit UniswapV3Lib.UniswapV3PoolLowerTickUpdated(_pool, -1000);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, -1000);
+
+        ( , tickBounds, ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, -1000);
+
+        vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit UniswapV3Lib.UniswapV3PoolLowerTickUpdated(_pool, _MIN_UNISWAP_TICK);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityLowerTickBound(_pool, _MIN_UNISWAP_TICK);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( , tickBounds, ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, _MIN_UNISWAP_TICK);
+    }
+
+    function test_setUniswapV3AddLiquidityUpperTickBound_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityUpperTickBound_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, 100);
+    }
+
+    function test_setUniswapV3AddLiquidityUpperTickBound_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/upper-tick-oob");
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, _MAX_UNISWAP_TICK + 1);
+
+        vm.expectRevert("UniswapV3Lib/upper-tick-oob");
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, 0); // Current lower tick is 0
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, _MAX_UNISWAP_TICK);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, 1);
+    }
+
+    function test_setUniswapV3AddLiquidityUpperTickBound() external {
+        ( , UniswapV3Lib.Ticks memory tickBounds, ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, 0);
+        assertEq(tickBounds.upper, 0);
+
+        vm.expectEmit(address(foreignController));
+        emit UniswapV3Lib.UniswapV3PoolUpperTickUpdated(_pool, 1000);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, 1000);
+
+        ( , tickBounds, ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.lower, 0);
+        assertEq(tickBounds.upper, 1000);
+
+        vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit UniswapV3Lib.UniswapV3PoolUpperTickUpdated(_pool, _MAX_UNISWAP_TICK);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3AddLiquidityUpperTickBound(_pool, _MAX_UNISWAP_TICK);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( , tickBounds, ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(tickBounds.upper, _MAX_UNISWAP_TICK);
+    }
+
+    function test_setUniswapV3TWAPSecondsAgo_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setUniswapV3TWAPSecondsAgo(_pool, 100);
+    }
+
+    function test_setUniswapV3TWAPSecondsAgo_unauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        foreignController.setUniswapV3TWAPSecondsAgo(_pool, 300);
+    }
+
+    function test_setUniswapV3TWAPSecondsAgo_outOfBoundsBoundary() external {
+        vm.expectRevert("UniswapV3Lib/twap-seconds-ago-oob");
+        vm.prank(admin);
+        foreignController.setUniswapV3TWAPSecondsAgo(_pool, uint32(type(int32).max));
+
+        vm.prank(admin);
+        foreignController.setUniswapV3TWAPSecondsAgo(_pool, uint32(type(int32).max) - 1);
+    }
+
+    function test_setUniswapV3TWAPSecondsAgo() external {
+        ( , , uint32 twapSecondsAgo ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(twapSecondsAgo, 0);
+
+        vm.expectEmit(address(foreignController));
+        emit UniswapV3Lib.UniswapV3PoolTWAPSecondsAgoUpdated(_pool, 300);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3TWAPSecondsAgo(_pool, 300);
+
+        ( , , twapSecondsAgo ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(twapSecondsAgo, 300);
+
+        vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit UniswapV3Lib.UniswapV3PoolTWAPSecondsAgoUpdated(_pool, 1800);
+
+        vm.prank(admin);
+        foreignController.setUniswapV3TWAPSecondsAgo(_pool, 1800);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( , , twapSecondsAgo ) = foreignController.uniswapV3PoolParams(_pool);
+
+        assertEq(twapSecondsAgo, 1800);
     }
 
     function test_setMerklDistributor_reentrancy() external {
