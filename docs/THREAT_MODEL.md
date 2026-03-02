@@ -1,6 +1,6 @@
 # Threat Model
 
-This document outlines the threat model for the Spark ALM Controller, including attack vectors, trust assumptions, and mitigations.
+This document outlines the threat model for Diamond PAU, including attack vectors, trust assumptions, and mitigations.
 
 ## Actors and Trust Levels
 
@@ -40,7 +40,7 @@ The system is designed with the assumption that a `RELAYER` can be fully comprom
 
 ### Design Principles
 
-1. **Value cannot leave the system** - All operations must keep funds within the ALM system of contracts
+1. **Value cannot leave the system** - All operations must keep funds within the Diamond PAU system of contracts
    - Exception: Asynchronous integrations (e.g., BUIDL, Ethena) where funds go to whitelisted addresses
 
 2. **Losses bounded by rate limits** - Any single attack is limited to the current rate limit capacity
@@ -166,7 +166,7 @@ The following invariants must always hold:
 **Focus on:**
 1. Rate limit bypass - Can any path avoid rate limit checks?
 2. Whitelist bypass - Can unconfigured addresses be used?
-3. Fund extraction - Can funds leave the ALM system unexpectedly?
+3. Fund extraction - Can funds leave the Diamond PAU system unexpectedly?
 4. Slippage manipulation - Can `maxSlippage` checks be bypassed?
 5. Access control - Are role checks correctly implemented?
 

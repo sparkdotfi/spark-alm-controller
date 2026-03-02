@@ -28,13 +28,13 @@ All deployment commands follow the nomenclature: `make deploy-<domain>-<env>-<ty
 
 | Command | Description |
 |---------|-------------|
-| `make deploy-base-production-full` | Deploy full ALM system to Base production |
+| `make deploy-base-production-full` | Deploy full Diamond PAU system to Base production |
 | `make deploy-mainnet-production-controller` | Deploy controller to Mainnet production |
 | `make deploy-staging-full` | Deploy full staging environment with new allocation system and dependencies |
 
 ### Deployment Types
 
-- **full** - Complete ALM system deployment
+- **full** - Complete Diamond PAU system deployment
 - **controller** - Controller contract only
 
 ### Environments
@@ -119,7 +119,7 @@ See [RATE_LIMITS.md](./RATE_LIMITS.md#rate-limit-uses) for instructions on runni
 ## Project Structure
 
 ```
-spark-alm-controller/
+diamond-pau/
 ├── audits/           # Security audit reports
 ├── deploy/           # Deployment helper contracts
 ├── docs/             # Documentation
@@ -141,4 +141,4 @@ This project follows standard Solidity conventions. Key points:
 - Use explicit visibility modifiers
 - Follow the Checks-Effects-Interactions pattern
 - Document all external/public functions with NatSpec
-- Use meaningful error messages with contract prefixes (e.g., `"MC/invalid-indices"`)
+- Use meaningful error messages with contract/library prefixes (e.g., `"CurveLib/invalid-indices"`, `"MC/pool-zero-address"`)

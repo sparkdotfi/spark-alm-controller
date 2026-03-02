@@ -4,7 +4,7 @@ This document describes the weETH (wrapped eETH) integration with EtherFi, inclu
 
 ## Overview
 
-weETH is EtherFi's wrapped version of eETH (staked ETH). The integration allows the ALM system to deposit ETH into EtherFi's staking system and receive yield-bearing weETH tokens.
+weETH is EtherFi's wrapped version of eETH (staked ETH). The integration allows the Diamond PAU system to deposit ETH into EtherFi's staking system and receive yield-bearing weETH tokens.
 
 ## Why a Separate Module is Necessary
 

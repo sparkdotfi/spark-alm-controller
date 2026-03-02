@@ -1,6 +1,6 @@
 # Security
 
-This document describes protocol-specific security considerations for the Spark ALM Controller.
+This document describes protocol-specific security considerations for Diamond PAU.
 
 ## Trust Assumptions
 
@@ -16,7 +16,7 @@ This document describes protocol-specific security considerations for the Spark 
 
 When assuming a compromised `RELAYER`:
 
-1. **Value movement restrictions:** Smart contract logic must prevent movement of value outside the ALM system of contracts
+1. **Value movement restrictions:** Smart contract logic must prevent movement of value outside the Diamond PAU system of contracts
    - Exception: Asynchronous integrations (e.g., BUIDL) where `transferAsset` sends funds to whitelisted addresses, with LP tokens minted asynchronously, or OTC trades.
 
 2. **Loss limitations:** Any action must be limited to "reasonable" slippage/losses/opportunity cost by rate limits
@@ -69,7 +69,7 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
 ### ETH Recovery Mechanism
 
-**Guarantee:** Any ETH left in the ALMProxy can always be removed.
+**Guarantee:** Any ETH left in the `ALMProxy` can always be removed.
 
 | Method | Access | Description |
 |--------|--------|-------------|

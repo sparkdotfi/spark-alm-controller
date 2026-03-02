@@ -1,4 +1,4 @@
-# Spark ALM Controller
+# Diamond PAU
 
 ![Foundry CI](https://github.com/marsfoundation/spark-alm-controller/actions/workflows/ci.yml/badge.svg)
 [![Foundry][foundry-badge]][foundry]
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This repository contains the onchain components of the Spark Liquidity Layer. The system enables controlled interaction with various DeFi protocols while enforcing rate limits and maintaining custody of funds through the ALMProxy.
+This repository contains the onchain components of the Diamond PAU system. The system enables controlled interaction with various DeFi protocols while enforcing rate limits and maintaining custody of funds through the ALMProxy.
 
 ### Core Contracts
 
@@ -48,7 +48,7 @@ forge test
 Deploy commands follow the pattern: `make deploy-<domain>-<env>-<type>`
 
 ```bash
-# Deploy full ALM system to Base production
+# Deploy full Diamond PAU system to Base production
 make deploy-base-production-full
 
 # Deploy controller to Mainnet production
@@ -82,7 +82,7 @@ See [Architecture Documentation](./docs/ARCHITECTURE.md) for detailed diagrams a
 
 ## Max Slippages
 
-Max slippage values throughout ALM controller integrations are defined as how close the resulting value should be to the expected or minimum value, **not** as how much deviation is allowed. This is an inverse way of denoting max slippages compared to common DeFi nomenclature.
+Max slippage values throughout Diamond PAU integrations are defined as how close the resulting value should be to the expected or minimum value, **not** as how much deviation is allowed. This is an inverse way of denoting max slippages compared to common DeFi nomenclature.
 
 ### How It Works
 

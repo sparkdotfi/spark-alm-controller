@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the architecture of the Spark ALM Controller system.
+This document describes the architecture of the Diamond PAU system.
 
 ## Core Contracts
 
@@ -17,22 +17,24 @@ The proxy contract that holds custody of all funds. This contract routes calls t
 
 #### MainnetController
 
-Controller contract intended for use on Ethereum mainnet.
+Controller contract intended for use on Ethereum mainnet. Uses 24 libraries.
 
 **Capabilities:**
 - Interact with the Sky allocation system to mint and burn USDS
 - Swap USDS to USDC in the PSM
 - Interact with mainnet external protocols
 - Bridge USDC via CCTP and OFTs with LayerZero
+- Transfer shares via Centrifuge cross-chain
 
 #### ForeignController
 
-Controller contract intended for use on "foreign" domains (any domain that is not Ethereum mainnet).
+Controller contract intended for use on "foreign" domains (any domain that is not Ethereum mainnet). Uses 12 libraries.
 
 **Capabilities:**
 - Deposit, withdraw, and swap assets in L2 PSMs
 - Interact with external protocols on L2s
 - Bridge USDC via CCTP and OFTs with LayerZero
+- Transfer shares via Centrifuge cross-chain
 
 ### RateLimits
 
@@ -47,7 +49,7 @@ See [RATE_LIMITS.md](./RATE_LIMITS.md) for detailed rate limit documentation.
 
 ### ALMProxyFreezable
 
-A variant of the `ALMProxy` that is not intended to hold funds or have critical authority. It defines low-risk parameters within the ALM ecosystem.
+A variant of the `ALMProxy` that is not intended to hold funds or have critical authority. It defines low-risk parameters within the Diamond PAU ecosystem.
 
 **Architectural differences from standard ALMProxy:**
 - **Controller role usage:** In the standard `ALMProxy`, the controller is a controller contract (e.g., `MainnetController`) that acts when approved relayers interact with it. In `ALMProxyFreezable`, the "controllers" are the relayers themselves (granted the `CONTROLLER` role directly).
@@ -86,7 +88,7 @@ All contracts in this repo inherit and implement the `AccessControl` contract fr
 | Role | Description |
 |------|-------------|
 | `DEFAULT_ADMIN_ROLE` | Admin role that can grant and revoke roles. Also used for general admin functions in all contracts. |
-| `RELAYER` | Used for the ALM Planner offchain system. Can call functions on controller contracts to perform actions on behalf of the `ALMProxy`. |
+| `RELAYER` | Used for the offchain relayer system. Can call functions on controller contracts to perform actions on behalf of the `ALMProxy`. |
 | `FREEZER` | Allows removal of a compromised `RELAYER`. Intended for use with a backup relayer that the system can fall back to. |
 | `CONTROLLER` | Used for the `ALMProxy` contract. Only contracts with this role can call the `call` functions on `ALMProxy`. Also used in `RateLimits` contract for updating rate limits. |
 
@@ -108,16 +110,32 @@ All contracts in this repo inherit and implement the `AccessControl` contract fr
 
 ## Libraries
 
-The system uses several libraries for protocol integrations:
+The system uses several libraries for protocol integrations. The Mainnet and Foreign columns indicate which controller uses each library:
 
-| Library | Purpose |
-|---------|---------|
-| `AaveLib` | AAVE protocol interactions |
-| `ApproveLib` | Token approval utilities |
-| `CCTPLib` | Circle CCTP bridging |
-| `CurveLib` | Curve pool operations |
-| `ERC4626Lib` | ERC-4626 vault interactions |
-| `LayerZeroLib` | LayerZero cross-chain messaging |
-| `PSMLib` | PSM (Peg Stability Module) operations |
-| `UniswapV4Lib` | Uniswap V4 integrations |
-| `WEETHLib` | weETH (wrapped eETH) operations |
+| Library | Purpose | Mainnet | Foreign |
+|---------|---------|:-------:|:-------:|
+| `AaveLib` | Aave protocol deposit/withdraw | x | x |
+| `ApproveLib` | Token approval utilities | x | - |
+| `CCTPLib` | Circle CCTP v2 USDC bridging | x | x |
+| `CentrifugeLib` | Centrifuge async vault (ERC-7887) interactions | x | x |
+| `CurveLib` | Curve StableSwap pool operations | x | - |
+| `DAIUSDSLib` | DAI to USDS conversion | x | - |
+| `ERC4626Lib` | ERC-4626 vault deposit/withdraw | x | x |
+| `ERC7540Lib` | ERC-7540 async vault interactions | x | x |
+| `FarmLib` | SPK farming deposit/withdraw | x | - |
+| `LayerZeroLib` | LayerZero v2 cross-chain messaging | x | x |
+| `MapleLib` | Maple token redemptions | x | - |
+| `MerklLib` | Merkl operator toggles | x | x |
+| `OTCLib` | Over-the-counter swap buffering | x | - |
+| `PendleLib` | Pendle PT redemptions | x | x |
+| `PSMLib` | Mainnet PSM USDS/USDC swaps | x | - |
+| `PSM3Lib` | PSM3 deposit/withdraw | - | x |
+| `SparkVaultLib` | Spark Vault asset withdrawals | x | x |
+| `SuperstateLib` | Superstate USTB subscriptions | x | - |
+| `TransferAssetLib` | Generic ERC-20 transfers | x | x |
+| `UniswapV4Lib` | Uniswap V4 positions and swaps | x | - |
+| `USDELib` | Ethena USDe/sUSDe operations | x | - |
+| `USDSLib` | USDS minting/burning via vault | x | - |
+| `WEETHLib` | EtherFi weETH/eETH operations | x | - |
+| `WrapProxyETHLib` | WETH wrapping utility | x | - |
+| `WSTETHLib` | Lido wstETH deposit/withdraw | x | - |

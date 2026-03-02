@@ -1,12 +1,12 @@
 # Operational Requirements
 
-This document describes operational requirements for deploying and managing integrations with the Spark ALM Controller.
+This document describes operational requirements for deploying and managing integrations with Diamond PAU.
 
 ---
 
 ## Protocol Seeding Requirements
 
-Certain protocols require initialization before the ALM Controller can safely interact with them.
+Certain protocols require initialization before Diamond PAU can safely interact with them.
 
 ### ERC-4626 Vault Seeding
 
@@ -38,7 +38,7 @@ Certain protocols require initialization before the ALM Controller can safely in
 
 ## Token Requirements
 
-All ERC-20 tokens used with the ALM Controller must be:
+All ERC-20 tokens used with Diamond PAU must be:
 
 | Requirement | Rationale |
 |-------------|-----------|
@@ -100,7 +100,7 @@ Only pools with 1:1 assets can be onboarded:
 
 ## General Onboarding Process
 
-1. **Verify protocol compatibility** with ALM Controller requirements
+1. **Verify protocol compatibility** with Diamond PAU requirements
 2. **Configure rate limit keys** via governance
 3. **Set safety parameters** if applicable
 4. **Test on fork** before mainnet deployment

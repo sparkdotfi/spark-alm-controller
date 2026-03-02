@@ -1,10 +1,10 @@
 # Liquidity Operations
 
-This document describes the stablecoin market making, swapping, and liquidity provision functionality in the Spark ALM Controller.
+This document describes the stablecoin market making, swapping, and liquidity provision functionality in Diamond PAU.
 
 ## Overview
 
-The Spark Liquidity Layer (SLL) performs liquidity operations across multiple venues:
+Diamond PAU performs liquidity operations across multiple venues:
 
 | Venue | Operations | Use Case |
 |-------|------------|----------|
