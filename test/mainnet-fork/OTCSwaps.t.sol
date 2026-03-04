@@ -215,22 +215,22 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDT, 5_000_000e6);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         // 5m * 99.95% slippage = 4.9975m
         deal(Ethereum.USDT, address(otcBuffer), 4_997_500e6 - 1);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
         // Six decimal asset conversion
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18 - 1e12);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18 - 1e12);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCLib/last-swap-not-returned");
         vm.prank(relayer);
@@ -241,9 +241,9 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDT, 1e6);
@@ -256,21 +256,21 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDS, 5_000_000e18);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         // 5m * 99.95% slippage = 4.9975m
         deal(Ethereum.USDS, address(otcBuffer), 4_997_500e18 - 1);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18 - 1);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18 - 1);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCLib/last-swap-not-returned");
         vm.prank(relayer);
@@ -281,9 +281,9 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDS, 1e18);
@@ -296,22 +296,22 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDT, 5_000_000e6);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         // 5m * 99.95% slippage = 4.9975m
         deal(Ethereum.USDT, address(otcBuffer), 4_997_500e6 - 1);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
         // Six decimal asset conversion
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18 - 1e12);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18 - 1e12);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCLib/last-swap-not-returned");
         vm.prank(relayer);
@@ -319,9 +319,9 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         skip(1 seconds);
 
-        assertGt(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18);
+        assertGt(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDT, 1e6);
@@ -334,22 +334,22 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDS, 5_000_000e18);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         // 5m * 99.95% slippage = 4.9975m
         deal(Ethereum.USDS, address(otcBuffer), 4_997_500e18 - 1);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         // Six decimal asset conversion
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18 - 1);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18 - 1);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCLib/last-swap-not-returned");
         vm.prank(relayer);
@@ -357,9 +357,9 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         skip(1 seconds);
 
-        assertGt(mainnetController.getOTCClaimWithRecharge(exchange), 4_997_500e18);
+        assertGt(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDS, 1e18);
@@ -374,7 +374,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         _assertOTCState({
             sent18:        0,
@@ -404,7 +404,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
     }
 
     function test_otcSend_usds() external {
@@ -415,7 +415,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         _assertOTCState({
             sent18:        0,
@@ -445,7 +445,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
     }
 
 }
@@ -605,17 +605,17 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
             claimed18:     0
         });
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         skip(10 minutes); // Simulate realistic passage of time
 
         // Recharge starts without any claim after send
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             10 minutes * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 6_944e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 6_944e18, 1e18);
 
         // Step 2: Send USDS to buffer from exchange under slippage
 
@@ -638,13 +638,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             11 minutes * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 7_638e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 7_638e18, 1e18);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         assertEq(USDS.balanceOf(address(otcBuffer)), 9_980_000e18);
         assertEq(USDS.balanceOf(address(almProxy)),  0);
@@ -662,13 +662,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             9_980_000e18 + (11 minutes) * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 9_987_638e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 9_987_638e18, 1e18);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         assertEq(USDS.balanceOf(address(otcBuffer)), 0);
         assertEq(USDS.balanceOf(address(almProxy)),  9_980_000e18);
@@ -683,15 +683,15 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         skip(19 minutes);
 
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             9_980_000e18 + 30 minutes * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 10_000_833e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 10_000_833e18, 1e18);
 
-        assertGt(mainnetController.getOTCClaimWithRecharge(exchange), 9_995_000e18);
+        assertGt(mainnetController.getOtcClaimWithRecharge(exchange), 9_995_000e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         // Step 5: Swap another asset using the same rate limit
 
@@ -757,17 +757,17 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
             claimed18:     0
         });
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         skip(10 minutes); // Simulate realistic passage of time
 
         // Recharge starts without any claim after send
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             10 minutes * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 6_944e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 6_944e18, 1e18);
 
         // Step 2: Send USDS to buffer from exchange under slippage
 
@@ -790,13 +790,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             11 minutes * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 7_638e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 7_638e18, 1e18);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         assertEq(USDT.balanceOf(address(otcBuffer)), 9_980_000e6);
         assertEq(USDT.balanceOf(address(almProxy)),  0);
@@ -814,13 +814,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             9_980_000e18 + (11 minutes) * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 9_987_638e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 9_987_638e18, 1e18);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         assertEq(USDT.balanceOf(address(otcBuffer)), 0);
         assertEq(USDT.balanceOf(address(almProxy)),  9_980_000e6);
@@ -835,15 +835,15 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         skip(19 minutes);
 
         assertEq(
-            mainnetController.getOTCClaimWithRecharge(exchange),
+            mainnetController.getOtcClaimWithRecharge(exchange),
             9_980_000e18 + 30 minutes * (uint256(1_000_000e18) / 1 days)
         );
 
-        assertApproxEqAbs(mainnetController.getOTCClaimWithRecharge(exchange), 10_000_833e18, 1e18);
+        assertApproxEqAbs(mainnetController.getOtcClaimWithRecharge(exchange), 10_000_833e18, 1e18);
 
-        assertGt(mainnetController.getOTCClaimWithRecharge(exchange), 9_995_000e18);
+        assertGt(mainnetController.getOtcClaimWithRecharge(exchange), 9_995_000e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
 
         // Step 5: Swap another asset using the same rate limit
 
@@ -880,7 +880,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
 
     function test_getOTCClaimedWithRecharge_noSentTimestamp() external view {
         // Would return non-zero without early return, because it would use (block.timestamp - 0) * rechargeRate18
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
     }
 
     function test_getOTCClaimedWithRecharge_test() external {
@@ -888,7 +888,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
 
         deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         vm.expectEmit(address(mainnetController));
         emit OTCLib.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDT, 10_000_000e6, 10_000_000e18);
@@ -901,12 +901,12 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
             10_000_000e6
         );
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         vm.warp(startingTimestamp + 30 minutes);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 30 minutes * (uint256(1_000_000e18) / 1 days));
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 20_833.333333333333333200e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 30 minutes * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 20_833.333333333333333200e18);
 
         deal(Ethereum.USDS, exchange, 5_500_000e18);
 
@@ -914,24 +914,24 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         USDS.transfer(address(otcBuffer), 5_500_000e18);
 
         // Doesn't change because no claim yet
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 20_833.333333333333333200e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 20_833.333333333333333200e18);
 
         // Claiming increases claimed amount
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 5_500_000e18 + 20_833.333333333333333200e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 20_833.333333333333333200e18);
 
         vm.warp(startingTimestamp + 1 days);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 5_500_000e18 + 1 days * (uint256(1_000_000e18) / 1 days));
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 6_499_999.999999999999993600e18);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 1 days * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 6_499_999.999999999999993600e18);
 
         vm.warp(startingTimestamp + 10 days);
 
-        // No cieling on amount, not necessary because isOTCSwapReady will become true as soon as its above slippage
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 5_500_000e18 + 10 days * (uint256(1_000_000e18) / 1 days));
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 15_499_999.999999999999936000e18);
+        // No ceiling on amount, not necessary because `isOtcSwapReady` will become true as soon as its above slippage.
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 10 days * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 15_499_999.999999999999936000e18);
     }
 
     function test_getOTCClaimedWithRecharge_zeroClaimThenNonZeroClaim() external {
@@ -950,11 +950,11 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
             10_000_000e6
         );
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         vm.warp(startingTimestamp + 30 minutes);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 30 minutes * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 30 minutes * (uint256(1_000_000e18) / 1 days));
 
         _assertOTCState({
             sent18:        10_000_000e18,
@@ -972,7 +972,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
             claimed18:     0
         });
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 30 minutes * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 30 minutes * (uint256(1_000_000e18) / 1 days));
 
         deal(Ethereum.USDS, exchange, 5_500_000e18);
 
@@ -983,7 +983,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 5_500_000e18 + 30 minutes * (uint256(1_000_000e18) / 1 days));
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 30 minutes * (uint256(1_000_000e18) / 1 days));
     }
 
 }
@@ -991,7 +991,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
 contract MainnetController_OTC_IsSwapReady_Tests is OTC_TestBase {
 
     function test_isOTCSwapReady_falseWithZeroSlippage() external {
-        assertFalse(mainnetController.isOTCSwapReady(makeAddr("fake-exchange")));
+        assertFalse(mainnetController.isOtcSwapReady(makeAddr("fake-exchange")));
     }
 
     function test_isOTCSwapReady() external {
@@ -1005,20 +1005,20 @@ contract MainnetController_OTC_IsSwapReady_Tests is OTC_TestBase {
         vm.prank(exchange);
         USDS.transfer(address(otcBuffer), 9_995_000e18 - 1);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 0);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
-        assertEq(mainnetController.getOTCClaimWithRecharge(exchange), 9_995_000e18 - 1);
+        assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 9_995_000e18 - 1);
 
-        assertFalse(mainnetController.isOTCSwapReady(exchange));
+        assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         skip(1 seconds);
 
-        assertGt(mainnetController.getOTCClaimWithRecharge(exchange), 9_995_000e18);
+        assertGt(mainnetController.getOtcClaimWithRecharge(exchange), 9_995_000e18);
 
-        assertTrue(mainnetController.isOTCSwapReady(exchange));
+        assertTrue(mainnetController.isOtcSwapReady(exchange));
     }
 
 }

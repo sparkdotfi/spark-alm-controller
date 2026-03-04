@@ -382,7 +382,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** wstETH Integration                                                                     ***/
     /**********************************************************************************************/
 
-    function depositToWSTETH(uint256 amount) external nonReentrant onlyRole(RELAYER) {
+    function depositToWstETH(uint256 amount) external nonReentrant onlyRole(RELAYER) {
         WSTETHLib.deposit({
             proxy      : address(proxy),
             rateLimits : address(rateLimits),
@@ -392,7 +392,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         });
     }
 
-    function requestWithdrawFromWSTETH(uint256 amountToRedeem)
+    function requestWithdrawFromWstETH(uint256 amountToRedeem)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -407,7 +407,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         });
     }
 
-    function claimWithdrawalFromWSTETH(uint256 requestId) external nonReentrant onlyRole(RELAYER) {
+    function claimWithdrawalFromWstETH(uint256 requestId) external nonReentrant onlyRole(RELAYER) {
         WSTETHLib.claimWithdrawal({
             proxy         : address(proxy),
             withdrawQueue : Ethereum.WSTETH_WITHDRAW_QUEUE,
@@ -420,7 +420,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** weETH Integration                                                                      ***/
     /**********************************************************************************************/
 
-    function depositToWEETH(uint256 amount, uint256 minSharesOut)
+    function depositToWeETH(uint256 amount, uint256 minSharesOut)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -429,7 +429,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         return WEETHLib.deposit(address(proxy), address(rateLimits), amount, minSharesOut);
     }
 
-    function requestWithdrawFromWEETH(
+    function requestWithdrawFromWeETH(
         address weethModule,
         uint256 weethShares,
         uint256 minEETHShares
@@ -448,7 +448,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
     }
 
-    function claimWithdrawalFromWEETH(address weethModule, uint256 requestId)
+    function claimWithdrawalFromWeETH(address weethModule, uint256 requestId)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -787,7 +787,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     // Note that Ethena's mint/redeem per-block limits include other users.
-    function prepareUSDEMint(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER) {
+    function prepareUSDeMint(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER) {
         USDELib.prepareMint({
             proxy      : address(proxy),
             rateLimits : address(rateLimits),
@@ -797,11 +797,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         });
     }
 
-    function prepareUSDEBurn(uint256 usdeAmount) external nonReentrant onlyRole(RELAYER) {
+    function prepareUSDeBurn(uint256 usdeAmount) external nonReentrant onlyRole(RELAYER) {
         USDELib.prepareBurn(address(proxy), address(rateLimits), usde, ethenaMinter, usdeAmount);
     }
 
-    function cooldownAssetsSUSDE(uint256 usdeAmount)
+    function cooldownAssetsSUSDe(uint256 usdeAmount)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -810,7 +810,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         return USDELib.cooldownAssets(address(proxy), address(rateLimits), susde, usdeAmount);
     }
 
-    function cooldownSharesSUSDE(uint256 susdeAmount)
+    function cooldownSharesSUSDe(uint256 susdeAmount)
         external
         nonReentrant
         onlyRole(RELAYER)
@@ -819,7 +819,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         return USDELib.cooldownShares(address(proxy), address(rateLimits), susde, susdeAmount);
     }
 
-    function unstakeSUSDE() external nonReentrant onlyRole(RELAYER) {
+    function unstakeSUSDe() external nonReentrant onlyRole(RELAYER) {
         USDELib.unstakeSUSDE(address(proxy), susde);
     }
 
@@ -1038,11 +1038,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         });
     }
 
-    function getOTCClaimWithRecharge(address exchange) external view returns (uint256) {
+    function getOtcClaimWithRecharge(address exchange) external view returns (uint256) {
         return OTCLib.getClaimWithRecharge(exchange, otcs);
     }
 
-    function isOTCSwapReady(address exchange) external view returns (bool) {
+    function isOtcSwapReady(address exchange) external view returns (bool) {
         return OTCLib.isSwapReady(exchange, otcs, maxSlippages);
     }
 
