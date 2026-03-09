@@ -167,6 +167,7 @@ library CurveLib {
         valueDeposited /= 1e18;
 
         // Ensure minimum LP amount expected is greater than max slippage amount.
+        // Intentionally reverts when get_virtual_price() == 0 to prevent adding liquidity to unseeded pools
         require(
             params.minLpAmount >= valueDeposited
                 * params.maxSlippage

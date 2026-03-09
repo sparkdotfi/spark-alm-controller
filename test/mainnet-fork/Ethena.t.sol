@@ -379,10 +379,11 @@ contract MainnetControllerCooldownAssetsSUSDeSuccessTests is EthenaTestBase {
         vm.prank(relayer);
         vm.expectEmit(address(susde));
         emit Withdraw(address(almProxy), silo, address(almProxy), assets, 100e18);
-        mainnetController.cooldownAssetsSUSDe(assets);
+        uint256 returnedShares = mainnetController.cooldownAssetsSUSDe(assets);
 
         _assertReentrancyGuardWrittenToTwice();
 
+        assertEq(returnedShares,                     100e18);
         assertEq(susde.balanceOf(address(almProxy)), 0);
         assertEq(usde.balanceOf(silo),               startingSiloBalance + assets);
     }
@@ -728,7 +729,7 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 5_000_000e18);
 
         vm.prank(relayer);
-        mainnetController.depositERC4626(address(susde), 500_000e18);
+        mainnetController.depositERC4626(address(susde), 500_000e18, 0);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 4_500_000e18);
 
@@ -845,7 +846,7 @@ contract MainnetControllerEthenaE2ETests is EthenaTestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 5_000_000e18);
 
         vm.prank(relayer);
-        uint256 susdeShares = mainnetController.depositERC4626(address(susde), 500_000e18);
+        uint256 susdeShares = mainnetController.depositERC4626(address(susde), 500_000e18, 0);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 4_500_000e18);
 

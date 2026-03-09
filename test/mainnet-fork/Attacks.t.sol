@@ -94,7 +94,7 @@ contract MapleAttackTests is MapleTestBase {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
-        mainnetController.depositERC4626(address(syrup), 1_000_000e6);
+        mainnetController.depositERC4626(address(syrup), 1_000_000e6, 0);
 
         // Malicious relayer delays the request for redemption for 1m
         // because new requests can't be fulfilled until the previous is fulfilled or cancelled

@@ -16,17 +16,15 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { ILayerZero, SendParam, OFTReceipt, MessagingFee } from "./interfaces/ILayerZero.sol";
-
 import { ApproveLib }                     from "./libraries/ApproveLib.sol";
 import { AaveLib }                        from "./libraries/AaveLib.sol";
 import { CCTPLib }                        from "./libraries/CCTPLib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
+import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
 import { IDaiUsdsLike, IPSMLike, PSMLib } from "./libraries/PSMLib.sol";
 import { UniswapV4Lib }                   from "./libraries/UniswapV4Lib.sol";
-
-import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
+import { WEETHLib }                       from "./libraries/WEETHLib.sol";
 
 import { RateLimitHelpers } from "./RateLimitHelpers.sol";
 
@@ -55,8 +53,8 @@ interface ISparkVaultLike {
 }
 
 interface ISUSDELike is IERC4626 {
-    function cooldownAssets(uint256 usdeAmount) external;
-    function cooldownShares(uint256 susdeAmount) external;
+    function cooldownAssets(uint256 usdeAmount) external returns (uint256);
+    function cooldownShares(uint256 susdeAmount) external returns (uint256);
     function unstake(address receiver) external;
 }
 
@@ -85,8 +83,6 @@ interface IWstETHLike {
 }
 
 contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
-
-    using OptionsBuilder for bytes;
 
     struct OTC {
         address buffer;
@@ -154,7 +150,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_CURVE_WITHDRAW          = keccak256("LIMIT_CURVE_WITHDRAW");
     bytes32 public LIMIT_FARM_DEPOSIT            = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public LIMIT_FARM_WITHDRAW           = keccak256("LIMIT_FARM_WITHDRAW");
-    bytes32 public LIMIT_LAYERZERO_TRANSFER      = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_LAYERZERO_TRANSFER;
     bytes32 public LIMIT_MAPLE_REDEEM            = keccak256("LIMIT_MAPLE_REDEEM");
     bytes32 public LIMIT_OTC_SWAP                = keccak256("LIMIT_OTC_SWAP");
     bytes32 public LIMIT_SPARK_VAULT_TAKE        = keccak256("LIMIT_SPARK_VAULT_TAKE");
@@ -169,6 +165,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
     bytes32 public LIMIT_USDS_TO_USDC            = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 public LIMIT_WEETH_DEPOSIT           = WEETHLib.LIMIT_WEETH_DEPOSIT;
+    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WEETHLib.LIMIT_WEETH_REQUEST_WITHDRAW;
     bytes32 public LIMIT_WSTETH_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 public LIMIT_WSTETH_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
@@ -274,10 +272,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setOTCBuffer(address exchange, address otcBuffer) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
 
-        require(exchange != address(0), "MC/exchange-zero-address");
-        require(exchange != otcBuffer,  "MC/exchange-equals-otcBuffer");
+        require(exchange  != address(0), "MC/exchange-zero-address");
+        require(otcBuffer != address(0), "MC/otcBuffer-zero-address");
+        require(exchange  != otcBuffer,  "MC/exchange-equals-otcBuffer");
 
         OTC storage otc = otcs[exchange];
+
+        // Prevent rotating buffer while a swap is pending and not ready
+        require(otc.sentTimestamp == 0 || isOtcSwapReady(exchange), "MC/swap-in-progress");
 
         emit OTCBufferSet(exchange, otc.buffer, otcBuffer);
         otc.buffer = otcBuffer;
@@ -487,10 +489,82 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     }
 
     /**********************************************************************************************/
+    /*** weETH Integration                                                                      ***/
+    /**********************************************************************************************/
+
+    function depositToWeETH(
+        uint256 amount,
+        uint256 minSharesOut
+    )
+        external nonReentrant returns (uint256 shares)
+    {
+        _checkRole(RELAYER);
+
+        shares = WEETHLib.deposit({
+            proxy        : proxy,
+            rateLimits   : rateLimits,
+            amount       : amount,
+            minSharesOut : minSharesOut
+        });
+    }
+
+    function requestWithdrawFromWeETH(
+        address weETHModule,
+        uint256 weETHShares,
+        uint256 minEETHShares
+    )
+        external nonReentrant returns (uint256 requestId)
+    {
+        _checkRole(RELAYER);
+
+        requestId = WEETHLib.requestWithdraw({
+            proxy         : proxy,
+            rateLimits    : rateLimits,
+            weETHModule   : weETHModule,
+            weETHShares   : weETHShares,
+            minEETHShares : minEETHShares
+        });
+    }
+
+    function claimWithdrawalFromWeETH(
+        address weETHModule,
+        uint256 requestId
+    )
+        external nonReentrant returns (uint256 ethReceived)
+    {
+        _checkRole(RELAYER);
+
+        ethReceived = WEETHLib.claimWithdrawal({
+            proxy       : proxy,
+            rateLimits  : rateLimits,
+            weETHModule : weETHModule,
+            requestId   : requestId
+        });
+    }
+
+    /**********************************************************************************************/
+    /*** Relayer wrap ETH function                                                              ***/
+    /**********************************************************************************************/
+
+    function wrapAllProxyETH() external nonReentrant {
+        _checkRole(RELAYER);
+
+        uint256 proxyBalance = address(proxy).balance;
+
+        if (proxyBalance == 0) return;
+
+        proxy.doCallWithValue(
+            Ethereum.WETH,
+            "",
+            proxyBalance
+        );
+    }
+
+    /**********************************************************************************************/
     /*** Relayer ERC4626 functions                                                              ***/
     /**********************************************************************************************/
 
-    function depositERC4626(address token, uint256 amount)
+    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
@@ -499,13 +573,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy           : address(proxy),
             token           : token,
             amount          : amount,
+            minSharesOut    : minSharesOut,
             maxExchangeRate : maxExchangeRates[token],
             rateLimits      : address(rateLimits),
             rateLimitId     : LIMIT_4626_DEPOSIT
         });
     }
 
-    function withdrawERC4626(address token, uint256 amount)
+    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
         external nonReentrant returns (uint256 shares)
     {
         _checkRole(RELAYER);
@@ -514,13 +589,14 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy               : address(proxy),
             token               : token,
             amount              : amount,
+            maxSharesIn         : maxSharesIn,
             rateLimits          : address(rateLimits),
             withdrawRateLimitId : LIMIT_4626_WITHDRAW,
             depositRateLimitId  : LIMIT_4626_DEPOSIT
         });
     }
 
-    function redeemERC4626(address token, uint256 shares)
+    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
         external nonReentrant returns (uint256 assets)
     {
         _checkRole(RELAYER);
@@ -529,6 +605,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             proxy               : address(proxy),
             token               : token,
             shares              : shares,
+            minAssetsOut        : minAssetsOut,
             rateLimits          : address(rateLimits),
             withdrawRateLimitId : LIMIT_4626_WITHDRAW,
             depositRateLimitId  : LIMIT_4626_DEPOSIT
@@ -645,8 +722,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         int24   tickLower,
         int24   tickUpper,
         uint128 liquidity,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         external nonReentrant
     {
@@ -669,8 +746,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityIncrease,
-        uint256 amount0Max,
-        uint256 amount1Max
+        uint128 amount0Max,
+        uint128 amount1Max
     )
         external nonReentrant
     {
@@ -692,8 +769,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityDecrease,
-        uint256 amount0Min,
-        uint256 amount1Min
+        uint128 amount0Min,
+        uint128 amount1Min
     )
         external nonReentrant
     {
@@ -766,23 +843,28 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         ApproveLib.approve(address(usde), address(proxy), address(ethenaMinter), usdeAmount);
     }
 
-    function cooldownAssetsSUSDe(uint256 usdeAmount) external nonReentrant {
+    function cooldownAssetsSUSDe(uint256 usdeAmount)
+        external nonReentrant returns (uint256 cooldownShares)
+    {
         _checkRole(RELAYER);
         _rateLimited(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
-        proxy.doCall(
-            address(susde),
-            abi.encodeCall(susde.cooldownAssets, (usdeAmount))
+        cooldownShares = abi.decode(
+            proxy.doCall(
+                address(susde),
+                abi.encodeCall(susde.cooldownAssets, (usdeAmount))
+            ),
+            (uint256)
         );
     }
 
     // NOTE: !!! Rate limited at end of function !!!
     function cooldownSharesSUSDe(uint256 susdeAmount)
-        external nonReentrant returns (uint256 cooldownAmount)
+        external nonReentrant returns (uint256 cooldownAssets)
     {
         _checkRole(RELAYER);
 
-        cooldownAmount = abi.decode(
+        cooldownAssets = abi.decode(
             proxy.doCall(
                 address(susde),
                 abi.encodeCall(susde.cooldownShares, (susdeAmount))
@@ -790,7 +872,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
             (uint256)
         );
 
-        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAmount);
+        _rateLimited(LIMIT_SUSDE_COOLDOWN, cooldownAssets);
     }
 
     function unstakeSUSDe() external nonReentrant {
@@ -921,45 +1003,15 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         external payable nonReentrant
     {
         _checkRole(RELAYER);
-        _rateLimited(
-            keccak256(abi.encode(LIMIT_LAYERZERO_TRANSFER, oftAddress, destinationEndpointId)),
-            amount
-        );
 
-        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
-
-        require(recipient != bytes32(0), "MC/recipient-not-set");
-
-        // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == false. Add integration testing for this case before
-        //       using in production.
-        if (ILayerZero(oftAddress).approvalRequired()) {
-            ApproveLib.approve(ILayerZero(oftAddress).token(), address(proxy), oftAddress, amount);
-        }
-
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        SendParam memory sendParams = SendParam({
-            dstEid       : destinationEndpointId,
-            to           : recipient,
-            amountLD     : amount,
-            minAmountLD  : 0,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
+        LayerZeroLib.transferTokenLayerZero({
+            proxy                 : proxy,
+            rateLimits            : rateLimits,
+            oftAddress            : oftAddress,
+            amount                : amount,
+            destinationEndpointId : destinationEndpointId,
+            layerZeroRecipient    : layerZeroRecipients[destinationEndpointId]
         });
-
-        // Query the min amount received on the destination chain and set it.
-        ( , , OFTReceipt memory receipt ) = ILayerZero(oftAddress).quoteOFT(sendParams);
-        sendParams.minAmountLD = receipt.amountReceivedLD;
-
-        MessagingFee memory fee = ILayerZero(oftAddress).quoteSend(sendParams, false);
-
-        proxy.doCallWithValue{value: fee.nativeFee}(
-            oftAddress,
-            abi.encodeCall(ILayerZero.send, (sendParams, fee, address(proxy))),
-            fee.nativeFee
-        );
     }
 
     /**********************************************************************************************/
@@ -1057,8 +1109,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
         OTC storage otc = otcs[exchange];
 
-        // Just to check that OTC buffer exists
-        require(otc.buffer != address(0), "MC/otc-buffer-not-set");
+        // Its impossible to have zero address buffer because of whitelistedAssets.
         require(isOtcSwapReady(exchange), "MC/last-swap-not-returned");
 
         otc.sent18        = sent18;
@@ -1126,7 +1177,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "MC/transfer-failed"
         );
     }
@@ -1143,7 +1194,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         );
 
         require(
-            returnData.length == 0 || abi.decode(returnData, (bool)),
+            returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "MC/transferFrom-failed"
         );
     }

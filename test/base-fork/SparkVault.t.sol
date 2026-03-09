@@ -365,7 +365,7 @@ contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
         // Step 4: Deposit into Morpho and set the VSR to 4% APY
 
         vm.startPrank(relayer);
-        uint256 shares = foreignController.depositERC4626(morphoUsdcVault, 9_000_000e6);
+        uint256 shares = foreignController.depositERC4626(morphoUsdcVault, 9_000_000e6, 0);
         sparkVault.setVsr(1.000000001243680656318820312e27);  // 4% APY
         vm.stopPrank();
 
@@ -388,7 +388,7 @@ contract ForeignControllerTakeFromSparkVaultE2ETests is ForkTestBase {
         // Step 6: Redeem assets from Morpho, swap DAI to USDC and transfer outstanding assets to the vault
 
         vm.startPrank(relayer);
-        uint256 assets = foreignController.redeemERC4626(morphoUsdcVault, shares);
+        uint256 assets = foreignController.redeemERC4626(morphoUsdcVault, shares, 0);
         foreignController.transferAsset(address(usdcBase), address(sparkVault), 9_400_000e6);
         vm.stopPrank();
 

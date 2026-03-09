@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { ERC1967Proxy }                  from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20Mock }                     from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 import { IERC20Metadata }                from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import { IERC20 as OzIERC20, SafeERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -55,7 +56,17 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        otcBuffer = new OTCBuffer(Ethereum.SPARK_PROXY, address(almProxy));
+        otcBuffer = OTCBuffer(
+            address(
+                new ERC1967Proxy(
+                    address(new OTCBuffer()),
+                    abi.encodeCall(
+                        OTCBuffer.initialize,
+                        (Ethereum.SPARK_PROXY, address(almProxy))
+                    )
+                )
+            )
+        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         otcBuffer.approve(address(usdt), type(uint256).max);
@@ -94,6 +105,24 @@ contract MainnetControllerOTCSwapBase is ForkTestBase {
         assertEq(sent18_,        sent18);
         assertEq(sentTimestamp_, sentTimestamp);
         assertEq(claimed18_,     claimed18);
+    }
+
+}
+
+// NOTE: This test requires the send to be executed first which requires ForkTestBase,
+//       therefore it is placed here instead of Admin.t.sol.
+contract MainnetControllerSetOTCBufferFailureTests is MainnetControllerOTCSwapBase {
+
+    function test_setOTCBuffer_swapInProgress() external {
+        deal(address(usdt), address(almProxy), 5_000_000e6);
+
+        // Execute OTC swap
+        vm.prank(relayer);
+        mainnetController.otcSend(exchange, address(usdt), 5_000_000e6);
+
+        vm.expectRevert("MC/swap-in-progress");
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setOTCBuffer(exchange, makeAddr("new-buffer"));
     }
 
 }
@@ -164,15 +193,6 @@ contract MainnetControllerOtcSendFailureTests is MainnetControllerOTCSwapBase {
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, address(usds), 10_000_000e18);
-    }
-
-    function test_otcSend_otcBufferNotSet() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setOTCBuffer(exchange, address(0));
-
-        vm.prank(relayer);
-        vm.expectRevert("MC/otc-buffer-not-set");
-        mainnetController.otcSend(exchange, address(usdt), 1e6);
     }
 
     function test_otcSend_transferFailed() external {

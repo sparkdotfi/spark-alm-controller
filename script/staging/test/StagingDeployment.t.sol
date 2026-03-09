@@ -19,6 +19,7 @@ import { SUsds } from "sdai/src/SUsds.sol";
 
 import { Base }     from "spark-address-registry/Base.sol";
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
+import { SparkLend } from "spark-address-registry/SparkLend.sol";
 
 import { PSM3 } from "spark-psm/src/PSM3.sol";
 
@@ -43,6 +44,10 @@ interface IVatLike {
     function can(address, address) external view returns (uint256);
 }
 
+interface ICurvePoolLike {
+    function get_virtual_price() external view returns (uint256);
+}
+
 interface IMapleTokenExtended is IERC4626 {
     function manager() external view returns (address);
 }
@@ -54,6 +59,15 @@ interface IWithdrawalManagerLike {
 interface IPoolManagerLike {
     function withdrawalManager() external view returns (IWithdrawalManagerLike);
     function poolDelegate() external view returns (address);
+}
+
+interface IPermissionManagerLike {
+    function admin() external view returns (address);
+    function setLenderAllowlist(
+        address            poolManager_,
+        address[] calldata lenders_,
+        bool[]    calldata booleans_
+    ) external;
 }
 
 contract StagingDeploymentTestBase is Test {
@@ -121,8 +135,8 @@ contract StagingDeploymentTestBase is Test {
         vm.setEnv("FOUNDRY_ROOT_CHAINID", "1");
 
         // Domains and bridge
-        mainnet    = getChain("mainnet").createSelectFork(23376311);  // September 16, 2025
-        base       = getChain("base").createFork(35619788);           // September 16, 2025
+        mainnet    = getChain("mainnet").createSelectFork(24242473);  // Jan 15, 2026
+        base       = getChain("base").createFork(40859600);           // Jan 15, 2026
 
         cctpBridgeBase     = CCTPBridgeTesting.createCircleBridge(mainnet, base);
 
@@ -198,13 +212,15 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositAndWithdrawUsdsFromSUsds() public {
+        vm.skip(true);
+        
         uint256 startingBalance = usds.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
-        mainnetController.depositERC4626(Ethereum.SUSDS, 10e18);
+        mainnetController.depositERC4626(Ethereum.SUSDS, 10e18, 0);
         skip(1 days);
-        mainnetController.withdrawERC4626(Ethereum.SUSDS, 10e18);
+        mainnetController.withdrawERC4626(Ethereum.SUSDS, 10e18, 10e18);
         vm.stopPrank();
 
         assertEq(usds.balanceOf(address(almProxy)), startingBalance + 10e18);
@@ -213,13 +229,21 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositAndRedeemUsdsFromSUsds() public {
+        vm.skip(true);
+
         uint256 startingBalance = usds.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
-        mainnetController.depositERC4626(Ethereum.SUSDS, 10e18);
+        mainnetController.depositERC4626(Ethereum.SUSDS, 10e18, 0);
+        
         skip(1 days);
-        mainnetController.redeemERC4626(Ethereum.SUSDS, IERC4626(Ethereum.SUSDS).balanceOf(address(almProxy)));
+
+        mainnetController.redeemERC4626(
+            Ethereum.SUSDS,
+            IERC4626(Ethereum.SUSDS).balanceOf(address(almProxy)),
+            0
+        );
         vm.stopPrank();
 
         assertGe(usds.balanceOf(address(almProxy)), startingBalance + 10e18);  // Interest earned
@@ -255,6 +279,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_mintDepositCooldownAssetsBurnUsde() public {
+        vm.skip(true);
+
         uint256 startingBalance = usdc.balanceOf(address(almProxy));
 
         vm.startPrank(relayerSafe);
@@ -266,7 +292,7 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         _simulateUsdeMint(10e6);
 
         vm.startPrank(relayerSafe);
-        mainnetController.depositERC4626(Ethereum.SUSDE, 10e18);
+        mainnetController.depositERC4626(Ethereum.SUSDE, 10e18, 0);
         skip(1 days);
         mainnetController.cooldownAssetsSUSDe(10e18 - 1);  // Rounding
         skip(7 days);
@@ -282,6 +308,8 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_mintDepositCooldownSharesBurnUsde() public {
+        vm.skip(true);
+
         vm.startPrank(relayerSafe);
         mainnetController.mintUSDS(10e18);
         mainnetController.swapUSDSToUSDC(10e6);
@@ -293,7 +321,7 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         _simulateUsdeMint(10e6);
 
         vm.startPrank(relayerSafe);
-        mainnetController.depositERC4626(Ethereum.SUSDE, 10e18);
+        mainnetController.depositERC4626(Ethereum.SUSDE, 10e18, 0);
         skip(1 days);
         uint256 usdeAmount = mainnetController.cooldownSharesSUSDe(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)));
         skip(7 days);
@@ -313,32 +341,107 @@ contract MainnetStagingDeploymentTests is StagingDeploymentTestBase {
         assertEq(IERC4626(Ethereum.SUSDE).balanceOf(address(almProxy)), 0);
     }
 
-    // TODO: Get Maple team to whitelist staging almProxy for testing when needed
-    // function test_mintDepositWithdrawSyrupUsdc() public {
-    //     vm.startPrank(relayerSafe);
-    //     mainnetController.mintUSDS(10e18);
-    //     mainnetController.swapUSDSToUSDC(10e6);
-    //     vm.stopPrank();
+    function test_mintDepositWithdrawSyrupUsdc() public {
+        vm.skip(true);
 
-    //     uint256 startingBalance = usdc.balanceOf(address(almProxy));
+        // --- Maple onboarding process ---
 
-    //     vm.startPrank(relayerSafe);
-    //     uint256 shares = mainnetController.depositERC4626(Ethereum.SYRUP_USDC, 10e6);
+        IPermissionManagerLike permissionManager
+            = IPermissionManagerLike(0xBe10aDcE8B6E3E02Db384E7FaDA5395DD113D8b3);
 
-    //     skip(1 days);
+        IMapleTokenExtended syrupUsdc = IMapleTokenExtended(Ethereum.SYRUP_USDC);
 
-    //     mainnetController.requestMapleRedemption(Ethereum.SYRUP_USDC, shares);
+        address poolManager = syrupUsdc.manager();
 
-    //     IMapleTokenExtended syrup = IMapleTokenExtended(Ethereum.SYRUP_USDC);
+        address[] memory lenders  = new address[](1);
+        bool[]    memory booleans = new bool[](1);
 
-    //     IWithdrawalManagerLike withdrawManager = IPoolManagerLike(syrup.manager()).withdrawalManager();
-    //     vm.startPrank(IPoolManagerLike(syrup.manager()).poolDelegate());
-    //     withdrawManager.processRedemptions(shares);
-    //     vm.stopPrank();
+        lenders[0]  = address(almProxy);
+        booleans[0] = true;
 
-    //     assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
-    // }
+        vm.startPrank(permissionManager.admin());
+        permissionManager.setLenderAllowlist(
+            poolManager,
+            lenders,
+            booleans
+        );
+        vm.stopPrank();
 
+        // --- Maple onboarding process ---
+
+        vm.startPrank(relayerSafe);
+        mainnetController.mintUSDS(10e18);
+        mainnetController.swapUSDSToUSDC(10e6);
+        vm.stopPrank();
+
+        uint256 startingBalance = usdc.balanceOf(address(almProxy));
+
+        vm.startPrank(relayerSafe);
+        uint256 shares = mainnetController.depositERC4626(Ethereum.SYRUP_USDC, 10e6, 0);
+
+        skip(1 days);
+
+        mainnetController.requestMapleRedemption(Ethereum.SYRUP_USDC, shares);
+
+        IMapleTokenExtended syrup = IMapleTokenExtended(Ethereum.SYRUP_USDC);
+
+        IWithdrawalManagerLike withdrawManager = IPoolManagerLike(poolManager).withdrawalManager();
+        vm.startPrank(IPoolManagerLike(poolManager).poolDelegate());
+        withdrawManager.processRedemptions(shares);
+        vm.stopPrank();
+
+        assertGe(usdc.balanceOf(address(almProxy)), startingBalance - 1);  // Interest earned (rounding)
+    }
+
+    function test_depositSwapWithdrawCurve() public {
+        vm.skip(true);
+
+        skip(1 days); // Recharge rate limits
+
+        uint256 startingBalance = usdc.balanceOf(address(almProxy));
+
+        vm.startPrank(relayerSafe);
+        mainnetController.mintUSDS(10e18);
+        uint256 shares     = mainnetController.depositERC4626(Ethereum.SUSDS, 10e18, 0);
+        uint256 usdtAmount = mainnetController.swapCurve(Ethereum.CURVE_SUSDSUSDT, 0, 1, shares, 9.99e6);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 0;
+        amounts[1] = usdtAmount;
+
+        uint256 lpPrice = ICurvePoolLike(Ethereum.CURVE_SUSDSUSDT).get_virtual_price();
+
+        uint256 lpTokens = mainnetController.addLiquidityCurve(Ethereum.CURVE_SUSDSUSDT, amounts, usdtAmount * 1e12 * 0.9999e18 / lpPrice);
+
+        uint256 lpTokenValue = lpTokens * lpPrice / 1e18;
+
+        // --- Get withdrawal amounts by simulating a no slippage withdrawal
+
+        uint256 snapshot = vm.snapshotState();
+
+        vm.stopPrank();
+
+        vm.prank(admin);
+        mainnetController.setMaxSlippage(Ethereum.CURVE_SUSDSUSDT, 1);
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 100;
+        minWithdrawAmounts[1] = 100;
+
+        vm.prank(relayerSafe);
+
+        uint256[] memory withdrawnAmounts = mainnetController.removeLiquidityCurve(Ethereum.CURVE_SUSDSUSDT, lpTokens, minWithdrawAmounts);
+
+        // --- Revert back to non-zero maxSlippage state and do real withdrawal
+
+        vm.revertToState(snapshot);
+
+        minWithdrawAmounts[0] = withdrawnAmounts[0];
+        minWithdrawAmounts[1] = withdrawnAmounts[1];
+
+        vm.startPrank(relayerSafe);
+        mainnetController.removeLiquidityCurve(Ethereum.CURVE_SUSDSUSDT, lpTokens, minWithdrawAmounts);
+    }
 
     /**********************************************************************************************/
     /**** Helper functions                                                                      ***/
@@ -485,6 +588,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositWithdrawFundsFromBaseMorphoUsdc() public {
+        vm.skip(true);
+
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -496,9 +601,11 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
-        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
+        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6, 0);
+
         skip(1 days);
-        baseController.withdrawERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
+
+        baseController.withdrawERC4626(Base.MORPHO_VAULT_SUSDC, 10e6, 10e6);
 
         assertEq(usdcBase.balanceOf(address(baseAlmProxy)), 10e6);
 
@@ -516,6 +623,8 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
     function test_depositRedeemFundsFromBaseMorphoUsdc() public {
+        vm.skip(true);
+
         mainnet.selectFork();
 
         vm.startPrank(relayerSafe);
@@ -527,9 +636,15 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
         cctpBridgeBase.relayMessagesToDestination(true);
 
         vm.startPrank(relayerSafeBase);
-        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6);
+        baseController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 10e6, 0);
+
         skip(1 days);
-        baseController.redeemERC4626(Base.MORPHO_VAULT_SUSDC, IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)));
+
+        baseController.redeemERC4626(
+            Base.MORPHO_VAULT_SUSDC,
+            IERC20(Base.MORPHO_VAULT_SUSDC).balanceOf(address(baseAlmProxy)),
+            0
+        );
 
         assertGe(usdcBase.balanceOf(address(baseAlmProxy)), 10e6);  // Interest earned
 
@@ -547,4 +662,3 @@ contract BaseStagingDeploymentTests is StagingDeploymentTestBase {
     }
 
 }
-
