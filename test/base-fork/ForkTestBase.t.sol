@@ -210,4 +210,8 @@ abstract contract ForkTestBase is Test {
         assertEq(vm.load(address(foreignController), _REENTRANCY_GUARD_SLOT), _REENTRANCY_GUARD_NOT_ENTERED);
     }
 
+    function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
+        return a > b ? a - b : b - a;
+    }
+
 }
