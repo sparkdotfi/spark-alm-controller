@@ -398,7 +398,7 @@ library UniswapV3Lib {
         mapping (address => uint256) storage maxSlippages
     )
         external
-        returns (TokenAmounts memory collected)
+        returns (TokenAmounts memory amounts)
     {
         address token0 = IUniswapV3PoolLike(pool).token0();
         address token1 = IUniswapV3PoolLike(pool).token1();
@@ -410,33 +410,19 @@ library UniswapV3Lib {
             tokenId         : tokenId,
             token0          : token0,
             token1          : token1,
-            liquidity       : liquidity
+            liquidity       : liquidity,
+            maxSlippages    : maxSlippages
         });
 
-        TokenAmounts memory startingBalances = _getBalances(proxy, token0, token1);
+        amounts = _callDecreaseLiquidity(proxy, positionManager, tokenId, liquidity, min, deadline);
 
-        _callDecreaseLiquidity(proxy, positionManager, tokenId, liquidity, min, deadline);
+        _callCollect(proxy, positionManager, tokenId);
 
-        collected = _callCollect(proxy, positionManager, tokenId);
+        _checkSlippage(maxSlippages[pool], amounts.amount0, min.amount0);
+        _checkSlippage(maxSlippages[pool], amounts.amount1, min.amount1);
 
-        TokenAmounts memory endingBalances = _getBalances(proxy, token0, token1);
-
-        _checkSlippage(
-            maxSlippages[pool],
-            startingBalances.amount0,
-            endingBalances.amount0,
-            min.amount0
-        );
-
-        _checkSlippage(
-            maxSlippages[pool],
-            startingBalances.amount1,
-            endingBalances.amount1,
-            min.amount1
-        );
-
-        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token0, pool, collected.amount0);
-        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token1, pool, collected.amount1);
+        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token0, pool, amounts.amount0);
+        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token1, pool, amounts.amount1);
     }
 
     /**********************************************************************************************/
@@ -795,11 +781,14 @@ library UniswapV3Lib {
         uint256 tokenId,
         address token0,
         address token1,
-        uint128 liquidity
+        uint128 liquidity,
+        mapping (address => uint256) storage maxSlippages
     )
         internal
         view
     {
+        require(maxSlippages[pool] != 0, "UniswapV3Lib/max-slippage-not-set");
+
         (
             address positionToken0,
             address positionToken1,
@@ -824,15 +813,6 @@ library UniswapV3Lib {
         );
     }
 
-    function _getBalances(address proxy, address token0, address token1)
-        internal
-        view
-        returns (TokenAmounts memory balances)
-    {
-        balances.amount0 = IERC20Like(token0).balanceOf(proxy);
-        balances.amount1 = IERC20Like(token1).balanceOf(proxy);
-    }
-
     function _callDecreaseLiquidity(
         address             proxy,
         address             positionManager,
@@ -842,8 +822,9 @@ library UniswapV3Lib {
         uint256             deadline
     )
         internal
+        returns (TokenAmounts memory amounts)
     {
-        IALMProxy(proxy).doCall(
+        bytes memory result = IALMProxy(proxy).doCall(
             positionManager,
             abi.encodeCall(
                 INonfungiblePositionManager.decreaseLiquidity,
@@ -856,6 +837,8 @@ library UniswapV3Lib {
                 })
             )
         );
+
+        ( amounts.amount0, amounts.amount1 ) = abi.decode(result, (uint256, uint256));
     }
 
     function _callCollect(address proxy, address positionManager, uint256 tokenId)
@@ -878,16 +861,8 @@ library UniswapV3Lib {
         ( amounts.amount0, amounts.amount1 ) = abi.decode(result, (uint256, uint256));
     }
 
-    function _checkSlippage(
-        uint256 maxSlippage,
-        uint256 startingBalance,
-        uint256 endingBalance,
-        uint256 minAmount
-    ) internal pure {
-        require(
-            minAmount >= ((endingBalance - startingBalance) * maxSlippage) / 1e18,
-            "UniswapV3Lib/min-amount-below-bound"
-        );
+    function _checkSlippage(uint256 maxSlippage, uint256 amount, uint256 minAmount) internal pure {
+        require(minAmount >= (amount * maxSlippage) / 1e18, "UniswapV3Lib/min-amount-below-bound");
     }
 
     /**********************************************************************************************/
