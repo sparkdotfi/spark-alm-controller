@@ -10,7 +10,6 @@ import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { AaveLib }          from "./libraries/AaveLib.sol";
-import { ApproveLib }       from "./libraries/ApproveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { CurveLib }         from "./libraries/CurveLib.sol";
@@ -1078,7 +1077,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Relayer Centrifuge functions                                                           ***/
     /**********************************************************************************************/
 
-    // NOTE: These cancelation methods are compatible with ERC-7887
+    // NOTE: These cancellation methods are compatible with ERC-7887
 
     function cancelCentrifugeDepositRequest(address token)
         external

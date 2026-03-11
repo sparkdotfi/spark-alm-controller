@@ -63,7 +63,7 @@ library USDSLib {
         IRateLimits(rateLimits).triggerRateLimitIncrease(LIMIT_MINT, usdsAmount);
 
         // Transfer USDS from the proxy to the buffer.
-        // Not need for ApprobeLib as we are transferring USDS with an expected transfer function.
+        // Not need for ApproveLib as we are transferring USDS with an expected transfer function.
         IALMProxy(proxy).doCall(
             usds,
             abi.encodeCall(IERC20Like.transfer, (IVaultLike(vault).buffer(), usdsAmount))

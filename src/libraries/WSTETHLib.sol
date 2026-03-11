@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 
-interface IERC20ike {
+interface IERC20Like {
 
     function approve(address spender, uint256 amount) external returns (bool success);
 
@@ -73,7 +73,7 @@ library WSTETHLib {
 
         IALMProxy(proxy).doCall(
             wsteth,
-            abi.encodeCall(IERC20ike.approve, (withdrawQueue, amountToRedeem))
+            abi.encodeCall(IERC20Like.approve, (withdrawQueue, amountToRedeem))
         );
 
         uint256[] memory amountsToRedeem = new uint256[](1);
