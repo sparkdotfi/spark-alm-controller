@@ -6,11 +6,11 @@ This document describes protocol-specific security considerations for Diamond PA
 
 ### Role Trust Levels
 
-| Role | Trust Level | Description |
-|------|-------------|-------------|
-| `DEFAULT_ADMIN_ROLE` | **Fully trusted** | Run by governance |
-| `RELAYER` | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements. |
-| `FREEZER` | Trusted | Can stop compromised relayers via `removeRelayer` |
+| Role                 | Trust Level               | Description                                                                                                       |
+| -------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_ADMIN_ROLE` | **Fully trusted**         | Run by governance                                                                                                 |
+| `RELAYER`            | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements. |
+| `FREEZER`            | Trusted                   | Can stop compromised relayers via `removeRelayer`                                                                 |
 
 ### Relayer Compromise Mitigations
 
@@ -40,6 +40,7 @@ For comprehensive threat modeling, attack vectors, and trust assumptions, see [T
 **Implication:** If the `FREEZER` role removes a relayer while an Ethena mint/burn operation is pending, that operation will still complete.
 
 **Rationale:**
+
 - Ethena operations are asynchronous by design
 - The delegated signer role provides sufficient safeguards (trusted to not honor requests with >50bps slippage)
 - Ethena's API [Order Validity Checks](https://docs.ethena.fi/solution-design/minting-usde/order-validity-checks) provide protection against malicious delegated signers
@@ -63,6 +64,10 @@ For comprehensive threat modeling, attack vectors, and trust assumptions, see [T
 
 See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
+### Centrifuge Integration
+
+**Architecture Note:** Cancel/Claim paths will be blocked if deposit rate limit is set to zero. To circumvent this the rate limit would be set to 1 so that cancel and claim can be used.
+
 ---
 
 ## Governance and Emergency Controls
@@ -71,12 +76,13 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
 **Guarantee:** Any ETH left in the `ALMProxy` can always be removed.
 
-| Method | Access | Description |
-|--------|--------|-------------|
+| Method            | Access                            | Description                                                  |
+| ----------------- | --------------------------------- | ------------------------------------------------------------ |
 | `doCallWithValue` | `DEFAULT_ADMIN_ROLE` (governance) | Allows arbitrary calls with ETH value attached from ALMProxy |
-| `wrapAllProxyETH` | `RELAYER` | Wraps all ETH in ALMProxy to WETH (MainnetController only) |
+| `wrapAllProxyETH` | `RELAYER`                         | Wraps all ETH in ALMProxy to WETH (MainnetController only)   |
 
 **Use Cases:**
+
 - Recover accidentally sent ETH
 - Withdraw ETH received from protocol operations
 - Convert ETH to WETH for standard token handling
@@ -93,6 +99,7 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 **Stated Assumption:** Gas fee losses are ignored for security audit purposes.
 
 **Rationale:**
+
 - Gas fees are operational costs, not security vulnerabilities
 - Gas fee griefing by a compromised relayer is bounded by block production and MEV considerations
 - Economic impact is minimal compared to rate-limited capital protection
