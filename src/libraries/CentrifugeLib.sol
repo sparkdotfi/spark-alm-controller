@@ -28,7 +28,7 @@ interface ICentrifugeV3VaultLike {
         external
         returns (uint256 shares);
 
-    function manager() external view returns (address);
+    function baseManager() external view returns (address);
 
     function poolId() external view returns (uint64);
 
@@ -141,7 +141,7 @@ library CentrifugeLib {
 
         require(recipient != 0, "CentrifugeLib/id-not-configured");
 
-        address spoke = IAsyncRedeemManagerLike(ICentrifugeV3VaultLike(token).manager()).spoke();
+        address spoke = IAsyncRedeemManagerLike(ICentrifugeV3VaultLike(token).baseManager()).spoke();
 
         // Initiate cross-chain transfer via the specific spoke address
         IALMProxy(proxy).doCallWithValue{value: msg.value}(
