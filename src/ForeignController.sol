@@ -27,6 +27,8 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event CCTPMaxFeeCapSet(uint256 maxFeeCap);
+
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event RelayerRemoved(address indexed relayer);
@@ -82,6 +84,9 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
     address public pendleRouter;
 
+    // NOTE : Nominal maxFee cap for all cctp supported domains
+    uint256 public cctpMaxFeeCap;
+
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
@@ -128,6 +133,14 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
 
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
+    }
+
+    function setCCTPMaxFeeCap(uint256 maxFeeCap)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        emit CCTPMaxFeeCapSet(cctpMaxFeeCap = maxFeeCap);
     }
 
     function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
@@ -369,6 +382,26 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
             usdc              : usdc,
             destinationDomain : destinationDomain,
             usdcAmount        : usdcAmount,
+            maxFee            : CCTPLib.MAX_FEE,
+            cctpMaxFeeCap     : cctpMaxFeeCap,
+            mintRecipients    : mintRecipients
+        });
+    }
+
+    function transferUSDCToCCTP(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain)
+        external
+        nonReentrant
+        onlyRole(RELAYER)
+    {
+        CCTPLib.transfer({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
+            cctp              : cctp,
+            usdc              : usdc,
+            destinationDomain : destinationDomain,
+            usdcAmount        : usdcAmount,
+            maxFee            : maxFee,
+            cctpMaxFeeCap     : cctpMaxFeeCap,
             mintRecipients    : mintRecipients
         });
     }

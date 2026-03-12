@@ -26,6 +26,32 @@ See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding)
 
 ---
 
+## CCTPLib.transfer - maxFee Validation with Chunked Transfers
+
+**Location:** `src/libraries/CCTPLib.sol` - `transfer` function
+
+**Known Issue:** When a transfer exceeds `burnLimit` and is split into chunks, the same `maxFee` is passed to each `depositForBurn` call. The last chunk may be smaller than `maxFee`, causing the `maxFee < amount` check to revert at the CCTP level.
+
+**Practical Impact:** Negligible. In practice, CCTP relay fees are orders of magnitude smaller than `burnLimit`, so the last chunk will almost always exceed `maxFee`.
+
+---
+
+## CCTPLib.transfer - Zero Burn Limit
+
+**Location:** `src/libraries/CCTPLib.sol` - `transfer` function
+
+**Known Issue:** If Circle sets `burnLimitsPerMessage` to zero, the loop passes `amount = 0` to `depositForBurn()`, reverting with a misleading `"Amount must be nonzero"` error instead of indicating a zero burn limit.
+
+---
+
+## CCTPLib.transfer - Gas Exhaustion from Small Burn Limits
+
+**Location:** `src/libraries/CCTPLib.sol` - `transfer` function
+
+**Known Issue:** If Circle drastically reduces `burnLimitsPerMessage`, large transfers could require thousands of loop iterations, exceeding the block gas limit. No funds are at risk as the transaction simply reverts.
+
+---
+
 ## Error Message Prefixes
 
 Error messages follow the pattern `ContractOrLibName/error-description`. Each library uses its own prefix:

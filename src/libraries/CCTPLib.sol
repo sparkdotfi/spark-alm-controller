@@ -80,6 +80,8 @@ library CCTPLib {
         address usdc,
         uint32  destinationDomain,
         uint256 usdcAmount,
+        uint256 maxFee,
+        uint256 cctpMaxFeeCap,
         mapping (uint32 => bytes32) storage mintRecipients
     )
         external
@@ -94,7 +96,8 @@ library CCTPLib {
 
         bytes32 recipient = mintRecipients[destinationDomain];
 
-        require(recipient != 0, "CCTPLib/domain-not-configured");
+        require(recipient != 0,          "CCTPLib/domain-not-configured");
+        require(maxFee <= cctpMaxFeeCap, "CCTPLib/max-fee-exceeds-cap");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
         _approve(usdc, proxy, cctp, usdcAmount);
@@ -106,11 +109,16 @@ library CCTPLib {
         while (usdcAmount > 0) {
             uint256 amount = usdcAmount > burnLimit ? burnLimit : usdcAmount;
 
+            // NOTE: When amount is split into chunks, the last chunk may be
+            //       smaller than maxFee causing a revert.
+            require(maxFee < amount, "CCTPLib/incorrect-max-fee");
+
             _initiateTransfer(
                 proxy,
                 cctp,
                 usdc,
                 amount,
+                maxFee,
                 recipient,
                 destinationDomain
             );
@@ -133,6 +141,7 @@ library CCTPLib {
         address cctp,
         address usdc,
         uint256 usdcAmount,
+        uint256 maxFee,
         bytes32 mintRecipient,
         uint32  destinationDomain
     )
@@ -148,7 +157,7 @@ library CCTPLib {
                     mintRecipient,
                     usdc,
                     DESTINATION_CALLER,
-                    MAX_FEE,
+                    maxFee,
                     MAX_FINALITY_THRESHOLD
                 )
             )

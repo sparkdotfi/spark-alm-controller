@@ -55,6 +55,46 @@ abstract contract MainnetController_Admin_TestBase is UnitTestBase {
 
 }
 
+contract MainnetController_Admin_SetCCTPMaxFeeCap_Tests is MainnetController_Admin_TestBase {
+
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setCCTPMaxFeeCap_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setCCTPMaxFeeCap(1e18);
+    }
+
+    function test_setCCTPMaxFeeCap_unauthorizedAccount() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            _unauthorized,
+            DEFAULT_ADMIN_ROLE
+        ));
+
+        vm.prank(_unauthorized);
+        mainnetController.setCCTPMaxFeeCap(1e18);
+    }
+
+    function test_setCCTPMaxFeeCap() external {
+        assertEq(mainnetController.cctpMaxFeeCap(), 0);
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit MainnetController.CCTPMaxFeeCapSet(1e18);
+
+        vm.prank(admin);
+        mainnetController.setCCTPMaxFeeCap(1e18);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(mainnetController.cctpMaxFeeCap(), 1e18);
+    }
+
+}
+
 contract MainnetController_Admin_SetMintRecipient_Tests is MainnetController_Admin_TestBase {
 
     function test_setMintRecipient_reentrancy() external {
@@ -1036,6 +1076,40 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         assertEq(foreignController.maxSlippages(pool), 0.99e18);
 
         _assertReentrancyGuardWrittenToTwice();
+    }
+
+    function test_setCCTPMaxFeeCap_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        foreignController.setCCTPMaxFeeCap(1e18);
+    }
+
+    function test_setCCTPMaxFeeCap_unauthorizedAccount() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            _unauthorized,
+            DEFAULT_ADMIN_ROLE
+        ));
+
+        vm.prank(_unauthorized);
+        foreignController.setCCTPMaxFeeCap(1e18);
+    }
+
+    function test_setCCTPMaxFeeCap() external {
+        assertEq(foreignController.cctpMaxFeeCap(), 0);
+
+        vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit ForeignController.CCTPMaxFeeCapSet(1e18);
+
+        vm.prank(admin);
+        foreignController.setCCTPMaxFeeCap(1e18);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(foreignController.cctpMaxFeeCap(), 1e18);
     }
 
     function test_setMintRecipient_reentrancy() external {
