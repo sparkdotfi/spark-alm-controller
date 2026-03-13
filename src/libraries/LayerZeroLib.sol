@@ -107,6 +107,15 @@ library LayerZeroLib {
             abi.encodeCall(ILayerZeroLike.send, (sendParams, fee, proxy)),
             fee.nativeFee
         );
+
+        // Refund any excess native fee back to the caller.
+        uint256 refund = msg.value - fee.nativeFee;
+
+        if (refund > 0) {
+            ( bool success, ) = msg.sender.call{value: refund}("");
+
+            require(success, "LayerZeroLib/refund-failed");
+        }
     }
 
 }
