@@ -2,7 +2,6 @@
 pragma solidity ^0.8.21;
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
-import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 
@@ -34,6 +33,8 @@ import { WEETHLib }         from "./libraries/WEETHLib.sol";
 import { WrapProxyETHLib }  from "./libraries/WrapProxyETHLib.sol";
 import { WSTETHLib }        from "./libraries/WSTETHLib.sol";
 
+import { Controller } from "./Controller.sol";
+
 interface IDaiUsdsLike {
 
     function dai() external view returns (address);
@@ -51,7 +52,7 @@ interface IVaultLike {
     function buffer() external view returns (address);
 }
 
-contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
+contract MainnetController is Controller, AccessControlEnumerable {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -172,7 +173,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         address psm_,
         address daiUsds_,
         address cctp_
-    ) {
+    ) Controller(proxy_, rateLimits_) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
         proxy      = IALMProxy(proxy_);

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.21;
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
-import { ReentrancyGuard }         from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { AaveLib }          from "./libraries/AaveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
@@ -21,7 +20,9 @@ import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
+import { Controller } from "./Controller.sol";
+
+contract ForeignController is Controller, AccessControlEnumerable {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -110,7 +111,7 @@ contract ForeignController is ReentrancyGuard, AccessControlEnumerable {
         address psm_,
         address usdc_,
         address cctp_
-    ) {
+    ) Controller(proxy_, rateLimits_) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
         proxy      = IALMProxy(proxy_);
