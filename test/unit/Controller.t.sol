@@ -7,7 +7,12 @@ import { Controller } from "../../src/Controller.sol";
 
 contract ControllerHarness is Controller {
 
-    constructor(address proxy_, address rateLimits_) Controller(proxy_, rateLimits_) {}
+    constructor(address accessControls_, address proxy_, address rateLimits_)
+        Controller(accessControls_, proxy_, rateLimits_) {}
+
+    function accessControls() public view returns (address) {
+        return _getControllerStorage().accessControls;
+    }
 
     function proxy() public view returns (address) {
         return _getControllerStorage().proxy;
@@ -22,13 +27,15 @@ contract ControllerHarness is Controller {
 contract Controller_Tests is Test {
 
     function test_constructor() external {
-        address proxy      = makeAddr("proxy");
-        address rateLimits = makeAddr("rateLimits");
+        address accessControls = makeAddr("accessControls");
+        address proxy          = makeAddr("proxy");
+        address rateLimits     = makeAddr("rateLimits");
 
-        ControllerHarness controller = new ControllerHarness(proxy, rateLimits);
+        ControllerHarness controller = new ControllerHarness(accessControls, proxy, rateLimits);
 
-        assertEq(controller.proxy(),      proxy);
-        assertEq(controller.rateLimits(), rateLimits);
+        assertEq(controller.accessControls(), accessControls);
+        assertEq(controller.proxy(),          proxy);
+        assertEq(controller.rateLimits(),     rateLimits);
     }
 
 }

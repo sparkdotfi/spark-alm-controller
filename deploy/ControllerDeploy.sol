@@ -22,12 +22,13 @@ library ForeignControllerDeploy {
         returns (address controller)
     {
         controller = address(new ForeignController({
-            admin_      : admin,
-            proxy_      : almProxy,
-            rateLimits_ : rateLimits,
-            psm_        : psm,
-            usdc_       : usdc,
-            cctp_       : cctp
+            admin_          : admin,
+            proxy_          : almProxy,
+            rateLimits_     : rateLimits,
+            accessControls_ : address(0),
+            psm_            : psm,
+            usdc_           : usdc,
+            cctp_           : cctp
         }));
     }
 
@@ -44,12 +45,13 @@ library ForeignControllerDeploy {
         instance.rateLimits = address(new RateLimits(admin));
 
         instance.controller = address(new ForeignController({
-            admin_      : admin,
-            proxy_      : instance.almProxy,
-            rateLimits_ : instance.rateLimits,
-            psm_        : psm,
-            usdc_       : usdc,
-            cctp_       : cctp
+            admin_          : admin,
+            proxy_          : instance.almProxy,
+            rateLimits_     : instance.rateLimits,
+            accessControls_ : address(0),
+            psm_            : psm,
+            usdc_           : usdc,
+            cctp_           : cctp
         }));
     }
 
@@ -70,13 +72,14 @@ library MainnetControllerDeploy {
         returns (address controller)
     {
         controller = address(new MainnetController({
-            admin_      : admin,
-            proxy_      : almProxy,
-            rateLimits_ : rateLimits,
-            vault_      : vault,
-            psm_        : psm,
-            daiUsds_    : daiUsds,
-            cctp_       : cctp
+            admin_          : admin,
+            proxy_          : almProxy,
+            rateLimits_     : rateLimits,
+            accessControls_ : address(0),
+            vault_          : vault,
+            psm_            : psm,
+            daiUsds_        : daiUsds,
+            cctp_           : cctp
         }));
     }
 
@@ -94,13 +97,14 @@ library MainnetControllerDeploy {
         instance.rateLimits = address(new RateLimits(admin));
 
         instance.controller = address(new MainnetController({
-            admin_      : admin,
-            proxy_      : instance.almProxy,
-            rateLimits_ : instance.rateLimits,
-            vault_      : vault,
-            psm_        : psm,
-            daiUsds_    : daiUsds,
-            cctp_       : cctp
+            admin_          : admin,
+            proxy_          : instance.almProxy,
+            rateLimits_     : instance.rateLimits,
+            accessControls_ : address(0),
+            vault_          : vault,
+            psm_            : psm,
+            daiUsds_        : daiUsds,
+            cctp_           : cctp
         }));
     }
 

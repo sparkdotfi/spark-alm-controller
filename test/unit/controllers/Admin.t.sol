@@ -38,6 +38,7 @@ abstract contract MainnetController_Admin_TestBase is UnitTestBase {
             admin,
             makeAddr("almProxy"),
             makeAddr("rateLimits"),
+            makeAddr("accessControls"),
             address(vault),
             address(psm),
             address(daiUsds),
@@ -1011,6 +1012,7 @@ contract ForeignController_Admin_Tests is UnitTestBase {
             admin,
             makeAddr("almProxy"),
             makeAddr("rateLimits"),
+            makeAddr("accessControls"),
             makeAddr("psm"),
             makeAddr("usdc"),
             makeAddr("cctp")

@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.21;
+
+import {
+    IAccessControlEnumerable
+} from "../../lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlEnumerable.sol";
+
+interface IAccessControls is IAccessControlEnumerable {
+
+    /**********************************************************************************************/
+    /*** Events                                                                                 ***/
+    /**********************************************************************************************/
+
+    event RelayerRemoved(address indexed relayer);
+
+    /**********************************************************************************************/
+    /*** Interactive functions                                                                  ***/
+    /**********************************************************************************************/
+
+    function removeRelayer(address relayer) external;
+
+    /**********************************************************************************************/
+    /*** View/Pure functions                                                                    ***/
+    /**********************************************************************************************/
+
+    function FREEZER_ROLE() external view returns (bytes32);
+
+    function RELAYER_ROLE() external view returns (bytes32);
+
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+
+}
