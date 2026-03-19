@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { ScriptTools } from "../lib/dss-test/src/ScriptTools.sol";
 

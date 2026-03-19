@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 // Use dss-allocator instead of Uniswap implementations to be compatible with Solidity 0.8.xx
 import { FullMath } from "../../../lib/dss-allocator/src/funnels/uniV3/FullMath.sol";

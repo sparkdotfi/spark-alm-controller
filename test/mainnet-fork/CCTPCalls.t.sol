@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
@@ -66,7 +66,7 @@ contract MainnetController_CCTP_TestBase is ForkTestBase {
         return 23700802; // November 1, 2025
     }
 
-} 
+}
 
 contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBase {
 
@@ -359,7 +359,7 @@ contract MainnetController_CCTP_Transfer_MaxFee_Tests is MainnetController_CCTP_
         deal(Ethereum.USDC, address(almProxy), 1000e6);
 
         vm.expectRevert("CCTPLib/max-fee-exceeds-cap");
-    
+
         vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(
             1000e6,
@@ -379,7 +379,7 @@ contract MainnetController_CCTP_Transfer_MaxFee_Tests is MainnetController_CCTP_
         deal(Ethereum.USDC, address(almProxy), 1e6);
 
         vm.expectRevert("CCTPLib/incorrect-max-fee");
-    
+
         vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(
             1e6,
@@ -854,7 +854,7 @@ contract ForeignController_CCTP_Transfer_MaxFee_Tests is BaseChain_CCTP_TestBase
         deal(Base.USDC, address(foreignAlmProxy), 1000e6);
 
         vm.expectRevert("CCTPLib/max-fee-exceeds-cap");
-    
+
         vm.prank(relayer);
         foreignController.transferUSDCToCCTP(
             1000e6,
@@ -874,7 +874,7 @@ contract ForeignController_CCTP_Transfer_MaxFee_Tests is BaseChain_CCTP_TestBase
         deal(Base.USDC, address(foreignAlmProxy), 1e6);
 
         vm.expectRevert("CCTPLib/incorrect-max-fee");
-        
+
         vm.prank(relayer);
         foreignController.transferUSDCToCCTP(
             1e6,

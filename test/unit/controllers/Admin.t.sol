@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
@@ -39,6 +39,7 @@ abstract contract MainnetController_Admin_TestBase is UnitTestBase {
             makeAddr("almProxy"),
             makeAddr("rateLimits"),
             makeAddr("accessControls"),
+            makeAddr("parameters"),
             address(vault),
             address(psm),
             address(daiUsds),
@@ -1013,6 +1014,7 @@ contract ForeignController_Admin_Tests is UnitTestBase {
             makeAddr("almProxy"),
             makeAddr("rateLimits"),
             makeAddr("accessControls"),
+            makeAddr("parameters"),
             makeAddr("psm"),
             makeAddr("usdc"),
             makeAddr("cctp")

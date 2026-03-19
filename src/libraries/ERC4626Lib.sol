@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
@@ -152,7 +152,7 @@ library ERC4626Lib {
         if (assets == 0) return 0;
 
         // Zero shares with non-zero assets is invalid (infinite exchange rate).
-        if (shares == 0) revert("ERC4626Lib/zero-shares");
+        require(shares > 0, "ERC4626Lib/zero-shares");
 
         return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { Test } from "../../lib/forge-std/src/Test.sol";
 
@@ -16,9 +16,9 @@ contract AccessControls_Tests is Test {
     bytes32 internal constant DEFAULT_ADMIN_ROLE = 0x00;
 
     address internal admin        = makeAddr("admin");
+    address internal deployer     = makeAddr("deployer");
     address internal freezer      = makeAddr("freezer");
     address internal relayer      = makeAddr("relayer");
-    address internal deployer     = makeAddr("deployer");
     address internal unauthorized = makeAddr("unauthorized");
 
     AccessControls internal accessControls;
@@ -28,9 +28,31 @@ contract AccessControls_Tests is Test {
         accessControls = new AccessControls(admin);
     }
 
-    function test_constructor() external view {
-        assertEq(accessControls.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+    /**********************************************************************************************/
+    /*** Constructor Tests                                                                      ***/
+    /**********************************************************************************************/
+
+    function test_constructor_zeroAdmin() external {
+        vm.expectRevert(IAccessControls.ZeroAdmin.selector);
+        new AccessControls(address(0));
     }
+
+    function test_constructor() external {
+        vm.expectEmit();
+        emit IAccessControl.RoleGranted(DEFAULT_ADMIN_ROLE, admin, deployer);
+
+        vm.prank(deployer);
+        AccessControls accessControls_ = new AccessControls(admin);
+
+        assertEq(accessControls_.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
+
+        assertEq(accessControls_.FREEZER_ROLE(), keccak256("FREEZER"));
+        assertEq(accessControls_.RELAYER_ROLE(), keccak256("RELAYER"));
+    }
+
+    /**********************************************************************************************/
+    /*** removeRelayer Tests                                                                    ***/
+    /**********************************************************************************************/
 
     function test_removeRelayer_notFreezer() external {
         vm.expectRevert(
@@ -64,6 +86,10 @@ contract AccessControls_Tests is Test {
 
         assertEq(accessControls.hasRole(accessControls.RELAYER_ROLE(), relayer), false);
     }
+
+    /**********************************************************************************************/
+    /*** supportsInterface Tests                                                                ***/
+    /**********************************************************************************************/
 
     function test_supportsInterface() external view {
         assertEq(accessControls.supportsInterface(type(IAccessControls).interfaceId),          true);

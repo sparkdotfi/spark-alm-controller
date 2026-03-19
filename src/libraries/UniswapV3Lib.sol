@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { LiquidityAmounts } from "../../lib/dss-allocator/src/funnels/uniV3/LiquidityAmounts.sol";
 import { TickMath }         from "../../lib/dss-allocator/src/funnels/uniV3/TickMath.sol";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { ALMProxy }          from "../src/ALMProxy.sol";
 import { ForeignController } from "../src/ForeignController.sol";
@@ -26,6 +26,7 @@ library ForeignControllerDeploy {
             proxy_          : almProxy,
             rateLimits_     : rateLimits,
             accessControls_ : address(0),
+            parameters_     : address(0),
             psm_            : psm,
             usdc_           : usdc,
             cctp_           : cctp
@@ -49,6 +50,7 @@ library ForeignControllerDeploy {
             proxy_          : instance.almProxy,
             rateLimits_     : instance.rateLimits,
             accessControls_ : address(0),
+            parameters_     : address(0),
             psm_            : psm,
             usdc_           : usdc,
             cctp_           : cctp
@@ -76,6 +78,7 @@ library MainnetControllerDeploy {
             proxy_          : almProxy,
             rateLimits_     : rateLimits,
             accessControls_ : address(0),
+            parameters_     : address(0),
             vault_          : vault,
             psm_            : psm,
             daiUsds_        : daiUsds,
@@ -101,6 +104,7 @@ library MainnetControllerDeploy {
             proxy_          : instance.almProxy,
             rateLimits_     : instance.rateLimits,
             accessControls_ : address(0),
+            parameters_     : address(0),
             vault_          : vault,
             psm_            : psm,
             daiUsds_        : daiUsds,

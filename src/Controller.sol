@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
@@ -14,6 +14,7 @@ contract Controller is IController, ReentrancyGuard {
     /// @custom:storage-location erc7201:sky.pau.storage.Controller
     struct ControllerStorage {
         address accessControls;
+        address parameters;
         address proxy;
         address rateLimits;
     }
@@ -32,10 +33,16 @@ contract Controller is IController, ReentrancyGuard {
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor(address accessControls_, address proxy_, address rateLimits_) {
+    constructor(
+        address accessControls_,
+        address parameters_,
+        address proxy_,
+        address rateLimits_
+    ) {
         ControllerStorage storage $ = _getControllerStorage();
 
         $.accessControls = accessControls_;
+        $.parameters     = parameters_;
         $.proxy          = proxy_;
         $.rateLimits     = rateLimits_;
     }
