@@ -155,7 +155,7 @@ contract ForeignController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBas
 
         controllerInst = ControllerInstance({
             almProxy   : address(almProxy),
-            controller : address(foreignController),
+            controller : payable(foreignController),
             rateLimits : address(rateLimits)
         });
 
@@ -636,7 +636,7 @@ contract ForeignController_UpgradeController_SuccessTests is InitAndUpgrade_Test
 
         controllerInst = ControllerInstance({
             almProxy   : address(almProxy),
-            controller : address(newController),
+            controller : payable(newController),
             rateLimits : address(rateLimits)
         });
 

@@ -187,7 +187,7 @@ contract MainnetController_InitAndUpgrade_FailureTests is InitAndUpgrade_TestBas
 
         controllerInst = ControllerInstance({
             almProxy   : address(almProxy),
-            controller : address(mainnetController),
+            controller : payable(mainnetController),
             rateLimits : address(rateLimits)
         });
 
@@ -566,7 +566,7 @@ contract MainnetController_UpgradeController_SuccessTests is InitAndUpgrade_Test
 
         controllerInst = ControllerInstance({
             almProxy   : address(almProxy),
-            controller : address(newController),
+            controller : payable(newController),
             rateLimits : address(rateLimits)
         });
 

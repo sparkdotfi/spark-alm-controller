@@ -54,7 +54,7 @@ contract UpgradeMainnetController is Script {
 
         ControllerInstance memory controllerInst = ControllerInstance({
             almProxy   : inputConfig.readAddress(".almProxy"),
-            controller : newController,
+            controller : payable(newController),
             rateLimits : inputConfig.readAddress(".rateLimits")
         });
 
@@ -107,7 +107,7 @@ contract UpgradeMainnetController is Script {
         });
         maxSlippageParams[4] = MainnetInit.MaxSlippageParams({
             pool        : Ethereum.CURVE_SUSDSUSDT,
-            maxSlippage : MainnetController(oldController).maxSlippages(Ethereum.CURVE_SUSDSUSDT)
+            maxSlippage : MainnetController(payable(oldController)).maxSlippages(Ethereum.CURVE_SUSDSUSDT)
         });
 
         vm.startBroadcast();
@@ -139,7 +139,7 @@ contract UpgradeMainnetController is Script {
     }
 
     function _setMaxExchangeRate(address controller, address vault) internal {
-        MainnetController(controller).setMaxExchangeRate(
+        MainnetController(payable(controller)).setMaxExchangeRate(
             vault,
             1  * 10 ** IERC20(vault).decimals(),
             10 * 10 ** IERC20(IERC4626(vault).asset()).decimals()
@@ -160,7 +160,7 @@ contract UpgradeMainnetController is Script {
     )
         internal
     {
-        MainnetController controller = MainnetController(controller_);
+        MainnetController controller = MainnetController(payable(controller_));
         RateLimits        rateLimits = RateLimits(rateLimits_);
 
         controller.setMaxSlippage(pool, maxSlippage);
@@ -221,7 +221,7 @@ contract UpgradeBaseController is Script {
 
         ControllerInstance memory controllerInst = ControllerInstance({
             almProxy   : inputConfig.readAddress(".almProxy"),
-            controller : newController,
+            controller : payable(newController),
             rateLimits : inputConfig.readAddress(".rateLimits")
         });
 
@@ -264,7 +264,7 @@ contract UpgradeBaseController is Script {
 
         ForeignInit.upgradeController(controllerInst, configAddresses, checkAddresses, mintRecipients, layerZeroRecipients, maxSlippageParams, true);
 
-        ForeignController(newController).setMaxExchangeRate(
+        ForeignController(payable(newController)).setMaxExchangeRate(
             Base.MORPHO_VAULT_SUSDC,
             1  * 10 ** IERC20(Base.MORPHO_VAULT_SUSDC).decimals(),
             10 * 10 ** IERC20(IERC4626(Base.MORPHO_VAULT_SUSDC).asset()).decimals()

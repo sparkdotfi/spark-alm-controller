@@ -167,7 +167,7 @@ abstract contract StagingDeployment_TestBase is Test {
         // ALM system
         almProxy          = ALMProxy(payable(inputMainnet.readAddress(".almProxy")));
         rateLimits        = RateLimits(inputMainnet.readAddress(".rateLimits"));
-        mainnetController = MainnetController(inputMainnet.readAddress(".controller"));
+        mainnetController = MainnetController(payable(inputMainnet.readAddress(".controller")));
 
         // --- Base ---
 
@@ -181,7 +181,7 @@ abstract contract StagingDeployment_TestBase is Test {
 
         // ALM system
         baseAlmProxy   = ALMProxy(payable(inputBase.readAddress(".almProxy")));
-        baseController = ForeignController(inputBase.readAddress(".controller"));
+        baseController = ForeignController(payable(inputBase.readAddress(".controller")));
         baseRateLimits = RateLimits(inputBase.readAddress(".rateLimits"));
 
         // PSM3

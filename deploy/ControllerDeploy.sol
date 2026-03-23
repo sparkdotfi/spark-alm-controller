@@ -19,9 +19,9 @@ library ForeignControllerDeploy {
         address cctp
     )
         internal
-        returns (address controller)
+        returns (address payable controller)
     {
-        controller = address(new ForeignController({
+        controller = payable(new ForeignController({
             admin_          : admin,
             proxy_          : almProxy,
             rateLimits_     : rateLimits,
@@ -45,7 +45,7 @@ library ForeignControllerDeploy {
         instance.almProxy   = address(new ALMProxy(admin));
         instance.rateLimits = address(new RateLimits(admin));
 
-        instance.controller = address(new ForeignController({
+        instance.controller = payable(new ForeignController({
             admin_          : admin,
             proxy_          : instance.almProxy,
             rateLimits_     : instance.rateLimits,
@@ -71,9 +71,9 @@ library MainnetControllerDeploy {
         address cctp
     )
         internal
-        returns (address controller)
+        returns (address payable controller)
     {
-        controller = address(new MainnetController({
+        controller = payable(new MainnetController({
             admin_          : admin,
             proxy_          : almProxy,
             rateLimits_     : rateLimits,
@@ -99,7 +99,7 @@ library MainnetControllerDeploy {
         instance.almProxy   = address(new ALMProxy(admin));
         instance.rateLimits = address(new RateLimits(admin));
 
-        instance.controller = address(new MainnetController({
+        instance.controller = payable(new MainnetController({
             admin_          : admin,
             proxy_          : instance.almProxy,
             rateLimits_     : instance.rateLimits,

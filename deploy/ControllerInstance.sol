@@ -2,7 +2,7 @@
 pragma solidity ^0.8.34;
 
 struct ControllerInstance {
-    address almProxy;
-    address controller;
-    address rateLimits;
+    address         almProxy;
+    address payable controller;
+    address         rateLimits;
 }
