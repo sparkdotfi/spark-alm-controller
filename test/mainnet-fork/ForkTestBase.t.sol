@@ -21,14 +21,12 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
-import { MainnetControllerDeploy }       from "../../deploy/ControllerDeploy.sol";
-import { ControllerInstance }            from "../../deploy/ControllerInstance.sol";
-import { MainnetControllerInit as Init } from "../../deploy/MainnetControllerInit.sol";
-
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
+import { AccessControls }    from "../../src/AccessControls.sol";
+import { Parameters }        from "../../src/Parameters.sol";
 
 interface IChainlogLike {
 
@@ -39,6 +37,12 @@ interface IChainlogLike {
 interface IBufferLike {
 
     function approve(address, address, uint256) external;
+
+}
+
+interface IPSMLike {
+
+    function kiss(address) external;
 
 }
 
@@ -54,9 +58,22 @@ interface ISUSDELike is IERC4626 {
 
 }
 
+interface IVaultLike {
+
+    function buffer() external view returns (address);
+
+    function rely(address) external;
+
+}
+
 abstract contract ForkTestBase is DssTest {
 
     using DomainHelpers for *;
+
+    struct MintRecipient {
+        uint32  domain;
+        bytes32 mintRecipient;
+    }
 
     /**********************************************************************************************/
     /*** Constants/state variables                                                              ***/
@@ -115,9 +132,11 @@ abstract contract ForkTestBase is DssTest {
     /*** ALM system and allocation system deployments                                           ***/
     /**********************************************************************************************/
 
+    AccessControls    accessControls;
     ALMProxy          almProxy;
-    RateLimits        rateLimits;
     MainnetController mainnetController;
+    Parameters        parameters;
+    RateLimits        rateLimits;
 
     address buffer;
     address vault;
@@ -190,50 +209,35 @@ abstract contract ForkTestBase is DssTest {
 
         /*** Step 3: Deploy ALM system ***/
 
-        ControllerInstance memory controllerInst = MainnetControllerDeploy.deployFull({
-            admin   : Ethereum.SPARK_PROXY,
-            vault   : ilkInst.vault,
-            psm     : Ethereum.PSM,
-            daiUsds : Ethereum.DAI_USDS,
-            cctp    : CCTP_MESSENGER
-        });
+        almProxy   = new ALMProxy(Ethereum.SPARK_PROXY);
+        rateLimits = new RateLimits(Ethereum.SPARK_PROXY);
 
-        almProxy          = ALMProxy(payable(controllerInst.almProxy));
-        rateLimits        = RateLimits(controllerInst.rateLimits);
-        mainnetController = MainnetController(controllerInst.controller);
+        accessControls = new AccessControls(Ethereum.SPARK_PROXY);
+        parameters     = new Parameters(Ethereum.SPARK_PROXY);
+
+        mainnetController = new MainnetController({
+            admin_          : Ethereum.SPARK_PROXY,
+            proxy_          : address(almProxy),
+            rateLimits_     : address(rateLimits),
+            accessControls_ : address(accessControls),
+            parameters_     : address(parameters),
+            vault_          : ilkInst.vault,
+            psm_            : Ethereum.PSM,
+            daiUsds_        : Ethereum.DAI_USDS,
+            cctp_           : CCTP_MESSENGER
+        });
 
         CONTROLLER = almProxy.CONTROLLER();
         FREEZER    = mainnetController.FREEZER();
         RELAYER    = mainnetController.RELAYER();
 
-        address[] memory relayers = new address[](1);
+        address[] memory relayers = new address[](2);
         relayers[0] = relayer;
+        relayers[1] = backstopRelayer;
 
-        Init.ConfigAddressParams memory configAddresses
-            = Init.ConfigAddressParams({
-                freezer       : freezer,
-                relayers      : relayers,
-                oldController : address(0)
-            });
+        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
 
-        Init.CheckAddressParams memory checkAddresses
-            = Init.CheckAddressParams({
-                admin      : Ethereum.SPARK_PROXY,
-                proxy      : address(almProxy),
-                rateLimits : address(rateLimits),
-                vault      : address(vault),
-                psm        : Ethereum.PSM,
-                daiUsds    : Ethereum.DAI_USDS,
-                cctp       : CCTP_MESSENGER
-            });
-
-        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
-
-        Init.MaxSlippageParams[] memory maxSlippageParams = new Init.MaxSlippageParams[](0);
-
-        Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
-
-        mintRecipients[0] = Init.MintRecipient({
+        mintRecipients[0] = MintRecipient({
             domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
             mintRecipient : bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         });
@@ -241,24 +245,26 @@ abstract contract ForkTestBase is DssTest {
         // Step 4: Initialize through Sky governance (Sky spell payload)
 
         vm.prank(Ethereum.PAUSE_PROXY);
-        Init.pauseProxyInitAlmSystem(Ethereum.PSM, controllerInst.almProxy);
+        _pauseProxyInitAlmSystem(Ethereum.PSM, address(almProxy));
 
         // Step 5: Initialize through Spark governance (Spark spell payload)
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 
-        Init.initAlmSystem(
-            vault,
-            address(usds),
-            controllerInst,
-            configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams
-        );
+        almProxy.grantRole(almProxy.CONTROLLER(),                address(mainnetController));
+        mainnetController.grantRole(mainnetController.FREEZER(), freezer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(),            address(mainnetController));
 
-        mainnetController.grantRole(mainnetController.RELAYER(), backstopRelayer);
+        for (uint256 i; i < relayers.length; ++i) {
+            mainnetController.grantRole(mainnetController.RELAYER(), relayers[i]);
+        }
+
+        for (uint256 i; i < mintRecipients.length; ++i) {
+            mainnetController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+        }
+
+        IVaultLike(ilkInst.vault).rely(address(almProxy));
+        IBufferLike(IVaultLike(ilkInst.vault).buffer()).approve(address(usds), address(almProxy), type(uint256).max);
 
         uint256 usdsMaxAmount = 5_000_000e18;
         uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
@@ -317,6 +323,10 @@ abstract contract ForkTestBase is DssTest {
 
         assertEq(count, 2);
         assertEq(vm.load(controller, _REENTRANCY_GUARD_SLOT), _REENTRANCY_GUARD_NOT_ENTERED);
+    }
+
+    function _pauseProxyInitAlmSystem(address psm, address almProxy) internal {
+        IPSMLike(psm).kiss(almProxy);  // To allow using no fee functionality
     }
 
 }

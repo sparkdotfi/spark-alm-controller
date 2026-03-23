@@ -16,14 +16,12 @@ import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
 import { CCTPForwarder }         from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { Domain, DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
-import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
-import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
-import { ForeignControllerInit }   from "../../deploy/ForeignControllerInit.sol";
-
 import { ALMProxy }             from "../../src/ALMProxy.sol";
 import { ForeignController }    from "../../src/ForeignController.sol";
 import { makeAddressUint32Key } from "../../src/RateLimitHelpers.sol";
 import { RateLimits }           from "../../src/RateLimits.sol";
+import { AccessControls }       from "../../src/AccessControls.sol";
+import { Parameters }           from "../../src/Parameters.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -435,57 +433,46 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
         /*** Step 3: Deploy and configure ALM system ***/
 
-        ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin : SPARK_EXECUTOR,
-            psm   : psmArb,
-            usdc  : Arbitrum.USDC,
-            cctp  : CCTP_MESSENGER_ARB
-        });
+        foreignAlmProxy   = new ALMProxy(SPARK_EXECUTOR);
+        foreignRateLimits = new RateLimits(SPARK_EXECUTOR);
 
-        foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
-        foreignRateLimits = RateLimits(controllerInst.rateLimits);
-        foreignController = ForeignController(controllerInst.controller);
+        address accessControls = address(new AccessControls(SPARK_EXECUTOR));
+        address parameters     = address(new Parameters(SPARK_EXECUTOR));
+
+        foreignController = new ForeignController({
+            admin_          : SPARK_EXECUTOR,
+            proxy_          : address(foreignAlmProxy),
+            rateLimits_     : address(foreignRateLimits),
+            accessControls_ : accessControls,
+            parameters_     : parameters,
+            psm_            : address(psmArb),
+            usdc_           : Arbitrum.USDC,
+            cctp_           : CCTP_MESSENGER_ARB
+        });
 
         address[] memory relayers = new address[](1);
         relayers[0] = relayer;
 
-        ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
-            freezer       : freezer,
-            relayers      : relayers,
-            oldController : address(0)
-        });
+        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
 
-        ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin : SPARK_EXECUTOR,
-            psm   : psmArb,
-            cctp  : CCTP_MESSENGER_ARB,
-            usdc  : Arbitrum.USDC,
-            susds : susdsArb,
-            usds  : usdsArb
-        });
-
-        ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);
-
-        mintRecipients[0] = ForeignControllerInit.MintRecipient({
+        mintRecipients[0] = MintRecipient({
             domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
             mintRecipient : bytes32(uint256(uint160(address(almProxy))))
         });
 
-        ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
-
-        ForeignControllerInit.MaxSlippageParams[] memory maxSlippageParams = new ForeignControllerInit.MaxSlippageParams[](0);
-
         vm.startPrank(SPARK_EXECUTOR);
 
-        ForeignControllerInit.initAlmSystem(
-            controllerInst,
-            configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams,
-            true
-        );
+        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
+        foreignController.grantRole(foreignController.FREEZER(),    freezer);
+        foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
+
+        for (uint256 i; i < relayers.length; ++i) {
+            foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
+        }
+
+        for (uint256 i; i < mintRecipients.length; ++i) {
+            foreignController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+        }
 
         vm.stopPrank();
     }

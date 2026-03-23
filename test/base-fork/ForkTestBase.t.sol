@@ -14,18 +14,21 @@ import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
-import { ForeignControllerDeploy }       from "../../deploy/ControllerDeploy.sol";
-import { ControllerInstance }            from "../../deploy/ControllerInstance.sol";
-import { ForeignControllerInit as Init } from "../../deploy/ForeignControllerInit.sol";
-
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
+import { AccessControls }    from "../../src/AccessControls.sol";
+import { Parameters }        from "../../src/Parameters.sol";
 
 abstract contract ForkTestBase is Test {
 
     // TODO: Refactor to use live addresses
+
+    struct MintRecipient {
+        uint32  domain;
+        bytes32 mintRecipient;
+    }
 
     /**********************************************************************************************/
     /*** Constants/state variables                                                              ***/
@@ -58,9 +61,11 @@ abstract contract ForkTestBase is Test {
     /*** ALM system deployments                                                                 ***/
     /**********************************************************************************************/
 
+    AccessControls    accessControls;
     ALMProxy          almProxy;
-    RateLimits        rateLimits;
     ForeignController foreignController;
+    Parameters        parameters;
+    RateLimits        rateLimits;
 
     /**********************************************************************************************/
     /*** Casted addresses for testing                                                           ***/
@@ -101,16 +106,22 @@ abstract contract ForkTestBase is Test {
 
         /*** Step 3: Deploy ALM system ***/
 
-        ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin : SPARK_EXECUTOR,
-            psm   : address(psmBase),
-            usdc  : Base.USDC,
-            cctp  : CCTP_MESSENGER_BASE
-        });
+        almProxy   = new ALMProxy(SPARK_EXECUTOR);
+        rateLimits = new RateLimits(SPARK_EXECUTOR);
 
-        almProxy          = ALMProxy(payable(controllerInst.almProxy));
-        rateLimits        = RateLimits(controllerInst.rateLimits);
-        foreignController = ForeignController(controllerInst.controller);
+        accessControls = new AccessControls(SPARK_EXECUTOR);
+        parameters     = new Parameters(SPARK_EXECUTOR);
+
+        foreignController = new ForeignController({
+            admin_          : SPARK_EXECUTOR,
+            proxy_          : address(almProxy),
+            rateLimits_     : address(rateLimits),
+            accessControls_ : address(accessControls),
+            parameters_     : address(parameters),
+            psm_            : address(psmBase),
+            usdc_           : Base.USDC,
+            cctp_           : CCTP_MESSENGER_BASE
+        });
 
         CONTROLLER = almProxy.CONTROLLER();
         FREEZER    = foreignController.FREEZER();
@@ -121,43 +132,26 @@ abstract contract ForkTestBase is Test {
         address[] memory relayers = new address[](1);
         relayers[0] = relayer;
 
-        Init.ConfigAddressParams memory configAddresses = Init.ConfigAddressParams({
-            freezer       : freezer,
-            relayers      : relayers,
-            oldController : address(0)
-        });
+        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
 
-        Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
-            admin : Base.SPARK_EXECUTOR,
-            psm   : address(psmBase),
-            cctp  : Base.CCTP_TOKEN_MESSENGER,
-            usdc  : address(usdcBase),
-            susds : address(susdsBase),
-            usds  : address(usdsBase)
-        });
-
-        Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
-
-        mintRecipients[0] = Init.MintRecipient({
+        mintRecipients[0] = MintRecipient({
             domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
             mintRecipient : bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
         });
 
-        Init.LayerZeroRecipient[] memory layerZeroRecipients = new Init.LayerZeroRecipient[](0);
-
-        Init.MaxSlippageParams[] memory maxSlippageParams = new Init.MaxSlippageParams[](0);
-
         vm.startPrank(SPARK_EXECUTOR);
 
-        Init.initAlmSystem(
-            controllerInst,
-            configAddresses,
-            checkAddresses,
-            mintRecipients,
-            layerZeroRecipients,
-            maxSlippageParams,
-            true
-        );
+        almProxy.grantRole(almProxy.CONTROLLER(),                address(foreignController));
+        foreignController.grantRole(foreignController.FREEZER(), freezer);
+        rateLimits.grantRole(rateLimits.CONTROLLER(),            address(foreignController));
+
+        for (uint256 i; i < relayers.length; ++i) {
+            foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
+        }
+
+        for (uint256 i; i < mintRecipients.length; ++i) {
+            foreignController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+        }
 
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;

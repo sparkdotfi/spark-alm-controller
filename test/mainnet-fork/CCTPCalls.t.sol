@@ -11,16 +11,14 @@ import { CCTPv2BridgeTesting }   from "../../lib/grove-xchain-helpers/src/testin
 import { CCTPv2Forwarder  }      from "../../lib/grove-xchain-helpers/src/forwarders/CCTPv2Forwarder.sol";
 import { Domain, DomainHelpers } from "../../lib/grove-xchain-helpers/src/testing/Domain.sol";
 
-import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
-import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
-import { ForeignControllerInit }   from "../../deploy/ForeignControllerInit.sol";
-
 import { CCTPLib } from "../../src/libraries/CCTPLib.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { makeUint32Key }     from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
+import { AccessControls }    from "../../src/AccessControls.sol";
+import { Parameters }        from "../../src/Parameters.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -444,52 +442,46 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
         /*** Step 3: Deploy and configure ALM system ***/
 
-        ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin : Base.SPARK_EXECUTOR,
-            psm   : address(0),
-            usdc  : Base.USDC,
-            cctp  : BASE_CCTP_TOKEN_MESSENGER
-        });
+        foreignAlmProxy   = new ALMProxy(Base.SPARK_EXECUTOR);
+        foreignRateLimits = new RateLimits(Base.SPARK_EXECUTOR);
 
-        foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
-        foreignRateLimits = RateLimits(controllerInst.rateLimits);
-        foreignController = ForeignController(controllerInst.controller);
+        address accessControls = address(new AccessControls(Base.SPARK_EXECUTOR));
+        address parameters     = address(new Parameters(Base.SPARK_EXECUTOR));
+
+        foreignController = new ForeignController({
+            admin_          : Base.SPARK_EXECUTOR,
+            proxy_          : address(foreignAlmProxy),
+            rateLimits_     : address(foreignRateLimits),
+            accessControls_ : accessControls,
+            parameters_     : parameters,
+            psm_            : address(0),
+            usdc_           : Base.USDC,
+            cctp_           : BASE_CCTP_TOKEN_MESSENGER
+        });
 
         address[] memory relayers = new address[](1);
         relayers[0] = relayer;
 
-        ForeignControllerInit.ConfigAddressParams memory configAddresses = ForeignControllerInit.ConfigAddressParams({
-            freezer       : freezer,
-            relayers      : relayers,
-            oldController : address(0)
-        });
+        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
 
-        ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
-            admin : Base.SPARK_EXECUTOR,
-            psm   : address(0),
-            cctp  : BASE_CCTP_TOKEN_MESSENGER,
-            usdc  : Base.USDC,
-            susds : address(0),
-            usds  : address(0)
-        });
-
-        ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);
-
-        mintRecipients[0] = ForeignControllerInit.MintRecipient({
+        mintRecipients[0] = MintRecipient({
             domain        : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
             mintRecipient : bytes32(uint256(uint160(address(almProxy))))
         });
 
         vm.startPrank(Base.SPARK_EXECUTOR);
-        ForeignControllerInit.initAlmSystem(
-            controllerInst,
-            configAddresses,
-            checkAddresses,
-            mintRecipients,
-            new ForeignControllerInit.LayerZeroRecipient[](0),
-            new ForeignControllerInit.MaxSlippageParams[](0),
-            false
-        );
+
+        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
+        foreignController.grantRole(foreignController.FREEZER(),    freezer);
+        foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
+
+        for (uint256 i; i < relayers.length; ++i) {
+            foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
+        }
+
+        for (uint256 i; i < mintRecipients.length; ++i) {
+            foreignController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+        }
 
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
