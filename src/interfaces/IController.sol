@@ -23,4 +23,16 @@ interface IController {
     /// @notice Thrown when a facet is not found for a given call selector.
     error FacetNotFound(bytes4 callSelector);
 
+    /**********************************************************************************************/
+    /*** Interactive Functions                                                                  ***/
+    /**********************************************************************************************/
+
+    function setFacet(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
+    function FACET_PARAMETER_KEY_PREFIX() external pure returns (string memory key);
+
 }

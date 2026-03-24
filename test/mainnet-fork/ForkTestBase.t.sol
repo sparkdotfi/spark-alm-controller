@@ -21,12 +21,18 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
+import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
+
+import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
+
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { AccessControls }    from "../../src/AccessControls.sol";
 import { Parameters }        from "../../src/Parameters.sol";
+
+import { IMainnetControllerFull } from "../interfaces/IMainnetControllerFull.sol";
 
 interface IChainlogLike {
 
@@ -132,11 +138,11 @@ abstract contract ForkTestBase is DssTest {
     /*** ALM system and allocation system deployments                                           ***/
     /**********************************************************************************************/
 
-    AccessControls    accessControls;
-    ALMProxy          almProxy;
-    MainnetController mainnetController;
-    Parameters        parameters;
-    RateLimits        rateLimits;
+    AccessControls         accessControls;
+    ALMProxy               almProxy;
+    IMainnetControllerFull mainnetController;
+    Parameters             parameters;
+    RateLimits             rateLimits;
 
     address buffer;
     address vault;
@@ -215,7 +221,7 @@ abstract contract ForkTestBase is DssTest {
         accessControls = new AccessControls(Ethereum.SPARK_PROXY);
         parameters     = new Parameters(Ethereum.SPARK_PROXY);
 
-        mainnetController = new MainnetController({
+        mainnetController = IMainnetControllerFull(payable(new MainnetController({
             admin_          : Ethereum.SPARK_PROXY,
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
@@ -225,11 +231,17 @@ abstract contract ForkTestBase is DssTest {
             psm_            : Ethereum.PSM,
             daiUsds_        : Ethereum.DAI_USDS,
             cctp_           : CCTP_MESSENGER
-        });
+        })));
 
         CONTROLLER = almProxy.CONTROLLER();
         FREEZER    = mainnetController.FREEZER();
         RELAYER    = mainnetController.RELAYER();
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        parameters.grantRole(parameters.CONTROLLER_ROLE(), address(mainnetController));
+        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
+        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+        vm.stopPrank();
 
         address[] memory relayers = new address[](2);
         relayers[0] = relayer;
@@ -244,7 +256,6 @@ abstract contract ForkTestBase is DssTest {
 
         // Step 4: Initialize through Sky governance (Sky spell payload)
 
-        vm.prank(Ethereum.PAUSE_PROXY);
         _pauseProxyInitAlmSystem(Ethereum.PSM, address(almProxy));
 
         // Step 5: Initialize through Spark governance (Spark spell payload)
@@ -291,6 +302,14 @@ abstract contract ForkTestBase is DssTest {
         vm.label(address(usdc),  "usdc");
         vm.label(address(usds),  "usds");
         vm.label(vault,          "vault");
+
+        // Facet wiring
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+
+        _wireTransferAssetFacet();
+
+        vm.stopPrank();
     }
 
     // Default configuration for the fork, can be overridden in inheriting tests
@@ -326,7 +345,32 @@ abstract contract ForkTestBase is DssTest {
     }
 
     function _pauseProxyInitAlmSystem(address psm, address almProxy) internal {
+        vm.prank(Ethereum.PAUSE_PROXY);
         IPSMLike(psm).kiss(almProxy);  // To allow using no fee functionality
+    }
+
+    /**********************************************************************************************/
+    /*** Facet wiring helpers.                                                                  ***/
+    /**********************************************************************************************/
+
+    function _wireTransferAssetFacet() internal {
+        address transferAssetFacet = address(new TransferAssetFacet());
+
+        vm.label(transferAssetFacet, "TransferAssetFacet");
+
+        // "Controller.transferAsset()" -> "TransferAssetFacet.transfer()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.transferAsset.selector,
+            transferAssetFacet,
+            ITransferAssetFacet.transfer.selector
+        );
+
+        // "Controller.LIMIT_ASSET_TRANSFER()" -> "TransferAssetFacet.LIMIT_TRANSFER()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_ASSET_TRANSFER.selector,
+            transferAssetFacet,
+            ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
     }
 
 }

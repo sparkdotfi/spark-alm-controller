@@ -14,12 +14,18 @@ import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
+import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
+
+import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
+
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { AccessControls }    from "../../src/AccessControls.sol";
 import { Parameters }        from "../../src/Parameters.sol";
+
+import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
 abstract contract ForkTestBase is Test {
 
@@ -61,11 +67,11 @@ abstract contract ForkTestBase is Test {
     /*** ALM system deployments                                                                 ***/
     /**********************************************************************************************/
 
-    AccessControls    accessControls;
-    ALMProxy          almProxy;
-    ForeignController foreignController;
-    Parameters        parameters;
-    RateLimits        rateLimits;
+    AccessControls         accessControls;
+    ALMProxy               almProxy;
+    IForeignControllerFull foreignController;
+    Parameters             parameters;
+    RateLimits             rateLimits;
 
     /**********************************************************************************************/
     /*** Casted addresses for testing                                                           ***/
@@ -112,7 +118,7 @@ abstract contract ForkTestBase is Test {
         accessControls = new AccessControls(SPARK_EXECUTOR);
         parameters     = new Parameters(SPARK_EXECUTOR);
 
-        foreignController = new ForeignController({
+        foreignController = IForeignControllerFull(payable(new ForeignController({
             admin_          : SPARK_EXECUTOR,
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
@@ -121,11 +127,17 @@ abstract contract ForkTestBase is Test {
             psm_            : address(psmBase),
             usdc_           : Base.USDC,
             cctp_           : CCTP_MESSENGER_BASE
-        });
+        })));
 
         CONTROLLER = almProxy.CONTROLLER();
         FREEZER    = foreignController.FREEZER();
         RELAYER    = foreignController.RELAYER();
+
+        vm.startPrank(SPARK_EXECUTOR);
+        parameters.grantRole(parameters.CONTROLLER_ROLE(), address(foreignController));
+        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
+        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+        vm.stopPrank();
 
         /*** Step 3: Configure ALM system through Spark governance (Spark spell payload) ***/
 
@@ -177,6 +189,11 @@ abstract contract ForkTestBase is Test {
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(usdsBase)));
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(susdsBase)));
 
+
+        // Facet wiring
+
+        _wireTransferAssetFacet();
+
         vm.stopPrank();
     }
 
@@ -206,6 +223,30 @@ abstract contract ForkTestBase is Test {
 
     function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : b - a;
+    }
+
+    /**********************************************************************************************/
+    /*** Facet wiring helpers.                                                                  ***/
+    /**********************************************************************************************/
+
+    function _wireTransferAssetFacet() internal {
+        address transferAssetFacet = address(new TransferAssetFacet());
+
+        vm.label(transferAssetFacet, "TransferAssetFacet");
+
+        // "Controller.transferAsset()" -> "TransferAssetFacet.transfer()"
+        foreignController.setFacet(
+            IForeignControllerFull.transferAsset.selector,
+            transferAssetFacet,
+            ITransferAssetFacet.transfer.selector
+        );
+
+        // "Controller.LIMIT_ASSET_TRANSFER()" -> "TransferAssetFacet.LIMIT_TRANSFER()"
+        foreignController.setFacet(
+            IForeignControllerFull.LIMIT_ASSET_TRANSFER.selector,
+            transferAssetFacet,
+            ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
     }
 
 }

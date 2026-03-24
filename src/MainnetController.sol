@@ -24,7 +24,6 @@ import { PendleLib }        from "./libraries/PendleLib.sol";
 import { PSMLib }           from "./libraries/PSMLib.sol";
 import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
 import { SuperstateLib }    from "./libraries/SuperstateLib.sol";
-import { TransferAssetLib } from "./libraries/TransferAssetLib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 import { UniswapV4Lib }     from "./libraries/UniswapV4Lib.sol";
 import { USDELib }          from "./libraries/USDELib.sol";
@@ -85,7 +84,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public LIMIT_7540_REDEEM             = ERC7540Lib.LIMIT_REDEEM;
     bytes32 public LIMIT_AAVE_DEPOSIT            = AaveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_AAVE_WITHDRAW           = AaveLib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_ASSET_TRANSFER          = TransferAssetLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_CENTRIFUGE_TRANSFER     = CentrifugeLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_CURVE_DEPOSIT           = CurveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_CURVE_SWAP              = CurveLib.LIMIT_SWAP;
@@ -379,18 +377,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
     function burnUSDS(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER) {
         USDSLib.burn(address(proxy), address(rateLimits), vault, usds, usdsAmount);
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer ERC20 functions                                                                ***/
-    /**********************************************************************************************/
-
-    function transferAsset(address asset, address destination, uint256 amount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        TransferAssetLib.transfer(address(proxy), address(rateLimits), asset, destination, amount);
     }
 
     /**********************************************************************************************/

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { ReentrancyGuard } from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-
+import { ControllerBase }                             from "./ControllerBase.sol";
 import { bytes4ToKeyComponent, combineKeyComponents } from "./ParameterKeys.sol";
 import { ParameterHelpers }                           from "./ParameterHelpers.sol";
 
@@ -10,37 +9,15 @@ import { IAccessControls } from "./interfaces/IAccessControls.sol";
 import { IController }     from "./interfaces/IController.sol";
 import { IParameters }     from "./interfaces/IParameters.sol";
 
-contract Controller is IController, ReentrancyGuard {
-
-    string internal constant FACET_PARAMETER_KEY_PREFIX = "sky.pau.controller.facet";
-
-    /**********************************************************************************************/
-    /*** Domain storage                                                                         ***/
-    /**********************************************************************************************/
-
-    /// @custom:storage-location erc7201:sky.pau.storage.Controller
-    struct ControllerStorage {
-        address accessControls;
-        address parameters;
-        address proxy;
-        address rateLimits;
-    }
-
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.Controller")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 internal constant CONTROLLER_STORAGE_LOCATION =
-        0xee25394e09bdf9f095ffaf6289395c59de06e33ff54692b0774d5012253c4d00;
-
-    function _getControllerStorage() internal pure returns (ControllerStorage storage $) {
-        assembly {
-            $.slot := CONTROLLER_STORAGE_LOCATION
-        }
-    }
+contract Controller is IController, ControllerBase {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
     bytes32 internal constant _DEFAULT_ADMIN_ROLE = 0x00;
+
+    string public constant FACET_PARAMETER_KEY_PREFIX = "sky.pau.controller.facet";
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
