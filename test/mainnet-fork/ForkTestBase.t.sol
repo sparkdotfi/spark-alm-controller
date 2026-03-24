@@ -26,12 +26,14 @@ import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetF
 import { IUSDEFacet }          from "../../src/interfaces/facets/IUSDEFacet.sol";
 import { IUSDSFacet }          from "../../src/interfaces/facets/IUSDSFacet.sol";
 import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFacet.sol";
+import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
 import { USDEFacet }          from "../../src/libraries/USDELib.sol";
 import { USDSFacet }          from "../../src/libraries/USDSLib.sol";
 import { WrapProxyETHFacet }  from "../../src/libraries/WrapProxyETHLib.sol";
+import { WSTETHFacet }        from "../../src/libraries/WSTETHLib.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
@@ -253,11 +255,13 @@ abstract contract ForkTestBase is DssTest {
         accessControls.grantRole(accessControls.RELAYER_ROLE(), backstopRelayer);
 
         // Facet wiring
+
         _wireDAIUSDSFacet();
         _wireTransferAssetFacet();
         _wireUSDEFacet();
         _wireUSDSFacet();
         _wireWrapProxyETHFacet();
+        _wireWSTETHFacet();
 
         vm.stopPrank();
 
@@ -404,6 +408,51 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.LIMIT_ASSET_TRANSFER.selector,
             transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
+    }
+
+    function _wireWSTETHFacet() internal {
+        address wstethFacet = address(new WSTETHFacet(
+            Ethereum.WETH,
+            Ethereum.WSTETH_WITHDRAW_QUEUE,
+            Ethereum.WSTETH
+        ));
+
+        vm.label(wstethFacet, "WSTETHFacet");
+
+        // "Controller.depositToWstETH()" -> "WSTETHFacet.deposit()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.depositToWstETH.selector,
+            wstethFacet,
+            IWSTETHFacet.deposit.selector
+        );
+
+        // "Controller.requestWithdrawFromWstETH()" -> "WSTETHFacet.requestWithdraw()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.requestWithdrawFromWstETH.selector,
+            wstethFacet,
+            IWSTETHFacet.requestWithdraw.selector
+        );
+
+        // "Controller.claimWithdrawalFromWstETH()" -> "WSTETHFacet.claimWithdrawal()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.claimWithdrawalFromWstETH.selector,
+            wstethFacet,
+            IWSTETHFacet.claimWithdrawal.selector
+        );
+
+        // "Controller.LIMIT_WSTETH_DEPOSIT()" -> "WSTETHFacet.LIMIT_DEPOSIT()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_WSTETH_DEPOSIT.selector,
+            wstethFacet,
+            IWSTETHFacet.LIMIT_DEPOSIT.selector
+        );
+
+        // "Controller.LIMIT_WSTETH_REQUEST_WITHDRAW()" -> "WSTETHFacet.LIMIT_REQUEST_WITHDRAW()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_WSTETH_REQUEST_WITHDRAW.selector,
+            wstethFacet,
+            IWSTETHFacet.LIMIT_REQUEST_WITHDRAW.selector
         );
     }
 
