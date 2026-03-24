@@ -163,7 +163,7 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
     }
 
     function test_claimDepositERC7540_invalidVault() external {
-        vm.expectRevert("ERC7540Lib/invalid-action");
+        vm.expectRevert("ERC7540Facet/invalid-action");
         vm.prank(ALM_RELAYER);
         foreignController.claimDepositERC7540(makeAddr("fake-vault"));
     }
@@ -547,7 +547,7 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
     }
 
     function test_claimRedeemERC7540_invalidVault() external {
-        vm.expectRevert("ERC7540Lib/invalid-action");
+        vm.expectRevert("ERC7540Facet/invalid-action");
         vm.prank(ALM_RELAYER);
         foreignController.claimRedeemERC7540(makeAddr("fake-vault"));
     }

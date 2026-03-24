@@ -13,7 +13,6 @@ import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { CurveLib }         from "./libraries/CurveLib.sol";
 import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
-import { ERC7540Lib }       from "./libraries/ERC7540Lib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { MerklLib }         from "./libraries/MerklLib.sol";
 import { OTCLib }           from "./libraries/OTCLib.sol";
@@ -70,8 +69,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
     bytes32 public LIMIT_4626_DEPOSIT            = ERC4626Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_4626_WITHDRAW           = ERC4626Lib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_7540_DEPOSIT            = ERC7540Lib.LIMIT_DEPOSIT;
-    bytes32 public LIMIT_7540_REDEEM             = ERC7540Lib.LIMIT_REDEEM;
     bytes32 public LIMIT_AAVE_DEPOSIT            = AaveLib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_AAVE_WITHDRAW           = AaveLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_CENTRIFUGE_TRANSFER     = CentrifugeLib.LIMIT_TRANSFER;
@@ -817,34 +814,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
     function isOtcSwapReady(address exchange) external view returns (bool) {
         return OTCLib.isSwapReady(exchange, otcs, maxSlippages);
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer ERC7540 functions                                                              ***/
-    /**********************************************************************************************/
-
-    function requestDepositERC7540(address token, uint256 amount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        ERC7540Lib.requestDeposit(address(proxy), address(rateLimits), token, amount);
-    }
-
-    function claimDepositERC7540(address token) external nonReentrant onlyRole(RELAYER) {
-        ERC7540Lib.claimDeposit(address(proxy), address(rateLimits), token);
-    }
-
-    function requestRedeemERC7540(address token, uint256 shares)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        ERC7540Lib.requestRedeem(address(proxy), address(rateLimits), token, shares);
-    }
-
-    function claimRedeemERC7540(address token) external nonReentrant onlyRole(RELAYER) {
-        ERC7540Lib.claimRedeem(address(proxy), address(rateLimits), token);
     }
 
     /**********************************************************************************************/

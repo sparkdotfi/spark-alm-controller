@@ -22,6 +22,7 @@ import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwa
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
+import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
 import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
 import { IMapleFacet }         from "../../src/interfaces/facets/IMapleFacet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
@@ -34,6 +35,7 @@ import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFa
 import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
+import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
 import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
 import { MapleFacet }         from "../../src/libraries/MapleLib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
@@ -267,6 +269,7 @@ abstract contract ForkTestBase is DssTest {
         // Facet wiring
 
         _wireDAIUSDSFacet();
+        _wireERC7540Facet();
         _wireFarmFacet();
         _wireMapleFacet();
         _wireSparkVaultFacet();
@@ -379,7 +382,7 @@ abstract contract ForkTestBase is DssTest {
     }
 
     /**********************************************************************************************/
-    /*** Facet wiring helpers.                                                                  ***/
+    /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
 
     function _wireDAIUSDSFacet() internal {
@@ -403,6 +406,54 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.swapDAIToUSDS.selector,
             daiUSDSFacet,
             IDAIUSDSFacet.swapDAIToUSDS.selector
+        );
+    }
+
+    function _wireERC7540Facet() internal {
+        address erc7540Facet = address(new ERC7540Facet());
+
+        vm.label(erc7540Facet, "ERC7540Facet");
+
+        // "Controller.requestDepositERC7540()" -> "ERC7540Facet.requestDeposit()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.requestDepositERC7540.selector,
+            erc7540Facet,
+            IERC7540Facet.requestDeposit.selector
+        );
+
+        // "Controller.claimDepositERC7540()" -> "ERC7540Facet.claimDeposit()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.claimDepositERC7540.selector,
+            erc7540Facet,
+            IERC7540Facet.claimDeposit.selector
+        );
+
+        // "Controller.requestRedeemERC7540()" -> "ERC7540Facet.requestRedeem()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.requestRedeemERC7540.selector,
+            erc7540Facet,
+            IERC7540Facet.requestRedeem.selector
+        );
+
+        // "Controller.claimRedeemERC7540()" -> "ERC7540Facet.claimRedeem()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.claimRedeemERC7540.selector,
+            erc7540Facet,
+            IERC7540Facet.claimRedeem.selector
+        );
+
+        // "Controller.LIMIT_7540_DEPOSIT()" -> "ERC7540Facet.LIMIT_DEPOSIT()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_7540_DEPOSIT.selector,
+            erc7540Facet,
+            IERC7540Facet.LIMIT_DEPOSIT.selector
+        );
+
+        // "Controller.LIMIT_7540_REDEEM()" -> "ERC7540Facet.LIMIT_REDEEM()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_7540_REDEEM.selector,
+            erc7540Facet,
+            IERC7540Facet.LIMIT_REDEEM.selector
         );
     }
 

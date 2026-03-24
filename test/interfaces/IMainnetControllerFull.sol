@@ -16,6 +16,22 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function swapDAIToUSDS(uint256 daiAmount) external virtual;
 
     /**********************************************************************************************/
+    /*** ERC7540Facet actions                                                                   ***/
+    /**********************************************************************************************/
+
+    function claimDepositERC7540(address token) external virtual;
+
+    function claimRedeemERC7540(address token) external virtual;
+
+    function requestDepositERC7540(address token, uint256 amount) external virtual;
+
+    function requestRedeemERC7540(address token, uint256 shares) external virtual;
+
+    function LIMIT_7540_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_7540_REDEEM() external pure virtual returns (bytes32);
+
+    /**********************************************************************************************/
     /*** MapleFacet actions                                                                     ***/
     /**********************************************************************************************/
 

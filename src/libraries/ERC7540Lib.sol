@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy }   from "../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IALMProxy }     from "../interfaces/IALMProxy.sol";
+import { IRateLimits }   from "../interfaces/IRateLimits.sol";
+import { IERC7540Facet } from "../interfaces/facets/IERC7540Facet.sol";
 
 import { makeAddressKey } from "../RateLimitHelpers.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
+import { FacetBase }  from "./FacetBase.sol";
 
 interface IERC4626Like {
 
@@ -38,7 +40,7 @@ interface IERC7540Like {
 
 }
 
-library ERC7540Lib {
+contract ERC7540Facet is IERC7540Facet, FacetBase {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
@@ -51,54 +53,68 @@ library ERC7540Lib {
     /*** External interactive functions                                                         ***/
     /**********************************************************************************************/
 
-    function requestDeposit(address proxy, address rateLimits, address token, uint256 amount) external {
+    function requestDeposit(address token, uint256 amount)
+        external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        ControllerStorage storage $ = _getControllerStorage();
+
         // Note that whitelist is done by rate limits.
-        _decreaseRateLimit(rateLimits, LIMIT_DEPOSIT, token, amount);
+        _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, token, amount);
 
         // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
-        ApproveLib.approve(IERC4626Like(token).asset(), proxy, token, amount);
+        ApproveLib.approve(IERC4626Like(token).asset(), $.proxy, token, amount);
 
         // Submit deposit request by transferring assets
-        IALMProxy(proxy).doCall(
+        IALMProxy($.proxy).doCall(
             token,
-            abi.encodeCall(IERC7540Like.requestDeposit, (amount, proxy, proxy))
+            abi.encodeCall(IERC7540Like.requestDeposit, (amount, $.proxy, $.proxy))
         );
     }
 
-    function claimDeposit(address proxy, address rateLimits, address token) external {
-        _rateLimitExists(rateLimits, makeAddressKey(LIMIT_DEPOSIT, token));
+    function claimDeposit(address token) external nonReentrant onlyRole(RELAYER_ROLE) {
+        ControllerStorage storage $ = _getControllerStorage();
 
-        uint256 shares = IERC4626Like(token).maxMint(proxy);
+        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_DEPOSIT, token));
+
+        uint256 shares = IERC4626Like(token).maxMint($.proxy);
 
         // Claim shares from the vault to the proxy
-        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC4626Like.mint, (shares, proxy)));
+        IALMProxy($.proxy).doCall(token, abi.encodeCall(IERC4626Like.mint, (shares, $.proxy)));
     }
 
-    function requestRedeem(address proxy, address rateLimits, address token, uint256 shares)
+    function requestRedeem(address token, uint256 shares)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
     {
+        ControllerStorage storage $ = _getControllerStorage();
+
         _decreaseRateLimit(
-            rateLimits,
+            $.rateLimits,
             LIMIT_REDEEM,
             token,
             IERC4626Like(token).convertToAssets(shares)
         );
 
-        IALMProxy(proxy).doCall(
+        IALMProxy($.proxy).doCall(
             token,
-            abi.encodeCall(IERC7540Like.requestRedeem, (shares, proxy, proxy))
+            abi.encodeCall(IERC7540Like.requestRedeem, (shares, $.proxy, $.proxy))
         );
     }
 
-    function claimRedeem(address proxy, address rateLimits, address token) external {
-        _rateLimitExists(rateLimits, makeAddressKey(LIMIT_REDEEM, token));
+    function claimRedeem(address token) external nonReentrant onlyRole(RELAYER_ROLE) {
+        ControllerStorage storage $ = _getControllerStorage();
 
-        uint256 assets = IERC4626Like(token).maxWithdraw(proxy);
+        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_REDEEM, token));
+
+        uint256 assets = IERC4626Like(token).maxWithdraw($.proxy);
 
         // Claim assets from the vault to the proxy
-        IALMProxy(proxy).doCall(
+        IALMProxy($.proxy).doCall(
             token,
-            abi.encodeCall(IERC4626Like.withdraw, (assets, proxy, proxy))
+            abi.encodeCall(IERC4626Like.withdraw, (assets, $.proxy, $.proxy))
         );
     }
 
@@ -115,7 +131,7 @@ library ERC7540Lib {
     function _rateLimitExists(address rateLimits, bytes32 key) internal view {
         require(
             IRateLimits(rateLimits).getRateLimitData(key).maxAmount > 0,
-            "ERC7540Lib/invalid-action"
+            "ERC7540Facet/invalid-action"
         );
     }
 

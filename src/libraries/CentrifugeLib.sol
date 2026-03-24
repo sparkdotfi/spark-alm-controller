@@ -6,8 +6,6 @@ import { IRateLimits } from "../interfaces/IRateLimits.sol";
 
 import { makeAddressKey, makeAddressUint16Key } from "../RateLimitHelpers.sol";
 
-import { ERC7540Lib } from "./ERC7540Lib.sol";
-
 interface IAsyncRedeemManagerLike {
 
     function spoke() external view returns (address);
@@ -62,8 +60,8 @@ library CentrifugeLib {
     /**********************************************************************************************/
 
     bytes32 public constant LIMIT_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
-    bytes32 public constant LIMIT_DEPOSIT  = ERC7540Lib.LIMIT_DEPOSIT;
-    bytes32 public constant LIMIT_REDEEM   = ERC7540Lib.LIMIT_REDEEM;
+    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public constant LIMIT_REDEEM   = keccak256("LIMIT_7540_REDEEM");
 
     // Requests for Centrifuge pools are non-fungible and all have ID = 0.
     uint256 public constant REQUEST_ID = 0;
