@@ -80,4 +80,31 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
         virtual
         returns (uint256[] memory requestIds);
 
+    /**********************************************************************************************/
+    /*** WEETHFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function LIMIT_WEETH_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_WEETH_REQUEST_WITHDRAW() external pure virtual returns (bytes32);
+
+    function depositToWeETH(uint256 amount, uint256 minSharesOut)
+        external
+        virtual
+        returns (uint256 shares);
+
+    function claimWithdrawalFromWeETH(address weethModule, uint256 requestId)
+        external
+        virtual
+        returns (uint256 ethReceived);
+
+    function requestWithdrawFromWeETH(
+        address weethModule,
+        uint256 weethShares,
+        uint256 minEETHShares
+    )
+        external
+        virtual
+        returns (uint256 requestId);
+
 }

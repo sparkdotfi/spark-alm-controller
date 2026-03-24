@@ -25,6 +25,7 @@ import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.s
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 import { IUSDEFacet }          from "../../src/interfaces/facets/IUSDEFacet.sol";
 import { IUSDSFacet }          from "../../src/interfaces/facets/IUSDSFacet.sol";
+import { IWEETHFacet }         from "../../src/interfaces/facets/IWEETHFacet.sol";
 import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFacet.sol";
 import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
@@ -32,6 +33,7 @@ import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
 import { USDEFacet }          from "../../src/libraries/USDELib.sol";
 import { USDSFacet }          from "../../src/libraries/USDSLib.sol";
+import { WEETHFacet }         from "../../src/libraries/WEETHLib.sol";
 import { WrapProxyETHFacet }  from "../../src/libraries/WrapProxyETHLib.sol";
 import { WSTETHFacet }        from "../../src/libraries/WSTETHLib.sol";
 
@@ -260,6 +262,7 @@ abstract contract ForkTestBase is DssTest {
         _wireTransferAssetFacet();
         _wireUSDEFacet();
         _wireUSDSFacet();
+        _wireWEETHFacet();
         _wireWrapProxyETHFacet();
         _wireWSTETHFacet();
 
@@ -408,6 +411,47 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.LIMIT_ASSET_TRANSFER.selector,
             transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
+    }
+
+    function _wireWEETHFacet() internal {
+        address weethFacet = address(new WEETHFacet(Ethereum.WETH, Ethereum.WEETH));
+
+        vm.label(weethFacet, "WEETHFacet");
+
+        // "Controller.depositToWeETH()" -> "WEETHFacet.deposit()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.depositToWeETH.selector,
+            weethFacet,
+            IWEETHFacet.deposit.selector
+        );
+
+        // "Controller.requestWithdrawFromWeETH()" -> "WEETHFacet.requestWithdraw()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.requestWithdrawFromWeETH.selector,
+            weethFacet,
+            IWEETHFacet.requestWithdraw.selector
+        );
+
+        // "Controller.claimWithdrawalFromWeETH()" -> "WEETHFacet.claimWithdrawal()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.claimWithdrawalFromWeETH.selector,
+            weethFacet,
+            IWEETHFacet.claimWithdrawal.selector
+        );
+
+        // "Controller.LIMIT_WEETH_DEPOSIT()" -> "WEETHFacet.LIMIT_DEPOSIT()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_WEETH_DEPOSIT.selector,
+            weethFacet,
+            IWEETHFacet.LIMIT_DEPOSIT.selector
+        );
+
+        // "Controller.LIMIT_WEETH_REQUEST_WITHDRAW()" -> "WEETHFacet.LIMIT_REQUEST_WITHDRAW()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_WEETH_REQUEST_WITHDRAW.selector,
+            weethFacet,
+            IWEETHFacet.LIMIT_REQUEST_WITHDRAW.selector
         );
     }
 

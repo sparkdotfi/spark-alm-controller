@@ -25,7 +25,6 @@ import { SparkVaultLib }    from "./libraries/SparkVaultLib.sol";
 import { SuperstateLib }    from "./libraries/SuperstateLib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 import { UniswapV4Lib }     from "./libraries/UniswapV4Lib.sol";
-import { WEETHLib }         from "./libraries/WEETHLib.sol";
 
 import { Controller } from "./Controller.sol";
 
@@ -99,8 +98,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public LIMIT_USDC_TO_CCTP            = CCTPLib.LIMIT_TO_CCTP;
     bytes32 public LIMIT_USDC_TO_DOMAIN          = CCTPLib.LIMIT_TO_DOMAIN;
     bytes32 public LIMIT_USDS_TO_USDC            = PSMLib.LIMIT_USDS_TO_USDC;
-    bytes32 public LIMIT_WEETH_DEPOSIT           = WEETHLib.LIMIT_DEPOSIT;
-    bytes32 public LIMIT_WEETH_REQUEST_WITHDRAW  = WEETHLib.LIMIT_REQUEST_WITHDRAW;
     bytes32 public LIMIT_PENDLE_PT_REDEEM        = PendleLib.LIMIT_REDEEM;
 
     address public buffer;
@@ -354,52 +351,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     function removeRelayer(address relayer) external nonReentrant onlyRole(FREEZER) {
         _revokeRole(RELAYER, relayer);
         emit RelayerRemoved(relayer);
-    }
-
-    /**********************************************************************************************/
-    /*** weETH Integration                                                                      ***/
-    /**********************************************************************************************/
-
-    function depositToWeETH(uint256 amount, uint256 minSharesOut)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 shares)
-    {
-        return WEETHLib.deposit(address(proxy), address(rateLimits), amount, minSharesOut);
-    }
-
-    function requestWithdrawFromWeETH(
-        address weethModule,
-        uint256 weethShares,
-        uint256 minEETHShares
-    )
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 requestId)
-    {
-        return WEETHLib.requestWithdraw(
-            address(proxy),
-            address(rateLimits),
-            weethModule,
-            weethShares,
-            minEETHShares
-        );
-    }
-
-    function claimWithdrawalFromWeETH(address weethModule, uint256 requestId)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 ethReceived)
-    {
-        return WEETHLib.claimWithdrawal(
-            address(proxy),
-            address(rateLimits),
-            weethModule,
-            requestId
-        );
     }
 
     /**********************************************************************************************/

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
-
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
+import { IWEETHFacet } from "../interfaces/facets/IWEETHFacet.sol";
 
 import { makeAddressKey } from "../RateLimitHelpers.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
+import { FacetBase }  from "./FacetBase.sol";
 
 interface IEETHLike {
 
@@ -50,31 +50,54 @@ interface IWETHLike {
 
 }
 
-// NOTE: This library is is specifically for Mainnet Ethereum.
-library WEETHLib {
+contract WEETHFacet is IWEETHFacet, FacetBase {
+
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
 
     bytes32 public constant LIMIT_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
     bytes32 public constant LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    function deposit(address proxy, address rateLimits, uint256 amount, uint256 minSharesOut)
+    address public immutable weth;
+    address public immutable weeth;
+
+    /**********************************************************************************************/
+    /*** Constructor                                                                            ***/
+    /**********************************************************************************************/
+
+    constructor(address weth_, address weeth_) {
+        weth  = weth_;
+        weeth = weeth_;
+    }
+
+    /**********************************************************************************************/
+    /*** External Interactive functions                                                         ***/
+    /**********************************************************************************************/
+
+    function deposit(uint256 amount, uint256 minSharesOut)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(LIMIT_DEPOSIT, amount);
+        ControllerStorage storage $ = _getControllerStorage();
+
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_DEPOSIT, amount);
 
         // Unwrap WETH to ETH.
-        IALMProxy(proxy).doCall(Ethereum.WETH, abi.encodeCall(IWETHLike.withdraw, (amount)));
+        IALMProxy($.proxy).doCall(weth, abi.encodeCall(IWETHLike.withdraw, (amount)));
 
         // Deposit ETH to eETH.
-        address eeth          = IWEETHLike(Ethereum.WEETH).eETH();
+        address eeth          = IWEETHLike(weeth).eETH();
         address liquidityPool = IEETHLike(eeth).liquidityPool();
 
         uint256 eethShares = abi.decode(
-            IALMProxy(proxy).doCallWithValue(
+            IALMProxy($.proxy).doCallWithValue(
                 liquidityPool,
                 abi.encodeCall(ILiquidityPoolLike.deposit, ()),
                 amount
@@ -85,33 +108,31 @@ library WEETHLib {
         uint256 eethAmount = ILiquidityPoolLike(liquidityPool).amountForShare(eethShares);
 
         // Deposit eETH to weETH.
-        ApproveLib.approve(eeth, proxy, Ethereum.WEETH, eethAmount);
+        ApproveLib.approve(eeth, $.proxy, weeth, eethAmount);
 
         shares = abi.decode(
-            IALMProxy(proxy).doCall(Ethereum.WEETH, abi.encodeCall(IWEETHLike.wrap, (eethAmount))),
+            IALMProxy($.proxy).doCall(weeth, abi.encodeCall(IWEETHLike.wrap, (eethAmount))),
             (uint256)
         );
 
         require(shares >= minSharesOut, "WEETHLib/slippage-too-high");
     }
 
-    function requestWithdraw(
-        address proxy,
-        address rateLimits,
-        address weethModule,
-        uint256 weethShares,
-        uint256 minEETHShares
-    )
+    function requestWithdraw(address weethModule, uint256 weethShares, uint256 minEETHShares)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 requestId)
     {
-        address eeth          = IWEETHLike(Ethereum.WEETH).eETH();
+        ControllerStorage storage $ = _getControllerStorage();
+
+        address eeth          = IWEETHLike(weeth).eETH();
         address liquidityPool = IEETHLike(eeth).liquidityPool();
 
         // Withdraw from weETH (returns eETH).
         uint256 eethAmount = abi.decode(
-            IALMProxy(proxy).doCall(
-                Ethereum.WEETH,
+            IALMProxy($.proxy).doCall(
+                weeth,
                 abi.encodeCall(IWEETHLike.unwrap, (weethShares))
             ),
             (uint256)
@@ -124,16 +145,16 @@ library WEETHLib {
         );
 
         // NOTE: An authorized weethModule is enforced by the rate limit key.
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressKey(LIMIT_REQUEST_WITHDRAW, weethModule),
             eethAmount
         );
 
         // Request withdrawal of ETH from eETH.
-        ApproveLib.approve(eeth, proxy, liquidityPool, eethAmount);
+        ApproveLib.approve(eeth, $.proxy, liquidityPool, eethAmount);
 
         return abi.decode(
-            IALMProxy(proxy).doCall(
+            IALMProxy($.proxy).doCall(
                 liquidityPool,
                 abi.encodeCall(ILiquidityPoolLike.requestWithdraw, (weethModule, eethAmount))
             ),
@@ -141,25 +162,24 @@ library WEETHLib {
         );
     }
 
-    function claimWithdrawal(
-        address proxy,
-        address rateLimits,
-        address weethModule,
-        uint256 requestId
-    )
+    function claimWithdrawal(address weethModule, uint256 requestId)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 ethReceived)
     {
+        ControllerStorage storage $ = _getControllerStorage();
+
         // NOTE: An authorized weethModule is enforced by the rate limit key.
         require(
-            IRateLimits(rateLimits).getRateLimitData(
+            IRateLimits($.rateLimits).getRateLimitData(
                 makeAddressKey(LIMIT_REQUEST_WITHDRAW, weethModule)
             ).maxAmount > 0,
             "WEETHLib/invalid-action"
         );
 
         ethReceived = abi.decode(
-            IALMProxy(proxy).doCall(
+            IALMProxy($.proxy).doCall(
                 weethModule,
                 abi.encodeCall(IWEETHModuleLike.claimWithdrawal, (requestId))
             ),
