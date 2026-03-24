@@ -25,6 +25,7 @@ import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.s
 import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
 import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
 import { IMapleFacet }         from "../../src/interfaces/facets/IMapleFacet.sol";
+import { IPSMFacet }           from "../../src/interfaces/facets/IPSMFacet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ISuperstateFacet }    from "../../src/interfaces/facets/ISuperstateFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
@@ -38,6 +39,7 @@ import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
 import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
 import { MapleFacet }         from "../../src/libraries/MapleLib.sol";
+import { PSMFacet }           from "../../src/libraries/PSMLib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { SuperstateFacet }    from "../../src/libraries/SuperstateLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
@@ -272,6 +274,7 @@ abstract contract ForkTestBase is DssTest {
         _wireERC7540Facet();
         _wireFarmFacet();
         _wireMapleFacet();
+        _wirePSMFacet();
         _wireSparkVaultFacet();
         _wireSuperstateFacet();
         _wireTransferAssetFacet();
@@ -508,6 +511,46 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.LIMIT_SPARK_VAULT_TAKE.selector,
             sparkVaultFacet,
             ISparkVaultFacet.LIMIT_TAKE.selector
+        );
+    }
+
+    function _wirePSMFacet() internal {
+        address psmFacet = address(new PSMFacet(
+            Ethereum.DAI,
+            Ethereum.DAI_USDS,
+            Ethereum.PSM,
+            Ethereum.USDC,
+            Ethereum.USDS
+        ));
+
+        vm.label(psmFacet, "PSMFacet");
+
+        // "Controller.swapUSDSToUSDC()" -> "PSMFacet.swapUSDSToUSDC()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.swapUSDSToUSDC.selector,
+            psmFacet,
+            IPSMFacet.swapUSDSToUSDC.selector
+        );
+
+        // "Controller.swapUSDCToUSDS()" -> "PSMFacet.swapUSDCToUSDS()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.swapUSDCToUSDS.selector,
+            psmFacet,
+            IPSMFacet.swapUSDCToUSDS.selector
+        );
+
+        // "Controller.psmTo18ConversionFactor()" -> "PSMFacet.to18ConversionFactor()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.psmTo18ConversionFactor.selector,
+            psmFacet,
+            IPSMFacet.to18ConversionFactor.selector
+        );
+
+        // "Controller.LIMIT_USDS_TO_USDC()" -> "PSMFacet.LIMIT_USDS_TO_USDC()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_USDS_TO_USDC.selector,
+            psmFacet,
+            IPSMFacet.LIMIT_USDS_TO_USDC.selector
         );
     }
 

@@ -41,9 +41,6 @@ contract MainnetController_Constructor_Tests is UnitTestBase {
         assertEq(address(mainnetController.cctp()),       makeAddr("cctp"));
         assertEq(address(mainnetController.dai()),        makeAddr("dai"));   // Dai param in MockDaiUsds
         assertEq(address(mainnetController.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
-
-        assertEq(mainnetController.psmTo18ConversionFactor(), psm.to18ConversionFactor());
-        assertEq(mainnetController.psmTo18ConversionFactor(), 1e12);
     }
 
 }
