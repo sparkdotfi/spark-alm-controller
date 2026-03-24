@@ -22,6 +22,16 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function LIMIT_ASSET_TRANSFER() external pure virtual returns (bytes32);
 
     function transferAsset(address asset, address destination, uint256 amount) external virtual;
+    
+    /**********************************************************************************************/
+    /*** USDS vault actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function LIMIT_USDS_MINT() external pure virtual returns (bytes32);
+
+    function mintUSDS(uint256 usdsAmount) external virtual;
+
+    function burnUSDS(uint256 usdsAmount) external virtual;
 
     /**********************************************************************************************/
     /*** WrapProxyETH actions                                                             ***/
