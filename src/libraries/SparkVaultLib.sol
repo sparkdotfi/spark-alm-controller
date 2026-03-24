@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy }   from "../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IALMProxy }        from "../interfaces/IALMProxy.sol";
+import { IRateLimits }      from "../interfaces/IRateLimits.sol";
+import { ISparkVaultFacet } from "../interfaces/facets/ISparkVaultFacet.sol";
 
 import { makeAddressKey } from "../RateLimitHelpers.sol";
+
+import { FacetBase } from "./FacetBase.sol";
 
 interface ISparkVaultLike {
 
@@ -12,23 +15,32 @@ interface ISparkVaultLike {
 
 }
 
-library SparkVaultLib {
+contract SparkVaultFacet is ISparkVaultFacet, FacetBase {
+
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
 
     bytes32 public constant LIMIT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive functions                                                         ***/
     /**********************************************************************************************/
 
-    function take(address proxy, address rateLimits, address sparkVault, uint256 assetAmount)
+    function take(address sparkVault, uint256 assetAmount)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
     {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
+        IRateLimits(_getControllerStorage().rateLimits).triggerRateLimitDecrease(
             makeAddressKey(LIMIT_TAKE, sparkVault),
             assetAmount
         );
 
-        IALMProxy(proxy).doCall(sparkVault, abi.encodeCall(ISparkVaultLike.take, (assetAmount)));
+        IALMProxy(_getControllerStorage().proxy).doCall(
+            sparkVault,
+            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
+        );
     }
 
 }

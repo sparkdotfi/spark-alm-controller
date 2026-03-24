@@ -22,6 +22,7 @@ import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwa
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
+import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 import { IUSDEFacet }          from "../../src/interfaces/facets/IUSDEFacet.sol";
 import { IUSDSFacet }          from "../../src/interfaces/facets/IUSDSFacet.sol";
@@ -30,6 +31,7 @@ import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFa
 import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
+import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
 import { USDEFacet }          from "../../src/libraries/USDELib.sol";
 import { USDSFacet }          from "../../src/libraries/USDSLib.sol";
@@ -259,6 +261,7 @@ abstract contract ForkTestBase is DssTest {
         // Facet wiring
 
         _wireDAIUSDSFacet();
+        _wireSparkVaultFacet();
         _wireTransferAssetFacet();
         _wireUSDEFacet();
         _wireUSDSFacet();
@@ -391,6 +394,26 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.swapDAIToUSDS.selector,
             daiUSDSFacet,
             IDAIUSDSFacet.swapDAIToUSDS.selector
+        );
+    }
+
+    function _wireSparkVaultFacet() internal {
+        address sparkVaultFacet = address(new SparkVaultFacet());
+
+        vm.label(sparkVaultFacet, "SparkVaultFacet");
+
+        // "Controller.takeFromSparkVault()" -> "SparkVaultFacet.take()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.takeFromSparkVault.selector,
+            sparkVaultFacet,
+            ISparkVaultFacet.take.selector
+        );
+
+        // "Controller.LIMIT_SPARK_VAULT_TAKE()" -> "SparkVaultFacet.LIMIT_TAKE()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_SPARK_VAULT_TAKE.selector,
+            sparkVaultFacet,
+            ISparkVaultFacet.LIMIT_TAKE.selector
         );
     }
 

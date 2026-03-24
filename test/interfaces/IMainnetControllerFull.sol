@@ -16,6 +16,14 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function swapDAIToUSDS(uint256 daiAmount) external virtual;
 
     /**********************************************************************************************/
+    /*** SparkVaultFacet actions                                                                ***/
+    /**********************************************************************************************/
+
+    function LIMIT_SPARK_VAULT_TAKE() external pure virtual returns (bytes32);
+
+    function takeFromSparkVault(address sparkVault, uint256 assetAmount) external virtual;
+
+    /**********************************************************************************************/
     /*** TransferAssetFacet actions                                                             ***/
     /**********************************************************************************************/
 
