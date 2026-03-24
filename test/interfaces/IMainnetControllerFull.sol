@@ -23,4 +23,10 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
 
     function transferAsset(address asset, address destination, uint256 amount) external virtual;
 
+    /**********************************************************************************************/
+    /*** WrapProxyETH actions                                                             ***/
+    /**********************************************************************************************/
+
+    function wrapAllProxyETH() external virtual;
+
 }

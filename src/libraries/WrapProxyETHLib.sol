@@ -1,11 +1,33 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy } from "../interfaces/IALMProxy.sol";
+import { IALMProxy }          from "../interfaces/IALMProxy.sol";
+import { IWrapProxyETHFacet } from "../interfaces/facets/IWrapProxyETHFacet.sol";
 
-library WrapProxyETHLib {
+import { FacetBase } from "./FacetBase.sol";
 
-    function wrapAll(address proxy, address weth) external {
+contract WrapProxyETHFacet is IWrapProxyETHFacet, FacetBase {
+
+    /**********************************************************************************************/
+    /*** Declarations                                                                           ***/
+    /**********************************************************************************************/
+
+    address public immutable weth;
+
+    /**********************************************************************************************/
+    /*** Constructor                                                                            ***/
+    /**********************************************************************************************/
+
+    constructor(address weth_) {
+        weth = weth_;
+    }
+
+    /**********************************************************************************************/
+    /*** External Interactive functions                                                         ***/
+    /**********************************************************************************************/
+
+    function wrapAll() external nonReentrant onlyRole(RELAYER_ROLE) {
+        address proxy        = _getControllerStorage().proxy;
         uint256 proxyBalance = proxy.balance;
 
         if (proxyBalance == 0) return;

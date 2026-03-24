@@ -13,10 +13,14 @@ import { makeAddressAddressKey } from "../RateLimitHelpers.sol";
 
 contract TransferAssetFacet is ITransferAssetFacet, FacetBase {
 
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
+
     bytes32 public constant LIMIT_TRANSFER = keccak256("LIMIT_ASSET_TRANSFER");
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive functions                                                         ***/
     /**********************************************************************************************/
 
     function transfer(

@@ -28,7 +28,6 @@ import { UniswapV4Lib }     from "./libraries/UniswapV4Lib.sol";
 import { USDELib }          from "./libraries/USDELib.sol";
 import { USDSLib }          from "./libraries/USDSLib.sol";
 import { WEETHLib }         from "./libraries/WEETHLib.sol";
-import { WrapProxyETHLib }  from "./libraries/WrapProxyETHLib.sol";
 import { WSTETHLib }        from "./libraries/WSTETHLib.sol";
 
 import { Controller } from "./Controller.sol";
@@ -460,14 +459,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
             weethModule,
             requestId
         );
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer wrap ETH function                                                              ***/
-    /**********************************************************************************************/
-
-    function wrapAllProxyETH() external nonReentrant onlyRole(RELAYER) {
-        WrapProxyETHLib.wrapAll(address(proxy), Ethereum.WETH);
     }
 
     /**********************************************************************************************/

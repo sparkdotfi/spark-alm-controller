@@ -23,9 +23,11 @@ import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
+import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFacet.sol";
 
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
+import { WrapProxyETHFacet }  from "../../src/libraries/WrapProxyETHLib.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
@@ -240,9 +242,16 @@ abstract contract ForkTestBase is DssTest {
         RELAYER    = mainnetController.RELAYER();
 
         vm.startPrank(Ethereum.SPARK_PROXY);
+
         parameters.grantRole(parameters.CONTROLLER_ROLE(), address(mainnetController));
         accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+
+        // Facet wiring
+        _wireDAIUSDSFacet();
+        _wireTransferAssetFacet();
+        _wireWrapProxyETHFacet();
+
         vm.stopPrank();
 
         address[] memory relayers = new address[](2);
@@ -304,15 +313,6 @@ abstract contract ForkTestBase is DssTest {
         vm.label(address(usdc),  "usdc");
         vm.label(address(usds),  "usds");
         vm.label(vault,          "vault");
-
-        // Facet wiring
-
-        vm.startPrank(Ethereum.SPARK_PROXY);
-
-        _wireDAIUSDSFacet();
-        _wireTransferAssetFacet();
-
-        vm.stopPrank();
     }
 
     // Default configuration for the fork, can be overridden in inheriting tests
@@ -398,6 +398,19 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.LIMIT_ASSET_TRANSFER.selector,
             transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
+    }
+
+    function _wireWrapProxyETHFacet() internal {
+        address wrapProxyETHFacet = address(new WrapProxyETHFacet(Ethereum.WETH));
+
+        vm.label(wrapProxyETHFacet, "WrapProxyETHFacet");
+
+        // "Controller.wrapAllProxyETH()" -> "WrapProxyETHFacet.wrapAll()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.wrapAllProxyETH.selector,
+            wrapProxyETHFacet,
+            IWrapProxyETHFacet.wrapAll.selector
         );
     }
 
