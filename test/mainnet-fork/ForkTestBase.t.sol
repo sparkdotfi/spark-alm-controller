@@ -24,6 +24,7 @@ import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
+import { ISuperstateFacet }    from "../../src/interfaces/facets/ISuperstateFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 import { IUSDEFacet }          from "../../src/interfaces/facets/IUSDEFacet.sol";
 import { IUSDSFacet }          from "../../src/interfaces/facets/IUSDSFacet.sol";
@@ -34,6 +35,7 @@ import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.so
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
+import { SuperstateFacet }    from "../../src/libraries/SuperstateLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
 import { USDEFacet }          from "../../src/libraries/USDELib.sol";
 import { USDSFacet }          from "../../src/libraries/USDSLib.sol";
@@ -265,6 +267,7 @@ abstract contract ForkTestBase is DssTest {
         _wireDAIUSDSFacet();
         _wireFarmFacet();
         _wireSparkVaultFacet();
+        _wireSuperstateFacet();
         _wireTransferAssetFacet();
         _wireUSDEFacet();
         _wireUSDSFacet();
@@ -471,6 +474,26 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.LIMIT_ASSET_TRANSFER.selector,
             transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
+    }
+
+    function _wireSuperstateFacet() internal {
+        address superstateFacet = address(new SuperstateFacet(Ethereum.USDC, Ethereum.USTB));
+
+        vm.label(superstateFacet, "SuperstateFacet");
+
+        // "Controller.subscribeSuperstate()" -> "SuperstateFacet.subscribe()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.subscribeSuperstate.selector,
+            superstateFacet,
+            ISuperstateFacet.subscribe.selector
+        );
+
+        // "Controller.LIMIT_SUPERSTATE_SUBSCRIBE()" -> "SuperstateFacet.LIMIT_SUBSCRIBE()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_SUPERSTATE_SUBSCRIBE.selector,
+            superstateFacet,
+            ISuperstateFacet.LIMIT_SUBSCRIBE.selector
         );
     }
 

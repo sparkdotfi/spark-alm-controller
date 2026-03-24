@@ -20,7 +20,6 @@ import { MerklLib }         from "./libraries/MerklLib.sol";
 import { OTCLib }           from "./libraries/OTCLib.sol";
 import { PendleLib }        from "./libraries/PendleLib.sol";
 import { PSMLib }           from "./libraries/PSMLib.sol";
-import { SuperstateLib }    from "./libraries/SuperstateLib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 import { UniswapV4Lib }     from "./libraries/UniswapV4Lib.sol";
 
@@ -83,7 +82,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
     bytes32 public LIMIT_OTC_SWAP                = OTCLib.LIMIT_SWAP;
-    bytes32 public LIMIT_SUPERSTATE_SUBSCRIBE    = SuperstateLib.LIMIT_SUBSCRIBE;
     bytes32 public LIMIT_UNISWAP_V3_DEPOSIT      = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V3_SWAP         = UniswapV3Lib.LIMIT_SWAP;
     bytes32 public LIMIT_UNISWAP_V3_WITHDRAW     = UniswapV3Lib.LIMIT_WITHDRAW;
@@ -701,14 +699,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
             distributor : merklDistributor,
             operator    : operator
         });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Superstate functions                                                           ***/
-    /**********************************************************************************************/
-
-    function subscribeSuperstate(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER) {
-        SuperstateLib.subscribe(address(proxy), address(rateLimits), usdc, ustb, usdcAmount);
     }
 
     /**********************************************************************************************/

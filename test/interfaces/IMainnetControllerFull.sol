@@ -127,4 +127,12 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
 
     function withdrawFromFarm(address farm, uint256 amount) external virtual;
 
+    /**********************************************************************************************/
+    /*** SuperstateFacet actions                                                                ***/
+    /**********************************************************************************************/
+
+    function LIMIT_SUPERSTATE_SUBSCRIBE() external pure virtual returns (bytes32);
+
+    function subscribeSuperstate(uint256 usdcAmount) external virtual;
+
 }
