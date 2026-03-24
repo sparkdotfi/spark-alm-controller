@@ -21,8 +21,10 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
+import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 
+import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
@@ -307,6 +309,7 @@ abstract contract ForkTestBase is DssTest {
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 
+        _wireDAIUSDSFacet();
         _wireTransferAssetFacet();
 
         vm.stopPrank();
@@ -352,6 +355,31 @@ abstract contract ForkTestBase is DssTest {
     /**********************************************************************************************/
     /*** Facet wiring helpers.                                                                  ***/
     /**********************************************************************************************/
+
+    function _wireDAIUSDSFacet() internal {
+        address daiUSDSFacet = address(new DAIUSDSFacet({
+            dai_     : Ethereum.DAI,
+            daiUSDS_ : Ethereum.DAI_USDS,
+            usds_    : Ethereum.USDS
+        }));
+
+        vm.label(daiUSDSFacet, "DAIUSDSFacet");
+
+        // "Controller.swapUSDSToDAI()" -> "DAIUSDSFacet.swapUSDSToDAI()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.swapUSDSToDAI.selector,
+            daiUSDSFacet,
+            IDAIUSDSFacet.swapUSDSToDAI.selector
+        );
+
+        // "Controller.swapDAIToUSDS()" -> "DAIUSDSFacet.swapDAIToUSDS()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.swapDAIToUSDS.selector,
+            daiUSDSFacet,
+            IDAIUSDSFacet.swapDAIToUSDS.selector
+        );
+
+    }
 
     function _wireTransferAssetFacet() internal {
         address transferAssetFacet = address(new TransferAssetFacet());

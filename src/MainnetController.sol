@@ -12,7 +12,6 @@ import { AaveLib }          from "./libraries/AaveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { CurveLib }         from "./libraries/CurveLib.sol";
-import { DAIUSDSLib }       from "./libraries/DAIUSDSLib.sol";
 import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { ERC7540Lib }       from "./libraries/ERC7540Lib.sol";
 import { FarmLib }          from "./libraries/FarmLib.sol";
@@ -885,18 +884,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
     function subscribeSuperstate(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER) {
         SuperstateLib.subscribe(address(proxy), address(rateLimits), usdc, ustb, usdcAmount);
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer DaiUsds functions                                                              ***/
-    /**********************************************************************************************/
-
-    function swapUSDSToDAI(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER) {
-        DAIUSDSLib.swapUSDSToDAI(address(proxy), usds, daiUsds, usdsAmount);
-    }
-
-    function swapDAIToUSDS(uint256 daiAmount) external nonReentrant onlyRole(RELAYER) {
-        DAIUSDSLib.swapDAIToUSDS(address(proxy), dai, daiUsds, daiAmount);
     }
 
     /**********************************************************************************************/

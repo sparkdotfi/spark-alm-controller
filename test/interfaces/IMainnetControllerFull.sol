@@ -8,6 +8,14 @@ import { MainnetController } from "../../src/MainnetController.sol";
 abstract contract IMainnetControllerFull is IController, MainnetController {
 
     /**********************************************************************************************/
+    /*** DaiUsdsFacet actions                                                                   ***/
+    /**********************************************************************************************/
+
+    function swapUSDSToDAI(uint256 usdsAmount) external virtual;
+
+    function swapDAIToUSDS(uint256 daiAmount) external virtual;
+
+    /**********************************************************************************************/
     /*** TransferAssetFacet actions                                                             ***/
     /**********************************************************************************************/
 
