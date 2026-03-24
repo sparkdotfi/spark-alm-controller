@@ -22,6 +22,7 @@ import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwa
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
+import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 import { IUSDEFacet }          from "../../src/interfaces/facets/IUSDEFacet.sol";
@@ -31,6 +32,7 @@ import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFa
 import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
+import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
 import { USDEFacet }          from "../../src/libraries/USDELib.sol";
@@ -261,6 +263,7 @@ abstract contract ForkTestBase is DssTest {
         // Facet wiring
 
         _wireDAIUSDSFacet();
+        _wireFarmFacet();
         _wireSparkVaultFacet();
         _wireTransferAssetFacet();
         _wireUSDEFacet();
@@ -394,6 +397,40 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.swapDAIToUSDS.selector,
             daiUSDSFacet,
             IDAIUSDSFacet.swapDAIToUSDS.selector
+        );
+    }
+
+    function _wireFarmFacet() internal {
+        address farmFacet = address(new FarmFacet());
+
+        vm.label(farmFacet, "FarmFacet");
+
+        // "Controller.depositToFarm()" -> "FarmFacet.deposit()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.depositToFarm.selector,
+            farmFacet,
+            IFarmFacet.deposit.selector
+        );
+
+        // "Controller.withdrawFromFarm()" -> "FarmFacet.withdraw()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.withdrawFromFarm.selector,
+            farmFacet,
+            IFarmFacet.withdraw.selector
+        );
+
+        // "Controller.LIMIT_FARM_DEPOSIT()" -> "FarmFacet.LIMIT_DEPOSIT()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_FARM_DEPOSIT.selector,
+            farmFacet,
+            IFarmFacet.LIMIT_DEPOSIT.selector
+        );
+
+        // "Controller.LIMIT_FARM_WITHDRAW()" -> "FarmFacet.LIMIT_WITHDRAW()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_FARM_WITHDRAW.selector,
+            farmFacet,
+            IFarmFacet.LIMIT_WITHDRAW.selector
         );
     }
 

@@ -115,4 +115,16 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
         virtual
         returns (uint256 requestId);
 
+    /**********************************************************************************************/
+    /*** FarmFacet actions                                                                      ***/
+    /**********************************************************************************************/
+
+    function LIMIT_FARM_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_FARM_WITHDRAW() external pure virtual returns (bytes32);
+
+    function depositToFarm(address farm, uint256 amount) external virtual;
+
+    function withdrawFromFarm(address farm, uint256 amount) external virtual;
+
 }
