@@ -8,16 +8,15 @@ import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { AaveLib }          from "./libraries/AaveLib.sol";
-import { CCTPLib }          from "./libraries/CCTPLib.sol";
-import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
-import { CurveLib }         from "./libraries/CurveLib.sol";
-import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
-import { MerklLib }         from "./libraries/MerklLib.sol";
-import { OTCLib }           from "./libraries/OTCLib.sol";
-import { PendleLib }        from "./libraries/PendleLib.sol";
-import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
-import { UniswapV4Lib }     from "./libraries/UniswapV4Lib.sol";
+import { AaveLib }       from "./libraries/AaveLib.sol";
+import { CCTPLib }       from "./libraries/CCTPLib.sol";
+import { CentrifugeLib } from "./libraries/CentrifugeLib.sol";
+import { CurveLib }      from "./libraries/CurveLib.sol";
+import { LayerZeroLib }  from "./libraries/LayerZeroLib.sol";
+import { MerklLib }      from "./libraries/MerklLib.sol";
+import { OTCLib }        from "./libraries/OTCLib.sol";
+import { PendleLib }     from "./libraries/PendleLib.sol";
+import { UniswapV3Lib }  from "./libraries/UniswapV3Lib.sol";
 
 import { Controller } from "./Controller.sol";
 
@@ -65,23 +64,20 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
 
-    bytes32 public LIMIT_AAVE_DEPOSIT            = AaveLib.LIMIT_DEPOSIT;
-    bytes32 public LIMIT_AAVE_WITHDRAW           = AaveLib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_CENTRIFUGE_TRANSFER     = CentrifugeLib.LIMIT_TRANSFER;
-    bytes32 public LIMIT_CURVE_DEPOSIT           = CurveLib.LIMIT_DEPOSIT;
-    bytes32 public LIMIT_CURVE_SWAP              = CurveLib.LIMIT_SWAP;
-    bytes32 public LIMIT_CURVE_WITHDRAW          = CurveLib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_TRANSFER;
-    bytes32 public LIMIT_OTC_SWAP                = OTCLib.LIMIT_SWAP;
-    bytes32 public LIMIT_UNISWAP_V3_DEPOSIT      = UniswapV3Lib.LIMIT_DEPOSIT;
-    bytes32 public LIMIT_UNISWAP_V3_SWAP         = UniswapV3Lib.LIMIT_SWAP;
-    bytes32 public LIMIT_UNISWAP_V3_WITHDRAW     = UniswapV3Lib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
-    bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_UNISWAP_V4_SWAP         = UniswapV4Lib.LIMIT_SWAP;
-    bytes32 public LIMIT_USDC_TO_CCTP            = CCTPLib.LIMIT_TO_CCTP;
-    bytes32 public LIMIT_USDC_TO_DOMAIN          = CCTPLib.LIMIT_TO_DOMAIN;
-    bytes32 public LIMIT_PENDLE_PT_REDEEM        = PendleLib.LIMIT_REDEEM;
+    bytes32 public LIMIT_AAVE_DEPOSIT        = AaveLib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_AAVE_WITHDRAW       = AaveLib.LIMIT_WITHDRAW;
+    bytes32 public LIMIT_CENTRIFUGE_TRANSFER = CentrifugeLib.LIMIT_TRANSFER;
+    bytes32 public LIMIT_CURVE_DEPOSIT       = CurveLib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_CURVE_SWAP          = CurveLib.LIMIT_SWAP;
+    bytes32 public LIMIT_CURVE_WITHDRAW      = CurveLib.LIMIT_WITHDRAW;
+    bytes32 public LIMIT_LAYERZERO_TRANSFER  = LayerZeroLib.LIMIT_TRANSFER;
+    bytes32 public LIMIT_OTC_SWAP            = OTCLib.LIMIT_SWAP;
+    bytes32 public LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
+    bytes32 public LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
+    bytes32 public LIMIT_UNISWAP_V3_WITHDRAW = UniswapV3Lib.LIMIT_WITHDRAW;
+    bytes32 public LIMIT_USDC_TO_CCTP        = CCTPLib.LIMIT_TO_CCTP;
+    bytes32 public LIMIT_USDC_TO_DOMAIN      = CCTPLib.LIMIT_TO_DOMAIN;
+    bytes32 public LIMIT_PENDLE_PT_REDEEM    = PendleLib.LIMIT_REDEEM;
 
     address public buffer;
 
@@ -121,9 +117,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
     // Uniswap V3 pool params
     mapping(address pool => UniswapV3Lib.PoolParams params) public uniswapV3PoolParams;
-
-    // Uniswap V4 tick ranges
-    mapping(bytes32 poolId => UniswapV4Lib.TickLimits tickLimits) public uniswapV4TickLimits;
 
     /**********************************************************************************************/
     /*** Initialization                                                                         ***/
@@ -286,25 +279,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         UniswapV3Lib.setTWAPSecondsAgo(pool, twapSecondsAgo, uniswapV3PoolParams);
-    }
-
-    function setUniswapV4TickLimits(
-        bytes32 poolId,
-        int24   tickLowerMin,
-        int24   tickUpperMax,
-        uint24  maxTickSpacing
-    )
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        UniswapV4Lib.setTickLimits(
-            poolId,
-            tickLowerMin,
-            tickUpperMax,
-            maxTickSpacing,
-            uniswapV4TickLimits
-        );
     }
 
     function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient)
@@ -484,101 +458,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
             min             : min,
             deadline        : deadline,
             maxSlippages    : maxSlippages
-        });
-    }
-
-    /**********************************************************************************************/
-    /*** Uniswap V4 functions                                                                   ***/
-    /**********************************************************************************************/
-
-    function mintPositionUniswapV4(
-        bytes32 poolId,
-        int24   tickLower,
-        int24   tickUpper,
-        uint128 liquidity,
-        uint128 amount0Max,
-        uint128 amount1Max
-    )
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        UniswapV4Lib.mintPosition({
-            proxy      : address(proxy),
-            rateLimits : address(rateLimits),
-            poolId     : poolId,
-            tickLower  : tickLower,
-            tickUpper  : tickUpper,
-            liquidity  : liquidity,
-            amount0Max : amount0Max,
-            amount1Max : amount1Max,
-            tickLimits : uniswapV4TickLimits
-        });
-    }
-
-    function increaseLiquidityUniswapV4(
-        bytes32 poolId,
-        uint256 tokenId,
-        uint128 liquidityIncrease,
-        uint128 amount0Max,
-        uint128 amount1Max
-    )
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        UniswapV4Lib.increasePosition({
-            proxy             : address(proxy),
-            rateLimits        : address(rateLimits),
-            poolId            : poolId,
-            tokenId           : tokenId,
-            liquidityIncrease : liquidityIncrease,
-            amount0Max        : amount0Max,
-            amount1Max        : amount1Max,
-            tickLimits        : uniswapV4TickLimits
-        });
-    }
-
-    function decreaseLiquidityUniswapV4(
-        bytes32 poolId,
-        uint256 tokenId,
-        uint128 liquidityDecrease,
-        uint128 amount0Min,
-        uint128 amount1Min
-    )
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        UniswapV4Lib.decreasePosition({
-            proxy             : address(proxy),
-            rateLimits        : address(rateLimits),
-            poolId            : poolId,
-            tokenId           : tokenId,
-            liquidityDecrease : liquidityDecrease,
-            amount0Min        : amount0Min,
-            amount1Min        : amount1Min
-        });
-    }
-
-    function swapUniswapV4(
-        bytes32 poolId,
-        address tokenIn,
-        uint128 amountIn,
-        uint128 amountOutMin
-    )
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        UniswapV4Lib.swap({
-            proxy        : address(proxy),
-            rateLimits   : address(rateLimits),
-            poolId       : poolId,
-            tokenIn      : tokenIn,
-            amountIn     : amountIn,
-            amountOutMin : amountOutMin,
-            maxSlippages : maxSlippages
         });
     }
 

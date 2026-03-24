@@ -90,7 +90,7 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function LIMIT_ASSET_TRANSFER() external pure virtual returns (bytes32);
 
     function transferAsset(address asset, address destination, uint256 amount) external virtual;
-    
+
     /**********************************************************************************************/
     /*** USDS vault actions                                                                     ***/
     /**********************************************************************************************/
@@ -206,5 +206,69 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function swapUSDCToUSDS(uint256 usdcAmount) external virtual;
 
     function psmTo18ConversionFactor() external view virtual returns (uint256);
+
+    /**********************************************************************************************/
+    /*** UniswapV4Facet actions                                                                 ***/
+    /**********************************************************************************************/
+
+    function decreaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint128 amount0Min,
+        uint128 amount1Min
+    )
+        external
+        virtual;
+
+    function increaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint128 amount0Max,
+        uint128 amount1Max
+    )
+        external
+        virtual;
+
+    function mintPositionUniswapV4(
+        bytes32 poolId,
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity,
+        uint128 amount0Max,
+        uint128 amount1Max
+    )
+        external
+        virtual;
+
+    function setUniswapV4MaxSlippage(bytes32 poolId, uint256 maxSlippage) external virtual;
+
+    function setUniswapV4TickLimits(
+        bytes32 poolId,
+        int24 tickLowerMin,
+        int24 tickUpperMax,
+        uint24 maxTickSpacing
+    )
+        external
+        virtual;
+
+    function swapUniswapV4(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
+        external
+        virtual;
+
+    function LIMIT_UNISWAP_V4_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_UNISWAP_V4_SWAP() external pure virtual returns (bytes32);
+
+    function LIMIT_UNISWAP_V4_WITHDRAW() external pure virtual returns (bytes32);
+
+    function uniswapV4MaxSlippages(bytes32 poolId) external view virtual returns (uint256);
+
+    function uniswapV4TickLimits(bytes32 poolId)
+        external
+        view
+        virtual
+        returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
 }

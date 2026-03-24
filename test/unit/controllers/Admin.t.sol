@@ -8,7 +8,6 @@ import { CCTPLib }      from "../../../src/libraries/CCTPLib.sol";
 import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
 import { OTCLib }       from "../../../src/libraries/OTCLib.sol";
 import { UniswapV3Lib } from "../../../src/libraries/UniswapV3Lib.sol";
-import { UniswapV4Lib } from "../../../src/libraries/UniswapV4Lib.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
 import { MainnetController } from "../../../src/MainnetController.sol";
@@ -28,7 +27,7 @@ abstract contract MainnetController_Admin_TestBase is UnitTestBase {
 
     MainnetController internal mainnetController;
 
-    function setUp() public {
+    function setUp() public virtual {
         MockDaiUsds daiUsds = new MockDaiUsds(makeAddr("dai"));
         MockPSM     psm     = new MockPSM(makeAddr("usdc"));
         MockVault   vault   = new MockVault(makeAddr("buffer"));
@@ -821,67 +820,6 @@ contract MainnetController_Admin_SetUniswapV3TWAPSecondsAgo_Tests is MainnetCont
         ( , , twapSecondsAgo ) = mainnetController.uniswapV3PoolParams(_pool);
 
         assertEq(twapSecondsAgo, 1800);
-    }
-
-}
-
-contract MainnetController_Admin_SetUniswapV4TickLimits_Tests is MainnetController_Admin_TestBase {
-
-    bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
-
-    address internal immutable _unauthorized = makeAddr("unauthorized");
-
-    function test_setUniswapV4TickLimits_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0);
-    }
-
-    function test_setUniswapV4TickLimits_revertsForNonAdmin() external {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                _unauthorized,
-                DEFAULT_ADMIN_ROLE
-            )
-        );
-
-        vm.prank(_unauthorized);
-        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0);
-    }
-
-    function test_setUniswapV4TickLimits_revertsWhenInvalidTicks() external {
-        vm.expectRevert("UniswapV4Lib/invalid-ticks");
-        vm.prank(admin);
-        mainnetController.setUniswapV4TickLimits(bytes32(0), 1, 1, 1); // Reverts when lower >= upper
-
-        vm.prank(admin);
-        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 1); // lower must be less than upper
-
-        vm.expectRevert("UniswapV4Lib/invalid-ticks");
-        vm.prank(admin);
-        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 0); // Reverts when maxTickSpacing is zero
-
-        vm.prank(admin);
-        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0); // maxTickSpacing can only be 0 if all 0
-    }
-
-    function test_setUniswapV4TickLimits() external {
-        vm.expectEmit(address(mainnetController));
-        emit UniswapV4Lib.UniswapV4TickLimitsSet(_POOL_ID, -60, 60, 20);
-
-        vm.record();
-
-        vm.prank(admin);
-        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
-
-        _assertReentrancyGuardWrittenToTwice();
-
-        ( int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing ) = mainnetController.uniswapV4TickLimits(_POOL_ID);
-
-        assertEq(tickLowerMin,   -60);
-        assertEq(tickUpperMax,   60);
-        assertEq(maxTickSpacing, 20);
     }
 
 }

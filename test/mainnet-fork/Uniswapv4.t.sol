@@ -20,6 +20,8 @@ import { IV4Router }     from "../../lib/uniswap-v4-periphery/src/interfaces/IV4
 import { Actions }       from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
 import { SlippageCheck } from "../../lib/uniswap-v4-periphery/src/libraries/SlippageCheck.sol";
 
+import { IUniswapV4Facet } from "../../src/interfaces/facets/IUniswapV4Facet.sol";
+
 import { makeBytes32Key } from "../../src/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -129,11 +131,8 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
     bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
     bytes32 internal constant _LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
 
-    address internal constant _PERMIT2          = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-    address internal constant _POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
-    address internal constant _ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
-    address internal constant _STATE_VIEW       = 0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227;
-    address internal constant _V4_QUOTER        = 0x52F0E24D1c21C8A0cB1e5a5dD6198556BD9E1203;
+    address internal constant _STATE_VIEW = 0x7fFE42C4a5DEeA5b0feC41C94C136Cf115597227;
+    address internal constant _V4_QUOTER  = 0x52F0E24D1c21C8A0cB1e5a5dD6198556BD9E1203;
 
     address internal immutable _unauthorized = makeAddr("unauthorized");
     address internal immutable _user         = makeAddr("user");
@@ -196,7 +195,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         internal
         returns (IncreasePositionResult memory result)
     {
-        PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
+        PoolKey memory poolKey = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         deal(
             Currency.unwrap(poolKey.currency0),
@@ -218,7 +217,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4(poolId, tickLower, tickUpper, liquidity, amount0Max, amount1Max);
 
-        result.tokenId           = IPositionManagerLike(_POSITION_MANAGER).nextTokenId() - 1;
+        result.tokenId           = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).nextTokenId() - 1;
         result.amount0Spent      = token0BeforeCall - _getBalanceOf(poolKey.currency0, address(almProxy));
         result.amount1Spent      = token1BeforeCall - _getBalanceOf(poolKey.currency1, address(almProxy));
         result.liquidityIncrease = liquidity;
@@ -234,9 +233,9 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
             _toNormalizedAmount(poolKey.currency1, result.amount1Spent)
         );
 
-        assertEq(IPositionManagerLike(_POSITION_MANAGER).ownerOf(result.tokenId), address(almProxy));
+        assertEq(IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).ownerOf(result.tokenId), address(almProxy));
 
-        assertEq(IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(result.tokenId), result.liquidityIncrease);
+        assertEq(IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPositionLiquidity(result.tokenId), result.liquidityIncrease);
 
         _assertZeroAllowances(Currency.unwrap(poolKey.currency0));
         _assertZeroAllowances(Currency.unwrap(poolKey.currency1));
@@ -254,7 +253,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         (
             PoolKey memory poolKey,
             PositionInfo positionInfo
-        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
+        ) = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
 
         bytes32 poolId = keccak256(abi.encode(poolKey));
 
@@ -275,7 +274,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         bytes32 depositLimitKey     = makeBytes32Key(_LIMIT_DEPOSIT, poolId);
         uint256 rateLimitBeforeCall = rateLimits.getCurrentRateLimit(depositLimitKey);
 
-        uint256 positionLiquidityBeforeCall = IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(tokenId);
+        uint256 positionLiquidityBeforeCall = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPositionLiquidity(tokenId);
 
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4(poolId, tokenId, liquidityIncrease, amount0Max, amount1Max);
@@ -296,10 +295,10 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
             _toNormalizedAmount(poolKey.currency1, result.amount1Spent)
         );
 
-        assertEq(IPositionManagerLike(_POSITION_MANAGER).ownerOf(result.tokenId), address(almProxy));
+        assertEq(IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).ownerOf(result.tokenId), address(almProxy));
 
         assertEq(
-            IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(tokenId),
+            IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPositionLiquidity(tokenId),
             positionLiquidityBeforeCall + result.liquidityIncrease
         );
 
@@ -315,7 +314,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         (
             PoolKey memory poolKey,
             PositionInfo positionInfo
-        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
+        ) = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
 
         ( uint128 amount0Forecasted, uint128 amount1Forecasted ) = _quoteLiquidity(
             keccak256(abi.encode(poolKey)),
@@ -340,7 +339,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         (
             PoolKey memory poolKey,
             PositionInfo positionInfo
-        ) = IPositionManagerLike(_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
+        ) = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPoolAndPositionInfo(tokenId);
 
         bytes32 poolId = keccak256(abi.encode(poolKey));
 
@@ -348,7 +347,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         uint256 token1BeforeCall    = _getBalanceOf(poolKey.currency1, address(almProxy));
         uint256 rateLimitBeforeCall = rateLimits.getCurrentRateLimit(makeBytes32Key(_LIMIT_WITHDRAW, poolId));
 
-        uint256 positionLiquidityBeforeCall = IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(tokenId);
+        uint256 positionLiquidityBeforeCall = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPositionLiquidity(tokenId);
 
         vm.prank(relayer);
         mainnetController.decreaseLiquidityUniswapV4(poolId, tokenId, liquidityDecrease, amount0Min, amount1Min);
@@ -369,10 +368,10 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
             _toNormalizedAmount(poolKey.currency1, result.amount1Received)
         );
 
-        assertEq(IPositionManagerLike(_POSITION_MANAGER).ownerOf(result.tokenId), address(almProxy));
+        assertEq(IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).ownerOf(result.tokenId), address(almProxy));
 
         assertEq(
-            IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(tokenId),
+            IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPositionLiquidity(tokenId),
             positionLiquidityBeforeCall - result.liquidityDecrease
         );
     }
@@ -386,7 +385,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         internal
         returns (uint128 amountOutMin)
     {
-        PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
+        PoolKey memory poolKey = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         address token0 = Currency.unwrap(poolKey.currency0);
         address token1 = Currency.unwrap(poolKey.currency1);
@@ -626,7 +625,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
     }
 
     function _assertZeroAllowances(address token) internal view {
-        ( uint160 allowance, , ) = IPermit2Like(_PERMIT2).allowance(address(almProxy), token, _POSITION_MANAGER);
+        ( uint160 allowance, , ) = IPermit2Like(_PERMIT2).allowance(address(almProxy), token, _UNISWAP_V4_POSITION_MANAGER);
 
         assertEq(allowance, 0, "permit2 allowance not 0");
 
@@ -661,7 +660,7 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         internal
         returns (uint256 amountOut)
     {
-        PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
+        PoolKey memory poolKey = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         address token0   = Currency.unwrap(poolKey.currency0);
         address token1   = Currency.unwrap(poolKey.currency1);
@@ -702,8 +701,8 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         // Execute the swap
         vm.startPrank(account);
         IERC20Like(tokenIn).approve(_PERMIT2, amountIn);
-        IPermit2Like(_PERMIT2).approve(tokenIn, _ROUTER, amountIn, uint48(block.timestamp));
-        IUniversalRouterLike(_ROUTER).execute(commands, inputs, block.timestamp);
+        IPermit2Like(_PERMIT2).approve(tokenIn, _UNISWAP_V4_ROUTER, amountIn, uint48(block.timestamp));
+        IUniversalRouterLike(_UNISWAP_V4_ROUTER).execute(commands, inputs, block.timestamp);
         vm.stopPrank();
 
         return IERC20Like(tokenOut).balanceOf(account) - startingOutBalance;
@@ -722,9 +721,111 @@ abstract contract UniswapV4_TestBase is ForkTestBase {
         view
         returns (Currency currencyOut)
     {
-        PoolKey memory poolKey = IPositionManagerLike(_POSITION_MANAGER).poolKeys(bytes25(poolId));
+        PoolKey memory poolKey = IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).poolKeys(bytes25(poolId));
 
         return tokenIn == Currency.unwrap(poolKey.currency0) ? poolKey.currency1 : poolKey.currency0;
+    }
+
+}
+
+contract MainnetController_UniswapV4_Admin_Tests is UniswapV4_TestBase {
+
+    bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
+
+    /**********************************************************************************************/
+    /*** setUniswapV4MaxSlippage Tests                                                            ***/
+    /**********************************************************************************************/
+
+    function test_setUniswapV4MaxSlippage_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV4MaxSlippage(bytes32(0), 0);
+    }
+
+    function test_setUniswapV4MaxSlippage_revertsForNonAdmin() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV4MaxSlippage(bytes32(0), 0);
+    }
+
+    function test_setUniswapV4MaxSlippage() external {
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV4Facet.UniswapV4MaxSlippageSet(_POOL_ID, 0.98e18);
+
+        vm.record();
+
+        vm.prank(SPARK_PROXY);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( uint256 maxSlippage ) = mainnetController.uniswapV4MaxSlippages(_POOL_ID);
+
+        assertEq(maxSlippage, 0.98e18);
+    }
+
+    /**********************************************************************************************/
+    /*** setUniswapV4TickLimits Tests                                                            ***/
+    /**********************************************************************************************/
+
+    function test_setUniswapV4TickLimits_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0);
+    }
+
+    function test_setUniswapV4TickLimits_revertsForNonAdmin() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                _unauthorized,
+                DEFAULT_ADMIN_ROLE
+            )
+        );
+
+        vm.prank(_unauthorized);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0);
+    }
+
+    function test_setUniswapV4TickLimits_revertsWhenInvalidTicks() external {
+        vm.expectRevert("UniswapV4Facet/invalid-ticks");
+        vm.prank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 1, 1, 1); // Reverts when lower >= upper
+
+        vm.prank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 1); // lower must be less than upper
+
+        vm.expectRevert("UniswapV4Facet/invalid-ticks");
+        vm.prank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 1, 0); // Reverts when maxTickSpacing is zero
+
+        vm.prank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(bytes32(0), 0, 0, 0); // maxTickSpacing can only be 0 if all 0
+    }
+
+    function test_setUniswapV4TickLimits() external {
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV4Facet.UniswapV4TickLimitsSet(_POOL_ID, -60, 60, 20);
+
+        vm.record();
+
+        vm.prank(SPARK_PROXY);
+        mainnetController.setUniswapV4TickLimits(_POOL_ID, -60, 60, 20);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        ( int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing ) = mainnetController.uniswapV4TickLimits(_POOL_ID);
+
+        assertEq(tickLowerMin,   -60);
+        assertEq(tickUpperMax,   60);
+        assertEq(maxTickSpacing, 20);
     }
 
 }
@@ -839,7 +940,7 @@ contract MainnetController_UniswapV4_Tests is UniswapV4_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** swapUniswapV4 Tests                                                                   ***/
+    /*** swapUniswapV4 Tests                                                                    ***/
     /**********************************************************************************************/
 
     function test_swapUniswapV4_reentrancy() external {
@@ -880,7 +981,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
     /**********************************************************************************************/
 
     function test_mintPositionUniswapV4_revertsWhenTickLimitsNotSet() external {
-        vm.expectRevert("UniswapV4Lib/tickLimits-not-set");
+        vm.expectRevert("UniswapV4Facet/tickLimits-not-set");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -901,7 +1002,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/ticks-misordered");
+        vm.expectRevert("UniswapV4Facet/ticks-misordered");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -912,7 +1013,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
             amount1Max : 1_000_000e6
         });
 
-        vm.expectRevert("UniswapV4Lib/ticks-misordered");
+        vm.expectRevert("UniswapV4Facet/ticks-misordered");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -943,7 +1044,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/tickLower-too-low");
+        vm.expectRevert("UniswapV4Facet/tickLower-too-low");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -974,7 +1075,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/tickUpper-too-high");
+        vm.expectRevert("UniswapV4Facet/tickUpper-too-high");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -1005,7 +1106,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/tickSpacing-too-wide");
+        vm.expectRevert("UniswapV4Facet/tickSpacing-too-wide");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -1154,9 +1255,9 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
         vm.prank(address(almProxy));
-        IPositionManagerLike(_POSITION_MANAGER).transferFrom(address(almProxy), address(1), minted.tokenId);
+        IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).transferFrom(address(almProxy), address(1), minted.tokenId);
 
-        vm.expectRevert("UniswapV4Lib/non-proxy-position");
+        vm.expectRevert("UniswapV4Facet/non-proxy-position");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : bytes32(0),
@@ -1170,7 +1271,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
     function test_increaseLiquidityUniswapV4_revertsWhenTokenIsNotForPool() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/poolKey-poolId-mismatch");
+        vm.expectRevert("UniswapV4Facet/poolKey-poolId-mismatch");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : bytes32(0),
@@ -1192,7 +1293,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/tickLower-too-low");
+        vm.expectRevert("UniswapV4Facet/tickLower-too-low");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
@@ -1226,7 +1327,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/tickUpper-too-high");
+        vm.expectRevert("UniswapV4Facet/tickUpper-too-high");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
@@ -1260,7 +1361,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/tickSpacing-too-wide");
+        vm.expectRevert("UniswapV4Facet/tickSpacing-too-wide");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
@@ -1424,7 +1525,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
     function test_decreaseLiquidityUniswapV4_revertsWhenTokenIsNotForPool() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, -10, 0, 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/poolKey-poolId-mismatch");
+        vm.expectRevert("UniswapV4Facet/poolKey-poolId-mismatch");
         vm.prank(relayer);
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : bytes32(0),
@@ -1612,14 +1713,14 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
     /**********************************************************************************************/
 
     function test_swapUniswapV4_revertsWhenMaxSlippageNotSet() external {
-        vm.expectRevert("UniswapV4Lib/max-slippage-not-set");
+        vm.expectRevert("UniswapV4Facet/max-slippage-not-set");
         vm.prank(relayer);
         mainnetController.swapUniswapV4(_POOL_ID, address(0), 0, 0);
     }
 
     function test_swapUniswapV4_revertsWhenRateLimitExceededBoundary() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
         vm.stopPrank();
 
@@ -1647,24 +1748,24 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_revertsWhenInputTokenNotForPool() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        vm.expectRevert("UniswapV4Lib/invalid-tokenIn");
+        vm.expectRevert("UniswapV4Facet/invalid-tokenIn");
         vm.prank(relayer);
         mainnetController.swapUniswapV4(_POOL_ID, address(1), 1_000_000e6, 1_000_000e6);
     }
 
     function test_swapUniswapV4_revertsWhenAmountOutMinTooLowBoundary() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
 
-        vm.expectRevert("UniswapV4Lib/amountOutMin-too-low");
+        vm.expectRevert("UniswapV4Facet/amountOutMin-too-low");
         vm.prank(relayer);
         mainnetController.swapUniswapV4(_POOL_ID, Ethereum.USDC, 1_000_000e6, 980_000e6 - 1);
 
@@ -1674,7 +1775,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_revertsWhenAmountOutMinNotMetBoundary() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
@@ -1697,7 +1798,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_token0toToken1() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
@@ -1714,7 +1815,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_token1toToken0() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
@@ -1810,7 +1911,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         amountIn = uint128(_bound(uint256(amountIn), 1e6, 1_000_000e6));
 
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
         vm.stopPrank();
 
@@ -1911,7 +2012,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(_WITHDRAW_LIMIT_KEY), 2_000_000e18 - expectedDecrease);
 
         assertEq(
-            IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(decreaseResult.tokenId),
+            IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPositionLiquidity(decreaseResult.tokenId),
             0
         );
     }
@@ -2613,7 +2714,7 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
 
         assertEq(_getCurrentTick(_POOL_ID), -501);
 
-        vm.expectRevert("UniswapV4Lib/tickSpacing-too-wide");
+        vm.expectRevert("UniswapV4Facet/tickSpacing-too-wide");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -2640,7 +2741,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
     /**********************************************************************************************/
 
     function test_mintPositionUniswapV4_revertsWhenTickLimitsNotSet() external {
-        vm.expectRevert("UniswapV4Lib/tickLimits-not-set");
+        vm.expectRevert("UniswapV4Facet/tickLimits-not-set");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -2661,7 +2762,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
-        vm.expectRevert("UniswapV4Lib/ticks-misordered");
+        vm.expectRevert("UniswapV4Facet/ticks-misordered");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -2672,7 +2773,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
             amount1Max : 1_000_000e18
         });
 
-        vm.expectRevert("UniswapV4Lib/ticks-misordered");
+        vm.expectRevert("UniswapV4Facet/ticks-misordered");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -2703,7 +2804,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
-        vm.expectRevert("UniswapV4Lib/tickLower-too-low");
+        vm.expectRevert("UniswapV4Facet/tickLower-too-low");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -2734,7 +2835,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
-        vm.expectRevert("UniswapV4Lib/tickUpper-too-high");
+        vm.expectRevert("UniswapV4Facet/tickUpper-too-high");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -2765,7 +2866,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
-        vm.expectRevert("UniswapV4Lib/tickSpacing-too-wide");
+        vm.expectRevert("UniswapV4Facet/tickSpacing-too-wide");
         vm.prank(relayer);
         mainnetController.mintPositionUniswapV4({
             poolId     : _POOL_ID,
@@ -2914,9 +3015,9 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
         vm.prank(address(almProxy));
-        IPositionManagerLike(_POSITION_MANAGER).transferFrom(address(almProxy), address(1), minted.tokenId);
+        IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).transferFrom(address(almProxy), address(1), minted.tokenId);
 
-        vm.expectRevert("UniswapV4Lib/non-proxy-position");
+        vm.expectRevert("UniswapV4Facet/non-proxy-position");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : bytes32(0),
@@ -2930,7 +3031,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
     function test_increaseLiquidityUniswapV4_revertsWhenTokenIsNotForPool() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
-        vm.expectRevert("UniswapV4Lib/poolKey-poolId-mismatch");
+        vm.expectRevert("UniswapV4Facet/poolKey-poolId-mismatch");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : bytes32(0),
@@ -2962,7 +3063,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDT, address(almProxy), amount0Forecasted);
         deal(Ethereum.USDS, address(almProxy), amount1Forecasted);
 
-        vm.expectRevert("UniswapV4Lib/tickLower-too-low");
+        vm.expectRevert("UniswapV4Facet/tickLower-too-low");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
@@ -3006,7 +3107,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDT, address(almProxy), amount0Forecasted);
         deal(Ethereum.USDS, address(almProxy), amount1Forecasted);
 
-        vm.expectRevert("UniswapV4Lib/tickUpper-too-high");
+        vm.expectRevert("UniswapV4Facet/tickUpper-too-high");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
@@ -3050,7 +3151,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         deal(Ethereum.USDT, address(almProxy), amount0Forecasted);
         deal(Ethereum.USDS, address(almProxy), amount1Forecasted);
 
-        vm.expectRevert("UniswapV4Lib/tickSpacing-too-wide");
+        vm.expectRevert("UniswapV4Facet/tickSpacing-too-wide");
         vm.prank(relayer);
         mainnetController.increaseLiquidityUniswapV4({
             poolId            : _POOL_ID,
@@ -3214,7 +3315,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
     function test_decreaseLiquidityUniswapV4_revertsWhenTokenIsNotForPool() external {
         IncreasePositionResult memory minted = _setupLiquidity(_POOL_ID, 276_000, 276_600, 1_000_000e12);
 
-        vm.expectRevert("UniswapV4Lib/poolKey-poolId-mismatch");
+        vm.expectRevert("UniswapV4Facet/poolKey-poolId-mismatch");
         vm.prank(relayer);
         mainnetController.decreaseLiquidityUniswapV4({
             poolId            : bytes32(0),
@@ -3402,14 +3503,14 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
     /**********************************************************************************************/
 
     function test_swapUniswapV4_revertsWhenMaxSlippageNotSet() external {
-        vm.expectRevert("UniswapV4Lib/max-slippage-not-set");
+        vm.expectRevert("UniswapV4Facet/max-slippage-not-set");
         vm.prank(relayer);
         mainnetController.swapUniswapV4(_POOL_ID, address(0), 0, 0);
     }
 
     function test_swapUniswapV4_revertsWhenRateLimitExceededBoundary() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 10_000e18, 0);
         vm.stopPrank();
 
@@ -3437,24 +3538,24 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_revertsWhenInputTokenNotForPool() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
-        vm.expectRevert("UniswapV4Lib/invalid-tokenIn");
+        vm.expectRevert("UniswapV4Facet/invalid-tokenIn");
         vm.prank(relayer);
         mainnetController.swapUniswapV4(_POOL_ID, address(1), 10_000e6, 10_000e6);
     }
 
     function test_swapUniswapV4_revertsWhenAmountOutMinTooLowBoundary() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
         deal(Ethereum.USDT, address(almProxy), 10_000e6);
 
-        vm.expectRevert("UniswapV4Lib/amountOutMin-too-low");
+        vm.expectRevert("UniswapV4Facet/amountOutMin-too-low");
         vm.prank(relayer);
         mainnetController.swapUniswapV4(_POOL_ID, Ethereum.USDT, 10_000e6, 9_800e18 - 1);
 
@@ -3464,7 +3565,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_revertsWhenAmountOutMinNotMetBoundary() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
@@ -3487,7 +3588,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_token0toToken1() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
@@ -3504,7 +3605,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
 
     function test_swapUniswapV4_token1toToken0() external {
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 2_000_000e18, 0);
         vm.stopPrank();
 
@@ -3607,7 +3708,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         }
 
         vm.startPrank(SPARK_PROXY);
-        mainnetController.setMaxSlippage(address(uint160(uint256(_POOL_ID))), 0.98e18);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
         rateLimits.setRateLimitData(_SWAP_LIMIT_KEY, 1_000_000e18, 0);
         vm.stopPrank();
 
@@ -3715,7 +3816,7 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(_WITHDRAW_LIMIT_KEY), 2_000_000e18 - expectedDecrease);
 
         assertEq(
-            IPositionManagerLike(_POSITION_MANAGER).getPositionLiquidity(decreaseResult.tokenId),
+            IPositionManagerLike(_UNISWAP_V4_POSITION_MANAGER).getPositionLiquidity(decreaseResult.tokenId),
             0
         );
     }
