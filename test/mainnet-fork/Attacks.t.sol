@@ -76,7 +76,7 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
 
         // Frezer can remove the compromised relayer and fallback to the governance relayer
         vm.prank(freezer);
-        mainnetController.removeRelayer(relayer);
+        accessControls.removeRelayer(relayer);
 
         // Compromised relayer cannot perform attack anymore
         vm.prank(relayer);

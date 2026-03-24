@@ -15,7 +15,6 @@ import { CurveLib }         from "./libraries/CurveLib.sol";
 import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { ERC7540Lib }       from "./libraries/ERC7540Lib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
-import { MapleLib }         from "./libraries/MapleLib.sol";
 import { MerklLib }         from "./libraries/MerklLib.sol";
 import { OTCLib }           from "./libraries/OTCLib.sol";
 import { PendleLib }        from "./libraries/PendleLib.sol";
@@ -80,7 +79,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public LIMIT_CURVE_SWAP              = CurveLib.LIMIT_SWAP;
     bytes32 public LIMIT_CURVE_WITHDRAW          = CurveLib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_LAYERZERO_TRANSFER      = LayerZeroLib.LIMIT_TRANSFER;
-    bytes32 public LIMIT_MAPLE_REDEEM            = MapleLib.LIMIT_REDEEM;
     bytes32 public LIMIT_OTC_SWAP                = OTCLib.LIMIT_SWAP;
     bytes32 public LIMIT_UNISWAP_V3_DEPOSIT      = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V3_SWAP         = UniswapV3Lib.LIMIT_SWAP;
@@ -644,26 +642,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
             amountOutMin : amountOutMin,
             maxSlippages : maxSlippages
         });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Maple functions                                                                ***/
-    /**********************************************************************************************/
-
-    function requestMapleRedemption(address mapleToken, uint256 shares)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        MapleLib.requestRedemption(address(proxy), address(rateLimits), mapleToken, shares);
-    }
-
-    function cancelMapleRedemption(address mapleToken, uint256 shares)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        MapleLib.cancelRedemption(address(proxy), address(rateLimits), mapleToken, shares);
     }
 
     /**********************************************************************************************/

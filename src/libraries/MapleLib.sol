@@ -5,8 +5,11 @@ import { IERC4626 } from "../../lib/openzeppelin-contracts/contracts/interfaces/
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IMapleFacet } from "../interfaces/facets/IMapleFacet.sol";
 
 import { makeAddressKey } from "../RateLimitHelpers.sol";
+
+import { FacetBase } from "./FacetBase.sol";
 
 interface IMapleTokenLike is IERC4626 {
 
@@ -16,7 +19,11 @@ interface IMapleTokenLike is IERC4626 {
 
 }
 
-library MapleLib {
+contract MapleFacet is IMapleFacet, FacetBase {
+
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
 
     bytes32 public constant LIMIT_REDEEM = keccak256("LIMIT_MAPLE_REDEEM");
 
@@ -24,43 +31,41 @@ library MapleLib {
     /*** External functions                                                                     ***/
     /**********************************************************************************************/
 
-    function requestRedemption(
-        address proxy,
-        address rateLimits,
-        address mapleToken,
-        uint256 shares
-    )
+    function requestRedemption(address mapleToken, uint256 shares)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
     {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
+        ControllerStorage storage $ = _getControllerStorage();
+
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressKey(LIMIT_REDEEM, mapleToken),
             IMapleTokenLike(mapleToken).convertToAssets(shares)
         );
 
-        IALMProxy(proxy).doCall(
+        IALMProxy($.proxy).doCall(
             mapleToken,
-            abi.encodeCall(IMapleTokenLike.requestRedeem, (shares, proxy))
+            abi.encodeCall(IMapleTokenLike.requestRedeem, (shares, $.proxy))
         );
     }
 
-    function cancelRedemption(
-        address proxy,
-        address rateLimits,
-        address mapleToken,
-        uint256 shares
-    )
+    function cancelRedemption(address mapleToken, uint256 shares)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
     {
+        ControllerStorage storage $ = _getControllerStorage();
+
         require(
-            IRateLimits(rateLimits).getRateLimitData(
+            IRateLimits($.rateLimits).getRateLimitData(
                 makeAddressKey(LIMIT_REDEEM, mapleToken)
             ).maxAmount > 0,
-            "MapleLib/invalid-action"
+            "MapleFacet/invalid-action"
         );
 
-        IALMProxy(proxy).doCall(
+        IALMProxy($.proxy).doCall(
             mapleToken,
-            abi.encodeCall(IMapleTokenLike.removeShares, (shares, proxy))
+            abi.encodeCall(IMapleTokenLike.removeShares, (shares, $.proxy))
         );
     }
 

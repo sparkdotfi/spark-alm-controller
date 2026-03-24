@@ -294,7 +294,7 @@ contract MainnetController_Maple_CancelRedemption_Tests is Maple_TestBase {
     }
 
     function test_cancelMapleRedemption_invalidMapleToken() external {
-        vm.expectRevert("MapleLib/invalid-action");
+        vm.expectRevert("MapleFacet/invalid-action");
         vm.prank(relayer);
         mainnetController.cancelMapleRedemption(makeAddr("fake-SYRUP"), 1_000_000e6);
     }

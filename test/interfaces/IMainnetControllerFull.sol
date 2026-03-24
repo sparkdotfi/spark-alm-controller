@@ -16,6 +16,16 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function swapDAIToUSDS(uint256 daiAmount) external virtual;
 
     /**********************************************************************************************/
+    /*** MapleFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function cancelMapleRedemption(address mapleToken, uint256 shares) external virtual;
+
+    function requestMapleRedemption(address mapleToken, uint256 shares) external virtual;
+
+    function LIMIT_MAPLE_REDEEM() external pure virtual returns (bytes32);
+
+    /**********************************************************************************************/
     /*** SparkVaultFacet actions                                                                ***/
     /**********************************************************************************************/
 

@@ -23,6 +23,7 @@ import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
+import { IMapleFacet }         from "../../src/interfaces/facets/IMapleFacet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ISuperstateFacet }    from "../../src/interfaces/facets/ISuperstateFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
@@ -34,6 +35,7 @@ import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.so
 
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
+import { MapleFacet }         from "../../src/libraries/MapleLib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { SuperstateFacet }    from "../../src/libraries/SuperstateLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
@@ -266,6 +268,7 @@ abstract contract ForkTestBase is DssTest {
 
         _wireDAIUSDSFacet();
         _wireFarmFacet();
+        _wireMapleFacet();
         _wireSparkVaultFacet();
         _wireSuperstateFacet();
         _wireTransferAssetFacet();
@@ -474,6 +477,33 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.LIMIT_ASSET_TRANSFER.selector,
             transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
+    }
+
+    function _wireMapleFacet() internal {
+        address mapleFacet = address(new MapleFacet());
+
+        vm.label(mapleFacet, "MapleFacet");
+
+        // "Controller.requestMapleRedemption()" -> "MapleFacet.requestRedemption()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.requestMapleRedemption.selector,
+            mapleFacet,
+            IMapleFacet.requestRedemption.selector
+        );
+
+        // "Controller.cancelMapleRedemption()" -> "MapleFacet.cancelRedemption()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.cancelMapleRedemption.selector,
+            mapleFacet,
+            IMapleFacet.cancelRedemption.selector
+        );
+
+        // "Controller.LIMIT_MAPLE_REDEEM()" -> "MapleFacet.LIMIT_REDEEM()"
+        mainnetController.setFacet(
+            IMainnetControllerFull.LIMIT_MAPLE_REDEEM.selector,
+            mapleFacet,
+            IMapleFacet.LIMIT_REDEEM.selector
         );
     }
 
