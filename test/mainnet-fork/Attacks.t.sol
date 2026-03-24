@@ -29,7 +29,7 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
 
         // Frezer can remove the compromised relayer and fallback to the governance relayer
         vm.prank(freezer);
-        mainnetController.removeRelayer(relayer);
+        accessControls.removeRelayer(relayer);
 
         skip(7 days);
 

@@ -3,9 +3,10 @@ pragma solidity ^0.8.34;
 
 import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IUSDEFacet }  from "../interfaces/facets/IUSDEFacet.sol";
 
 import { ApproveLib } from "./ApproveLib.sol";
-
+import { FacetBase }  from "./FacetBase.sol";
 
 interface IEthenaMinterLike {
 
@@ -25,70 +26,90 @@ interface ISUSDELike {
 
 }
 
-library USDELib {
+contract USDEFacet is IUSDEFacet, FacetBase {
+
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
 
     bytes32 public constant LIMIT_USDE_BURN      = keccak256("LIMIT_USDE_BURN");
     bytes32 public constant LIMIT_USDE_MINT      = keccak256("LIMIT_USDE_MINT");
     bytes32 public constant LIMIT_SUSDE_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    function setDelegatedSigner(address proxy, address minter, address delegatedSigner)
+    address public immutable ethenaMinter;
+    address public immutable susde;
+    address public immutable usdc;
+    address public immutable usde;
+
+    /**********************************************************************************************/
+    /*** Constructor                                                                            ***/
+    /**********************************************************************************************/
+
+    constructor(address ethenaMinter_, address susde_, address usdc_, address usde_) {
+        ethenaMinter = ethenaMinter_;
+        susde        = susde_;
+        usdc         = usdc_;
+        usde         = usde_;
+    }
+
+    /**********************************************************************************************/
+    /*** External Interactive functions                                                         ***/
+    /**********************************************************************************************/
+
+    function setDelegatedSigner(address delegatedSigner)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
     {
-        IALMProxy(proxy).doCall(
-            minter,
+        IALMProxy(_getControllerStorage().proxy).doCall(
+            ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.setDelegatedSigner, (delegatedSigner))
         );
     }
 
-    function removeDelegatedSigner(address proxy, address minter, address delegatedSigner)
+    function removeDelegatedSigner(address delegatedSigner)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
     {
-        IALMProxy(proxy).doCall(
-            minter,
+        IALMProxy(_getControllerStorage().proxy).doCall(
+            ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.removeDelegatedSigner, (delegatedSigner))
         );
     }
 
-    function prepareMint(
-        address proxy,
-        address rateLimits,
-        address usdc,
-        address minter,
-        uint256 usdcAmount
-    )
-        external
-    {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(LIMIT_USDE_MINT, usdcAmount);
+    function prepareMint(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+        ControllerStorage memory $ = _getControllerStorage();
 
-        ApproveLib.approve(usdc, proxy, minter, usdcAmount);
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_USDE_MINT, usdcAmount);
+
+        ApproveLib.approve(usdc, $.proxy, ethenaMinter, usdcAmount);
     }
 
-    function prepareBurn(
-        address proxy,
-        address rateLimits,
-        address usde,
-        address minter,
-        uint256 usdeAmount
-    )
-        external
-    {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(LIMIT_USDE_BURN, usdeAmount);
+    function prepareBurn(uint256 usdeAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+        ControllerStorage memory $ = _getControllerStorage();
 
-        ApproveLib.approve(usde, proxy, minter, usdeAmount);
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_USDE_BURN, usdeAmount);
+
+        ApproveLib.approve(usde, $.proxy, ethenaMinter, usdeAmount);
     }
 
-    function cooldownAssets(address proxy, address rateLimits, address susde, uint256 usdeAmount)
+    function cooldownAssets(uint256 usdeAmount)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, usdeAmount);
+        ControllerStorage memory $ = _getControllerStorage();
+
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
         return abi.decode(
-            IALMProxy(proxy).doCall(
+            IALMProxy($.proxy).doCall(
                 susde,
                 abi.encodeCall(ISUSDELike.cooldownAssets, (usdeAmount))
             ),
@@ -96,23 +117,29 @@ library USDELib {
         );
     }
 
-    function cooldownShares(address proxy, address rateLimits, address susde, uint256 susdeAmount)
+    function cooldownShares(uint256 susdeAmount)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 assets)
     {
+        ControllerStorage memory $ = _getControllerStorage();
+
         // NOTE: Rate limited at end of function, so cannot return here.
         assets = abi.decode(
-            IALMProxy(proxy).doCall(
+            IALMProxy($.proxy).doCall(
                 susde,
                 abi.encodeCall(ISUSDELike.cooldownShares, (susdeAmount))
             ),
             (uint256)
         );
 
-        IRateLimits(rateLimits).triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, assets);
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, assets);
     }
 
-    function unstakeSUSDE(address proxy, address susde) external {
+    function unstakeSUSDE() external nonReentrant onlyRole(RELAYER_ROLE) {
+        address proxy = _getControllerStorage().proxy;
+
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
     }
 

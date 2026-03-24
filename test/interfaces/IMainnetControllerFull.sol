@@ -39,4 +39,28 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
 
     function wrapAllProxyETH() external virtual;
 
+    /**********************************************************************************************/
+    /*** Ethena (USDE) actions                                                                  ***/
+    /**********************************************************************************************/
+
+    function LIMIT_USDE_BURN() external virtual view returns (bytes32);
+
+    function LIMIT_USDE_MINT() external virtual view returns (bytes32);
+
+    function LIMIT_SUSDE_COOLDOWN() external virtual view returns (bytes32);
+
+    function cooldownAssetsSUSDe(uint256 usdeAmount) external virtual returns (uint256 cooldownShares);
+
+    function cooldownSharesSUSDe(uint256 susdeAmount) external virtual returns (uint256 cooldownAssets);
+
+    function prepareUSDeMint(uint256 usdcAmount) external virtual;
+
+    function prepareUSDeBurn(uint256 usdeAmount) external virtual;
+
+    function removeDelegatedSigner(address delegatedSigner) external virtual;
+
+    function setDelegatedSigner(address delegatedSigner) external virtual;
+
+    function unstakeSUSDe() external virtual;
+
 }
