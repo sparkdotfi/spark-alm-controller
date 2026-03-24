@@ -11,7 +11,6 @@ import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { PendleLib }        from "./libraries/PendleLib.sol";
 import { MerklLib }         from "./libraries/MerklLib.sol";
-import { PSM3Lib }          from "./libraries/PSM3Lib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
@@ -55,8 +54,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     bytes32 public constant LIMIT_CURVE_SWAP          = CurveLib.LIMIT_SWAP;
     bytes32 public constant LIMIT_CURVE_WITHDRAW      = CurveLib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = LayerZeroLib.LIMIT_TRANSFER;
-    bytes32 public constant LIMIT_PSM_DEPOSIT         = PSM3Lib.LIMIT_DEPOSIT;
-    bytes32 public constant LIMIT_PSM_WITHDRAW        = PSM3Lib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_USDC_TO_CCTP        = CCTPLib.LIMIT_TO_CCTP;
     bytes32 public constant LIMIT_USDC_TO_DOMAIN      = CCTPLib.LIMIT_TO_DOMAIN;
     bytes32 public constant LIMIT_PENDLE_PT_REDEEM    = PendleLib.LIMIT_REDEEM;
@@ -326,28 +323,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             deadline        : deadline,
             maxSlippages    : maxSlippages
         });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer PSM functions                                                                  ***/
-    /**********************************************************************************************/
-
-    function depositPSM(address asset, uint256 amount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 shares)
-    {
-        return PSM3Lib.deposit(address(proxy), address(rateLimits), psm, asset, amount);
-    }
-
-    function withdrawPSM(address asset, uint256 maxAmount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 assetsWithdrawn)
-    {
-        return PSM3Lib.withdraw(address(proxy), address(rateLimits), psm, asset, maxAmount);
     }
 
     /**********************************************************************************************/

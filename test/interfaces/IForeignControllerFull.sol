@@ -8,6 +8,18 @@ import { ForeignController } from "../../src/ForeignController.sol";
 abstract contract IForeignControllerFull is IController, ForeignController {
 
     /**********************************************************************************************/
+    /*** PSM3Facet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function depositPSM(address asset, uint256 amount) external virtual returns (uint256 shares);
+
+    function withdrawPSM(address asset, uint256 maxAmount) external virtual returns (uint256 assetsWithdrawn);
+
+    function LIMIT_PSM_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_PSM_WITHDRAW() external pure virtual returns (bytes32);
+
+    /**********************************************************************************************/
     /*** ERC7540Facet actions                                                                   ***/
     /**********************************************************************************************/
 

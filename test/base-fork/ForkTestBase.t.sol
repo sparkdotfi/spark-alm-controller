@@ -14,9 +14,11 @@ import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
+import { IPSM3Facet }          from "../../src/interfaces/facets/IPSM3Facet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 
+import { PSM3Facet }          from "../../src/libraries/PSM3Lib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
 
@@ -142,6 +144,7 @@ abstract contract ForkTestBase is Test {
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
 
         // Facet wiring
+        _wirePSM3Facet();
         _wireSparkVaultFacet();
         _wireTransferAssetFacet();
 
@@ -269,6 +272,40 @@ abstract contract ForkTestBase is Test {
             IForeignControllerFull.LIMIT_ASSET_TRANSFER.selector,
             transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
+        );
+    }
+
+    function _wirePSM3Facet() internal {
+        address psm3Facet = address(new PSM3Facet(address(psmBase)));
+
+        vm.label(psm3Facet, "PSM3Facet");
+
+        // "Controller.depositPSM()" -> "PSM3Facet.deposit()"
+        foreignController.setFacet(
+            IForeignControllerFull.depositPSM.selector,
+            psm3Facet,
+            IPSM3Facet.deposit.selector
+        );
+
+        // "Controller.withdrawPSM()" -> "PSM3Facet.withdraw()"
+        foreignController.setFacet(
+            IForeignControllerFull.withdrawPSM.selector,
+            psm3Facet,
+            IPSM3Facet.withdraw.selector
+        );
+
+        // "Controller.LIMIT_PSM_DEPOSIT()" -> "PSM3Facet.LIMIT_DEPOSIT()"
+        foreignController.setFacet(
+            IForeignControllerFull.LIMIT_PSM_DEPOSIT.selector,
+            psm3Facet,
+            IPSM3Facet.LIMIT_DEPOSIT.selector
+        );
+
+        // "Controller.LIMIT_PSM_WITHDRAW()" -> "PSM3Facet.LIMIT_WITHDRAW()"
+        foreignController.setFacet(
+            IForeignControllerFull.LIMIT_PSM_WITHDRAW.selector,
+            psm3Facet,
+            IPSM3Facet.LIMIT_WITHDRAW.selector
         );
     }
 
