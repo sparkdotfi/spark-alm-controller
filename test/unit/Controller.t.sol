@@ -5,6 +5,8 @@ import { Test } from "../../lib/forge-std/src/Test.sol";
 
 import { IAccessControl } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { IController } from "../../src/interfaces/IController.sol";
 
 import { Controller } from "../../src/Controller.sol";
@@ -65,33 +67,44 @@ interface IMockController {
 
 contract ControllerHarness is Controller {
 
-    constructor(address accessControls_, address parameters_, address proxy_, address rateLimits_)
-        Controller(accessControls_, parameters_, proxy_, rateLimits_) {}
+    constructor(address accessControls_, address proxy_, address rateLimits_)
+        Controller(accessControls_, proxy_, rateLimits_) {}
 
-    function accessControls() public view returns (address) {
-        return _getControllerStorage().accessControls;
+    function __setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external {
+        _getControllerStorage().dispatches[callSelector] = Dispatch(facet, delegateSelector);
     }
 
-    function parameters() public view returns (address) {
-        return _getControllerStorage().parameters;
+    function __getDispatchFacet(bytes4 callSelector) external view returns (address) {
+        return _getControllerStorage().dispatches[callSelector].facet;
+    }
+
+    function __getDispatchSelector(bytes4 callSelector) external view returns (bytes4) {
+        return _getControllerStorage().dispatches[callSelector].delegateSelector;
+    }
+
+    function accessControls() public view returns (address) {
+        return _getSharedControllerStorage().accessControls;
     }
 
     function proxy() public view returns (address) {
-        return _getControllerStorage().proxy;
+        return _getSharedControllerStorage().proxy;
     }
 
     function rateLimits() public view returns (address) {
-        return _getControllerStorage().rateLimits;
+        return _getSharedControllerStorage().rateLimits;
     }
 
 }
 
 contract Controller_Tests is Test {
 
+    bytes32 internal constant _REENTRANCY_GUARD_SLOT        = bytes32(uint256(0));
+    bytes32 internal constant _REENTRANCY_GUARD_NOT_ENTERED = bytes32(uint256(1));
+    bytes32 internal constant _REENTRANCY_GUARD_ENTERED     = bytes32(uint256(2));
+
     bytes32 internal constant DEFAULT_ADMIN_ROLE = 0x00;
 
     address internal accessControls = makeAddr("accessControls");
-    address internal parameters     = makeAddr("parameters");
     address internal proxy          = makeAddr("proxy");
     address internal rateLimits     = makeAddr("rateLimits");
 
@@ -101,7 +114,7 @@ contract Controller_Tests is Test {
     ControllerHarness internal controller;
 
     function setUp() external {
-        controller = new ControllerHarness(accessControls, parameters, proxy, rateLimits);
+        controller = new ControllerHarness(accessControls, proxy, rateLimits);
     }
 
     /**********************************************************************************************/
@@ -110,16 +123,22 @@ contract Controller_Tests is Test {
 
     function test_constructor() external {
         assertEq(controller.accessControls(), accessControls);
-        assertEq(controller.parameters(),     parameters);
         assertEq(controller.proxy(),          proxy);
         assertEq(controller.rateLimits(),     rateLimits);
     }
 
     /**********************************************************************************************/
-    /*** setFacet Tests                                                                         ***/
+    /*** setDispatch Tests                                                                      ***/
     /**********************************************************************************************/
 
-    function test_setFacet_notAdmin() external {
+    function test_setDispatch_reentrancy() external {
+        vm.store(address(controller), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
+
+        vm.expectRevert(abi.encodeWithSelector(ReentrancyGuard.ReentrancyGuardReentrantCall.selector));
+        controller.setDispatch(bytes4(0), address(0), bytes4(0));
+    }
+
+    function test_setDispatch_notAdmin() external {
         vm.mockCall(
             accessControls,
             abi.encodeWithSelector(
@@ -132,17 +151,16 @@ contract Controller_Tests is Test {
 
         vm.expectRevert(abi.encodeWithSelector(IController.NotAdmin.selector, unauthorized));
         vm.prank(unauthorized);
-        controller.setFacet(bytes4(0), address(0), bytes4(0));
+        controller.setDispatch(bytes4(0), address(0), bytes4(0));
     }
 
-    function test_setFacet() external {
-        bytes4  callSelector     = bytes4(0x12345678);
+    function test_setDispatch() external {
+        bytes4  callSelector     = 0x12345678;
         address facet            = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
-        bytes4  delegateSelector = bytes4(0x87654321);
+        bytes4  delegateSelector = 0x87654321;
 
         _expectAndMockCall(
             accessControls,
-            0,
             abi.encodeWithSelector(
                 IAccessControl.hasRole.selector,
                 DEFAULT_ADMIN_ROLE,
@@ -151,22 +169,31 @@ contract Controller_Tests is Test {
             abi.encode(true)
         );
 
-        _expectAndMockCall(
-            parameters,
-            0,
-            abi.encodeWithSignature(
-                "set(string,bytes32)",
-                "sky.pau.controller.facet.0x12345678",
-                0x0000000000000000abcdefabcdefabcdefabcdefabcdefabcdefabcd87654321
-            ),
-            ""
-        );
-
         vm.expectEmit(address(controller));
-        emit IController.FacetSet(callSelector, facet, delegateSelector);
+        emit IController.DispatchSet(callSelector, facet, delegateSelector);
 
         vm.prank(admin);
-        controller.setFacet(callSelector, facet, delegateSelector);
+        controller.setDispatch(callSelector, facet, delegateSelector);
+
+        assertEq(controller.__getDispatchFacet(callSelector),    facet);
+        assertEq(controller.__getDispatchSelector(callSelector), delegateSelector);
+    }
+
+    /**********************************************************************************************/
+    /*** getDispatch Tests                                                                      ***/
+    /**********************************************************************************************/
+
+    function test_getDispatch() external {
+        bytes4  callSelector     = 0x12345678;
+        address facet            = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
+        bytes4  delegateSelector = 0x87654321;
+
+        controller.__setDispatch(callSelector, facet, delegateSelector);
+
+        ( address returnedFacet, bytes4 returnedDelegateSelector ) = controller.getDispatch(callSelector);
+
+        assertEq(returnedFacet,            facet);
+        assertEq(returnedDelegateSelector, delegateSelector);
     }
 
     /**********************************************************************************************/
@@ -192,38 +219,24 @@ contract Controller_Tests is Test {
     /*** Fallback Tests                                                                         ***/
     /**********************************************************************************************/
 
-    function test_fallback_facetNotFound() external {
-        vm.mockCall(
-            parameters,
-            abi.encodeWithSignature(
-                "get(string)",
-                "sky.pau.controller.facet.0xe4343b69" // IMockController.facetFoo.selector
-            ),
-            abi.encode(0x0000000000000000000000000000000000000000000000000000000000000000)
-        );
-
+    function test_fallback_dispatchNotFound() external {
         vm.expectRevert(
-            abi.encodeWithSelector(IController.FacetNotFound.selector, IMockController.facetFoo.selector)
+            abi.encodeWithSelector(IController.DispatchNotFound.selector, IMockController.facetFoo.selector)
         );
 
         IMockController(address(controller)).facetFoo();
     }
 
     function test_fallback_facetRevert() external {
-        vm.mockCall(
-            parameters,
-            abi.encodeWithSignature(
-                "get(string)",
-                "sky.pau.controller.facet.0xe4343b69" // IMockController.facetFoo.selector
-            ),
-            abi.encode(0x0000000000000000abcdefabcdefabcdefabcdefabcdefabcdefabcdc2985578) // facet . IMockFacet.foo.selector
-        );
+        address facet = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
+
+        controller.__setDispatch(IMockController.facetFoo.selector, facet, IMockFacet.foo.selector);
 
         bytes memory revertData = abi.encodeWithSelector(IMockFacet.MockError.selector, 111222);
 
         vm.mockCallRevert(
-            0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD, // facet
-            abi.encodeWithSelector(bytes4(0xc2985578)), // IMockFacet.foo.selector
+            facet,
+            abi.encodeWithSelector(IMockFacet.foo.selector),
             revertData
         );
 
@@ -264,20 +277,16 @@ contract Controller_Tests is Test {
         arg6[1] = "world";
         arg6[2] = "foobar";
 
-        _expectAndMockCall(
-            parameters,
-            0,
-            abi.encodeWithSignature(
-                "get(string)",
-                "sky.pau.controller.facet.0xe7902b4c" // IMockController.facetBar.selector
-            ),
-            abi.encode(0x0000000000000000abcdefabcdefabcdefabcdefabcdefabcdefabcdc88a4d25) // facet . IMockFacet.bar.selector
+        controller.__setDispatch(
+            IMockController.facetBar.selector,
+            0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD, // facet
+            IMockFacet.bar.selector
         );
 
         _expectAndMockCall(
             0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD, // facet
             abi.encodeWithSelector(
-                bytes4(0xc88a4d25), // IMockFacet.bar.selector
+                IMockFacet.bar.selector,
                 arg0,
                 arg1,
                 arg2,
@@ -343,23 +352,9 @@ contract Controller_Tests is Test {
     /*** Helper Functions                                                                       ***/
     /**********************************************************************************************/
 
-    function _expectAndMockCall(
-        address        callee,
-        bytes   memory data,
-        bytes   memory returnData
-    ) internal {
+    function _expectAndMockCall(address callee, bytes memory data, bytes memory returnData) internal {
         vm.expectCall(callee, data);
         vm.mockCall(callee, data, returnData);
-    }
-
-    function _expectAndMockCall(
-        address        callee,
-        uint256        msgValue,
-        bytes   memory data,
-        bytes   memory returnData
-    ) internal {
-        vm.expectCall(callee, msgValue, data);
-        vm.mockCall(callee, msgValue, data, returnData);
     }
 
 }

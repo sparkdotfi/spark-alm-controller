@@ -27,7 +27,6 @@ import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { AccessControls }    from "../../src/AccessControls.sol";
-import { Parameters }        from "../../src/Parameters.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
@@ -74,7 +73,6 @@ abstract contract ForkTestBase is Test {
     AccessControls         accessControls;
     ALMProxy               almProxy;
     IForeignControllerFull foreignController;
-    Parameters             parameters;
     RateLimits             rateLimits;
 
     /**********************************************************************************************/
@@ -120,14 +118,12 @@ abstract contract ForkTestBase is Test {
         rateLimits = new RateLimits(SPARK_EXECUTOR);
 
         accessControls = new AccessControls(SPARK_EXECUTOR);
-        parameters     = new Parameters(SPARK_EXECUTOR);
 
         foreignController = IForeignControllerFull(payable(new ForeignController({
             admin_          : SPARK_EXECUTOR,
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
             accessControls_ : address(accessControls),
-            parameters_     : address(parameters),
             psm_            : address(psmBase),
             usdc_           : Base.USDC,
             cctp_           : CCTP_MESSENGER_BASE
@@ -139,7 +135,6 @@ abstract contract ForkTestBase is Test {
 
         vm.startPrank(SPARK_EXECUTOR);
 
-        parameters.grantRole(parameters.CONTROLLER_ROLE(), address(foreignController));
         accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
 
@@ -241,14 +236,14 @@ abstract contract ForkTestBase is Test {
         vm.label(sparkVaultFacet, "SparkVaultFacet");
 
         // "Controller.takeFromSparkVault()" -> "SparkVaultFacet.take()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.takeFromSparkVault.selector,
             sparkVaultFacet,
             ISparkVaultFacet.take.selector
         );
 
         // "Controller.LIMIT_SPARK_VAULT_TAKE()" -> "SparkVaultFacet.LIMIT_TAKE()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.LIMIT_SPARK_VAULT_TAKE.selector,
             sparkVaultFacet,
             ISparkVaultFacet.LIMIT_TAKE.selector
@@ -261,14 +256,14 @@ abstract contract ForkTestBase is Test {
         vm.label(transferAssetFacet, "TransferAssetFacet");
 
         // "Controller.transferAsset()" -> "TransferAssetFacet.transfer()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.transferAsset.selector,
             transferAssetFacet,
             ITransferAssetFacet.transfer.selector
         );
 
         // "Controller.LIMIT_ASSET_TRANSFER()" -> "TransferAssetFacet.LIMIT_TRANSFER()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.LIMIT_ASSET_TRANSFER.selector,
             transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
@@ -281,28 +276,28 @@ abstract contract ForkTestBase is Test {
         vm.label(psm3Facet, "PSM3Facet");
 
         // "Controller.depositPSM()" -> "PSM3Facet.deposit()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.depositPSM.selector,
             psm3Facet,
             IPSM3Facet.deposit.selector
         );
 
         // "Controller.withdrawPSM()" -> "PSM3Facet.withdraw()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.withdrawPSM.selector,
             psm3Facet,
             IPSM3Facet.withdraw.selector
         );
 
         // "Controller.LIMIT_PSM_DEPOSIT()" -> "PSM3Facet.LIMIT_DEPOSIT()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.LIMIT_PSM_DEPOSIT.selector,
             psm3Facet,
             IPSM3Facet.LIMIT_DEPOSIT.selector
         );
 
         // "Controller.LIMIT_PSM_WITHDRAW()" -> "PSM3Facet.LIMIT_WITHDRAW()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.LIMIT_PSM_WITHDRAW.selector,
             psm3Facet,
             IPSM3Facet.LIMIT_WITHDRAW.selector

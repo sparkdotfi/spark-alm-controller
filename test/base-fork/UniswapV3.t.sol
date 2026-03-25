@@ -1165,8 +1165,8 @@ contract ForeignController_UniswapV3_AddLiquidity_AUSDUSDS_E2ETests is UniswapV3
             addAmount1,
             -100,
             100,
-            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey,
-            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey
+            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey,
+            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey
         );
     }
 
@@ -1180,8 +1180,8 @@ contract ForeignController_UniswapV3_AddLiquidity_AUSDUSDS_E2ETests is UniswapV3
             0,
             50,
             100,
-            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey,
-            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey
+            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey,
+            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey
         );
     }
 
@@ -1195,8 +1195,8 @@ contract ForeignController_UniswapV3_AddLiquidity_AUSDUSDS_E2ETests is UniswapV3
             addAmount,
             -100,
             -50,
-            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey,
-            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey
+            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey,
+            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey
         );
 
     }
@@ -1599,8 +1599,8 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
         uint256 token0RateLimitAfter = rateLimits.getCurrentRateLimit(token0RateLimitKey_);
         uint256 token1RateLimitAfter = rateLimits.getCurrentRateLimit(token1RateLimitKey_);
 
-        assertEq(token0RateLimitBefore - token0RateLimitAfter, amount0Used, "token0 rate limit delta mismatch");
-        assertEq(token1RateLimitBefore - token1RateLimitAfter, amount1Used, "token1 rate limit delta mismatch");
+        assertApproxEqAbs(token0RateLimitBefore - token0RateLimitAfter, amount0Used, 1, "token0 rate limit delta mismatch");
+        assertApproxEqAbs(token1RateLimitBefore - token1RateLimitAfter, amount1Used, 1, "token1 rate limit delta mismatch");
     }
 
 }

@@ -32,12 +32,14 @@ contract SparkVaultFacet is ISparkVaultFacet, FacetBase {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        IRateLimits(_getControllerStorage().rateLimits).triggerRateLimitDecrease(
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressKey(LIMIT_TAKE, sparkVault),
             assetAmount
         );
 
-        IALMProxy(_getControllerStorage().proxy).doCall(
+        IALMProxy($.proxy).doCall(
             sparkVault,
             abi.encodeCall(ISparkVaultLike.take, (assetAmount))
         );

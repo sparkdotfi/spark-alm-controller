@@ -36,16 +36,18 @@ contract MapleFacet is IMapleFacet, FacetBase {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressKey(LIMIT_REDEEM, mapleToken),
             IMapleTokenLike(mapleToken).convertToAssets(shares)
         );
 
-        IALMProxy($.proxy).doCall(
+        address proxy = $.proxy;
+
+        IALMProxy(proxy).doCall(
             mapleToken,
-            abi.encodeCall(IMapleTokenLike.requestRedeem, (shares, $.proxy))
+            abi.encodeCall(IMapleTokenLike.requestRedeem, (shares, proxy))
         );
     }
 
@@ -54,7 +56,7 @@ contract MapleFacet is IMapleFacet, FacetBase {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         require(
             IRateLimits($.rateLimits).getRateLimitData(
@@ -63,9 +65,11 @@ contract MapleFacet is IMapleFacet, FacetBase {
             "MapleFacet/invalid-action"
         );
 
-        IALMProxy($.proxy).doCall(
+        address proxy = $.proxy;
+
+        IALMProxy(proxy).doCall(
             mapleToken,
-            abi.encodeCall(IMapleTokenLike.removeShares, (shares, $.proxy))
+            abi.encodeCall(IMapleTokenLike.removeShares, (shares, proxy))
         );
     }
 

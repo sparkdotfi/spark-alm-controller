@@ -7,7 +7,6 @@ import { IController } from "../../src/interfaces/IController.sol";
 
 import { AccessControls } from "../../src/AccessControls.sol";
 import { Controller }     from "../../src/Controller.sol";
-import { Parameters }     from "../../src/Parameters.sol";
 
 contract MockFacet1 {
 
@@ -43,7 +42,6 @@ contract ControllerIntegration_Tests is Test {
 
     AccessControls internal accessControls;
     Controller     internal controller;
-    Parameters     internal parameters;
 
     address internal admin        = makeAddr("admin");
     address internal proxy        = makeAddr("proxy");
@@ -52,47 +50,45 @@ contract ControllerIntegration_Tests is Test {
 
     function setUp() external {
         accessControls = new AccessControls(admin);
-        parameters     = new Parameters(admin);
-        controller     = new Controller(address(accessControls), address(parameters), proxy, rateLimits);
-
-        vm.startPrank(admin);
-        parameters.grantRole(parameters.CONTROLLER_ROLE(), address(controller));
-        vm.stopPrank();
+        controller     = new Controller(address(accessControls), proxy, rateLimits);
     }
 
     /**********************************************************************************************/
-    /*** setFacet Tests                                                                         ***/
+    /*** setDispatch Tests                                                                      ***/
     /**********************************************************************************************/
 
-    function test_setFacet_notAdmin() external {
+    function test_setDispatch_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(IController.NotAdmin.selector, unauthorized));
         vm.prank(unauthorized);
-        controller.setFacet(bytes4(0), address(0), bytes4(0));
+        controller.setDispatch(bytes4(0), address(0), bytes4(0));
     }
 
-    function test_setFacet() external {
-        bytes4  callSelector     = bytes4(0x12345678);
+    function test_setDispatch() external {
+        bytes4  callSelector     = 0x12345678;
         address facet            = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
-        bytes4  delegateSelector = bytes4(0x87654321);
+        bytes4  delegateSelector = 0x87654321;
 
         vm.expectEmit(address(controller));
-        emit IController.FacetSet(callSelector, facet, delegateSelector);
+        emit IController.DispatchSet(callSelector, facet, delegateSelector);
 
         vm.prank(admin);
-        controller.setFacet(callSelector, facet, delegateSelector);
+        controller.setDispatch(callSelector, facet, delegateSelector);
 
-        assertEq(
-            parameters.get("sky.pau.controller.facet.0x12345678"),
-            0x0000000000000000abcdefabcdefabcdefabcdefabcdefabcdefabcd87654321
-        );
+        ( address returnedFacet, bytes4 returnedDelegateSelector ) = controller.getDispatch(callSelector);
+
+        assertEq(returnedFacet,            facet);
+        assertEq(returnedDelegateSelector, delegateSelector);
 
         vm.expectEmit(address(controller));
-        emit IController.FacetSet(callSelector, address(0), bytes4(0));
+        emit IController.DispatchSet(callSelector, address(0), bytes4(0));
 
         vm.prank(admin);
-        controller.setFacet(callSelector, address(0), bytes4(0));
+        controller.setDispatch(callSelector, address(0), bytes4(0));
 
-        assertEq(parameters.get("sky.pau.controller.facet.0x12345678"), bytes32(0));
+        ( returnedFacet, returnedDelegateSelector ) = controller.getDispatch(callSelector);
+
+        assertEq(returnedFacet,            address(0));
+        assertEq(returnedDelegateSelector, bytes4(0));
     }
 
     /**********************************************************************************************/
@@ -102,7 +98,7 @@ contract ControllerIntegration_Tests is Test {
     function test_fallback_facetNotFound() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IController.FacetNotFound.selector,
+                IController.DispatchNotFound.selector,
                 IMockController.foo.selector
             )
         );
@@ -113,31 +109,31 @@ contract ControllerIntegration_Tests is Test {
         address facet2 = address(new MockFacet2());
 
         vm.prank(admin);
-        controller.setFacet(IMockController.foo.selector, facet1, MockFacet1.divide.selector);
+        controller.setDispatch(IMockController.foo.selector, facet1, MockFacet1.divide.selector);
 
         assertEq(IMockController(address(controller)).foo(12), 6);
 
         vm.prank(admin);
-        controller.setFacet(IMockController.foo.selector, facet1, MockFacet1.multiply.selector);
+        controller.setDispatch(IMockController.foo.selector, facet1, MockFacet1.multiply.selector);
 
         assertEq(IMockController(address(controller)).foo(12), 24);
 
         vm.prank(admin);
-        controller.setFacet(IMockController.foo.selector, facet2, MockFacet2.multiply.selector);
+        controller.setDispatch(IMockController.foo.selector, facet2, MockFacet2.multiply.selector);
 
         assertEq(IMockController(address(controller)).foo(12), 48);
 
         vm.prank(admin);
-        controller.setFacet(IMockController.foo.selector, facet2, MockFacet2.divide.selector);
+        controller.setDispatch(IMockController.foo.selector, facet2, MockFacet2.divide.selector);
 
         assertEq(IMockController(address(controller)).foo(12), 3);
 
         vm.prank(admin);
-        controller.setFacet(IMockController.foo.selector, address(0), bytes4(0));
+        controller.setDispatch(IMockController.foo.selector, address(0), bytes4(0));
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IController.FacetNotFound.selector,
+                IController.DispatchNotFound.selector,
                 IMockController.foo.selector
             )
         );

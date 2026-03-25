@@ -36,23 +36,27 @@ contract FarmFacet is IFarmFacet, FacetBase {
     /**********************************************************************************************/
 
     function deposit(address farm, uint256 amount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, farm, amount);
 
-        ApproveLib.approve(IFarmLike(farm).stakingToken(), $.proxy, farm, amount);
+        address proxy = $.proxy;
 
-        IALMProxy($.proxy).doCall(farm, abi.encodeCall(IFarmLike.stake, (amount)));
+        ApproveLib.approve(IFarmLike(farm).stakingToken(), proxy, farm, amount);
+
+        IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.stake, (amount)));
     }
 
     function withdraw(address farm, uint256 amount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, farm, amount);
 
-        IALMProxy($.proxy).doCall(farm, abi.encodeCall(IFarmLike.withdraw, (amount)));
+        address proxy = $.proxy;
 
-        IALMProxy($.proxy).doCall(farm, abi.encodeCall(IFarmLike.getReward, ()));
+        IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.withdraw, (amount)));
+
+        IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.getReward, ()));
     }
 
     /**********************************************************************************************/

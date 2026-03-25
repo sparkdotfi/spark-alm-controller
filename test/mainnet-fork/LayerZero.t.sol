@@ -21,7 +21,6 @@ import { ForeignController }    from "../../src/ForeignController.sol";
 import { makeAddressUint32Key } from "../../src/RateLimitHelpers.sol";
 import { RateLimits }           from "../../src/RateLimits.sol";
 import { AccessControls }       from "../../src/AccessControls.sol";
-import { Parameters }           from "../../src/Parameters.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -437,14 +436,12 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         foreignRateLimits = new RateLimits(SPARK_EXECUTOR);
 
         address accessControls = address(new AccessControls(SPARK_EXECUTOR));
-        address parameters     = address(new Parameters(SPARK_EXECUTOR));
 
         foreignController = new ForeignController({
             admin_          : SPARK_EXECUTOR,
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
             accessControls_ : accessControls,
-            parameters_     : parameters,
             psm_            : address(psmArb),
             usdc_           : Arbitrum.USDC,
             cctp_           : CCTP_MESSENGER_ARB

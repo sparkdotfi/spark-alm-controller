@@ -85,19 +85,21 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_DEPOSIT, amount);
 
+        address proxy = $.proxy;
+
         // Unwrap WETH to ETH.
-        IALMProxy($.proxy).doCall(weth, abi.encodeCall(IWETHLike.withdraw, (amount)));
+        IALMProxy(proxy).doCall(weth, abi.encodeCall(IWETHLike.withdraw, (amount)));
 
         // Deposit ETH to eETH.
         address eeth          = IWEETHLike(weeth).eETH();
         address liquidityPool = IEETHLike(eeth).liquidityPool();
 
         uint256 eethShares = abi.decode(
-            IALMProxy($.proxy).doCallWithValue(
+            IALMProxy(proxy).doCallWithValue(
                 liquidityPool,
                 abi.encodeCall(ILiquidityPoolLike.deposit, ()),
                 amount
@@ -108,10 +110,10 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
         uint256 eethAmount = ILiquidityPoolLike(liquidityPool).amountForShare(eethShares);
 
         // Deposit eETH to weETH.
-        ApproveLib.approve(eeth, $.proxy, weeth, eethAmount);
+        ApproveLib.approve(eeth, proxy, weeth, eethAmount);
 
         shares = abi.decode(
-            IALMProxy($.proxy).doCall(weeth, abi.encodeCall(IWEETHLike.wrap, (eethAmount))),
+            IALMProxy(proxy).doCall(weeth, abi.encodeCall(IWEETHLike.wrap, (eethAmount))),
             (uint256)
         );
 
@@ -124,14 +126,15 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
         onlyRole(RELAYER_ROLE)
         returns (uint256 requestId)
     {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
+        address proxy         = $.proxy;
         address eeth          = IWEETHLike(weeth).eETH();
         address liquidityPool = IEETHLike(eeth).liquidityPool();
 
         // Withdraw from weETH (returns eETH).
         uint256 eethAmount = abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(proxy).doCall(
                 weeth,
                 abi.encodeCall(IWEETHLike.unwrap, (weethShares))
             ),
@@ -151,10 +154,10 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
         );
 
         // Request withdrawal of ETH from eETH.
-        ApproveLib.approve(eeth, $.proxy, liquidityPool, eethAmount);
+        ApproveLib.approve(eeth, proxy, liquidityPool, eethAmount);
 
         return abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(proxy).doCall(
                 liquidityPool,
                 abi.encodeCall(ILiquidityPoolLike.requestWithdraw, (weethModule, eethAmount))
             ),
@@ -168,7 +171,7 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
         onlyRole(RELAYER_ROLE)
         returns (uint256 ethReceived)
     {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         // NOTE: An authorized weethModule is enforced by the rate limit key.
         require(

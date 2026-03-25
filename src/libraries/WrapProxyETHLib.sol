@@ -27,7 +27,7 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, FacetBase {
     /**********************************************************************************************/
 
     function wrapAll() external nonReentrant onlyRole(RELAYER_ROLE) {
-        address proxy        = _getControllerStorage().proxy;
+        address proxy        = _getSharedControllerStorage().proxy;
         uint256 proxyBalance = proxy.balance;
 
         if (proxyBalance == 0) return;

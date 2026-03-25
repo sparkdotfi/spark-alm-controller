@@ -23,21 +23,19 @@ contract TransferAssetFacet is ITransferAssetFacet, FacetBase {
     /*** External Interactive functions                                                         ***/
     /**********************************************************************************************/
 
-    function transfer(
-        address asset,
-        address destination,
-        uint256 amount
-    )
+    function transfer(address asset, address destination, uint256 amount)
         external
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        IRateLimits(_getControllerStorage().rateLimits).triggerRateLimitDecrease(
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressAddressKey(LIMIT_TRANSFER, asset, destination),
             amount
         );
 
-        bytes memory returnData = IALMProxy(_getControllerStorage().proxy).doCall(
+        bytes memory returnData = IALMProxy($.proxy).doCall(
             asset,
             abi.encodeCall(IERC20.transfer, (destination, amount))
         );

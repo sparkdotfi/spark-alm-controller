@@ -56,18 +56,20 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        ControllerStorage memory $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, asset, amount);
 
+        address proxy = $.proxy;
+
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
-        ApproveLib.approve(asset, $.proxy, psm, amount);
+        ApproveLib.approve(asset, proxy, psm, amount);
 
         // Deposit `amount` of `asset` in the PSM, decode the result to get `shares`.
         return abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(proxy).doCall(
                 psm,
-                abi.encodeCall(IPSM3Like.deposit, (asset, $.proxy, amount))
+                abi.encodeCall(IPSM3Like.deposit, (asset, proxy, amount))
             ),
             (uint256)
         );
@@ -79,15 +81,17 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
         onlyRole(RELAYER_ROLE)
         returns (uint256 assetsWithdrawn)
     {
-        ControllerStorage memory $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        address proxy = $.proxy;
 
         // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result to get
         // `assetsWithdrawn` (assumes the proxy has enough PSM shares).
         // NOTE: Rate limited at end of function, so cannot return here.
         assetsWithdrawn = abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(proxy).doCall(
                 psm,
-                abi.encodeCall(IPSM3Like.withdraw, (asset, $.proxy, maxAmount))
+                abi.encodeCall(IPSM3Like.withdraw, (asset, proxy, maxAmount))
             ),
             (uint256)
         );

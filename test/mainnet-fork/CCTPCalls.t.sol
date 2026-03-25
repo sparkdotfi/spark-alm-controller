@@ -18,7 +18,6 @@ import { ForeignController } from "../../src/ForeignController.sol";
 import { makeUint32Key }     from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { AccessControls }    from "../../src/AccessControls.sol";
-import { Parameters }        from "../../src/Parameters.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -446,14 +445,12 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         foreignRateLimits = new RateLimits(Base.SPARK_EXECUTOR);
 
         address accessControls = address(new AccessControls(Base.SPARK_EXECUTOR));
-        address parameters     = address(new Parameters(Base.SPARK_EXECUTOR));
 
         foreignController = new ForeignController({
             admin_          : Base.SPARK_EXECUTOR,
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
             accessControls_ : accessControls,
-            parameters_     : parameters,
             psm_            : address(0),
             usdc_           : Base.USDC,
             cctp_           : BASE_CCTP_TOKEN_MESSENGER

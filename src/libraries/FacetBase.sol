@@ -3,12 +3,12 @@ pragma solidity ^0.8.21;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { ControllerBase } from "../ControllerBase.sol";
+import { ControllerSharedStorage } from "../ControllerSharedStorage.sol";
 
 import { IAccessControls } from "../interfaces/IAccessControls.sol";
 import { IFacetBase }      from "../interfaces/facets/IFacetBase.sol";
 
-abstract contract FacetBase is IFacetBase, ControllerBase {
+abstract contract FacetBase is IFacetBase, ControllerSharedStorage, ReentrancyGuard {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
@@ -21,7 +21,7 @@ abstract contract FacetBase is IFacetBase, ControllerBase {
     /**********************************************************************************************/
 
     modifier onlyRole(bytes32 role) {
-        address accessControls = _getControllerStorage().accessControls;
+        address accessControls = _getSharedControllerStorage().accessControls;
 
         if (!IAccessControls(accessControls).hasRole(role, msg.sender)) {
             revert AccessControlUnauthorizedAccount(msg.sender, role);

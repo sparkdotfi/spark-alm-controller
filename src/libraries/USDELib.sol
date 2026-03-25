@@ -65,7 +65,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        IALMProxy(_getControllerStorage().proxy).doCall(
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(
             ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.setDelegatedSigner, (delegatedSigner))
         );
@@ -76,14 +76,14 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        IALMProxy(_getControllerStorage().proxy).doCall(
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(
             ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.removeDelegatedSigner, (delegatedSigner))
         );
     }
 
     function prepareMint(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        ControllerStorage memory $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_USDE_MINT, usdcAmount);
 
@@ -91,7 +91,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
     }
 
     function prepareBurn(uint256 usdeAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        ControllerStorage memory $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_USDE_BURN, usdeAmount);
 
@@ -104,7 +104,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        ControllerStorage memory $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
@@ -123,7 +123,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         onlyRole(RELAYER_ROLE)
         returns (uint256 assets)
     {
-        ControllerStorage memory $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         // NOTE: Rate limited at end of function, so cannot return here.
         assets = abi.decode(
@@ -138,7 +138,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
     }
 
     function unstakeSUSDE() external nonReentrant onlyRole(RELAYER_ROLE) {
-        address proxy = _getControllerStorage().proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
     }

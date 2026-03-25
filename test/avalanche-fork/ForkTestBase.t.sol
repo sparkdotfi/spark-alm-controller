@@ -22,7 +22,6 @@ import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
 import { AccessControls }    from "../../src/AccessControls.sol";
-import { Parameters }        from "../../src/Parameters.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
@@ -73,7 +72,6 @@ contract ForkTestBase is Test {
     AccessControls         accessControls;
     ALMProxy               almProxy;
     IForeignControllerFull foreignController;
-    Parameters             parameters;
     RateLimits             rateLimits;
 
     /**********************************************************************************************/
@@ -123,14 +121,12 @@ contract ForkTestBase is Test {
         rateLimits = new RateLimits(GROVE_EXECUTOR);
 
         accessControls = new AccessControls(GROVE_EXECUTOR);
-        parameters     = new Parameters(GROVE_EXECUTOR);
 
         foreignController = IForeignControllerFull(payable(new ForeignController({
             admin_          : GROVE_EXECUTOR,
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
             accessControls_ : address(accessControls),
-            parameters_     : address(parameters),
             psm_            : address(psmAvalanche),
             usdc_           : USDC_AVALANCHE,
             cctp_           : CCTP_TOKEN_MESSENGER
@@ -142,7 +138,6 @@ contract ForkTestBase is Test {
 
         vm.startPrank(GROVE_EXECUTOR);
 
-        parameters.grantRole(parameters.CONTROLLER_ROLE(), address(foreignController));
         accessControls.grantRole(accessControls.RELAYER_ROLE(), ALM_RELAYER);
 
         // Facet wiring
@@ -194,42 +189,42 @@ contract ForkTestBase is Test {
         vm.label(erc7540Facet, "ERC7540Facet");
 
         // "Controller.requestDepositERC7540()" -> "ERC7540Facet.requestDeposit()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.requestDepositERC7540.selector,
             erc7540Facet,
             IERC7540Facet.requestDeposit.selector
         );
 
         // "Controller.claimDepositERC7540()" -> "ERC7540Facet.claimDeposit()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.claimDepositERC7540.selector,
             erc7540Facet,
             IERC7540Facet.claimDeposit.selector
         );
 
         // "Controller.requestRedeemERC7540()" -> "ERC7540Facet.requestRedeem()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.requestRedeemERC7540.selector,
             erc7540Facet,
             IERC7540Facet.requestRedeem.selector
         );
 
         // "Controller.claimRedeemERC7540()" -> "ERC7540Facet.claimRedeem()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.claimRedeemERC7540.selector,
             erc7540Facet,
             IERC7540Facet.claimRedeem.selector
         );
 
         // "Controller.LIMIT_7540_DEPOSIT()" -> "ERC7540Facet.LIMIT_DEPOSIT()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.LIMIT_7540_DEPOSIT.selector,
             erc7540Facet,
             IERC7540Facet.LIMIT_DEPOSIT.selector
         );
 
         // "Controller.LIMIT_7540_REDEEM()" -> "ERC7540Facet.LIMIT_REDEEM()"
-        foreignController.setFacet(
+        foreignController.setDispatch(
             IForeignControllerFull.LIMIT_7540_REDEEM.selector,
             erc7540Facet,
             IERC7540Facet.LIMIT_REDEEM.selector

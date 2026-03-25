@@ -44,13 +44,15 @@ contract SuperstateFacet is ISuperstateFacet, FacetBase {
     /**********************************************************************************************/
 
     function subscribe(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_SUBSCRIBE, usdcAmount);
 
-        ApproveLib.approve(usdc, $.proxy, ustb, usdcAmount);
+        address proxy = $.proxy;
 
-        IALMProxy($.proxy).doCall(ustb, abi.encodeCall(IUSTBLike.subscribe, (usdcAmount, usdc)));
+        ApproveLib.approve(usdc, proxy, ustb, usdcAmount);
+
+        IALMProxy(proxy).doCall(ustb, abi.encodeCall(IUSTBLike.subscribe, (usdcAmount, usdc)));
     }
 
 }

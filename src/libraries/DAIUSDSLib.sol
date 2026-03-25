@@ -41,7 +41,7 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
     /**********************************************************************************************/
 
     function swapUSDSToDAI(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        address proxy = _getControllerStorage().proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(usds, proxy, daiUSDS, usdsAmount);
 
@@ -52,7 +52,7 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
     }
 
     function swapDAIToUSDS(uint256 daiAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        address proxy = _getControllerStorage().proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(dai, proxy, daiUSDS, daiAmount);
 

@@ -58,30 +58,33 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         // Note that whitelist is done by rate limits.
         _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, token, amount);
 
+        address proxy = $.proxy;
+
         // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
-        ApproveLib.approve(IERC4626Like(token).asset(), $.proxy, token, amount);
+        ApproveLib.approve(IERC4626Like(token).asset(), proxy, token, amount);
 
         // Submit deposit request by transferring assets
-        IALMProxy($.proxy).doCall(
+        IALMProxy(proxy).doCall(
             token,
-            abi.encodeCall(IERC7540Like.requestDeposit, (amount, $.proxy, $.proxy))
+            abi.encodeCall(IERC7540Like.requestDeposit, (amount, proxy, proxy))
         );
     }
 
     function claimDeposit(address token) external nonReentrant onlyRole(RELAYER_ROLE) {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_DEPOSIT, token));
 
-        uint256 shares = IERC4626Like(token).maxMint($.proxy);
+        address proxy  = $.proxy;
+        uint256 shares = IERC4626Like(token).maxMint(proxy);
 
         // Claim shares from the vault to the proxy
-        IALMProxy($.proxy).doCall(token, abi.encodeCall(IERC4626Like.mint, (shares, $.proxy)));
+        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC4626Like.mint, (shares, proxy)));
     }
 
     function requestRedeem(address token, uint256 shares)
@@ -89,7 +92,7 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         _decreaseRateLimit(
             $.rateLimits,
@@ -98,23 +101,26 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
             IERC4626Like(token).convertToAssets(shares)
         );
 
-        IALMProxy($.proxy).doCall(
+        address proxy = $.proxy;
+
+        IALMProxy(proxy).doCall(
             token,
-            abi.encodeCall(IERC7540Like.requestRedeem, (shares, $.proxy, $.proxy))
+            abi.encodeCall(IERC7540Like.requestRedeem, (shares, proxy, proxy))
         );
     }
 
     function claimRedeem(address token) external nonReentrant onlyRole(RELAYER_ROLE) {
-        ControllerStorage storage $ = _getControllerStorage();
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_REDEEM, token));
 
-        uint256 assets = IERC4626Like(token).maxWithdraw($.proxy);
+        address proxy  = $.proxy;
+        uint256 assets = IERC4626Like(token).maxWithdraw(proxy);
 
         // Claim assets from the vault to the proxy
-        IALMProxy($.proxy).doCall(
+        IALMProxy(proxy).doCall(
             token,
-            abi.encodeCall(IERC4626Like.withdraw, (assets, $.proxy, $.proxy))
+            abi.encodeCall(IERC4626Like.withdraw, (assets, proxy, proxy))
         );
     }
 

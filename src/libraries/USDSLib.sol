@@ -50,12 +50,11 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     }
 
     function mint(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        address proxy = _getControllerStorage().proxy;
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
-        IRateLimits(_getControllerStorage().rateLimits).triggerRateLimitDecrease(
-            LIMIT_MINT,
-            usdsAmount
-        );
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_MINT, usdsAmount);
+
+        address proxy = $.proxy;
 
         // Mint USDS into the buffer.
         IALMProxy(proxy).doCall(vault, abi.encodeCall(IVaultLike.draw, (usdsAmount)));
@@ -72,12 +71,11 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     }
 
     function burn(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        address proxy = _getControllerStorage().proxy;
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
 
-        IRateLimits(_getControllerStorage().rateLimits).triggerRateLimitIncrease(
-            LIMIT_MINT,
-            usdsAmount
-        );
+        IRateLimits($.rateLimits).triggerRateLimitIncrease(LIMIT_MINT, usdsAmount);
+
+        address proxy = $.proxy;
 
         // Transfer USDS from the proxy to the buffer.
         // Not need for ApproveLib as we are transferring USDS with an expected transfer function.
