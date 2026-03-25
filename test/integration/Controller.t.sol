@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.28;
 
-import { Test } from "../../lib/forge-std/src/Test.sol";
-
 import { IController } from "../../src/interfaces/IController.sol";
 
-import { AccessControls } from "../../src/AccessControls.sol";
-import { Controller }     from "../../src/Controller.sol";
+import { ControllerTestBase } from "./ControllerTestBase.t.sol";
 
 contract MockFacet1 {
 
@@ -38,19 +35,14 @@ interface IMockController {
 
 }
 
-contract ControllerIntegration_Tests is Test {
+contract ControllerIntegration_Tests is ControllerTestBase {
 
-    AccessControls internal accessControls;
-    Controller     internal controller;
+    IController internal controller;
 
-    address internal admin        = makeAddr("admin");
-    address internal proxy        = makeAddr("proxy");
-    address internal rateLimits   = makeAddr("rateLimits");
-    address internal unauthorized = makeAddr("unauthorized");
+    function setUp() public override {
+        super.setUp();
 
-    function setUp() external {
-        accessControls = new AccessControls(admin);
-        controller     = new Controller(address(accessControls), proxy, rateLimits);
+        controller = IController(controllerAddress);
     }
 
     /**********************************************************************************************/

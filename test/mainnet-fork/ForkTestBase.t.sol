@@ -22,6 +22,7 @@ import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwa
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
+import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
 import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
 import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
 import { IMapleFacet }         from "../../src/interfaces/facets/IMapleFacet.sol";
@@ -36,6 +37,7 @@ import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFa
 import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
+import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
 import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
 import { MapleFacet }         from "../../src/libraries/MapleLib.sol";
@@ -49,11 +51,11 @@ import { WEETHFacet }         from "../../src/libraries/WEETHLib.sol";
 import { WrapProxyETHFacet }  from "../../src/libraries/WrapProxyETHLib.sol";
 import { WSTETHFacet }        from "../../src/libraries/WSTETHLib.sol";
 
+import { AccessControls }    from "../../src/AccessControls.sol";
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { MainnetController } from "../../src/MainnetController.sol";
 import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
 import { RateLimits }        from "../../src/RateLimits.sol";
-import { AccessControls }    from "../../src/AccessControls.sol";
 
 import { IMainnetControllerFull } from "../interfaces/IMainnetControllerFull.sol";
 
@@ -266,6 +268,7 @@ abstract contract ForkTestBase is DssTest {
         // Facet wiring
 
         _wireDAIUSDSFacet();
+        _wireERC4626Facet();
         _wireERC7540Facet();
         _wireFarmFacet();
         _wireMapleFacet();
@@ -404,6 +407,68 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.swapDAIToUSDS.selector,
             daiUSDSFacet,
             IDAIUSDSFacet.swapDAIToUSDS.selector
+        );
+    }
+
+    function _wireERC4626Facet() internal {
+        address erc4626Facet = address(new ERC4626Facet());
+
+        vm.label(erc4626Facet, "ERC4626Facet");
+
+        // "Controller.setMaxExchangeRate()" -> "ERC4626Facet.setMaxExchangeRate()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setMaxExchangeRate.selector,
+            erc4626Facet,
+            IERC4626Facet.setMaxExchangeRate.selector
+        );
+
+        // "Controller.maxExchangeRates()" -> "ERC4626Facet.maxExchangeRates()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.maxExchangeRates.selector,
+            erc4626Facet,
+            IERC4626Facet.maxExchangeRates.selector
+        );
+
+        // "Controller.depositERC4626()" -> "ERC4626Facet.deposit()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.depositERC4626.selector,
+            erc4626Facet,
+            IERC4626Facet.deposit.selector
+        );
+
+        // "Controller.withdrawERC4626()" -> "ERC4626Facet.withdraw()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.withdrawERC4626.selector,
+            erc4626Facet,
+            IERC4626Facet.withdraw.selector
+        );
+
+        // "Controller.redeemERC4626()" -> "ERC4626Facet.redeem()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.redeemERC4626.selector,
+            erc4626Facet,
+            IERC4626Facet.redeem.selector
+        );
+
+        // "Controller.LIMIT_4626_DEPOSIT()" -> "ERC4626Facet.LIMIT_DEPOSIT()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_4626_DEPOSIT.selector,
+            erc4626Facet,
+            IERC4626Facet.LIMIT_DEPOSIT.selector
+        );
+
+        // "Controller.LIMIT_4626_WITHDRAW()" -> "ERC4626Facet.LIMIT_WITHDRAW()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_4626_WITHDRAW.selector,
+            erc4626Facet,
+            IERC4626Facet.LIMIT_WITHDRAW.selector
+        );
+
+        // "Controller.EXCHANGE_RATE_PRECISION()" -> "ERC4626Facet.EXCHANGE_RATE_PRECISION()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.EXCHANGE_RATE_PRECISION.selector,
+            erc4626Facet,
+            IERC4626Facet.EXCHANGE_RATE_PRECISION.selector
         );
     }
 

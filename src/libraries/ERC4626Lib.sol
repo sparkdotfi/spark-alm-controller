@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy }   from "../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../interfaces/IRateLimits.sol";
-
-import { ApproveLib } from "./ApproveLib.sol";
+import { IALMProxy }     from "../interfaces/IALMProxy.sol";
+import { IERC4626Facet } from "../interfaces/facets/IERC4626Facet.sol";
+import { IRateLimits }   from "../interfaces/IRateLimits.sol";
 
 import { makeAddressKey } from "../RateLimitHelpers.sol";
+
+import { ApproveLib } from "./ApproveLib.sol";
+import { FacetBase }  from "./FacetBase.sol";
 
 interface IERC4626Like {
 
@@ -24,116 +26,148 @@ interface IERC4626Like {
 
 }
 
-library ERC4626Lib {
+contract ERC4626Facet is IERC4626Facet, FacetBase {
 
-    event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
+    /**********************************************************************************************/
+    /*** ERC4626Facet Storage Domain                                                            ***/
+    /**********************************************************************************************/
+
+    /// @custom:storage-location erc7201:sky.pau.storage.ERC4626Facet
+    struct ERC4626FacetStorage {
+        mapping(address => uint256) maxExchangeRates;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.ERC4626Facet")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 internal constant ERC4626FACET_STORAGE_LOCATION =
+        0x2d0a40172b84813d0e50253809f3803008e18680eae5581bd5ffdf3dfdf76f00;
+
+    function _getERC4626FacetStorage()
+        internal
+        pure
+        returns (ERC4626FacetStorage storage $)
+    {
+        assembly {
+            $.slot := ERC4626FACET_STORAGE_LOCATION
+        }
+    }
+
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
 
     bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_4626_DEPOSIT");
     bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_4626_WITHDRAW");
 
     uint256 public constant EXCHANGE_RATE_PRECISION = 1e36;
 
-    function setMaxExchangeRate(
-        mapping (address => uint256) storage maxExchangeRates,
-        address token,
-        uint256 shares,
-        uint256 maxExpectedAssets
-    )
-        external
-    {
-        require(token != address(0), "ERC4626Lib/token-zero-address");
+    /**********************************************************************************************/
+    /*** External interactive functions                                                         ***/
+    /**********************************************************************************************/
 
-        emit MaxExchangeRateSet(
-            token,
-            maxExchangeRates[token] = _getExchangeRate(shares, maxExpectedAssets)
-        );
+    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(token != address(0), "ERC4626Facet/token-zero-address");
+
+        uint256 exchangeRate = _getExchangeRate(shares, maxExpectedAssets);
+
+        _getERC4626FacetStorage().maxExchangeRates[token] = exchangeRate;
+
+        emit MaxExchangeRateSet(token, exchangeRate);
     }
 
-    function deposit(
-        address proxy,
-        address rateLimits,
-        address token,
-        uint256 amount,
-        uint256 minSharesOut,
-        mapping (address => uint256) storage maxExchangeRates
-    )
+    function deposit(address token, uint256 amount, uint256 minSharesOut)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        _decreaseRateLimit(rateLimits, LIMIT_DEPOSIT, token, amount);
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, token, amount);
 
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        ApproveLib.approve(IERC4626Like(token).asset(), proxy, token, amount);
+        ApproveLib.approve(IERC4626Like(token).asset(), $.proxy, token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
-            IALMProxy(proxy).doCall(
+            IALMProxy($.proxy).doCall(
                 token,
-                abi.encodeCall(IERC4626Like.deposit, (amount, proxy))
+                abi.encodeCall(IERC4626Like.deposit, (amount, $.proxy))
             ),
             (uint256)
         );
 
-        require(shares >= minSharesOut, "ERC4626Lib/min-shares-out-not-met");
+        require(shares >= minSharesOut, "ERC4626Facet/min-shares-out-not-met");
 
         require(
-            _getExchangeRate(shares, amount) <= maxExchangeRates[token],
-            "ERC4626Lib/exchange-rate-too-high"
+            _getExchangeRate(shares, amount) <= maxExchangeRates(token),
+            "ERC4626Facet/exchange-rate-too-high"
         );
     }
 
-    function withdraw(
-        address proxy,
-        address rateLimits,
-        address token,
-        uint256 amount,
-        uint256 maxSharesIn
-    )
+    function withdraw(address token, uint256 amount, uint256 maxSharesIn)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token, amount);
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, token, amount);
 
         // Withdraw asset from a token, decode resulting shares.
         // Assumes proxy has adequate token shares.
         shares = abi.decode(
-            IALMProxy(proxy).doCall(
+            IALMProxy($.proxy).doCall(
                 token,
-                abi.encodeCall(IERC4626Like.withdraw, (amount, proxy, proxy))
+                abi.encodeCall(IERC4626Like.withdraw, (amount, $.proxy, $.proxy))
             ),
             (uint256)
         );
 
-        require(shares <= maxSharesIn, "ERC4626Lib/shares-burned-too-high");
+        require(shares <= maxSharesIn, "ERC4626Facet/shares-burned-too-high");
 
-        _increaseRateLimit(rateLimits, LIMIT_DEPOSIT, token, amount);
+        _increaseRateLimit($.rateLimits, LIMIT_DEPOSIT, token, amount);
     }
 
-    function redeem(
-        address proxy,
-        address rateLimits,
-        address token,
-        uint256 shares,
-        uint256 minAssetsOut
-    )
+    function redeem(address token, uint256 shares, uint256 minAssetsOut)
         external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
         returns (uint256 assets)
     {
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
         assets = abi.decode(
-            IALMProxy(proxy).doCall(
+            IALMProxy($.proxy).doCall(
                 token,
-                abi.encodeCall(IERC4626Like.redeem, (shares, proxy, proxy))
+                abi.encodeCall(IERC4626Like.redeem, (shares, $.proxy, $.proxy))
             ),
             (uint256)
         );
 
-        require(assets >= minAssetsOut, "ERC4626Lib/min-assets-out-not-met");
+        require(assets >= minAssetsOut, "ERC4626Facet/min-assets-out-not-met");
 
-        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token, assets);
-        _increaseRateLimit(rateLimits, LIMIT_DEPOSIT,  token, assets);
+        _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, token, assets);
+        _increaseRateLimit($.rateLimits, LIMIT_DEPOSIT,  token, assets);
     }
+
+    /**********************************************************************************************/
+    /*** Public view/pure functions                                                             ***/
+    /**********************************************************************************************/
+
+    function maxExchangeRates(address token) public view returns (uint256) {
+        return _getERC4626FacetStorage().maxExchangeRates[token];
+    }
+
+    /**********************************************************************************************/
+    /*** Internal interactive functions                                                         ***/
+    /**********************************************************************************************/
 
     function _decreaseRateLimit(address rateLimits, bytes32 key, address token, uint256 amount)
         internal
@@ -147,12 +181,16 @@ library ERC4626Lib {
         IRateLimits(rateLimits).triggerRateLimitIncrease(makeAddressKey(key, token), amount);
     }
 
+    /**********************************************************************************************/
+    /*** Internal View/Pure functions                                                           ***/
+    /**********************************************************************************************/
+
     function _getExchangeRate(uint256 shares, uint256 assets) internal pure returns (uint256) {
         // Return 0 for zero assets first, to handle the valid case of 0 shares and 0 assets.
         if (assets == 0) return 0;
 
         // Zero shares with non-zero assets is invalid (infinite exchange rate).
-        require(shares > 0, "ERC4626Lib/zero-shares");
+        require(shares > 0, "ERC4626Facet/zero-shares");
 
         return (EXCHANGE_RATE_PRECISION * assets) / shares;
     }

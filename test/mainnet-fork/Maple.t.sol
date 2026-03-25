@@ -130,7 +130,7 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
         mainnetController.setMaxExchangeRate(address(SYRUP), SYRUP.convertToShares(1_000_000e6), 1_000_000e6 - 1);
         vm.stopPrank();
 
-        vm.expectRevert("ERC4626Lib/exchange-rate-too-high");
+        vm.expectRevert("ERC4626Facet/exchange-rate-too-high");
         vm.prank(relayer);
         mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, 0);
 
@@ -148,7 +148,7 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setMaxExchangeRate(address(SYRUP), 0, 0);
 
-        vm.expectRevert("ERC4626Lib/exchange-rate-too-high");
+        vm.expectRevert("ERC4626Facet/exchange-rate-too-high");
         vm.prank(relayer);
         mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, 0);
     }
@@ -159,7 +159,7 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
         uint256 overBoundaryShares = SYRUP.convertToShares(1_000_000e6 + 1);
         uint256 atBoundaryShares   = SYRUP.convertToShares(1_000_000e6);
 
-        vm.expectRevert("ERC4626Lib/min-shares-out-not-met");
+        vm.expectRevert("ERC4626Facet/min-shares-out-not-met");
         vm.startPrank(relayer);
         mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, overBoundaryShares);
 

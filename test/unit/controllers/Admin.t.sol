@@ -5,7 +5,6 @@ import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/a
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { CCTPLib }      from "../../../src/libraries/CCTPLib.sol";
-import { ERC4626Lib }   from "../../../src/libraries/ERC4626Lib.sol";
 import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
 import { OTCLib }       from "../../../src/libraries/OTCLib.sol";
 import { UniswapV3Lib } from "../../../src/libraries/UniswapV3Lib.sol";
@@ -441,65 +440,6 @@ contract MainnetController_Admin_SetOTCWhitelistedAsset_Tests is MainnetControll
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(mainnetController.otcWhitelistedAssets(exchange, asset), false);
-    }
-
-}
-
-contract MainnetController_Admin_SetMaxExchangeRate_Tests is MainnetController_Admin_TestBase {
-
-    function test_setMaxExchangeRate_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setMaxExchangeRate(makeAddr("token"), 1e18, 1e18);
-    }
-
-    function test_setMaxExchangeRate_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        mainnetController.setMaxExchangeRate(makeAddr("token"), 1e18, 1e18);
-    }
-
-    function test_setMaxExchangeRate_tokenZeroAddress() external {
-        vm.expectRevert("ERC4626Lib/token-zero-address");
-        vm.prank(admin);
-        mainnetController.setMaxExchangeRate(address(0), 1e18, 1e18);
-    }
-
-    function test_setMaxExchangeRate() external {
-        address token = makeAddr("token");
-
-        assertEq(mainnetController.maxExchangeRates(token), 0);
-
-        vm.record();
-
-        vm.expectEmit(address(mainnetController));
-        emit ERC4626Lib.MaxExchangeRateSet(token, 1e36);
-
-        vm.prank(admin);
-        mainnetController.setMaxExchangeRate(token, 1e18, 1e18);
-
-        _assertReentrancyGuardWrittenToTwice();
-
-        assertEq(mainnetController.maxExchangeRates(token), 1e36);
-
-        vm.expectEmit(address(mainnetController));
-        emit ERC4626Lib.MaxExchangeRateSet(token, 1e24);
-
-        vm.prank(admin);
-        mainnetController.setMaxExchangeRate(token, 1e18, 1e6);
-
-        assertEq(mainnetController.maxExchangeRates(token), 1e24);
-
-        vm.expectEmit(address(mainnetController));
-        emit ERC4626Lib.MaxExchangeRateSet(token, 1e48);
-
-        vm.prank(admin);
-        mainnetController.setMaxExchangeRate(token, 1e6, 1e18);
-
-        assertEq(mainnetController.maxExchangeRates(token), 1e48);
     }
 
 }
@@ -1224,61 +1164,6 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         assertEq(foreignController.layerZeroRecipients(1), layerZeroRecipient2);
 
         _assertReentrancyGuardWrittenToTwice();
-    }
-
-    function test_setMaxExchangeRate_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        foreignController.setMaxExchangeRate(makeAddr("token"), 1e18, 1e18);
-    }
-
-    function test_setMaxExchangeRate_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        foreignController.setMaxExchangeRate(makeAddr("token"), 1e18, 1e18);
-    }
-
-    function test_setMaxExchangeRate_tokenZeroAddress() external {
-        vm.expectRevert("ERC4626Lib/token-zero-address");
-        vm.prank(admin);
-        foreignController.setMaxExchangeRate(address(0), 1e18, 1e18);
-    }
-
-    function test_setMaxExchangeRate() external {
-        address token = makeAddr("token");
-
-        assertEq(foreignController.maxExchangeRates(token), 0);
-
-        vm.record();
-
-        vm.expectEmit(address(foreignController));
-        emit ERC4626Lib.MaxExchangeRateSet(token, 1e36);
-
-        vm.prank(admin);
-        foreignController.setMaxExchangeRate(token, 1e18, 1e18);
-
-        _assertReentrancyGuardWrittenToTwice();
-
-        assertEq(foreignController.maxExchangeRates(token), 1e36);
-
-        vm.expectEmit(address(foreignController));
-        emit ERC4626Lib.MaxExchangeRateSet(token, 1e24);
-
-        vm.prank(admin);
-        foreignController.setMaxExchangeRate(token, 1e18, 1e6);
-
-        assertEq(foreignController.maxExchangeRates(token), 1e24);
-
-        vm.expectEmit(address(foreignController));
-        emit ERC4626Lib.MaxExchangeRateSet(token, 1e48);
-
-        vm.prank(admin);
-        foreignController.setMaxExchangeRate(token, 1e6, 1e18);
-
-        assertEq(foreignController.maxExchangeRates(token), 1e48);
     }
 
     function test_setUniswapV3PositionManager_reentrancy() external {

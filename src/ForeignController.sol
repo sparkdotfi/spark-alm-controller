@@ -7,7 +7,6 @@ import { AaveLib }          from "./libraries/AaveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { CurveLib }         from "./libraries/CurveLib.sol";
-import { ERC4626Lib }       from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { PendleLib }        from "./libraries/PendleLib.sol";
 import { MerklLib }         from "./libraries/MerklLib.sol";
@@ -45,8 +44,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_4626_DEPOSIT        = ERC4626Lib.LIMIT_DEPOSIT;
-    bytes32 public constant LIMIT_4626_WITHDRAW       = ERC4626Lib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_AAVE_DEPOSIT        = AaveLib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_AAVE_WITHDRAW       = AaveLib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_CENTRIFUGE_TRANSFER = CentrifugeLib.LIMIT_TRANSFER;
@@ -83,9 +80,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     mapping(uint32 destinationDomain     => bytes32 mintRecipient)      public mintRecipients;
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
     mapping(uint16 destinationCentrifugeId => bytes32 recipient)        public centrifugeRecipients;
-
-    // ERC4626 exchange rate thresholds (1e36 precision)
-    mapping(address token => uint256 maxExchangeRate) public maxExchangeRates;
 
     // Uniswap V3 pool params
     mapping(address pool => UniswapV3Lib.PoolParams params) public uniswapV3PoolParams;
@@ -149,14 +143,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         LayerZeroLib.setRecipient(layerZeroRecipients, destinationEndpointId, recipient);
-    }
-
-    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        ERC4626Lib.setMaxExchangeRate(maxExchangeRates, token, shares, maxExpectedAssets);
     }
 
     function setPendleRouter(address pendleRouter_)
@@ -385,48 +371,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             destinationEndpointId : destinationEndpointId,
             layerZeroRecipients   : layerZeroRecipients
         });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer ERC4626 functions                                                              ***/
-    /**********************************************************************************************/
-
-    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 shares)
-    {
-        return ERC4626Lib.deposit({
-            proxy            : address(proxy),
-            rateLimits       : address(rateLimits),
-            token            : token,
-            amount           : amount,
-            minSharesOut     : minSharesOut,
-            maxExchangeRates : maxExchangeRates
-        });
-    }
-
-    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 shares)
-    {
-        return ERC4626Lib.withdraw(address(proxy), address(rateLimits), token, amount, maxSharesIn);
-    }
-
-    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 assets)
-    {
-        return ERC4626Lib.redeem(address(proxy), address(rateLimits), token, shares, minAssetsOut);
-    }
-
-    function EXCHANGE_RATE_PRECISION() external pure returns (uint256) {
-        return ERC4626Lib.EXCHANGE_RATE_PRECISION;
     }
 
     /**********************************************************************************************/
