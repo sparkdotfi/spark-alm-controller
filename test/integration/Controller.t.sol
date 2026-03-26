@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import { IController } from "../../src/interfaces/IController.sol";
 
-import { ControllerTestBase } from "./ControllerTestBase.t.sol";
+import { Controller_TestBase } from "./TestBase.t.sol";
 
 contract MockFacet1 {
 
@@ -35,14 +35,12 @@ interface IMockController {
 
 }
 
-contract ControllerIntegration_Tests is ControllerTestBase {
+contract ControllerIntegration_Tests is Controller_TestBase {
 
     IController internal controller;
 
-    function setUp() public override {
-        super.setUp();
-
-        controller = IController(controllerAddress);
+    function setUp() external {
+        controller = IController(_deploy());
     }
 
     /**********************************************************************************************/

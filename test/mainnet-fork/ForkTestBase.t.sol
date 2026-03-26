@@ -422,11 +422,11 @@ abstract contract ForkTestBase is DssTest {
             IERC4626Facet.setMaxExchangeRate.selector
         );
 
-        // "Controller.maxExchangeRates()" -> "ERC4626Facet.maxExchangeRates()"
+        // "Controller.maxExchangeRates()" -> "ERC4626Facet.getMaxExchangeRate()"
         mainnetController.setDispatch(
             IMainnetControllerFull.maxExchangeRates.selector,
             erc4626Facet,
-            IERC4626Facet.maxExchangeRates.selector
+            IERC4626Facet.getMaxExchangeRate.selector
         );
 
         // "Controller.depositERC4626()" -> "ERC4626Facet.deposit()"

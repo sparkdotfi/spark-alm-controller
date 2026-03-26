@@ -2,8 +2,8 @@
 pragma solidity ^0.8.34;
 
 import { IALMProxy }     from "../interfaces/IALMProxy.sol";
-import { IERC4626Facet } from "../interfaces/facets/IERC4626Facet.sol";
 import { IRateLimits }   from "../interfaces/IRateLimits.sol";
+import { IERC4626Facet } from "../interfaces/facets/IERC4626Facet.sol";
 
 import { makeAddressKey } from "../RateLimitHelpers.sol";
 
@@ -33,21 +33,17 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     /**********************************************************************************************/
 
     /// @custom:storage-location erc7201:sky.pau.storage.ERC4626Facet
-    struct ERC4626FacetStorage {
-        mapping(address => uint256) maxExchangeRates;
+    struct FacetStorage {
+        mapping(address token => uint256 maxExchangeRate) maxExchangeRates;
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.ERC4626Facet")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 internal constant ERC4626FACET_STORAGE_LOCATION =
+    bytes32 internal constant FACET_STORAGE_LOCATION =
         0x2d0a40172b84813d0e50253809f3803008e18680eae5581bd5ffdf3dfdf76f00;
 
-    function _getERC4626FacetStorage()
-        internal
-        pure
-        returns (ERC4626FacetStorage storage $)
-    {
+    function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
-            $.slot := ERC4626FACET_STORAGE_LOCATION
+            $.slot := FACET_STORAGE_LOCATION
         }
     }
 
@@ -73,9 +69,9 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
 
         uint256 exchangeRate = _getExchangeRate(shares, maxExpectedAssets);
 
-        _getERC4626FacetStorage().maxExchangeRates[token] = exchangeRate;
+        _getFacetStorage().maxExchangeRates[token] = exchangeRate;
 
-        emit MaxExchangeRateSet(token, exchangeRate);
+        emit ERC4626MaxExchangeRateSet(token, exchangeRate);
     }
 
     function deposit(address token, uint256 amount, uint256 minSharesOut)
@@ -88,14 +84,16 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
 
         _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, token, amount);
 
+        address proxy = $.proxy;
+
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
-        ApproveLib.approve(IERC4626Like(token).asset(), $.proxy, token, amount);
+        ApproveLib.approve(IERC4626Like(token).asset(), proxy, token, amount);
 
         // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
         shares = abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(proxy).doCall(
                 token,
-                abi.encodeCall(IERC4626Like.deposit, (amount, $.proxy))
+                abi.encodeCall(IERC4626Like.deposit, (amount, proxy))
             ),
             (uint256)
         );
@@ -103,7 +101,7 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
         require(shares >= minSharesOut, "ERC4626Facet/min-shares-out-not-met");
 
         require(
-            _getExchangeRate(shares, amount) <= maxExchangeRates(token),
+            _getExchangeRate(shares, amount) <= _getFacetStorage().maxExchangeRates[token],
             "ERC4626Facet/exchange-rate-too-high"
         );
     }
@@ -116,21 +114,24 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
-        _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, token, amount);
+        address proxy      = $.proxy;
+        address rateLimits = $.rateLimits;
+
+        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token, amount);
 
         // Withdraw asset from a token, decode resulting shares.
         // Assumes proxy has adequate token shares.
         shares = abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(proxy).doCall(
                 token,
-                abi.encodeCall(IERC4626Like.withdraw, (amount, $.proxy, $.proxy))
+                abi.encodeCall(IERC4626Like.withdraw, (amount, proxy, proxy))
             ),
             (uint256)
         );
 
         require(shares <= maxSharesIn, "ERC4626Facet/shares-burned-too-high");
 
-        _increaseRateLimit($.rateLimits, LIMIT_DEPOSIT, token, amount);
+        _increaseRateLimit(rateLimits, LIMIT_DEPOSIT, token, amount);
     }
 
     function redeem(address token, uint256 shares, uint256 minAssetsOut)
@@ -141,28 +142,31 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
+        address proxy      = $.proxy;
+        address rateLimits = $.rateLimits;
+
         // Redeem shares for assets from the token, decode the resulting assets.
         // Assumes proxy has adequate token shares.
         assets = abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(proxy).doCall(
                 token,
-                abi.encodeCall(IERC4626Like.redeem, (shares, $.proxy, $.proxy))
+                abi.encodeCall(IERC4626Like.redeem, (shares, proxy, proxy))
             ),
             (uint256)
         );
 
         require(assets >= minAssetsOut, "ERC4626Facet/min-assets-out-not-met");
 
-        _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, token, assets);
-        _increaseRateLimit($.rateLimits, LIMIT_DEPOSIT,  token, assets);
+        _decreaseRateLimit(rateLimits, LIMIT_WITHDRAW, token, assets);
+        _increaseRateLimit(rateLimits, LIMIT_DEPOSIT,  token, assets);
     }
 
     /**********************************************************************************************/
     /*** Public view/pure functions                                                             ***/
     /**********************************************************************************************/
 
-    function maxExchangeRates(address token) public view returns (uint256) {
-        return _getERC4626FacetStorage().maxExchangeRates[token];
+    function getMaxExchangeRate(address token) external view returns (uint256) {
+        return _getFacetStorage().maxExchangeRates[token];
     }
 
     /**********************************************************************************************/
