@@ -30,6 +30,7 @@ import { IPSMFacet }           from "../../src/interfaces/facets/IPSMFacet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ISuperstateFacet }    from "../../src/interfaces/facets/ISuperstateFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
+import { IUniswapV4Facet }     from "../../src/interfaces/facets/IUniswapV4Facet.sol";
 import { IUSDEFacet }          from "../../src/interfaces/facets/IUSDEFacet.sol";
 import { IUSDSFacet }          from "../../src/interfaces/facets/IUSDSFacet.sol";
 import { IWEETHFacet }         from "../../src/interfaces/facets/IWEETHFacet.sol";
@@ -45,6 +46,7 @@ import { PSMFacet }           from "../../src/libraries/PSMLib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { SuperstateFacet }    from "../../src/libraries/SuperstateLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
+import { UniswapV4Facet }     from "../../src/libraries/UniswapV4Lib.sol";
 import { USDEFacet }          from "../../src/libraries/USDELib.sol";
 import { USDSFacet }          from "../../src/libraries/USDSLib.sol";
 import { WEETHFacet }         from "../../src/libraries/WEETHLib.sol";
@@ -122,6 +124,11 @@ abstract contract ForkTestBase is DssTest {
     uint256 constant INK           = 1e12 * 1e18;  // Ink initialization amount
     uint256 constant SEVEN_PCT_APY = 1.000000002145441671308778766e27;  // 7% APY (current DSR)
     uint256 constant EIGHT_PCT_APY = 1.000000002440418608258400030e27;  // 8% APY (current DSR + 1%)
+
+    // NOTE: From https://docs.uniswap.org/contracts/v4/deployments (Ethereum Mainnet).
+    address internal constant _PERMIT2                     = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+    address internal constant _UNISWAP_V4_POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
+    address internal constant _UNISWAP_V4_ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
 
     address freezer = Ethereum.ALM_FREEZER_MULTISIG;
     address relayer = Ethereum.ALM_RELAYER_MULTISIG;
@@ -278,6 +285,7 @@ abstract contract ForkTestBase is DssTest {
         _wireTransferAssetFacet();
         _wireUSDEFacet();
         _wireUSDSFacet();
+        _wireUniswapV4Facet();
         _wireWEETHFacet();
         _wireWrapProxyETHFacet();
         _wireWSTETHFacet();
@@ -888,4 +896,90 @@ abstract contract ForkTestBase is DssTest {
         );
     }
 
+    function _wireUniswapV4Facet() internal {
+        address uniswapV4Facet = address(new UniswapV4Facet({
+            permit2_         : _PERMIT2,
+            positionManager_ : _UNISWAP_V4_POSITION_MANAGER,
+            router_          : _UNISWAP_V4_ROUTER
+        }));
+
+        vm.label(uniswapV4Facet, "UniswapV4Facet");
+
+        // Controller.decreaseLiquidityUniswapV4 -> IUniswapV4Facet.decreasePosition
+        mainnetController.setDispatch(
+            IMainnetControllerFull.decreaseLiquidityUniswapV4.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.decreasePosition.selector
+        );
+
+        // Controller.increaseLiquidityUniswapV4 -> IUniswapV4Facet.increasePosition
+        mainnetController.setDispatch(
+            IMainnetControllerFull.increaseLiquidityUniswapV4.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.increasePosition.selector
+        );
+
+        // Controller.mintPositionUniswapV4 -> IUniswapV4Facet.mintPosition
+        mainnetController.setDispatch(
+            IMainnetControllerFull.mintPositionUniswapV4.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.mintPosition.selector
+        );
+
+        // Controller.setUniswapV4MaxSlippage -> IUniswapV4Facet.setMaxSlippage
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setUniswapV4MaxSlippage.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.setMaxSlippage.selector
+        );
+
+        // Controller.setUniswapV4TickLimits -> IUniswapV4Facet.setTickLimits
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setUniswapV4TickLimits.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.setTickLimits.selector
+        );
+
+        // Controller.swapUniswapV4 -> IUniswapV4Facet.swap
+        mainnetController.setDispatch(
+            IMainnetControllerFull.swapUniswapV4.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.swap.selector
+        );
+
+        // Controller.LIMIT_UNISWAP_V4_DEPOSIT -> IUniswapV4Facet.LIMIT_DEPOSIT
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_UNISWAP_V4_DEPOSIT.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.LIMIT_DEPOSIT.selector
+        );
+
+        // Controller.LIMIT_UNISWAP_V4_WITHDRAW -> IUniswapV4Facet.LIMIT_WITHDRAW
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_UNISWAP_V4_WITHDRAW.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.LIMIT_WITHDRAW.selector
+        );
+
+        // Controller.LIMIT_UNISWAP_V4_SWAP -> IUniswapV4Facet.LIMIT_SWAP
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_UNISWAP_V4_SWAP.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.LIMIT_SWAP.selector
+        );
+
+        // Controller.uniswapV4MaxSlippages -> IUniswapV4Facet.getMaxSlippage
+        mainnetController.setDispatch(
+            IMainnetControllerFull.uniswapV4MaxSlippages.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.getMaxSlippage.selector
+        );
+
+        // Controller.uniswapV4TickLimits -> IUniswapV4Facet.getTickLimits
+        mainnetController.setDispatch(
+            IMainnetControllerFull.uniswapV4TickLimits.selector,
+            uniswapV4Facet,
+            IUniswapV4Facet.getTickLimits.selector
+        );
+    }
 }
