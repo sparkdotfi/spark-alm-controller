@@ -25,6 +25,7 @@ import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
 import { ICCTPFacet }          from "../../src/interfaces/facets/ICCTPFacet.sol";
+import { ICentrifugeFacet }    from "../../src/interfaces/facets/ICentrifugeFacet.sol";
 import { ICurveFacet }         from "../../src/interfaces/facets/ICurveFacet.sol";
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
@@ -46,6 +47,7 @@ import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.so
 
 import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
 import { CCTPFacet }          from "../../src/libraries/CCTPLib.sol";
+import { CentrifugeFacet }    from "../../src/libraries/CentrifugeLib.sol";
 import { CurveFacet }         from "../../src/libraries/CurveLib.sol";
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
@@ -288,6 +290,7 @@ abstract contract ForkTestBase is DssTest {
 
         _wireAaveFacet();
         _wireCCTPFacet();
+        _wireCentrifugeFacet();
         _wireCurveFacet();
         _wireDAIUSDSFacet();
         _wireERC4626Facet();
@@ -410,6 +413,70 @@ abstract contract ForkTestBase is DssTest {
     /**********************************************************************************************/
     /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
+
+    function _wireCentrifugeFacet() internal {
+        // NOTE: We are NOT wiring DEPOSIT, REDEEM keys, as they already wired in _wireERC7540Facet.
+
+        address centrifugeFacet = address(new CentrifugeFacet());
+
+        vm.label(centrifugeFacet, "CentrifugeFacet");
+
+        // "Controller.setCentrifugeRecipient()" -> "CentrifugeFacet.setRecipient()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setCentrifugeRecipient.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.setRecipient.selector
+        );
+
+        // "Controller.cancelCentrifugeDepositRequest()" -> "CentrifugeFacet.cancelDepositRequest()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.cancelCentrifugeDepositRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.cancelDepositRequest.selector
+        );
+
+        // "Controller.claimCentrifugeCancelDepositRequest()" -> "CentrifugeFacet.claimCancelDepositRequest()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.claimCentrifugeCancelDepositRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.claimCancelDepositRequest.selector
+        );
+
+        // "Controller.cancelCentrifugeRedeemRequest()" -> "CentrifugeFacet.cancelRedeemRequest()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.cancelCentrifugeRedeemRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.cancelRedeemRequest.selector
+        );
+
+        // "Controller.claimCentrifugeCancelRedeemRequest()" -> "CentrifugeFacet.claimCancelRedeemRequest()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.claimCentrifugeCancelRedeemRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.claimCancelRedeemRequest.selector
+        );
+
+        // "Controller.transferSharesCentrifuge()" -> "CentrifugeFacet.transferShares()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.transferSharesCentrifuge.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.transferShares.selector
+        );
+
+        // "Controller.LIMIT_CENTRIFUGE_TRANSFER()" -> "CentrifugeFacet.LIMIT_TRANSFER()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_CENTRIFUGE_TRANSFER.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.LIMIT_TRANSFER.selector
+        );
+
+        // "Controller.getCentrifugeRecipient()" -> "CentrifugeFacet.getRecipient()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.getCentrifugeRecipient.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.getRecipient.selector
+        );
+    }
 
     function _wireCurveFacet() internal {
         address curveFacet = address(new CurveFacet());

@@ -287,7 +287,7 @@ contract MainnetController_Centrifuge_CancelDeposit_Tests is Centrifuge_TestBase
     }
 
     function test_cancelCentrifugeDepositRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(relayer);
         mainnetController.cancelCentrifugeDepositRequest(makeAddr("fake-vault"));
     }
@@ -337,7 +337,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
     }
 
     function test_claimCentrifugeCancelDepositRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(relayer);
         mainnetController.claimCentrifugeCancelDepositRequest(makeAddr("fake-vault"));
     }
@@ -666,7 +666,7 @@ contract MainnetController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
     }
 
     function test_cancelCentrifugeRedeemRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(relayer);
         mainnetController.cancelCentrifugeRedeemRequest(makeAddr("fake-vault"));
     }
@@ -720,7 +720,7 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
     }
 
     function test_claimCentrifugeCancelRedeemRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(relayer);
         mainnetController.claimCentrifugeCancelRedeemRequest(makeAddr("fake-vault"));
     }

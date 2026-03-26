@@ -14,9 +14,11 @@ import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { CCTPv2Forwarder as CCTPForwarder } from "../../lib/grove-xchain-helpers/src/forwarders/CCTPv2Forwarder.sol";
 
-import { IERC7540Facet } from "../../src/interfaces/facets/IERC7540Facet.sol";
+import { ICentrifugeFacet } from "../../src/interfaces/facets/ICentrifugeFacet.sol";
+import { IERC7540Facet }    from "../../src/interfaces/facets/IERC7540Facet.sol";
 
-import { ERC7540Facet } from "../../src/libraries/ERC7540Lib.sol";
+import { CentrifugeFacet } from "../../src/libraries/CentrifugeLib.sol";
+import { ERC7540Facet }    from "../../src/libraries/ERC7540Lib.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
@@ -141,6 +143,8 @@ contract ForkTestBase is Test {
         accessControls.grantRole(accessControls.RELAYER_ROLE(), ALM_RELAYER);
 
         // Facet wiring
+
+        _wireCentrifugeFacet();
         _wireERC7540Facet();
 
         vm.stopPrank();
@@ -169,8 +173,72 @@ contract ForkTestBase is Test {
     }
 
     /**********************************************************************************************/
-    /*** Facet wiring helpers                                                                   ***/
+    /*** Facet wiring helpers.                                                                  ***/
     /**********************************************************************************************/
+
+    function _wireCentrifugeFacet() internal {
+        // NOTE: We are NOT wiring DEPOSIT, REDEEM keys, as they already wired in _wireERC7540Facet.
+
+        address centrifugeFacet = address(new CentrifugeFacet());
+
+        vm.label(centrifugeFacet, "CentrifugeFacet");
+
+        // "Controller.setCentrifugeRecipient()" -> "CentrifugeFacet.setRecipient()"
+        foreignController.setDispatch(
+            IForeignControllerFull.setCentrifugeRecipient.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.setRecipient.selector
+        );
+
+        // "Controller.cancelCentrifugeDepositRequest()" -> "CentrifugeFacet.cancelDepositRequest()"
+        foreignController.setDispatch(
+            IForeignControllerFull.cancelCentrifugeDepositRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.cancelDepositRequest.selector
+        );
+
+        // "Controller.claimCentrifugeCancelDepositRequest()" -> "CentrifugeFacet.claimCancelDepositRequest()"
+        foreignController.setDispatch(
+            IForeignControllerFull.claimCentrifugeCancelDepositRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.claimCancelDepositRequest.selector
+        );
+
+        // "Controller.cancelCentrifugeRedeemRequest()" -> "CentrifugeFacet.cancelRedeemRequest()"
+        foreignController.setDispatch(
+            IForeignControllerFull.cancelCentrifugeRedeemRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.cancelRedeemRequest.selector
+        );
+
+        // "Controller.claimCentrifugeCancelRedeemRequest()" -> "CentrifugeFacet.claimCancelRedeemRequest()"
+        foreignController.setDispatch(
+            IForeignControllerFull.claimCentrifugeCancelRedeemRequest.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.claimCancelRedeemRequest.selector
+        );
+
+        // "Controller.transferSharesCentrifuge()" -> "CentrifugeFacet.transferShares()"
+        foreignController.setDispatch(
+            IForeignControllerFull.transferSharesCentrifuge.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.transferShares.selector
+        );
+
+        // "Controller.LIMIT_CENTRIFUGE_TRANSFER()" -> "CentrifugeFacet.LIMIT_TRANSFER()"
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_CENTRIFUGE_TRANSFER.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.LIMIT_TRANSFER.selector
+        );
+
+        // "Controller.getCentrifugeRecipient()" -> "CentrifugeFacet.getRecipient()"
+        foreignController.setDispatch(
+            IForeignControllerFull.getCentrifugeRecipient.selector,
+            centrifugeFacet,
+            ICentrifugeFacet.getRecipient.selector
+        );
+    }
 
     function _wireERC7540Facet() internal {
         address erc7540Facet = address(new ERC7540Facet());

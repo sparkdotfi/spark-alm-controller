@@ -101,6 +101,29 @@ abstract contract IForeignControllerFull is IController, ForeignController {
     function transferAsset(address asset, address destination, uint256 amount) external virtual;
 
     /**********************************************************************************************/
+    /*** CentrifugeFacet actions                                                                ***/
+    /**********************************************************************************************/
+
+    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external virtual;
+
+    function cancelCentrifugeDepositRequest(address token) external virtual;
+
+    function claimCentrifugeCancelDepositRequest(address token) external virtual;
+
+    function cancelCentrifugeRedeemRequest(address token) external virtual;
+
+    function claimCentrifugeCancelRedeemRequest(address token) external virtual;
+
+    function transferSharesCentrifuge(address token, uint128 amount, uint16 centrifugeId)
+        external
+        payable
+        virtual;
+
+    function LIMIT_CENTRIFUGE_TRANSFER() external pure virtual returns (bytes32); // NOTE: DEPOSIT, REDEEM keys will be reused from ERC7450Facet wiring
+
+    function getCentrifugeRecipient(uint16 centrifugeId) external view virtual returns (bytes32);
+
+    /**********************************************************************************************/
     /*** AaveFacet actions                                                                      ***/
     /**********************************************************************************************/
 

@@ -3,7 +3,6 @@ pragma solidity ^0.8.34;
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 
@@ -33,7 +32,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_CENTRIFUGE_TRANSFER = CentrifugeLib.LIMIT_TRANSFER;
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public constant LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
@@ -52,7 +50,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
     mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
-    mapping(uint16 destinationCentrifugeId => bytes32 recipient)        public centrifugeRecipients;
 
     // Uniswap V3 pool params
     mapping(address pool => UniswapV3Lib.PoolParams params) public uniswapV3PoolParams;
@@ -100,14 +97,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         LayerZeroLib.setRecipient(layerZeroRecipients, destinationEndpointId, recipient);
-    }
-
-    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        CentrifugeLib.setCentrifugeRecipient(centrifugeRecipients, centrifugeId, recipient);
     }
 
     function setUniswapV3PositionManager(address manager)
@@ -269,60 +258,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             amount                : amount,
             destinationEndpointId : destinationEndpointId,
             layerZeroRecipients   : layerZeroRecipients
-        });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Centrifuge functions                                                           ***/
-    /**********************************************************************************************/
-
-    // NOTE: These cancellation methods are compatible with ERC-7887
-
-    function cancelCentrifugeDepositRequest(address token)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        CentrifugeLib.cancelDepositRequest(address(proxy), address(rateLimits), token);
-    }
-
-    function claimCentrifugeCancelDepositRequest(address token)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        CentrifugeLib.claimCancelDepositRequest(address(proxy), address(rateLimits), token);
-    }
-
-    function cancelCentrifugeRedeemRequest(address token)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        CentrifugeLib.cancelRedeemRequest(address(proxy), address(rateLimits), token);
-    }
-
-    function claimCentrifugeCancelRedeemRequest(address token)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        CentrifugeLib.claimCancelRedeemRequest(address(proxy), address(rateLimits), token);
-    }
-
-    function transferSharesCentrifuge(address token, uint128 amount, uint16 centrifugeId)
-        external
-        payable
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        CentrifugeLib.transferShares({
-            proxy        : address(proxy),
-            rateLimits   : address(rateLimits),
-            token        : token,
-            centrifugeId : centrifugeId,
-            amount       : amount,
-            recipients   : centrifugeRecipients
         });
     }
 

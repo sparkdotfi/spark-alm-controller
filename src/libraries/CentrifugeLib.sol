@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy }   from "../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../interfaces/IRateLimits.sol";
+import { IALMProxy }        from "../interfaces/IALMProxy.sol";
+import { ICentrifugeFacet } from "../interfaces/facets/ICentrifugeFacet.sol";
+import { IRateLimits }      from "../interfaces/IRateLimits.sol";
 
 import { makeAddressKey, makeAddressUint16Key } from "../RateLimitHelpers.sol";
+
+import { FacetBase } from "./FacetBase.sol";
 
 interface IAsyncRedeemManagerLike {
 
@@ -47,13 +50,26 @@ interface ISpokeLike {
 
 }
 
-library CentrifugeLib {
+contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
 
     /**********************************************************************************************/
-    /*** Events                                                                                 ***/
+    /*** CentrifugeFacet Storage Domain                                                         ***/
     /**********************************************************************************************/
 
-    event CentrifugeRecipientSet(uint16 indexed centrifugeId, bytes32 indexed recipient);
+    /// @custom:storage-location erc7201:sky.pau.storage.CentrifugeFacet
+    struct FacetStorage {
+        mapping(uint16 centrifugeId => bytes32 recipient) recipients;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CentrifugeFacet")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 internal constant FACET_STORAGE_LOCATION =
+        0xc069081c0c1d07d37b10d4b49109414316895d1a08146dc2106442b9fa4f7900;
+
+    function _getFacetStorage() internal pure returns (FacetStorage storage $) {
+        assembly {
+            $.slot := FACET_STORAGE_LOCATION
+        }
+    }
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
@@ -70,16 +86,27 @@ library CentrifugeLib {
     /*** External interactive functions                                                         ***/
     /**********************************************************************************************/
 
-    function setCentrifugeRecipient(
-        mapping (uint16 centrifugeId => bytes32 recipient) storage recipients,
-        uint16  centrifugeId,
-        bytes32 recipient
-    ) external {
-        emit CentrifugeRecipientSet(centrifugeId, recipients[centrifugeId] = recipient);
+    function setRecipient(uint16 centrifugeId, bytes32 recipient)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        emit CentrifugeRecipientSet(
+            centrifugeId,
+            _getFacetStorage().recipients[centrifugeId] = recipient
+        );
     }
 
-    function cancelDepositRequest(address proxy, address rateLimits, address token) external {
-        _rateLimitExists(IRateLimits(rateLimits), makeAddressKey(LIMIT_DEPOSIT, token));
+    function cancelDepositRequest(address token)
+        external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        address proxy = $.proxy;
+
+        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_DEPOSIT, token));
 
         // NOTE: While the cancellation is pending, no new deposit request can be submitted.
         IALMProxy(proxy).doCall(
@@ -88,8 +115,16 @@ library CentrifugeLib {
         );
     }
 
-    function claimCancelDepositRequest(address proxy, address rateLimits, address token) external {
-        _rateLimitExists(IRateLimits(rateLimits), makeAddressKey(LIMIT_DEPOSIT, token));
+    function claimCancelDepositRequest(address token)
+        external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        address proxy = $.proxy;
+
+        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_DEPOSIT, token));
 
         IALMProxy(proxy).doCall(
             token,
@@ -100,8 +135,16 @@ library CentrifugeLib {
         );
     }
 
-    function cancelRedeemRequest(address proxy, address rateLimits, address token) external {
-        _rateLimitExists(IRateLimits(rateLimits), makeAddressKey(LIMIT_REDEEM, token));
+    function cancelRedeemRequest(address token)
+        external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        address proxy = $.proxy;
+
+        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_REDEEM, token));
 
         // NOTE: While the cancellation is pending, no new redeem request can be submitted.
         IALMProxy(proxy).doCall(
@@ -110,8 +153,16 @@ library CentrifugeLib {
         );
     }
 
-    function claimCancelRedeemRequest(address proxy, address rateLimits, address token) external {
-        _rateLimitExists(IRateLimits(rateLimits), makeAddressKey(LIMIT_REDEEM, token));
+    function claimCancelRedeemRequest(address token)
+        external
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        address proxy = $.proxy;
+
+        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_REDEEM, token));
 
         IALMProxy(proxy).doCall(
             token,
@@ -122,24 +173,27 @@ library CentrifugeLib {
         );
     }
 
-    function transferShares(
-        address proxy,
-        address rateLimits,
-        address token,
-        uint16  centrifugeId,
-        uint128 amount,
-        mapping (uint16 centrifugeId => bytes32 recipient) storage recipients
-    ) external {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
+    function transferShares(address token, uint128 amount, uint16 centrifugeId)
+        external
+        payable
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        address proxy = $.proxy;
+
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressUint16Key(LIMIT_TRANSFER, token, centrifugeId),
             amount
         );
 
-        bytes32 recipient = recipients[centrifugeId];
+        bytes32 recipient = _getFacetStorage().recipients[centrifugeId];
 
-        require(recipient != 0, "CentrifugeLib/id-not-configured");
+        require(recipient != 0, "CentrifugeFacet/id-not-configured");
 
-        address spoke = IAsyncRedeemManagerLike(ICentrifugeV3VaultLike(token).baseManager()).spoke();
+        address spoke 
+            = IAsyncRedeemManagerLike(ICentrifugeV3VaultLike(token).baseManager()).spoke();
 
         // Initiate cross-chain transfer via the specific spoke address
         IALMProxy(proxy).doCallWithValue{value: msg.value}(
@@ -160,13 +214,21 @@ library CentrifugeLib {
     }
 
     /**********************************************************************************************/
+    /*** Public view/pure functions.                                                            ***/
+    /**********************************************************************************************/
+
+    function getRecipient(uint16 centrifugeId) external view returns (bytes32) {
+        return _getFacetStorage().recipients[centrifugeId];
+    }
+
+    /**********************************************************************************************/
     /*** Internal view/pure functions                                                           ***/
     /**********************************************************************************************/
 
-    function _rateLimitExists(IRateLimits rateLimits, bytes32 key) internal view {
+    function _rateLimitExists(address rateLimits, bytes32 key) internal view {
         require(
-            rateLimits.getRateLimitData(key).maxAmount > 0,
-            "CentrifugeLib/invalid-action"
+            IRateLimits(rateLimits).getRateLimitData(key).maxAmount > 0,
+            "CentrifugeFacet/invalid-action"
         );
     }
 

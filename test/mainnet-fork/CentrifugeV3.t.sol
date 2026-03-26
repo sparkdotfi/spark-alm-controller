@@ -119,7 +119,7 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
         deal(relayer, 1 ether);  // Gas cost for Centrifuge
 
         vm.startPrank(relayer);
-        vm.expectRevert("CentrifugeLib/id-not-configured");
+        vm.expectRevert("CentrifugeFacet/id-not-configured");
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,

@@ -222,6 +222,29 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function psmTo18ConversionFactor() external view virtual returns (uint256);
 
     /**********************************************************************************************/
+    /*** CentrifugeFacet actions                                                                ***/
+    /**********************************************************************************************/
+
+    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external virtual;
+
+    function cancelCentrifugeDepositRequest(address token) external virtual;
+
+    function claimCentrifugeCancelDepositRequest(address token) external virtual;
+
+    function cancelCentrifugeRedeemRequest(address token) external virtual;
+
+    function claimCentrifugeCancelRedeemRequest(address token) external virtual;
+
+    function transferSharesCentrifuge(address token, uint128 amount, uint16 centrifugeId)
+        external
+        payable
+        virtual;
+
+    function LIMIT_CENTRIFUGE_TRANSFER() external pure virtual returns (bytes32); // NOTE: DEPOSIT, REDEEM keys will be reused from ERC7450Facet wiring
+
+    function getCentrifugeRecipient(uint16 centrifugeId) external view virtual returns (bytes32);
+
+    /**********************************************************************************************/
     /*** AaveFacet actions                                                                      ***/
     /**********************************************************************************************/
 

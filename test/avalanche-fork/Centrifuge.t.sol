@@ -327,7 +327,7 @@ contract ForeignController_Centrifuge_CancelDepositERC7540_Tests is Centrifuge_T
     }
 
     function test_cancelCentrifugeDepositRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
         foreignController.cancelCentrifugeDepositRequest(makeAddr("fake-vault"));
     }
@@ -377,7 +377,7 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
     }
 
     function test_claimCentrifugeCancelDepositRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
         foreignController.claimCentrifugeCancelDepositRequest(makeAddr("fake-vault"));
     }
@@ -744,7 +744,7 @@ contract ForeignController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
     }
 
     function test_cancelCentrifugeRedeemRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
         foreignController.cancelCentrifugeRedeemRequest(makeAddr("fake-vault"));
     }
@@ -798,7 +798,7 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
     }
 
     function test_claimCentrifugeCancelRedeemRequest_invalidVault() external {
-        vm.expectRevert("CentrifugeLib/invalid-action");
+        vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
         foreignController.claimCentrifugeCancelRedeemRequest(makeAddr("fake-vault"));
     }
@@ -928,7 +928,7 @@ contract ForeignController_Centrifuge_TransferShares_Tests is Centrifuge_TestBas
         vm.prank(GROVE_EXECUTOR);
         foreignController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, bytes32(0));
 
-        vm.expectRevert("CentrifugeLib/id-not-configured");
+        vm.expectRevert("CentrifugeFacet/id-not-configured");
         vm.startPrank(ALM_RELAYER);
         foreignController.transferSharesCentrifuge{value: 0.5 ether}(
             CENTRIFUGE_VAULT,
