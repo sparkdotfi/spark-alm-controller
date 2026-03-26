@@ -14,12 +14,14 @@ import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
-import { IERC4626Facet } from "../../src/interfaces/facets/IERC4626Facet.sol";
+import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
+import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
 import { IPSM3Facet }          from "../../src/interfaces/facets/IPSM3Facet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 
-import { ERC4626Facet } from "../../src/libraries/ERC4626Lib.sol";
+import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
+import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { PSM3Facet }          from "../../src/libraries/PSM3Lib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
@@ -141,6 +143,8 @@ abstract contract ForkTestBase is Test {
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
 
         // Facet wiring
+
+        _wireAaveFacet();
         _wireERC4626Facet();
         _wirePSM3Facet();
         _wireSparkVaultFacet();
@@ -232,6 +236,54 @@ abstract contract ForkTestBase is Test {
     /**********************************************************************************************/
     /*** Facet wiring helpers.                                                                  ***/
     /**********************************************************************************************/
+
+    function _wireAaveFacet() internal {
+        address aaveFacet = address(new AaveFacet());
+
+        vm.label(aaveFacet, "AaveFacet");
+
+        // Controller.setAaveMaxSlippage() -> AaveFacet.setMaxSlippage()
+        foreignController.setDispatch(
+            IForeignControllerFull.setAaveMaxSlippage.selector,
+            aaveFacet,
+            IAaveFacet.setMaxSlippage.selector
+        );
+
+        // Controller.getAaveMaxSlippage() -> AaveFacet.getMaxSlippage()
+        foreignController.setDispatch(
+            IForeignControllerFull.getAaveMaxSlippage.selector,
+            aaveFacet,
+            IAaveFacet.getMaxSlippage.selector
+        );
+
+        // Controller.depositAave() -> AaveFacet.deposit()
+        foreignController.setDispatch(
+            IForeignControllerFull.depositAave.selector,
+            aaveFacet,
+            IAaveFacet.deposit.selector
+        );
+
+        // Controller.withdrawAave() -> AaveFacet.withdraw()
+        foreignController.setDispatch(
+            IForeignControllerFull.withdrawAave.selector,
+            aaveFacet,
+            IAaveFacet.withdraw.selector
+        );
+
+        // Controller.LIMIT_AAVE_DEPOSIT() -> AaveFacet.LIMIT_DEPOSIT()
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_AAVE_DEPOSIT.selector,
+            aaveFacet,
+            IAaveFacet.LIMIT_DEPOSIT.selector
+        );
+
+        // Controller.LIMIT_AAVE_WITHDRAW() -> AaveFacet.LIMIT_WITHDRAW()
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_AAVE_WITHDRAW.selector,
+            aaveFacet,
+            IAaveFacet.LIMIT_WITHDRAW.selector
+        );
+    }
 
     function _wireERC4626Facet() internal {
         address erc4626Facet = address(new ERC4626Facet());

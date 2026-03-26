@@ -42,7 +42,7 @@ abstract contract AaveV3_TestBase is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
-        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
+        foreignController.setAaveMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
 
         vm.stopPrank();
 
@@ -80,9 +80,9 @@ contract ForeignController_AaveV3_Deposit_Tests is AaveV3_TestBase {
 
     function test_depositAave_zeroMaxSlippage() external {
         vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(ATOKEN_USDC, 0);
+        foreignController.setAaveMaxSlippage(ATOKEN_USDC, 0);
 
-        vm.expectRevert("AaveLib/max-slippage-not-set");
+        vm.expectRevert("AaveFacet/max-slippage-not-set");
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
     }
@@ -105,14 +105,14 @@ contract ForeignController_AaveV3_Deposit_Tests is AaveV3_TestBase {
         // 1e6 * 1_000_000e6 / 1e18 = 1
         // (1e6 - 1) * 1_000_000e6 / 1e18 = 0
         vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 + 1e6);
+        foreignController.setAaveMaxSlippage(ATOKEN_USDC, 1e18 + 1e6);
 
-        vm.expectRevert("AaveLib/slippage-too-high");
+        vm.expectRevert("AaveFacet/slippage-too-high");
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
 
         vm.prank(Base.SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(ATOKEN_USDC, 1e18 + 1e6 - 1);
+        foreignController.setAaveMaxSlippage(ATOKEN_USDC, 1e18 + 1e6 - 1);
 
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);

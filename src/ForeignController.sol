@@ -3,7 +3,6 @@ pragma solidity ^0.8.34;
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-import { AaveLib }          from "./libraries/AaveLib.sol";
 import { CCTPLib }          from "./libraries/CCTPLib.sol";
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { CurveLib }         from "./libraries/CurveLib.sol";
@@ -44,8 +43,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_AAVE_DEPOSIT        = AaveLib.LIMIT_DEPOSIT;
-    bytes32 public constant LIMIT_AAVE_WITHDRAW       = AaveLib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_CENTRIFUGE_TRANSFER = CentrifugeLib.LIMIT_TRANSFER;
     bytes32 public constant LIMIT_CURVE_DEPOSIT       = CurveLib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_CURVE_SWAP          = CurveLib.LIMIT_SWAP;
@@ -371,23 +368,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             destinationEndpointId : destinationEndpointId,
             layerZeroRecipients   : layerZeroRecipients
         });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Aave functions                                                                 ***/
-    /**********************************************************************************************/
-
-    function depositAave(address aToken, uint256 amount) external nonReentrant onlyRole(RELAYER) {
-        AaveLib.deposit(address(proxy), address(rateLimits), aToken, amount, maxSlippages);
-    }
-
-    function withdrawAave(address aToken, uint256 amount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 amountWithdrawn)
-    {
-        return AaveLib.withdraw(address(proxy), address(rateLimits), aToken, amount);
     }
 
     /**********************************************************************************************/

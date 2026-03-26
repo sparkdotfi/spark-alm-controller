@@ -91,8 +91,8 @@ abstract contract AaveV3_TestBase is ForkTestBase {
             uint256(5_000_000e6) / 1 days
         );
 
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 - 1e4);  // Rounding slippage
-        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setAaveMaxSlippage(ATOKEN_USDS, 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setAaveMaxSlippage(ATOKEN_USDC, 1e18 - 1e4);  // Rounding slippage
 
         vm.stopPrank();
 
@@ -133,9 +133,9 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
 
     function test_depositAave_zeroMaxSlippage() external {
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 0);
+        mainnetController.setAaveMaxSlippage(ATOKEN_USDS, 0);
 
-        vm.expectRevert("AaveLib/max-slippage-not-set");
+        vm.expectRevert("AaveFacet/max-slippage-not-set");
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 1e18);
     }
@@ -167,14 +167,14 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
 
         // Positive slippage because of no rounding error
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18 + 1);
+        mainnetController.setAaveMaxSlippage(ATOKEN_USDS, 1e18 + 1);
 
-        vm.expectRevert("AaveLib/slippage-too-high");
+        vm.expectRevert("AaveFacet/slippage-too-high");
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 5_000_000e18);
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDS, 1e18);
+        mainnetController.setAaveMaxSlippage(ATOKEN_USDS, 1e18);
 
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDS, 5_000_000e18);
@@ -187,14 +187,14 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
         // 0.2e6 * 5_000_000e6 / 1e18 = 1
         // (0.2e6 - 1) * 5_000_000e6 / 1e18 = 0
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6);
+        mainnetController.setAaveMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6);
 
-        vm.expectRevert("AaveLib/slippage-too-high");
+        vm.expectRevert("AaveFacet/slippage-too-high");
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 5_000_000e6);
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6 - 1);
+        mainnetController.setAaveMaxSlippage(ATOKEN_USDC, 1e18 + 0.2e6 - 1);
 
         vm.prank(relayer);
         mainnetController.depositAave(ATOKEN_USDC, 5_000_000e6);
@@ -550,21 +550,21 @@ contract MainnetController_AaveV3_LiquidityIndexInflationAttack_Test is AaveV3_A
 
     function test_depositAave_liquidityIndexInflationAttackFailure() external {
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(SparkLend.PYUSD_SPTOKEN, 1e18 - 1e4);  // Rounding slippage
+        mainnetController.setAaveMaxSlippage(SparkLend.PYUSD_SPTOKEN, 1e18 - 1e4);  // Rounding slippage
 
         _doInflationAttack();
 
         // Verify that deposit would fail due to slippage
         deal(Ethereum.PYUSD, address(almProxy), 100_000e6);
 
-        vm.expectRevert("AaveLib/slippage-too-high");
+        vm.expectRevert("AaveFacet/slippage-too-high");
         vm.prank(relayer);
         mainnetController.depositAave(SparkLend.PYUSD_SPTOKEN, 100_000e6);
     }
 
     function test_depositAave_liquidityIndexInflationAttackSuccess() external {
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxSlippage(SparkLend.PYUSD_SPTOKEN, 1);
+        mainnetController.setAaveMaxSlippage(SparkLend.PYUSD_SPTOKEN, 1);
 
         _doInflationAttack();
 

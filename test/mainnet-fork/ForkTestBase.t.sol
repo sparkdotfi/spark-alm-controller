@@ -21,6 +21,7 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
+import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
 import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
@@ -37,6 +38,7 @@ import { IWEETHFacet }         from "../../src/interfaces/facets/IWEETHFacet.sol
 import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFacet.sol";
 import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
+import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
@@ -274,6 +276,7 @@ abstract contract ForkTestBase is DssTest {
 
         // Facet wiring
 
+        _wireAaveFacet();
         _wireDAIUSDSFacet();
         _wireERC4626Facet();
         _wireERC7540Facet();
@@ -393,6 +396,54 @@ abstract contract ForkTestBase is DssTest {
     /**********************************************************************************************/
     /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
+
+    function _wireAaveFacet() internal {
+        address aaveFacet = address(new AaveFacet());
+
+        vm.label(aaveFacet, "AaveFacet");
+
+        // Controller.setAaveMaxSlippage() -> AaveFacet.setMaxSlippage()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setAaveMaxSlippage.selector,
+            aaveFacet,
+            IAaveFacet.setMaxSlippage.selector
+        );
+
+        // Controller.getAaveMaxSlippage() -> AaveFacet.getMaxSlippage()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.getAaveMaxSlippage.selector,
+            aaveFacet,
+            IAaveFacet.getMaxSlippage.selector
+        );
+
+        // "Controller.depositAave()" -> "AaveFacet.deposit()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.depositAave.selector,
+            aaveFacet,
+            IAaveFacet.deposit.selector
+        );
+
+        // "Controller.withdrawAave()" -> "AaveFacet.withdraw()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.withdrawAave.selector,
+            aaveFacet,
+            IAaveFacet.withdraw.selector
+        );
+
+        // "Controller.LIMIT_AAVE_DEPOSIT()" -> "AaveFacet.LIMIT_DEPOSIT()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_AAVE_DEPOSIT.selector,
+            aaveFacet,
+            IAaveFacet.LIMIT_DEPOSIT.selector
+        );
+
+        // "Controller.LIMIT_AAVE_WITHDRAW()" -> "AaveFacet.LIMIT_WITHDRAW()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_AAVE_WITHDRAW.selector,
+            aaveFacet,
+            IAaveFacet.LIMIT_WITHDRAW.selector
+        );
+    }
 
     function _wireDAIUSDSFacet() internal {
         address daiUSDSFacet = address(new DAIUSDSFacet({
