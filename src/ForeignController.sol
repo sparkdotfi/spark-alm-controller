@@ -6,7 +6,6 @@ import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { CurveLib }         from "./libraries/CurveLib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
-import { PendleLib }        from "./libraries/PendleLib.sol";
 import { MerklLib }         from "./libraries/MerklLib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 
@@ -24,8 +23,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event RelayerRemoved(address indexed relayer);
-
-    event PendleRouterSet(address indexed pendleRouter);
 
     event MerklDistributorSet(address indexed merklDistributor);
 
@@ -45,7 +42,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     bytes32 public constant LIMIT_CURVE_SWAP          = CurveLib.LIMIT_SWAP;
     bytes32 public constant LIMIT_CURVE_WITHDRAW      = CurveLib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = LayerZeroLib.LIMIT_TRANSFER;
-    bytes32 public constant LIMIT_PENDLE_PT_REDEEM    = PendleLib.LIMIT_REDEEM;
     bytes32 public constant LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
     bytes32 public constant LIMIT_UNISWAP_V3_WITHDRAW = UniswapV3Lib.LIMIT_WITHDRAW;
@@ -61,8 +57,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     address public immutable usdc;
 
     address public merklDistributor;
-
-    address public pendleRouter;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -115,15 +109,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         LayerZeroLib.setRecipient(layerZeroRecipients, destinationEndpointId, recipient);
-    }
-
-    function setPendleRouter(address pendleRouter_)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        pendleRouter = pendleRouter_;
-        emit PendleRouterSet(pendleRouter_);
     }
 
     function setMerklDistributor(address merklDistributor_)
@@ -378,25 +363,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             proxy       : address(proxy),
             distributor : merklDistributor,
             operator    : operator
-        });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Pendle functions                                                               ***/
-    /**********************************************************************************************/
-
-    function redeemPendlePT(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        PendleLib.redeem({
-            proxy        : address(proxy),
-            rateLimits   : address(rateLimits),
-            market       : pendleMarket,
-            router       : pendleRouter,
-            pyAmountIn   : pyAmountIn,
-            minAmountOut : minAmountOut
         });
     }
 

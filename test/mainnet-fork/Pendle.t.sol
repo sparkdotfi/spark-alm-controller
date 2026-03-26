@@ -50,9 +50,6 @@ contract PendleTestBase is ForkTestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        vm.prank(SparkEthereum.SPARK_PROXY);
-        mainnetController.setPendleRouter(GroveEthereum.PENDLE_ROUTER);
-
         redeemKey = makeAddressKey(
             mainnetController.LIMIT_PENDLE_PT_REDEEM(),
             address(pendleMarket)
@@ -68,55 +65,7 @@ contract PendleTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerSetPendleRouterFailureTests is PendleTestBase {
-
-    function test_setPendleRouter_reentrancy() public {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setPendleRouter(GroveEthereum.PENDLE_ROUTER);
-    }
-
-    function test_setPendleRouter_notAdmin() public {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        mainnetController.setPendleRouter(GroveEthereum.PENDLE_ROUTER);
-    }
-
-}
-
-contract MainnetControllerSetPendleRouterSuccessTests is PendleTestBase {
-
-    function setUp() public override {
-        super.setUp();
-
-        vm.prank(SparkEthereum.SPARK_PROXY);
-        mainnetController.setPendleRouter(address(0));
-    }
-
-    function test_setPendleRouter_success() public {
-        assertEq(mainnetController.pendleRouter(), address(0));
-
-        vm.prank(SparkEthereum.SPARK_PROXY);
-        mainnetController.setPendleRouter(GroveEthereum.PENDLE_ROUTER);
-
-        assertEq(mainnetController.pendleRouter(), GroveEthereum.PENDLE_ROUTER);
-    }
-
-}
-
 contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
-
-    function test_redeemPendlePT_pendleRouterNotSet() public {
-        vm.prank(SparkEthereum.SPARK_PROXY);
-        mainnetController.setPendleRouter(address(0));
-
-        vm.prank(relayer);
-        vm.expectRevert("PendleLib/pendle-router-not-set");
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
-    }
 
     function test_redeemPendlePT_notRelayer() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -131,7 +80,7 @@ contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
         vm.warp(pendleMarket.expiry() - 1);
 
         vm.prank(relayer);
-        vm.expectRevert("PendleLib/market-not-expired");
+        vm.expectRevert("PendleFacet/market-not-expired");
         mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
     }
 
@@ -196,7 +145,7 @@ contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
         vm.warp(pendleMarket.expiry());
 
         vm.prank(relayer);
-        vm.expectRevert("PendleLib/min-amount-out-not-set");
+        vm.expectRevert("PendleFacet/min-amount-out-not-set");
         mainnetController.redeemPendlePT(address(pendleMarket), 1_000_000e18, 0);
     }
 
@@ -211,7 +160,7 @@ contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
         uint256 exactAmountOut = 1_000_000e18 * 1e18 / pyIndexCurrent; // Exact at this particular point in time
 
         vm.prank(relayer);
-        vm.expectRevert("PendleLib/min-amount-not-met");
+        vm.expectRevert("PendleFacet/min-amount-not-met");
         mainnetController.redeemPendlePT(address(pendleMarket), 1_000_000e18, exactAmountOut + 1);
 
         vm.prank(relayer);

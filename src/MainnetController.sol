@@ -13,7 +13,6 @@ import { CurveLib }      from "./libraries/CurveLib.sol";
 import { LayerZeroLib }  from "./libraries/LayerZeroLib.sol";
 import { MerklLib }      from "./libraries/MerklLib.sol";
 import { OTCLib }        from "./libraries/OTCLib.sol";
-import { PendleLib }     from "./libraries/PendleLib.sol";
 import { UniswapV3Lib }  from "./libraries/UniswapV3Lib.sol";
 
 import { Controller } from "./Controller.sol";
@@ -45,8 +44,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
     event RelayerRemoved(address indexed relayer);
 
-    event PendleRouterSet(address indexed pendleRouter);
-
     event MerklDistributorSet(address indexed merklDistributor);
 
     event UniswapV3SwapRouterSet(address indexed swapRouter);
@@ -69,7 +66,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
     bytes32 public LIMIT_UNISWAP_V3_WITHDRAW = UniswapV3Lib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_PENDLE_PT_REDEEM    = PendleLib.LIMIT_REDEEM;
 
     address public buffer;
 
@@ -87,7 +83,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     address public usdc;
     address public ustb;
     address public susde;
-    address public pendleRouter;
     address public merklDistributor;
 
     address public uniswapV3PositionManager;
@@ -170,15 +165,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
-    }
-
-    function setPendleRouter(address pendleRouter_)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        pendleRouter = pendleRouter_;
-        emit PendleRouterSet(pendleRouter_);
     }
 
     function setOTCBuffer(address exchange, address otcBuffer)
@@ -413,25 +399,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
             min             : min,
             deadline        : deadline,
             maxSlippages    : maxSlippages
-        });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Pendle functions                                                               ***/
-    /**********************************************************************************************/
-
-    function redeemPendlePT(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        PendleLib.redeem({
-            proxy        : address(proxy),
-            rateLimits   : address(rateLimits),
-            market       : pendleMarket,
-            router       : pendleRouter,
-            pyAmountIn   : pyAmountIn,
-            minAmountOut : minAmountOut
         });
     }
 
