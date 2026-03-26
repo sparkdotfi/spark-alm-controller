@@ -30,6 +30,7 @@ import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.s
 import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
 import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
 import { IMapleFacet }         from "../../src/interfaces/facets/IMapleFacet.sol";
+import { IMerklFacet }         from "../../src/interfaces/facets/IMerklFacet.sol";
 import { IPendleFacet }        from "../../src/interfaces/facets/IPendleFacet.sol";
 import { IPSMFacet }           from "../../src/interfaces/facets/IPSMFacet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
@@ -49,6 +50,7 @@ import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
 import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
 import { MapleFacet }         from "../../src/libraries/MapleLib.sol";
+import { MerklFacet }         from "../../src/libraries/MerklLib.sol";
 import { PendleFacet }        from "../../src/libraries/PendleLib.sol";
 import { PSMFacet }           from "../../src/libraries/PSMLib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
@@ -289,6 +291,7 @@ abstract contract ForkTestBase is DssTest {
         _wireERC7540Facet();
         _wireFarmFacet();
         _wireMapleFacet();
+        _wireMerklFacet();
         _wirePendleFacet();
         _wirePSMFacet();
         _wireSparkVaultFacet();
@@ -536,6 +539,19 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.swapDAIToUSDS.selector,
             daiUSDSFacet,
             IDAIUSDSFacet.swapDAIToUSDS.selector
+        );
+    }
+
+    function _wireMerklFacet() internal {
+        address merklFacet = address(new MerklFacet(GroveEthereum.MERKL_DISTRIBUTOR));
+
+        vm.label(merklFacet, "MerklFacet");
+
+        // "Controller.toggleOperatorMerkl()" -> "MerklFacet.toggleOperator()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.toggleOperatorMerkl.selector,
+            merklFacet,
+            IMerklFacet.toggleOperator.selector
         );
     }
 

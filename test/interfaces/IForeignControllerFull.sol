@@ -43,6 +43,12 @@ abstract contract IForeignControllerFull is IController, ForeignController {
     function maxExchangeRates(address token) external view virtual returns (uint256);
 
     /**********************************************************************************************/
+    /*** MerklFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function toggleOperatorMerkl(address operator) external virtual;
+
+    /**********************************************************************************************/
     /*** PendleFacet actions                                                                    ***/
     /**********************************************************************************************/
 

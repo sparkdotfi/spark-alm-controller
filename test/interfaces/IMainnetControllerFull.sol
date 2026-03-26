@@ -76,6 +76,12 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
     function LIMIT_MAPLE_REDEEM() external pure virtual returns (bytes32);
 
     /**********************************************************************************************/
+    /*** MerklFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function toggleOperatorMerkl(address operator) external virtual;
+
+    /**********************************************************************************************/
     /*** PendleFacet actions                                                                    ***/
     /**********************************************************************************************/
 

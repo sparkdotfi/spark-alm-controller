@@ -6,7 +6,6 @@ import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
 import { CurveLib }         from "./libraries/CurveLib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
-import { MerklLib }         from "./libraries/MerklLib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
@@ -23,8 +22,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event RelayerRemoved(address indexed relayer);
-
-    event MerklDistributorSet(address indexed merklDistributor);
 
     event UniswapV3SwapRouterSet(address indexed swapRouter);
 
@@ -55,8 +52,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     address public uniswapV3PositionManager;
 
     address public immutable usdc;
-
-    address public merklDistributor;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -109,15 +104,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         LayerZeroLib.setRecipient(layerZeroRecipients, destinationEndpointId, recipient);
-    }
-
-    function setMerklDistributor(address merklDistributor_)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        merklDistributor = merklDistributor_;
-        emit MerklDistributorSet(merklDistributor_);
     }
 
     function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient)
@@ -351,18 +337,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             lpBurnAmount       : lpBurnAmount,
             minWithdrawAmounts : minWithdrawAmounts,
             maxSlippages       : maxSlippages
-        });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Merkl functions                                                                ***/
-    /**********************************************************************************************/
-
-    function toggleOperatorMerkl(address operator) external nonReentrant onlyRole(RELAYER) {
-        MerklLib.toggleOperator({
-            proxy       : address(proxy),
-            distributor : merklDistributor,
-            operator    : operator
         });
     }
 

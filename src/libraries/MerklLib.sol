@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy } from "../interfaces/IALMProxy.sol";
+import { IALMProxy }   from "../interfaces/IALMProxy.sol";
+import { IMerklFacet } from "../interfaces/facets/IMerklFacet.sol";
+
+import { FacetBase } from "./FacetBase.sol";
 
 interface IMerklDistributorLike {
 
@@ -9,10 +12,28 @@ interface IMerklDistributorLike {
 
 }
 
-library MerklLib {
+contract MerklFacet is IMerklFacet, FacetBase {
 
-    function toggleOperator(address proxy, address distributor, address operator) external {
-        require(distributor != address(0), "MerklLib/merkl-distributor-not-set");
+    /**********************************************************************************************/
+    /*** Declarations                                                                           ***/
+    /**********************************************************************************************/
+
+    address public immutable distributor;
+
+    /**********************************************************************************************/
+    /*** Constructor                                                                            ***/
+    /**********************************************************************************************/
+
+    constructor(address distributor_) {
+        distributor = distributor_;
+    }
+
+    /**********************************************************************************************/
+    /*** External Interactive functions                                                         ***/
+    /**********************************************************************************************/
+
+    function toggleOperator(address operator) external nonReentrant onlyRole(RELAYER_ROLE) {
+        address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(
             distributor,

@@ -29,17 +29,7 @@ contract MerklBaseTest is ForkTestBase {
 
 contract ForeignControllerToggleOperatorMerklFailureTests is MerklBaseTest {
 
-    function test_toggleOperatorMerkl_merklDistributorNotSet() external {
-        vm.expectRevert("MerklLib/merkl-distributor-not-set");
-
-        vm.prank(relayer);
-        foreignController.toggleOperatorMerkl(operator1);
-    }
-
     function test_toggleOperatorMerkl_notRelayer() external {
-        vm.prank(SparkBase.SPARK_EXECUTOR);
-        foreignController.setMerklDistributor(address(merklDistributor));
-
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
@@ -51,13 +41,6 @@ contract ForeignControllerToggleOperatorMerklFailureTests is MerklBaseTest {
 }
 
 contract ForeignControllerToggleOperatorMerklSuccessTests is MerklBaseTest {
-
-    function setUp() public override {
-        super.setUp();
-
-        vm.prank(SparkBase.SPARK_EXECUTOR);
-        foreignController.setMerklDistributor(address(merklDistributor));
-    }
 
     function test_toggleOperatorMerkl_singleOperator() external {
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);

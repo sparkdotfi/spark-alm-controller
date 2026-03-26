@@ -18,6 +18,7 @@ import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwa
 
 import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
 import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
+import { IMerklFacet }         from "../../src/interfaces/facets/IMerklFacet.sol";
 import { IPendleFacet }        from "../../src/interfaces/facets/IPendleFacet.sol";
 import { IPSM3Facet }          from "../../src/interfaces/facets/IPSM3Facet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
@@ -25,6 +26,7 @@ import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetF
 
 import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
 import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
+import { MerklFacet }         from "../../src/libraries/MerklLib.sol";
 import { PendleFacet }        from "../../src/libraries/PendleLib.sol";
 import { PSM3Facet }          from "../../src/libraries/PSM3Lib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
@@ -149,6 +151,7 @@ abstract contract ForkTestBase is Test {
         // Facet wiring
         _wireAaveFacet();
         _wireERC4626Facet();
+        _wireMerklFacet();
         _wirePendleFacet();
         _wirePSM3Facet();
         _wireSparkVaultFacet();
@@ -223,6 +226,19 @@ abstract contract ForkTestBase is Test {
     /*** Facet wiring helpers.                                                                  ***/
     /**********************************************************************************************/
 
+    function _wireMerklFacet() internal {
+        address merklFacet = address(new MerklFacet(GroveBase.MERKL_DISTRIBUTOR));
+
+        vm.label(merklFacet, "MerklFacet");
+
+        // "Controller.toggleOperatorMerkl()" -> "MerklFacet.toggleOperator()"
+        foreignController.setDispatch(
+            IForeignControllerFull.toggleOperatorMerkl.selector,
+            merklFacet,
+            IMerklFacet.toggleOperator.selector
+        );
+    }
+    
     function _wirePendleFacet() internal {
         address pendleFacet = address(new PendleFacet(GroveBase.PENDLE_ROUTER));
 
