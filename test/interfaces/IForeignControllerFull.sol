@@ -138,4 +138,35 @@ abstract contract IForeignControllerFull is IController, ForeignController {
     function transferUSDCToCCTPWithFee(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain)
         external virtual;
 
+    /**********************************************************************************************/
+    /*** CurveFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function addLiquidityCurve(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
+        external virtual returns (uint256 shares);
+
+    function getCurveMaxSlippage(address pool) external view virtual returns (uint256);
+
+    function LIMIT_CURVE_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_CURVE_SWAP() external pure virtual returns (bytes32);
+
+    function LIMIT_CURVE_WITHDRAW() external pure virtual returns (bytes32);
+
+    function removeLiquidityCurve(
+        address            pool,
+        uint256            lpBurnAmount,
+        uint256[] calldata minWithdrawAmounts
+    ) external virtual returns (uint256[] memory withdrawnTokens);
+
+    function setCurveMaxSlippage(address pool, uint256 maxSlippage) external virtual;
+
+    function swapCurve(
+        address pool,
+        uint256 inputIndex,
+        uint256 outputIndex,
+        uint256 amountIn,
+        uint256 minAmountOut
+    ) external virtual returns (uint256 amountOut);
+
 }

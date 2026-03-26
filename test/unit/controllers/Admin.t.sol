@@ -733,7 +733,7 @@ contract ForeignController_Admin_Tests is UnitTestBase {
     address internal immutable _swapRouter      = makeAddr("swapRouter");
     address internal immutable _unauthorized    = makeAddr("unauthorized");
 
-    ForeignController foreignController;
+    ForeignController internal foreignController;
 
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));

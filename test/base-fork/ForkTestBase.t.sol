@@ -17,6 +17,7 @@ import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
 import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
+import { ICurveFacet }         from "../../src/interfaces/facets/ICurveFacet.sol";
 import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
 import { IMerklFacet }         from "../../src/interfaces/facets/IMerklFacet.sol";
 import { IPendleFacet }        from "../../src/interfaces/facets/IPendleFacet.sol";
@@ -25,6 +26,7 @@ import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFace
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
 
 import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
+import { CurveFacet }         from "../../src/libraries/CurveLib.sol";
 import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { MerklFacet }         from "../../src/libraries/MerklLib.sol";
 import { PendleFacet }        from "../../src/libraries/PendleLib.sol";
@@ -150,6 +152,7 @@ abstract contract ForkTestBase is Test {
 
         // Facet wiring
         _wireAaveFacet();
+        _wireCurveFacet();
         _wireERC4626Facet();
         _wireMerklFacet();
         _wirePendleFacet();
@@ -225,6 +228,68 @@ abstract contract ForkTestBase is Test {
     /**********************************************************************************************/
     /*** Facet wiring helpers.                                                                  ***/
     /**********************************************************************************************/
+
+    function _wireCurveFacet() internal {
+        address curveFacet = address(new CurveFacet());
+
+        vm.label(curveFacet, "CurveFacet");
+
+        // Controller.setCurveMaxSlippage() -> CurveFacet.setMaxSlippage()
+        foreignController.setDispatch(
+            IForeignControllerFull.setCurveMaxSlippage.selector,
+            curveFacet,
+            ICurveFacet.setMaxSlippage.selector
+        );
+
+        // Controller.getCurveMaxSlippage() -> CurveFacet.getMaxSlippage()
+        foreignController.setDispatch(
+            IForeignControllerFull.getCurveMaxSlippage.selector,
+            curveFacet,
+            ICurveFacet.getMaxSlippage.selector
+        );
+
+        // Controller.swapCurve() -> CurveFacet.swap()
+        foreignController.setDispatch(
+            IForeignControllerFull.swapCurve.selector,
+            curveFacet,
+            ICurveFacet.swap.selector
+        );
+
+        // Controller.addLiquidityCurve() -> CurveFacet.addLiquidity()
+        foreignController.setDispatch(
+            IForeignControllerFull.addLiquidityCurve.selector,
+            curveFacet,
+            ICurveFacet.addLiquidity.selector
+        );
+
+        // Controller.removeLiquidityCurve() -> CurveFacet.removeLiquidity()
+        foreignController.setDispatch(
+            IForeignControllerFull.removeLiquidityCurve.selector,
+            curveFacet,
+            ICurveFacet.removeLiquidity.selector
+        );
+
+        // Controller.LIMIT_CURVE_DEPOSIT() -> CurveFacet.LIMIT_DEPOSIT()
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_CURVE_DEPOSIT.selector,
+            curveFacet,
+            ICurveFacet.LIMIT_DEPOSIT.selector
+        );
+
+        // Controller.LIMIT_CURVE_SWAP() -> CurveFacet.LIMIT_SWAP()
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_CURVE_SWAP.selector,
+            curveFacet,
+            ICurveFacet.LIMIT_SWAP.selector
+        );
+
+        // Controller.LIMIT_CURVE_WITHDRAW() -> CurveFacet.LIMIT_WITHDRAW()
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_CURVE_WITHDRAW.selector,
+            curveFacet,
+            ICurveFacet.LIMIT_WITHDRAW.selector
+        );
+    }
 
     function _wireMerklFacet() internal {
         address merklFacet = address(new MerklFacet(GroveBase.MERKL_DISTRIBUTOR));

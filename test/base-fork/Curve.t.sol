@@ -86,7 +86,7 @@ abstract contract CurveTestBase is ForkTestBase {
         // Set a higher slippage to allow for successes
         maxSlippage = 0.98e18;
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, maxSlippage);
+        foreignController.setCurveMaxSlippage(CURVE_POOL, maxSlippage);
 
         _labelAddresses();
     }
@@ -179,10 +179,10 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is CurveTestBase {
         uint256 minLpAmount = ICurvePoolLike(CURVE_POOL).calc_token_amount(amounts, true);
 
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 0);
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("CurveLib/max-slippage-not-set");
+        vm.expectRevert("CurveFacet/max-slippage-not-set");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
 
@@ -198,13 +198,13 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is CurveTestBase {
 
         vm.startPrank(relayer);
 
-        vm.expectRevert("CurveLib/invalid-deposit-amounts");
+        vm.expectRevert("CurveFacet/invalid-deposit-amounts");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         uint256[] memory amounts2 = new uint256[](1);
         amounts[0] = 1_000_000e6;
 
-        vm.expectRevert("CurveLib/invalid-deposit-amounts");
+        vm.expectRevert("CurveFacet/invalid-deposit-amounts");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts2, minLpAmount);
     }
 
@@ -223,7 +223,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is CurveTestBase {
         uint256 minLpAmount = boundaryAmount - 1;
 
         vm.startPrank(relayer);
-        vm.expectRevert("CurveLib/min-amount-not-met");
+        vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         minLpAmount = boundaryAmount;
@@ -353,7 +353,7 @@ contract ForeignController_Curve_AddLiquidity_SuccessTests is CurveTestBase {
     function test_addLiquidityCurve_swapRateLimit() public {
         // Set a higher slippage to allow for successes
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 0.1e18);
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 0.1e18);
 
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
 
@@ -404,7 +404,7 @@ contract ForeignController_Curve_AddLiquidity_SuccessTests is CurveTestBase {
         // Set slippage to be zero and unlimited rate limits for purposes of this test
         // Not using actual unlimited rate limit because need to get swap amount to be reduced.
         vm.startPrank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 1);
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 1);
         rateLimits.setUnlimitedRateLimitData(curveDepositKey);
         rateLimits.setUnlimitedRateLimitData(curveWithdrawKey);
         rateLimits.setRateLimitData(curveSwapKey, type(uint256).max - 1, type(uint256).max - 1);
@@ -479,10 +479,10 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is CurveTestBase {
         uint256 lpReturn = 1_980_000e18;
 
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 0);
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("CurveLib/max-slippage-not-set");
+        vm.expectRevert("CurveFacet/max-slippage-not-set");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
     }
 
@@ -496,13 +496,13 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is CurveTestBase {
 
         vm.startPrank(relayer);
 
-        vm.expectRevert("CurveLib/invalid-min-withdraw-amounts");
+        vm.expectRevert("CurveFacet/invalid-min-withdraw-amounts");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
 
         uint256[] memory minWithdrawAmounts2 = new uint256[](1);
         minWithdrawAmounts[0] = 1_000_000e6;
 
-        vm.expectRevert("CurveLib/invalid-min-withdraw-amounts");
+        vm.expectRevert("CurveFacet/invalid-min-withdraw-amounts");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts2);
     }
 
@@ -518,7 +518,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is CurveTestBase {
         minWithdrawAmounts[0] -= 100;
 
         vm.startPrank(relayer);
-        vm.expectRevert("CurveLib/min-amount-not-met");
+        vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
         // Add back to get to the boundary (should succeed)
@@ -652,7 +652,7 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
 
     function test_swapCurve_sameIndex() public {
         vm.prank(relayer);
-        vm.expectRevert("CurveLib/invalid-indices");
+        vm.expectRevert("CurveFacet/invalid-indices");
         foreignController.swapCurve(CURVE_POOL, 1, 1, 1_000_000e6, 980_000e6);
     }
 
@@ -663,7 +663,7 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
         deal(address(cgUSD), address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
-        vm.expectRevert("CurveLib/index-too-high");
+        vm.expectRevert("CurveFacet/index-too-high");
         foreignController.swapCurve(CURVE_POOL, 4, 0, 1_000_000e6, 980_000e6);
 
         vm.prank(relayer);
@@ -677,7 +677,7 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
 
         vm.prank(relayer);
-        vm.expectRevert("CurveLib/index-too-high");
+        vm.expectRevert("CurveFacet/index-too-high");
         foreignController.swapCurve(CURVE_POOL, 0, 4, 1_000_000e6, 980_000e6);
 
         vm.prank(relayer);
@@ -686,10 +686,10 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
 
     function test_swapCurve_slippageNotSet() public {
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 0);
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 0);
 
         vm.prank(relayer);
-        vm.expectRevert("CurveLib/max-slippage-not-set");
+        vm.expectRevert("CurveFacet/max-slippage-not-set");
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
@@ -700,7 +700,7 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
 
         vm.startPrank(relayer);
-        vm.expectRevert("CurveLib/min-amount-not-met");
+        vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6 - 1);
 
         foreignController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6);
@@ -713,7 +713,7 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
         deal(address(cgUSD), address(almProxy), 1_000_000e6);
 
         vm.startPrank(relayer);
-        vm.expectRevert("CurveLib/min-amount-not-met");
+        vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6 - 1);
 
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
@@ -752,7 +752,7 @@ contract ForeignController_Curve_Swap_SuccessTests is CurveTestBase {
         skip(1 days);  // Recharge swap rate limit from deposit
 
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 0.999e18);  // 0.1%
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 0.999e18);  // 0.1%
 
         uint256 startingCgUSDBalance = cgUSD.balanceOf(CURVE_POOL);
         uint256 startingUsdcBalance  = usdcBase.balanceOf(CURVE_POOL);
@@ -816,7 +816,7 @@ contract ForeignController_Curve_GetVirtualPrice_StressTests is CurveTestBase {
         deal(address(usdcBase), address(almProxy), 100_000_000e6);
 
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 1);  // 1e-16%
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 1);  // 1e-16%
 
         // Calculate expected swap output dynamically
         uint256 expectedAmountOut = curvePool.get_dy(0, 1, 100_000_000e6);
@@ -878,7 +878,7 @@ contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is CurveTestBase {
     function test_e2e_addSwapAndRemoveLiquidityCurve() public {
         // Set a higher slippage to allow for successes
         vm.prank(SPARK_EXECUTOR);
-        foreignController.setMaxSlippage(CURVE_POOL, 0.95e18);
+        foreignController.setCurveMaxSlippage(CURVE_POOL, 0.95e18);
 
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
         deal(address(cgUSD),    address(almProxy), 1_000_000e6);

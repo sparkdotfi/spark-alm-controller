@@ -25,6 +25,7 @@ import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
 import { ICCTPFacet }          from "../../src/interfaces/facets/ICCTPFacet.sol";
+import { ICurveFacet }         from "../../src/interfaces/facets/ICurveFacet.sol";
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
 import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
@@ -45,6 +46,7 @@ import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.so
 
 import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
 import { CCTPFacet }          from "../../src/libraries/CCTPLib.sol";
+import { CurveFacet }         from "../../src/libraries/CurveLib.sol";
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
@@ -286,6 +288,7 @@ abstract contract ForkTestBase is DssTest {
 
         _wireAaveFacet();
         _wireCCTPFacet();
+        _wireCurveFacet();
         _wireDAIUSDSFacet();
         _wireERC4626Facet();
         _wireERC7540Facet();
@@ -407,6 +410,68 @@ abstract contract ForkTestBase is DssTest {
     /**********************************************************************************************/
     /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
+
+    function _wireCurveFacet() internal {
+        address curveFacet = address(new CurveFacet());
+
+        vm.label(curveFacet, "CurveFacet");
+
+        // Controller.setCurveMaxSlippage() -> CurveFacet.setMaxSlippage()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setCurveMaxSlippage.selector,
+            curveFacet,
+            ICurveFacet.setMaxSlippage.selector
+        );
+
+        // Controller.getCurveMaxSlippage() -> CurveFacet.getMaxSlippage()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.getCurveMaxSlippage.selector,
+            curveFacet,
+            ICurveFacet.getMaxSlippage.selector
+        );
+
+        // Controller.swapCurve() -> CurveFacet.swap()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.swapCurve.selector,
+            curveFacet,
+            ICurveFacet.swap.selector
+        );
+
+        // Controller.addLiquidityCurve() -> CurveFacet.addLiquidity()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.addLiquidityCurve.selector,
+            curveFacet,
+            ICurveFacet.addLiquidity.selector
+        );
+
+        // Controller.removeLiquidityCurve() -> CurveFacet.removeLiquidity()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.removeLiquidityCurve.selector,
+            curveFacet,
+            ICurveFacet.removeLiquidity.selector
+        );
+
+        // Controller.LIMIT_CURVE_DEPOSIT() -> CurveFacet.LIMIT_DEPOSIT()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_CURVE_DEPOSIT.selector,
+            curveFacet,
+            ICurveFacet.LIMIT_DEPOSIT.selector
+        );
+
+        // Controller.LIMIT_CURVE_SWAP() -> CurveFacet.LIMIT_SWAP()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_CURVE_SWAP.selector,
+            curveFacet,
+            ICurveFacet.LIMIT_SWAP.selector
+        );
+
+        // Controller.LIMIT_CURVE_WITHDRAW() -> CurveFacet.LIMIT_WITHDRAW()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_CURVE_WITHDRAW.selector,
+            curveFacet,
+            ICurveFacet.LIMIT_WITHDRAW.selector
+        );
+    }
 
     function _wireCCTPFacet() internal {
         address cctpFacet = address(new CCTPFacet(CCTP_MESSENGER, Ethereum.USDC));

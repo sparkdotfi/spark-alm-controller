@@ -4,7 +4,6 @@ pragma solidity ^0.8.34;
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
 import { CentrifugeLib }    from "./libraries/CentrifugeLib.sol";
-import { CurveLib }         from "./libraries/CurveLib.sol";
 import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
 import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
 
@@ -35,9 +34,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
     bytes32 public constant LIMIT_CENTRIFUGE_TRANSFER = CentrifugeLib.LIMIT_TRANSFER;
-    bytes32 public constant LIMIT_CURVE_DEPOSIT       = CurveLib.LIMIT_DEPOSIT;
-    bytes32 public constant LIMIT_CURVE_SWAP          = CurveLib.LIMIT_SWAP;
-    bytes32 public constant LIMIT_CURVE_WITHDRAW      = CurveLib.LIMIT_WITHDRAW;
     bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public constant LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
@@ -273,70 +269,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             amount                : amount,
             destinationEndpointId : destinationEndpointId,
             layerZeroRecipients   : layerZeroRecipients
-        });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer Curve StableSwap functions                                                     ***/
-    /**********************************************************************************************/
-
-    function swapCurve(
-        address pool,
-        uint256 inputIndex,
-        uint256 outputIndex,
-        uint256 amountIn,
-        uint256 minAmountOut
-    )
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 amountOut)
-    {
-        return CurveLib.swap({
-            proxy        : address(proxy),
-            rateLimits   : address(rateLimits),
-            pool         : pool,
-            inputIndex   : inputIndex,
-            outputIndex  : outputIndex,
-            amountIn     : amountIn,
-            minAmountOut : minAmountOut,
-            maxSlippages : maxSlippages
-        });
-    }
-
-    function addLiquidityCurve(address pool, uint256[] memory depositAmounts, uint256 minLpAmount)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256 shares)
-    {
-        return CurveLib.addLiquidity({
-            proxy          : address(proxy),
-            rateLimits     : address(rateLimits),
-            pool           : pool,
-            minLpAmount    : minLpAmount,
-            depositAmounts : depositAmounts,
-            maxSlippages   : maxSlippages
-        });
-    }
-
-    function removeLiquidityCurve(
-        address   pool,
-        uint256   lpBurnAmount,
-        uint256[] memory minWithdrawAmounts
-    )
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-        returns (uint256[] memory withdrawnTokens)
-    {
-        return CurveLib.removeLiquidity({
-            proxy              : address(proxy),
-            rateLimits         : address(rateLimits),
-            pool               : pool,
-            lpBurnAmount       : lpBurnAmount,
-            minWithdrawAmounts : minWithdrawAmounts,
-            maxSlippages       : maxSlippages
         });
     }
 
