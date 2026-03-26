@@ -4,7 +4,6 @@ pragma solidity ^0.8.34;
 import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { CCTPLib }      from "../../../src/libraries/CCTPLib.sol";
 import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
 import { OTCLib }       from "../../../src/libraries/OTCLib.sol";
 import { UniswapV3Lib } from "../../../src/libraries/UniswapV3Lib.sol";
@@ -22,8 +21,6 @@ abstract contract MainnetController_Admin_TestBase is UnitTestBase {
 
     bytes32 internal layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 internal layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
-    bytes32 internal mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
-    bytes32 internal mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
 
     MainnetController internal mainnetController;
 
@@ -54,106 +51,6 @@ abstract contract MainnetController_Admin_TestBase is UnitTestBase {
 
 }
 
-contract MainnetController_Admin_SetCCTPMaxFeeCap_Tests is MainnetController_Admin_TestBase {
-
-    address internal immutable _unauthorized = makeAddr("unauthorized");
-
-    function test_setCCTPMaxFeeCap_reentrancy() external {
-        _setControllerEntered();
-
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setCCTPMaxFeeCap(1e18);
-    }
-
-    function test_setCCTPMaxFeeCap_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            _unauthorized,
-            DEFAULT_ADMIN_ROLE
-        ));
-
-        vm.prank(_unauthorized);
-        mainnetController.setCCTPMaxFeeCap(1e18);
-    }
-
-    function test_setCCTPMaxFeeCap() external {
-        assertEq(mainnetController.cctpMaxFeeCap(), 0);
-
-        vm.record();
-
-        vm.expectEmit(address(mainnetController));
-        emit MainnetController.CCTPMaxFeeCapSet(1e18);
-
-        vm.prank(admin);
-        mainnetController.setCCTPMaxFeeCap(1e18);
-
-        _assertReentrancyGuardWrittenToTwice();
-
-        assertEq(mainnetController.cctpMaxFeeCap(), 1e18);
-    }
-
-}
-
-contract MainnetController_Admin_SetMintRecipient_Tests is MainnetController_Admin_TestBase {
-
-    function test_setMintRecipient_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setMintRecipient(1, mintRecipient1);
-    }
-
-    function test_setMintRecipient_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        mainnetController.setMintRecipient(1, mintRecipient1);
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            freezer,
-            DEFAULT_ADMIN_ROLE
-        ));
-        vm.prank(freezer);
-        mainnetController.setMintRecipient(1, mintRecipient1);
-    }
-
-    function test_setMintRecipient() external {
-        assertEq(mainnetController.mintRecipients(1), bytes32(0));
-        assertEq(mainnetController.mintRecipients(2), bytes32(0));
-
-        vm.expectEmit(address(mainnetController));
-        emit CCTPLib.MintRecipientSet(1, mintRecipient1);
-
-        vm.prank(admin);
-        mainnetController.setMintRecipient(1, mintRecipient1);
-
-        assertEq(mainnetController.mintRecipients(1), mintRecipient1);
-
-        vm.expectEmit(address(mainnetController));
-        emit CCTPLib.MintRecipientSet(2, mintRecipient2);
-
-        vm.prank(admin);
-        mainnetController.setMintRecipient(2, mintRecipient2);
-
-        assertEq(mainnetController.mintRecipients(2), mintRecipient2);
-
-        vm.record();
-
-        vm.expectEmit(address(mainnetController));
-        emit CCTPLib.MintRecipientSet(1, mintRecipient2);
-
-        vm.prank(admin);
-        mainnetController.setMintRecipient(1, mintRecipient2);
-
-        assertEq(mainnetController.mintRecipients(1), mintRecipient2);
-
-        _assertReentrancyGuardWrittenToTwice();
-    }
-
-}
-
 contract MainnetController_Admin_SetLayerZeroRecipient_Tests is MainnetController_Admin_TestBase {
 
     function test_setLayerZeroRecipient_reentrancy() external {
@@ -176,7 +73,7 @@ contract MainnetController_Admin_SetLayerZeroRecipient_Tests is MainnetControlle
             DEFAULT_ADMIN_ROLE
         ));
         vm.prank(freezer);
-        mainnetController.setMintRecipient(1, mintRecipient1);
+        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
     }
 
     function test_setLayerZeroRecipient() external {
@@ -882,8 +779,6 @@ contract ForeignController_Admin_Tests is UnitTestBase {
 
     bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
     bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
-    bytes32 mintRecipient1      = bytes32(uint256(uint160(makeAddr("mintRecipient1"))));
-    bytes32 mintRecipient2      = bytes32(uint256(uint160(makeAddr("mintRecipient2"))));
 
     function setUp() public {
         foreignController = new ForeignController(
@@ -954,96 +849,6 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMaxSlippage(pool, 0.99e18);
 
         assertEq(foreignController.maxSlippages(pool), 0.99e18);
-
-        _assertReentrancyGuardWrittenToTwice();
-    }
-
-    function test_setCCTPMaxFeeCap_reentrancy() external {
-        _setControllerEntered();
-
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        foreignController.setCCTPMaxFeeCap(1e18);
-    }
-
-    function test_setCCTPMaxFeeCap_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            _unauthorized,
-            DEFAULT_ADMIN_ROLE
-        ));
-
-        vm.prank(_unauthorized);
-        foreignController.setCCTPMaxFeeCap(1e18);
-    }
-
-    function test_setCCTPMaxFeeCap() external {
-        assertEq(foreignController.cctpMaxFeeCap(), 0);
-
-        vm.record();
-
-        vm.expectEmit(address(foreignController));
-        emit ForeignController.CCTPMaxFeeCapSet(1e18);
-
-        vm.prank(admin);
-        foreignController.setCCTPMaxFeeCap(1e18);
-
-        _assertReentrancyGuardWrittenToTwice();
-
-        assertEq(foreignController.cctpMaxFeeCap(), 1e18);
-    }
-
-    function test_setMintRecipient_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        foreignController.setMintRecipient(1, mintRecipient1);
-    }
-
-    function test_setMintRecipient_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        foreignController.setMintRecipient(1, mintRecipient1);
-
-        vm.prank(freezer);
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            freezer,
-            DEFAULT_ADMIN_ROLE
-        ));
-        foreignController.setMintRecipient(1, mintRecipient1);
-    }
-
-    function test_setMintRecipient() external {
-        assertEq(foreignController.mintRecipients(1), bytes32(0));
-        assertEq(foreignController.mintRecipients(2), bytes32(0));
-
-        vm.expectEmit(address(foreignController));
-        emit CCTPLib.MintRecipientSet(1, mintRecipient1);
-
-        vm.prank(admin);
-        foreignController.setMintRecipient(1, mintRecipient1);
-
-        assertEq(foreignController.mintRecipients(1), mintRecipient1);
-
-        vm.expectEmit(address(foreignController));
-        emit CCTPLib.MintRecipientSet(2, mintRecipient2);
-
-        vm.prank(admin);
-        foreignController.setMintRecipient(2, mintRecipient2);
-
-        assertEq(foreignController.mintRecipients(2), mintRecipient2);
-
-        vm.record();
-
-        vm.expectEmit(address(foreignController));
-        emit CCTPLib.MintRecipientSet(1, mintRecipient2);
-
-        vm.prank(admin);
-        foreignController.setMintRecipient(1, mintRecipient2);
-
-        assertEq(foreignController.mintRecipients(1), mintRecipient2);
 
         _assertReentrancyGuardWrittenToTwice();
     }

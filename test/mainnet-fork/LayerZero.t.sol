@@ -450,13 +450,6 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         address[] memory relayers = new address[](1);
         relayers[0] = relayer;
 
-        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
-
-        mintRecipients[0] = MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient : bytes32(uint256(uint160(address(almProxy))))
-        });
-
         vm.startPrank(SPARK_EXECUTOR);
 
         foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
@@ -465,10 +458,6 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
         for (uint256 i; i < relayers.length; ++i) {
             foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
-        }
-
-        for (uint256 i; i < mintRecipients.length; ++i) {
-            foreignController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
 
         vm.stopPrank();

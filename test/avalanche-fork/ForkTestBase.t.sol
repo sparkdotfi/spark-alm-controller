@@ -150,13 +150,6 @@ contract ForkTestBase is Test {
         address[] memory relayers = new address[](1);
         relayers[0] = ALM_RELAYER;
 
-        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
-
-        mintRecipients[0] = MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient : bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
-        });
-
         vm.startPrank(GROVE_EXECUTOR);
 
         almProxy.grantRole(almProxy.CONTROLLER(),                address(foreignController));
@@ -165,10 +158,6 @@ contract ForkTestBase is Test {
 
         for (uint256 i; i < relayers.length; ++i) {
             foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
-        }
-
-        for (uint256 i; i < mintRecipients.length; ++i) {
-            foreignController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
 
         vm.stopPrank();

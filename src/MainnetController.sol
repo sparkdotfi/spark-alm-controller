@@ -8,7 +8,6 @@ import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { CCTPLib }       from "./libraries/CCTPLib.sol";
 import { CentrifugeLib } from "./libraries/CentrifugeLib.sol";
 import { CurveLib }      from "./libraries/CurveLib.sol";
 import { LayerZeroLib }  from "./libraries/LayerZeroLib.sol";
@@ -42,8 +41,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
-    event CCTPMaxFeeCapSet(uint256 maxFeeCap);
-
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event RelayerRemoved(address indexed relayer);
@@ -72,8 +69,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
     bytes32 public LIMIT_UNISWAP_V3_WITHDRAW = UniswapV3Lib.LIMIT_WITHDRAW;
-    bytes32 public LIMIT_USDC_TO_CCTP        = CCTPLib.LIMIT_TO_CCTP;
-    bytes32 public LIMIT_USDC_TO_DOMAIN      = CCTPLib.LIMIT_TO_DOMAIN;
     bytes32 public LIMIT_PENDLE_PT_REDEEM    = PendleLib.LIMIT_REDEEM;
 
     address public buffer;
@@ -98,12 +93,8 @@ contract MainnetController is Controller, AccessControlEnumerable {
     address public uniswapV3PositionManager;
     address public uniswapV3Router;
 
-    // NOTE : Nominal maxFee cap for all cctp supported domains
-    uint256 public cctpMaxFeeCap;
-
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
-    mapping(uint32 destinationDomain       => bytes32 mintRecipient)       public mintRecipients;  // CCTP mint recipients
     mapping(uint32 destinationEndpointId   => bytes32 layerZeroRecipient)  public layerZeroRecipients;
     mapping(uint16 destinationCentrifugeId => bytes32 centrifugeRecipient) public centrifugeRecipients;
 
@@ -152,22 +143,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     /**********************************************************************************************/
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
-
-    function setCCTPMaxFeeCap(uint256 maxFeeCap)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        emit CCTPMaxFeeCapSet(cctpMaxFeeCap = maxFeeCap);
-    }
-
-    function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        CCTPLib.setMintRecipient(mintRecipients, recipient, destinationDomain);
-    }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
         external
@@ -496,46 +471,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
             amount                : amount,
             destinationEndpointId : destinationEndpointId,
             layerZeroRecipients   : layerZeroRecipients
-        });
-    }
-
-    /**********************************************************************************************/
-    /*** Relayer bridging functions                                                             ***/
-    /**********************************************************************************************/
-
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        CCTPLib.transfer({
-            proxy             : address(proxy),
-            rateLimits        : address(rateLimits),
-            cctp              : cctp,
-            usdc              : usdc,
-            destinationDomain : destinationDomain,
-            usdcAmount        : usdcAmount,
-            maxFee            : CCTPLib.MAX_FEE,
-            cctpMaxFeeCap     : cctpMaxFeeCap,
-            mintRecipients    : mintRecipients
-        });
-    }
-
-    function transferUSDCToCCTP(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain)
-        external
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        CCTPLib.transfer({
-            proxy             : address(proxy),
-            rateLimits        : address(rateLimits),
-            cctp              : cctp,
-            usdc              : usdc,
-            destinationDomain : destinationDomain,
-            usdcAmount        : usdcAmount,
-            maxFee            : maxFee,
-            cctpMaxFeeCap     : cctpMaxFeeCap,
-            mintRecipients    : mintRecipients
         });
     }
 

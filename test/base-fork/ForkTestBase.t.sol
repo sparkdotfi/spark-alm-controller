@@ -152,17 +152,10 @@ abstract contract ForkTestBase is Test {
 
         vm.stopPrank();
 
-        /*** Step 3: Configure ALM system through Spark governance (Spark spell payload) ***/
+        /*** Step 4: Configure ALM system through Spark governance (Spark spell payload) ***/
 
         address[] memory relayers = new address[](1);
         relayers[0] = relayer;
-
-        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
-
-        mintRecipients[0] = MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient : bytes32(uint256(uint160(makeAddr("ethereumAlmProxy"))))
-        });
 
         vm.startPrank(SPARK_EXECUTOR);
 
@@ -174,10 +167,6 @@ abstract contract ForkTestBase is Test {
             foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
         }
 
-        for (uint256 i; i < mintRecipients.length; ++i) {
-            foreignController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
-        }
-
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
         uint256 usdsMaxAmount = 5_000_000e18;
@@ -186,18 +175,11 @@ abstract contract ForkTestBase is Test {
         bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
         bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
 
-        bytes32 domainKeyEthereum = RateLimitHelpers.makeUint32Key(
-            foreignController.LIMIT_USDC_TO_DOMAIN(),
-            CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-        );
-
         // NOTE: Using minimal config for test base setup
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  address(usdcBase)),  usdcMaxAmount, usdcSlope);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(usdcBase)),  usdcMaxAmount, usdcSlope);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  address(usdsBase)),  usdsMaxAmount, usdsSlope);
         rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  address(susdsBase)), usdsMaxAmount, usdsSlope);
-        rateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(),                           usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(domainKeyEthereum,                                                usdcMaxAmount, usdcSlope);
 
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(usdsBase)));
         rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(susdsBase)));

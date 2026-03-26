@@ -22,6 +22,7 @@ import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwa
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
+import { ICCTPFacet }          from "../../src/interfaces/facets/ICCTPFacet.sol";
 import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
 import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
 import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
@@ -39,6 +40,7 @@ import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFa
 import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
 
 import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
+import { CCTPFacet }          from "../../src/libraries/CCTPLib.sol";
 import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
@@ -277,6 +279,7 @@ abstract contract ForkTestBase is DssTest {
         // Facet wiring
 
         _wireAaveFacet();
+        _wireCCTPFacet();
         _wireDAIUSDSFacet();
         _wireERC4626Facet();
         _wireERC7540Facet();
@@ -323,7 +326,7 @@ abstract contract ForkTestBase is DssTest {
         }
 
         for (uint256 i; i < mintRecipients.length; ++i) {
-            mainnetController.setMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
+            mainnetController.setCCTPMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
         }
 
         IVaultLike(ilkInst.vault).rely(address(almProxy));
@@ -396,6 +399,68 @@ abstract contract ForkTestBase is DssTest {
     /**********************************************************************************************/
     /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
+
+    function _wireCCTPFacet() internal {
+        address cctpFacet = address(new CCTPFacet(CCTP_MESSENGER, Ethereum.USDC));
+
+        vm.label(cctpFacet, "CCTPFacet");
+
+        // Controller.setCCTPMaxFeeCap() -> CCTPFacet.setMaxFeeCap()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setCCTPMaxFeeCap.selector,
+            cctpFacet,
+            ICCTPFacet.setMaxFeeCap.selector
+        );
+
+        // Controller.setCCTPMintRecipient() -> CCTPFacet.setMintRecipient()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setCCTPMintRecipient.selector,
+            cctpFacet,
+            ICCTPFacet.setMintRecipient.selector
+        );
+
+        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.getMaxFeeCap()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.getCCTPMaxFeeCap.selector,
+            cctpFacet,
+            ICCTPFacet.getMaxFeeCap.selector
+        );
+
+        // Controller.getCCTPMintRecipient() -> CCTPFacet.getMintRecipient()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.getCCTPMintRecipient.selector,
+            cctpFacet,
+            ICCTPFacet.getMintRecipient.selector
+        );
+
+        // Controller.transferUSDCToCCTP(uint256,uint32) -> CCTPFacet.transfer(uint256,uint32)
+        mainnetController.setDispatch(
+            IMainnetControllerFull.transferUSDCToCCTP.selector,
+            cctpFacet,
+            ICCTPFacet.transfer.selector
+        );
+
+        // Controller.transferUSDCToCCTPWithFee(uint256,uint256,uint32) -> CCTPFacet.transferWithFee(uint256,uint256,uint32)
+        mainnetController.setDispatch(
+            IMainnetControllerFull.transferUSDCToCCTPWithFee.selector,
+            cctpFacet,
+            ICCTPFacet.transferWithFee.selector
+        );
+
+        // Controller.LIMIT_USDC_TO_CCTP() -> CCTPFacet.LIMIT_TO_CCTP()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_USDC_TO_CCTP.selector,
+            cctpFacet,
+            ICCTPFacet.LIMIT_TO_CCTP.selector
+        );
+
+        // Controller.LIMIT_USDC_TO_DOMAIN() -> CCTPFacet.LIMIT_TO_DOMAIN()
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_USDC_TO_DOMAIN.selector,
+            cctpFacet,
+            ICCTPFacet.LIMIT_TO_DOMAIN.selector
+        );
+    }
 
     function _wireAaveFacet() internal {
         address aaveFacet = address(new AaveFacet());
