@@ -132,9 +132,7 @@ contract Controller_UniswapV4_Admin_Tests is UniswapV4_TestBase {
 
         _assertReentrancyGuardWrittenToTwice(address(controller));
 
-        ( uint256 maxSlippage ) = controller.getMaxSlippage(_POOL_ID);
-
-        assertEq(maxSlippage, 0.98e18);
+        assertEq(controller.getMaxSlippage(_POOL_ID), 0.98e18);
     }
 
     /**********************************************************************************************/
