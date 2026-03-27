@@ -1,0 +1,104 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+pragma solidity ^0.8.34;
+
+import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
+import { IController }     from "../../../src/interfaces/IController.sol";
+import { IFacetBase }      from "../../../src/interfaces/facets/IFacetBase.sol";
+import { ILayerZeroFacet } from "../../../src/interfaces/facets/ILayerZeroFacet.sol";
+
+import { LayerZeroFacet } from "../../../src/libraries/LayerZeroLib.sol";
+
+import { Controller_TestBase } from "../TestBase.t.sol";
+
+interface IControllerLike is IController {
+
+    function setRecipient(uint32 destinationEndpointId, bytes32 recipient) external;
+
+    function getRecipient(uint32 destinationEndpointId) external view returns (bytes32);
+
+}
+
+contract LayerZeroFacet_TestBase is Controller_TestBase {
+
+    IControllerLike internal controller;
+
+    function setUp() external {
+        controller = IControllerLike(_deploy());
+
+        // NOTE: Only wires the functions needed for the tests.
+        //       If more functions are needed in future tests, they should be wired here.
+        address facet = address(new LayerZeroFacet());
+
+        vm.label(facet, "LayerZeroFacet");
+
+        vm.startPrank(admin);
+
+        // Controller.setRecipient -> LayerZeroFacet.setRecipient
+        controller.setDispatch(
+            IControllerLike.setRecipient.selector,
+            facet,
+            ILayerZeroFacet.setRecipient.selector
+        );
+
+        // Controller.getRecipient -> LayerZeroFacet.getRecipient
+        controller.setDispatch(
+            IControllerLike.getRecipient.selector,
+            facet,
+            ILayerZeroFacet.getRecipient.selector
+        );
+
+        vm.stopPrank();
+    }
+
+}
+
+contract Controller_LayerZeroFacet_Admin_Tests is LayerZeroFacet_TestBase {
+
+    /**********************************************************************************************/
+    /*** setRecipient Tests                                                                     ***/
+    /**********************************************************************************************/
+
+    function test_setRecipient_reentrancy() external {
+        _setEntered(address(controller));
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        controller.setRecipient(0, bytes32(0));
+    }
+
+    function test_setRecipient_notAdmin() external {
+        vm.expectRevert(abi.encodeWithSelector(
+            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            unauthorized,
+            DEFAULT_ADMIN_ROLE
+        ));
+
+        vm.prank(unauthorized);
+        controller.setRecipient(0, bytes32(0));
+
+        vm.expectRevert(abi.encodeWithSelector(
+            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            relayer,
+            DEFAULT_ADMIN_ROLE
+        ));
+
+        vm.prank(relayer);
+        controller.setRecipient(0, bytes32(0));
+    }
+
+    function test_setRecipient() external {
+        bytes32 recipient = bytes32(type(uint256).max);
+
+        vm.expectEmit(address(controller));
+        emit ILayerZeroFacet.LayerZeroRecipientSet(1, recipient);
+
+        vm.record();
+
+        vm.prank(admin);
+        controller.setRecipient(1, recipient);
+
+        _assertReentrancyGuardWrittenToTwice(address(controller));
+
+        assertEq(controller.getRecipient(1), recipient);
+    }
+
+}

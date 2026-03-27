@@ -3,8 +3,7 @@ pragma solidity ^0.8.34;
 
 import { AccessControlEnumerable } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-import { LayerZeroLib }     from "./libraries/LayerZeroLib.sol";
-import { UniswapV3Lib }     from "./libraries/UniswapV3Lib.sol";
+import { UniswapV3Lib } from "./libraries/UniswapV3Lib.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
@@ -32,7 +31,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     bytes32 public constant FREEZER = keccak256("FREEZER");
     bytes32 public constant RELAYER = keccak256("RELAYER");
 
-    bytes32 public constant LIMIT_LAYERZERO_TRANSFER  = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public constant LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public constant LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
     bytes32 public constant LIMIT_UNISWAP_V3_WITHDRAW = UniswapV3Lib.LIMIT_WITHDRAW;
@@ -48,8 +46,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
     address public immutable usdc;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
-
-    mapping(uint32 destinationEndpointId => bytes32 layerZeroRecipient) public layerZeroRecipients;
 
     // Uniswap V3 pool params
     mapping(address pool => UniswapV3Lib.PoolParams params) public uniswapV3PoolParams;
@@ -89,14 +85,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
 
         maxSlippages[pool] = maxSlippage;
         emit MaxSlippageSet(pool, maxSlippage);
-    }
-
-    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        LayerZeroLib.setRecipient(layerZeroRecipients, destinationEndpointId, recipient);
     }
 
     function setUniswapV3PositionManager(address manager)
@@ -235,29 +223,6 @@ contract ForeignController is Controller, AccessControlEnumerable {
             min             : min,
             deadline        : deadline,
             maxSlippages    : maxSlippages
-        });
-    }
-
-    // NOTE: !!! This function was deployed without integration testing !!!
-    //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
-    //       all functionality has been thoroughly integration tested.
-    function transferTokenLayerZero(
-        address oftAddress,
-        uint256 amount,
-        uint32  destinationEndpointId
-    )
-        external
-        payable
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        LayerZeroLib.transfer({
-            proxy                 : address(proxy),
-            rateLimits            : address(rateLimits),
-            oftAddress            : oftAddress,
-            amount                : amount,
-            destinationEndpointId : destinationEndpointId,
-            layerZeroRecipients   : layerZeroRecipients
         });
     }
 

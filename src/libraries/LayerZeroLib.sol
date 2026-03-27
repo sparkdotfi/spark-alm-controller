@@ -14,52 +14,83 @@ import {
     OFTFeeDetail
 } from "../interfaces/ILayerZero.sol";
 
+import { IRateLimits }     from "../interfaces/IRateLimits.sol";
+import { IALMProxy }       from "../interfaces/IALMProxy.sol";
+import { ILayerZeroFacet } from "../interfaces/facets/ILayerZeroFacet.sol";
+
 import { makeAddressUint32Key } from "../RateLimitHelpers.sol";
 
-import { IRateLimits } from "../interfaces/IRateLimits.sol";
-import { IALMProxy }   from "../interfaces/IALMProxy.sol";
-
 import { ApproveLib } from "./ApproveLib.sol";
+import { FacetBase }  from "./FacetBase.sol";
 
-library LayerZeroLib {
+contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
 
     using OptionsBuilder for bytes;
 
-    event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
+    /**********************************************************************************************/
+    /*** Facet Storage Domain                                                                   ***/
+    /**********************************************************************************************/
+
+    /// @custom:storage-location erc7201:sky.pau.storage.LayerZeroFacet
+    struct FacetStorage {
+        mapping(uint32 destinationEndpointId => bytes32 recipient) recipients;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.LayerZeroFacet")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 internal constant FACET_STORAGE_LOCATION =
+        0x35cbf4f8cec8cb8b455a904d7cdf14cb711e472d3d2849a8f6b768a7e6d72800;
+
+    function _getFacetStorage() internal pure returns (FacetStorage storage $) {
+        assembly {
+            $.slot := FACET_STORAGE_LOCATION
+        }
+    }
+
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
 
     bytes32 public constant LIMIT_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
-    function setRecipient(
-        mapping (uint32 => bytes32) storage layerZeroRecipients,
-        uint32  destinationEndpointId,
-        bytes32 recipient
-    )
+    function setRecipient(uint32 destinationEndpointId, bytes32 recipient)
         external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        layerZeroRecipients[destinationEndpointId] = recipient;
+        _getFacetStorage().recipients[destinationEndpointId] = recipient;
+
         emit LayerZeroRecipientSet(destinationEndpointId, recipient);
     }
 
-    function transfer(
-        address proxy,
-        address rateLimits,
-        address oftAddress,
-        uint256 amount,
-        uint32  destinationEndpointId,
-        mapping (uint32 => bytes32) storage layerZeroRecipients
-    ) external {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(
+    /**********************************************************************************************/
+    /*** External Interactive Relayer Functions                                                 ***/
+    /**********************************************************************************************/
+
+    // NOTE: !!! This function was deployed without integration testing !!!
+    //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
+    //       all functionality has been thoroughly integration tested.
+    function transfer(address oftAddress, uint256 amount, uint32 destinationEndpointId)
+        external
+        payable
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        SharedControllerStorage storage $ = _getSharedControllerStorage();
+
+        IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressUint32Key(LIMIT_TRANSFER, oftAddress, destinationEndpointId),
             amount
         );
 
-        bytes32 recipient = layerZeroRecipients[destinationEndpointId];
+        bytes32 recipient = _getFacetStorage().recipients[destinationEndpointId];
 
-        require(recipient != bytes32(0), "LayerZeroLib/recipient-not-set");
+        require(recipient != bytes32(0), "LayerZeroFacet/recipient-not-set");
+
+        address proxy = $.proxy;
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before
@@ -114,8 +145,16 @@ library LayerZeroLib {
         if (refund > 0) {
             ( bool success, ) = msg.sender.call{value: refund}("");
 
-            require(success, "LayerZeroLib/refund-failed");
+            require(success, "LayerZeroFacet/refund-failed");
         }
+    }
+
+    /**********************************************************************************************/
+    /*** External View/Pure functions                                                           ***/
+    /**********************************************************************************************/
+
+    function getRecipient(uint32 destinationEndpointId) external view returns (bytes32) {
+        return _getFacetStorage().recipients[destinationEndpointId];
     }
 
 }

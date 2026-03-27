@@ -312,7 +312,7 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
         uint256 amountIn,
         uint256 minAmountOut
     ) external virtual returns (uint256 amountOut);
-    
+
     /**********************************************************************************************/
     /*** UniswapV4Facet actions                                                                 ***/
     /**********************************************************************************************/
@@ -376,5 +376,19 @@ abstract contract IMainnetControllerFull is IController, MainnetController {
         view
         virtual
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
+
+    /**********************************************************************************************/
+    /*** LayerZero actions                                                                      ***/
+    /**********************************************************************************************/
+
+    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
+        external virtual;
+
+    function transferTokenLayerZero(address oftAddress, uint256 amount, uint32 destinationEndpointId)
+        external payable virtual;
+
+    function LIMIT_LAYERZERO_TRANSFER() external pure virtual returns (bytes32);
+
+    function layerZeroRecipients(uint32 destinationEndpointId) external view virtual returns (bytes32);
 
 }

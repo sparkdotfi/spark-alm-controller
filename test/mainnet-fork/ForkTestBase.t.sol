@@ -31,6 +31,7 @@ import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.s
 import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
 import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
 import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
+import { ILayerZeroFacet }     from "../../src/interfaces/facets/ILayerZeroFacet.sol";
 import { IMapleFacet }         from "../../src/interfaces/facets/IMapleFacet.sol";
 import { IMerklFacet }         from "../../src/interfaces/facets/IMerklFacet.sol";
 import { IPendleFacet }        from "../../src/interfaces/facets/IPendleFacet.sol";
@@ -53,6 +54,7 @@ import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
 import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
 import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
 import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
+import { LayerZeroFacet }     from "../../src/libraries/LayerZeroLib.sol";
 import { MapleFacet }         from "../../src/libraries/MapleLib.sol";
 import { MerklFacet }         from "../../src/libraries/MerklLib.sol";
 import { PendleFacet }        from "../../src/libraries/PendleLib.sol";
@@ -287,7 +289,6 @@ abstract contract ForkTestBase is DssTest {
         accessControls.grantRole(accessControls.RELAYER_ROLE(), backstopRelayer);
 
         // Facet wiring
-
         _wireAaveFacet();
         _wireCCTPFacet();
         _wireCentrifugeFacet();
@@ -296,6 +297,7 @@ abstract contract ForkTestBase is DssTest {
         _wireERC4626Facet();
         _wireERC7540Facet();
         _wireFarmFacet();
+        _wireLayerZeroFacet();
         _wireMapleFacet();
         _wireMerklFacet();
         _wirePendleFacet();
@@ -303,9 +305,9 @@ abstract contract ForkTestBase is DssTest {
         _wireSparkVaultFacet();
         _wireSuperstateFacet();
         _wireTransferAssetFacet();
+        _wireUniswapV4Facet();
         _wireUSDEFacet();
         _wireUSDSFacet();
-        _wireUniswapV4Facet();
         _wireWEETHFacet();
         _wireWrapProxyETHFacet();
         _wireWSTETHFacet();
@@ -828,6 +830,40 @@ abstract contract ForkTestBase is DssTest {
             IMainnetControllerFull.LIMIT_FARM_WITHDRAW.selector,
             farmFacet,
             IFarmFacet.LIMIT_WITHDRAW.selector
+        );
+    }
+
+    function _wireLayerZeroFacet() internal {
+        address layerZeroFacet = address(new LayerZeroFacet());
+
+        vm.label(layerZeroFacet, "LayerZeroFacet");
+
+        // Controller.setLayerZeroRecipient -> LayerZeroFacet.setRecipient
+        mainnetController.setDispatch(
+            IMainnetControllerFull.setLayerZeroRecipient.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.setRecipient.selector
+        );
+
+        // Controller.transferTokenLayerZero -> LayerZeroFacet.transfer
+        mainnetController.setDispatch(
+            IMainnetControllerFull.transferTokenLayerZero.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.transfer.selector
+        );
+
+        // Controller.LIMIT_LAYERZERO_TRANSFER -> LayerZeroFacet.LIMIT_TRANSFER
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_LAYERZERO_TRANSFER.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.LIMIT_TRANSFER.selector
+        );
+
+        // Controller.layerZeroRecipients -> LayerZeroFacet.getRecipient
+        mainnetController.setDispatch(
+            IMainnetControllerFull.layerZeroRecipients.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.getRecipient.selector
         );
     }
 

@@ -4,7 +4,6 @@ pragma solidity ^0.8.34;
 import { IAccessControl }  from "../../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { LayerZeroLib } from "../../../src/libraries/LayerZeroLib.sol";
 import { OTCLib }       from "../../../src/libraries/OTCLib.sol";
 import { UniswapV3Lib } from "../../../src/libraries/UniswapV3Lib.sol";
 
@@ -18,9 +17,6 @@ import { MockVault }   from "../mocks/MockVault.sol";
 import { UnitTestBase } from "../UnitTestBase.t.sol";
 
 abstract contract MainnetController_Admin_TestBase is UnitTestBase {
-
-    bytes32 internal layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
-    bytes32 internal layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
 
     MainnetController internal mainnetController;
 
@@ -47,66 +43,6 @@ abstract contract MainnetController_Admin_TestBase is UnitTestBase {
 
     function _assertReentrancyGuardWrittenToTwice() internal {
         _assertReentrancyGuardWrittenToTwice(address(mainnetController));
-    }
-
-}
-
-contract MainnetController_Admin_SetLayerZeroRecipient_Tests is MainnetController_Admin_TestBase {
-
-    function test_setLayerZeroRecipient_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
-    }
-
-    function test_setLayerZeroRecipient_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            freezer,
-            DEFAULT_ADMIN_ROLE
-        ));
-        vm.prank(freezer);
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
-    }
-
-    function test_setLayerZeroRecipient() external {
-        assertEq(mainnetController.layerZeroRecipients(1), bytes32(0));
-        assertEq(mainnetController.layerZeroRecipients(2), bytes32(0));
-
-        vm.expectEmit(address(mainnetController));
-        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient1);
-
-        vm.prank(admin);
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient1);
-
-        assertEq(mainnetController.layerZeroRecipients(1), layerZeroRecipient1);
-
-        vm.expectEmit(address(mainnetController));
-        emit LayerZeroLib.LayerZeroRecipientSet(2, layerZeroRecipient2);
-
-        vm.prank(admin);
-        mainnetController.setLayerZeroRecipient(2, layerZeroRecipient2);
-
-        assertEq(mainnetController.layerZeroRecipients(2), layerZeroRecipient2);
-
-        vm.record();
-
-        vm.expectEmit(address(mainnetController));
-        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient2);
-
-        vm.prank(admin);
-        mainnetController.setLayerZeroRecipient(1, layerZeroRecipient2);
-
-        assertEq(mainnetController.layerZeroRecipients(1), layerZeroRecipient2);
-
-        _assertReentrancyGuardWrittenToTwice();
     }
 
 }
@@ -735,9 +671,6 @@ contract ForeignController_Admin_Tests is UnitTestBase {
 
     ForeignController internal foreignController;
 
-    bytes32 layerZeroRecipient1 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient1"))));
-    bytes32 layerZeroRecipient2 = bytes32(uint256(uint160(makeAddr("layerZeroRecipient2"))));
-
     function setUp() public {
         foreignController = new ForeignController(
             admin,
@@ -807,62 +740,6 @@ contract ForeignController_Admin_Tests is UnitTestBase {
         foreignController.setMaxSlippage(pool, 0.99e18);
 
         assertEq(foreignController.maxSlippages(pool), 0.99e18);
-
-        _assertReentrancyGuardWrittenToTwice();
-    }
-
-    function test_setLayerZeroRecipient_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
-    }
-
-    function test_setLayerZeroRecipient_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
-
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            freezer,
-            DEFAULT_ADMIN_ROLE
-        ));
-        vm.prank(freezer);
-        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
-    }
-
-    function test_setLayerZeroRecipient() external {
-        assertEq(foreignController.layerZeroRecipients(1), bytes32(0));
-        assertEq(foreignController.layerZeroRecipients(2), bytes32(0));
-
-        vm.expectEmit(address(foreignController));
-        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient1);
-
-        vm.prank(admin);
-        foreignController.setLayerZeroRecipient(1, layerZeroRecipient1);
-
-        assertEq(foreignController.layerZeroRecipients(1), layerZeroRecipient1);
-
-        vm.expectEmit(address(foreignController));
-        emit LayerZeroLib.LayerZeroRecipientSet(2, layerZeroRecipient2);
-
-        vm.prank(admin);
-        foreignController.setLayerZeroRecipient(2, layerZeroRecipient2);
-
-        assertEq(foreignController.layerZeroRecipients(2), layerZeroRecipient2);
-
-        vm.record();
-
-        vm.expectEmit(address(foreignController));
-        emit LayerZeroLib.LayerZeroRecipientSet(1, layerZeroRecipient2);
-
-        vm.prank(admin);
-        foreignController.setLayerZeroRecipient(1, layerZeroRecipient2);
-
-        assertEq(foreignController.layerZeroRecipients(1), layerZeroRecipient2);
 
         _assertReentrancyGuardWrittenToTwice();
     }

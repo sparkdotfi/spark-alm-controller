@@ -22,6 +22,12 @@ import { makeAddressUint32Key } from "../../src/RateLimitHelpers.sol";
 import { RateLimits }           from "../../src/RateLimits.sol";
 import { AccessControls }       from "../../src/AccessControls.sol";
 
+import { LayerZeroFacet } from "../../src/libraries/LayerZeroLib.sol";
+
+import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
+
+import { ILayerZeroFacet } from "../../src/interfaces/facets/ILayerZeroFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -215,7 +221,7 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
         deal(relayer, fee.nativeFee);
 
-        vm.expectRevert("LayerZeroLib/recipient-not-set");
+        vm.expectRevert("LayerZeroFacet/recipient-not-set");
         vm.prank(relayer);
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
@@ -387,9 +393,9 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
     /*** ALM system deployments                                                                 ***/
     /**********************************************************************************************/
 
-    ALMProxy          internal foreignAlmProxy;
-    RateLimits        internal foreignRateLimits;
-    ForeignController internal foreignController;
+    ALMProxy               internal foreignAlmProxy;
+    RateLimits             internal foreignRateLimits;
+    IForeignControllerFull internal foreignController;
 
     /**********************************************************************************************/
     /*** Casted addresses for testing                                                           ***/
@@ -435,32 +441,64 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         foreignAlmProxy   = new ALMProxy(SPARK_EXECUTOR);
         foreignRateLimits = new RateLimits(SPARK_EXECUTOR);
 
-        address accessControls = address(new AccessControls(SPARK_EXECUTOR));
+        AccessControls accessControls = new AccessControls(SPARK_EXECUTOR);
 
-        foreignController = new ForeignController({
+        foreignController = IForeignControllerFull(payable(address(new ForeignController({
             admin_          : SPARK_EXECUTOR,
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
-            accessControls_ : accessControls,
+            accessControls_ : address(accessControls),
             psm_            : address(psmArb),
             usdc_           : Arbitrum.USDC,
             cctp_           : CCTP_MESSENGER_ARB
-        });
-
-        address[] memory relayers = new address[](1);
-        relayers[0] = relayer;
+        }))));
 
         vm.startPrank(SPARK_EXECUTOR);
+
+        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+
+        _wireLayerZeroFacetForeignController();
 
         foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
         foreignController.grantRole(foreignController.FREEZER(),    freezer);
         foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
-
-        for (uint256 i; i < relayers.length; ++i) {
-            foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
-        }
+        foreignController.grantRole(foreignController.RELAYER(),    relayer);
 
         vm.stopPrank();
+    }
+
+    function _wireLayerZeroFacetForeignController() internal {
+        address layerZeroFacet = address(new LayerZeroFacet());
+
+        vm.label(layerZeroFacet, "LayerZeroFacet");
+
+        // Controller.setLayerZeroRecipient -> LayerZeroFacet.setRecipient
+        foreignController.setDispatch(
+            IForeignControllerFull.setLayerZeroRecipient.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.setRecipient.selector
+        );
+
+        // Controller.transferTokenLayerZero -> LayerZeroFacet.transfer
+        foreignController.setDispatch(
+            IForeignControllerFull.transferTokenLayerZero.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.transfer.selector
+        );
+
+        // Controller.LIMIT_LAYERZERO_TRANSFER -> LayerZeroFacet.LIMIT_TRANSFER
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_LAYERZERO_TRANSFER.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.LIMIT_TRANSFER.selector
+        );
+
+        // Controller.layerZeroRecipients -> LayerZeroFacet.getRecipient
+        foreignController.setDispatch(
+            IForeignControllerFull.layerZeroRecipients.selector,
+            layerZeroFacet,
+            ILayerZeroFacet.getRecipient.selector
+        );
     }
 
     function _getBlock() internal pure override returns (uint256) {
@@ -610,7 +648,7 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
         deal(relayer, fee.nativeFee);
 
-        vm.expectRevert("LayerZeroLib/recipient-not-set");
+        vm.expectRevert("LayerZeroFacet/recipient-not-set");
         vm.prank(relayer);
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,

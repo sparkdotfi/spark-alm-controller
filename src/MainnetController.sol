@@ -8,9 +8,8 @@ import { Ethereum } from "../lib/spark-address-registry/src/Ethereum.sol";
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
-import { LayerZeroLib }  from "./libraries/LayerZeroLib.sol";
-import { OTCLib }        from "./libraries/OTCLib.sol";
-import { UniswapV3Lib }  from "./libraries/UniswapV3Lib.sol";
+import { OTCLib }       from "./libraries/OTCLib.sol";
+import { UniswapV3Lib } from "./libraries/UniswapV3Lib.sol";
 
 import { Controller } from "./Controller.sol";
 
@@ -52,7 +51,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     bytes32 public FREEZER = keccak256("FREEZER");
     bytes32 public RELAYER = keccak256("RELAYER");
 
-    bytes32 public LIMIT_LAYERZERO_TRANSFER  = LayerZeroLib.LIMIT_TRANSFER;
     bytes32 public LIMIT_OTC_SWAP            = OTCLib.LIMIT_SWAP;
     bytes32 public LIMIT_UNISWAP_V3_DEPOSIT  = UniswapV3Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V3_SWAP     = UniswapV3Lib.LIMIT_SWAP;
@@ -80,7 +78,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
-    mapping(uint32 destinationEndpointId   => bytes32 layerZeroRecipient)  public layerZeroRecipients;
     // OTC swap (also uses maxSlippages)
     mapping(address exchange => OTCLib.OTC otcData) public otcs;
 
@@ -126,14 +123,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
     /**********************************************************************************************/
     /*** Admin functions                                                                        ***/
     /**********************************************************************************************/
-
-    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        LayerZeroLib.setRecipient(layerZeroRecipients, destinationEndpointId, recipient);
-    }
 
     function setMaxSlippage(address pool, uint256 maxSlippage)
         external
@@ -306,29 +295,6 @@ contract MainnetController is Controller, AccessControlEnumerable {
             min             : min,
             deadline        : deadline,
             maxSlippages    : maxSlippages
-        });
-    }
-
-    // NOTE: !!! This function was deployed without integration testing !!!
-    //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
-    //       all functionality has been thoroughly integration tested.
-    function transferTokenLayerZero(
-        address oftAddress,
-        uint256 amount,
-        uint32  destinationEndpointId
-    )
-        external
-        payable
-        nonReentrant
-        onlyRole(RELAYER)
-    {
-        LayerZeroLib.transfer({
-            proxy                 : address(proxy),
-            rateLimits            : address(rateLimits),
-            oftAddress            : oftAddress,
-            amount                : amount,
-            destinationEndpointId : destinationEndpointId,
-            layerZeroRecipients   : layerZeroRecipients
         });
     }
 
