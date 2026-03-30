@@ -752,7 +752,7 @@ contract MainnetController_UniswapV4_Tests is UniswapV4_TestBase {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _unauthorized,
-                mainnetController.RELAYER()
+                RELAYER_ROLE
             )
         );
 
@@ -788,7 +788,7 @@ contract MainnetController_UniswapV4_Tests is UniswapV4_TestBase {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _unauthorized,
-                mainnetController.RELAYER()
+                RELAYER_ROLE
             )
         );
 
@@ -823,7 +823,7 @@ contract MainnetController_UniswapV4_Tests is UniswapV4_TestBase {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _unauthorized,
-                mainnetController.RELAYER()
+                RELAYER_ROLE
             )
         );
 
@@ -852,7 +852,7 @@ contract MainnetController_UniswapV4_Tests is UniswapV4_TestBase {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 _unauthorized,
-                mainnetController.RELAYER()
+                RELAYER_ROLE
             )
         );
 

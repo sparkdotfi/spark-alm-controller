@@ -66,7 +66,7 @@ contract MainnetController_ERC4626_Deposit_Tests is ERC4626_SUSDS_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.depositERC4626(address(susds), 1e18, 0);
     }
@@ -200,7 +200,7 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.withdrawERC4626(address(susds), 1e18, 1e18);
     }
@@ -311,7 +311,7 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.redeemERC4626(address(susds), 1e18, 1e18);
     }

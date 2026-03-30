@@ -50,7 +50,7 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID);
     }

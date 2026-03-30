@@ -27,7 +27,7 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
     }

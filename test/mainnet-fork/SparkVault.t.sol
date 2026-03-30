@@ -86,7 +86,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }

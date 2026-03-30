@@ -71,7 +71,7 @@ contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
     }

@@ -71,7 +71,7 @@ contract ForeignControllerRedeemFailurePendleTests is PendleTestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.redeemPendlePT(address(pendleMarket), 50_000e18, 1);
     }

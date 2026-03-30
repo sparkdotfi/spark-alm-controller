@@ -104,7 +104,7 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, 30110);
     }
@@ -447,22 +447,20 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
             admin_          : SPARK_EXECUTOR,
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
-            accessControls_ : address(accessControls),
-            psm_            : address(psmArb),
-            usdc_           : Arbitrum.USDC,
-            cctp_           : CCTP_MESSENGER_ARB
+            accessControls_ : address(accessControls)
         }))));
 
         vm.startPrank(SPARK_EXECUTOR);
 
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
 
-        _wireLayerZeroFacetForeignController();
+        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(), address(foreignController));
 
-        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
-        foreignController.grantRole(foreignController.FREEZER(),    freezer);
         foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
-        foreignController.grantRole(foreignController.RELAYER(),    relayer);
+
+        // Facet wiring
+        _wireLayerZeroFacetForeignController();
 
         vm.stopPrank();
     }
@@ -531,7 +529,7 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
     }

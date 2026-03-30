@@ -7,7 +7,7 @@ import { MockTarget } from "../mocks/MockTarget.sol";
 
 import { UnitTestBase } from "../UnitTestBase.t.sol";
 
-abstract contract Freezable_RemoveController_TestBase is UnitTestBase {
+abstract contract Freezable_RemoveRelayer_TestBase is UnitTestBase {
 
     event ExampleEvent(
         address indexed exampleAddress,
@@ -17,13 +17,12 @@ abstract contract Freezable_RemoveController_TestBase is UnitTestBase {
         uint256 value
     );
 
-    event ControllerRemoved(address indexed relayer);
+    event RelayerRemoved(address indexed relayer);
 
     ALMProxyFreezable almProxyFreezable;
 
     address target;
 
-    address controller     = makeAddr("controller");
     address exampleAddress = makeAddr("exampleAddress");
 
     bytes data = abi.encodeWithSignature(
@@ -36,8 +35,8 @@ abstract contract Freezable_RemoveController_TestBase is UnitTestBase {
         almProxyFreezable = new ALMProxyFreezable(admin);
 
         vm.startPrank(admin);
-        almProxyFreezable.grantRole(FREEZER,    freezer);
-        almProxyFreezable.grantRole(CONTROLLER, controller);
+        almProxyFreezable.grantRole(FREEZER_ROLE, freezer);
+        almProxyFreezable.grantRole(RELAYER_ROLE, relayer);
         vm.stopPrank();
 
         target = address(new MockTarget());
@@ -45,56 +44,56 @@ abstract contract Freezable_RemoveController_TestBase is UnitTestBase {
 
 }
 
-contract ALMProxy_Freezable_RemoveController_FailureTests is Freezable_RemoveController_TestBase {
+contract ALMProxy_Freezable_RemoveRelayer_FailureTests is Freezable_RemoveRelayer_TestBase {
 
-    function test_removeController_unauthorizedAccount() public {
+    function test_removeRelayer_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            FREEZER
+            FREEZER_ROLE
         ));
-        almProxyFreezable.removeController(controller);
+        almProxyFreezable.removeRelayer(relayer);
 
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             admin,
-            FREEZER
+            FREEZER_ROLE
         ));
-        almProxyFreezable.removeController(controller);
+        almProxyFreezable.removeRelayer(relayer);
     }
 
 }
 
-contract ALMProxy_Freezable_RemoveController_SuccessTests is Freezable_RemoveController_TestBase {
+contract ALMProxy_Freezable_RemoveRelayer_SuccessTests is Freezable_RemoveRelayer_TestBase {
 
-    function test_removeController() public {
+    function test_removeRelayer() public {
         // ALM Proxy Freezable is msg.sender, target emits the event
         vm.expectEmit(target);
         emit ExampleEvent(exampleAddress, 42, 84, address(almProxyFreezable), 0);
-        vm.prank(controller);
+        vm.prank(relayer);
         bytes memory returnData = almProxyFreezable.doCall(target, data);
 
         assertEq(abi.decode(returnData, (uint256)), 84);
 
-        // Before has controller role
-        assertTrue(almProxyFreezable.hasRole(CONTROLLER, controller));
+        // Before has relayer role
+        assertTrue(almProxyFreezable.hasRole(RELAYER_ROLE, relayer));
 
-        // Freezer comes in and removes controller.
+        // Freezer comes in and removes relayer.
         vm.prank(freezer);
         vm.expectEmit(address(almProxyFreezable));
-        emit ControllerRemoved(controller);
-        almProxyFreezable.removeController(controller);
+        emit RelayerRemoved(relayer);
+        almProxyFreezable.removeRelayer(relayer);
 
-        // After no longer has controller role
-        assertFalse(almProxyFreezable.hasRole(CONTROLLER, controller));
+        // After no longer has relayer role
+        assertFalse(almProxyFreezable.hasRole(RELAYER_ROLE, relayer));
 
-        // After can no longer call as controller
-        vm.prank(controller);
+        // After can no longer call as relayer
+        vm.prank(relayer);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
-            controller,
-            CONTROLLER
+            relayer,
+            RELAYER_ROLE
         ));
         almProxyFreezable.doCall(target, data);
     }

@@ -55,7 +55,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
     }

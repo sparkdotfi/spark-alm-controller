@@ -105,7 +105,7 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -419,7 +419,7 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
     }
@@ -610,7 +610,7 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }

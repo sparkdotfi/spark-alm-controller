@@ -4,42 +4,22 @@ pragma solidity ^0.8.34;
 import { ForeignController } from "../../../src/ForeignController.sol";
 import { MainnetController } from "../../../src/MainnetController.sol";
 
-import { MockDaiUsds } from "../mocks/MockDaiUsds.sol";
-import { MockPSM }     from "../mocks/MockPSM.sol";
-import { MockPSM3 }    from "../mocks/MockPSM3.sol";
-import { MockVault }   from "../mocks/MockVault.sol";
-
 import { UnitTestBase } from "../UnitTestBase.t.sol";
 
 contract MainnetController_Constructor_Tests is UnitTestBase {
 
     function test_constructor() public {
-        MockDaiUsds daiUsds = new MockDaiUsds(makeAddr("dai"));
-        MockPSM     psm     = new MockPSM(makeAddr("usdc"));
-        MockVault   vault   = new MockVault(makeAddr("buffer"));
-
         MainnetController mainnetController = new MainnetController(
             admin,
             makeAddr("almProxy"),
             makeAddr("rateLimits"),
-            makeAddr("accessControls"),
-            address(vault),
-            address(psm),
-            address(daiUsds),
-            makeAddr("cctp")
+            makeAddr("accessControls")
         );
 
         assertEq(mainnetController.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
 
         assertEq(address(mainnetController.proxy()),      makeAddr("almProxy"));
         assertEq(address(mainnetController.rateLimits()), makeAddr("rateLimits"));
-        assertEq(address(mainnetController.vault()),      address(vault));
-        assertEq(address(mainnetController.buffer()),     makeAddr("buffer"));  // Buffer param in MockVault
-        assertEq(address(mainnetController.psm()),        address(psm));
-        assertEq(address(mainnetController.daiUsds()),    address(daiUsds));
-        assertEq(address(mainnetController.cctp()),       makeAddr("cctp"));
-        assertEq(address(mainnetController.dai()),        makeAddr("dai"));   // Dai param in MockDaiUsds
-        assertEq(address(mainnetController.usdc()),       makeAddr("usdc"));  // Gem param in MockPSM
     }
 
 }
@@ -48,28 +28,19 @@ contract ForeignController_Constructor_Tests is UnitTestBase {
 
     address almProxy   = makeAddr("almProxy");
     address rateLimits = makeAddr("rateLimits");
-    address cctp       = makeAddr("cctp");
-    address psm        = makeAddr("psm");
-    address usdc       = makeAddr("usdc");
 
     function test_constructor() public {
         ForeignController foreignController = new ForeignController(
             admin,
             almProxy,
             rateLimits,
-            makeAddr("accessControls"),
-            psm,
-            usdc,
-            cctp
+            makeAddr("accessControls")
         );
 
         assertEq(foreignController.hasRole(DEFAULT_ADMIN_ROLE, admin), true);
 
         assertEq(address(foreignController.proxy()),      almProxy);
         assertEq(address(foreignController.rateLimits()), rateLimits);
-        assertEq(address(foreignController.psm()),        psm);
-        assertEq(address(foreignController.usdc()),       usdc);   // asset1 param in MockPSM3
-        assertEq(address(foreignController.cctp()),       cctp);
     }
 
 }

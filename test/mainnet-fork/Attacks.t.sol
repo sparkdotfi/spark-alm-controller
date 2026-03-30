@@ -37,7 +37,7 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             relayer,
-            RELAYER
+            RELAYER_ROLE
         ));
         vm.prank(relayer);
         mainnetController.cooldownAssetsSUSDe(1);
@@ -83,7 +83,7 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             relayer,
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.requestMapleRedemption(address(SYRUP), 1);
 

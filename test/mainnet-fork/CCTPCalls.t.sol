@@ -81,7 +81,7 @@ contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBas
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.transferUSDCToCCTP(1e6, CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE);
     }
@@ -215,7 +215,7 @@ contract MainnetController_CCTP_TransferWithFee_Tests is MainnetController_CCTP_
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.transferUSDCToCCTPWithFee(1e6, MAX_FEE, CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE);
     }
@@ -454,10 +454,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
             admin_          : Base.SPARK_EXECUTOR,
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
-            accessControls_ : address(accessControls),
-            psm_            : address(0),
-            usdc_           : Base.USDC,
-            cctp_           : BASE_CCTP_TOKEN_MESSENGER
+            accessControls_ : address(accessControls)
         })));
 
         vm.startPrank(Base.SPARK_EXECUTOR);
@@ -465,14 +462,14 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
 
-        // Facet wiring
+        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(), address(foreignController));
 
+        foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
+
+        // Facet wiring
         _wireForeignCCTPFacet();
 
         vm.stopPrank();
-
-        address[] memory relayers = new address[](1);
-        relayers[0] = relayer;
 
         MintRecipient[] memory mintRecipients = new MintRecipient[](1);
 
@@ -481,17 +478,9 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
             mintRecipient : bytes32(uint256(uint160(address(almProxy))))
         });
 
-        // Grant access controls
+        // Governance setting up parameters.
 
         vm.startPrank(Base.SPARK_EXECUTOR);
-
-        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
-        foreignController.grantRole(foreignController.FREEZER(),    freezer);
-        foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
-
-        for (uint256 i; i < relayers.length; ++i) {
-            foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
-        }
 
         for (uint256 i; i < mintRecipients.length; ++i) {
             foreignController.setCCTPMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
@@ -616,7 +605,7 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.transferUSDCToCCTP(1e6, CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
     }
@@ -762,7 +751,7 @@ contract ForeignController_CCTP_TransferWithFee_Tests is BaseChain_CCTP_TestBase
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
 
         foreignController.transferUSDCToCCTPWithFee(

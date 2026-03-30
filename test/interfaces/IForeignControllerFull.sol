@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IController } from "../../src/interfaces/IController.sol";
+import { IController }     from "../../src/interfaces/IController.sol";
+import { IUniswapV3Facet } from "../../src/interfaces/facets/IUniswapV3Facet.sol";
 
 import { ForeignController } from "../../src/ForeignController.sol";
 
@@ -191,6 +192,68 @@ abstract contract IForeignControllerFull is IController, ForeignController {
         uint256 amountIn,
         uint256 minAmountOut
     ) external virtual returns (uint256 amountOut);
+
+    /**********************************************************************************************/
+    /*** UniswapV3Facet actions                                                                 ***/
+    /**********************************************************************************************/
+
+    function addLiquidityUniswapV3(
+        address                      pool,
+        uint256                      tokenId,
+        IUniswapV3Facet.Ticks        memory ticks,
+        IUniswapV3Facet.TokenAmounts memory target,
+        IUniswapV3Facet.TokenAmounts memory min,
+        uint256                      deadline
+    )
+        external
+        virtual
+        returns (uint256 tokenId_, uint128 liquidity_, IUniswapV3Facet.TokenAmounts memory amounts_);
+
+    function removeLiquidityUniswapV3(
+        address                      pool,
+        uint256                      tokenId,
+        uint128                      liquidity,
+        IUniswapV3Facet.TokenAmounts memory min,
+        uint256                      deadline
+    )
+        external
+        virtual
+        returns (IUniswapV3Facet.TokenAmounts memory amounts);
+
+    function swapUniswapV3(
+        address pool,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        uint24  tickDelta
+    )
+        external
+        virtual
+        returns (uint256 amountOut);
+
+    function setUniswapV3MaxSlippage(address pool, uint256 maxSlippage) external virtual;
+
+    function setUniswapV3PoolMaxTickDelta(address pool, uint24 maxTickDelta) external virtual;
+
+    function setUniswapV3AddLiquidityLowerTickBound(address pool, int24 lowerTickBound) external virtual;
+
+    function setUniswapV3AddLiquidityUpperTickBound(address pool, int24 upperTickBound) external virtual;
+
+    function setUniswapV3TWAPSecondsAgo(address pool, uint32 twapSecondsAgo) external virtual;
+
+    function LIMIT_UNISWAP_V3_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_UNISWAP_V3_SWAP() external pure virtual returns (bytes32);
+
+    function LIMIT_UNISWAP_V3_WITHDRAW() external pure virtual returns (bytes32);
+
+    function getUniswapV3MaxSlippage(address pool) external view virtual returns (uint256);
+
+    function getUniswapV3PoolMaxTickDelta(address pool) external view virtual returns (uint24);
+
+    function getUniswapV3AddLiquidityTickBounds(address pool) external view virtual returns (int24 lower, int24 upper);
+
+    function getUniswapV3TWAPSecondsAgo(address pool) external view virtual returns (uint32);
 
     /**********************************************************************************************/
     /*** LayerZero actions                                                                      ***/

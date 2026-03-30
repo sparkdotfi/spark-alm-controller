@@ -40,9 +40,9 @@ abstract contract RateLimits_TestBase is UnitTestBase {
         // Deploy the RateLimits contract with `admin` as the initial admin
         rateLimits = new RateLimits(admin);
 
-        // Grant the CONTROLLER role to the `controller` address
+        // Grant the CONTROLLER_ROLE to the `controller` address
         vm.prank(admin);
-        rateLimits.grantRole(CONTROLLER, controller);
+        rateLimits.grantRole(CONTROLLER_ROLE, controller);
     }
 
     function _assertLimitData(
@@ -384,7 +384,7 @@ contract RateLimits_TriggerRateLimitDecrease_Tests is RateLimits_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            CONTROLLER
+            CONTROLLER_ROLE
         ));
         rateLimits.triggerRateLimitDecrease(TEST_KEY1, 100);
 
@@ -392,7 +392,7 @@ contract RateLimits_TriggerRateLimitDecrease_Tests is RateLimits_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             admin,
-            CONTROLLER
+            CONTROLLER_ROLE
         ));
         rateLimits.triggerRateLimitDecrease(TEST_KEY1, 100);
     }
@@ -702,7 +702,7 @@ contract RateLimits_TriggerRateLimitIncrease_Tests is RateLimits_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            CONTROLLER
+            CONTROLLER_ROLE
         ));
         rateLimits.triggerRateLimitIncrease(TEST_KEY1, 100);
 
@@ -710,7 +710,7 @@ contract RateLimits_TriggerRateLimitIncrease_Tests is RateLimits_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             admin,
-            CONTROLLER
+            CONTROLLER_ROLE
         ));
         rateLimits.triggerRateLimitIncrease(TEST_KEY1, 100);
     }

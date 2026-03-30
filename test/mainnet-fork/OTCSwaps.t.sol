@@ -139,7 +139,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.otcSend(exchange, address(1), 1e18);
     }
@@ -462,7 +462,7 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.otcClaim(exchange, address(1));
     }

@@ -166,7 +166,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is CurveTestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -466,7 +466,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is CurveTestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
     }
@@ -645,7 +645,7 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }

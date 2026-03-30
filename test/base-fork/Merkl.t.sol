@@ -33,7 +33,7 @@ contract ForeignControllerToggleOperatorMerklFailureTests is MerklBaseTest {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.toggleOperatorMerkl(operator1);
     }

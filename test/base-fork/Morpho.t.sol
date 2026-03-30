@@ -123,7 +123,7 @@ contract ForeignController_Morpho_Deposit_FailureTests is Morpho_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 0);
     }
@@ -257,7 +257,7 @@ contract ForeignController_Morpho_Withdraw_FailureTests is Morpho_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18);
     }
@@ -405,7 +405,7 @@ contract ForeignController_Morpho_Redeem_FailureTests is Morpho_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18);
     }

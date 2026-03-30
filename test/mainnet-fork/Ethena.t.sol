@@ -52,7 +52,7 @@ contract MainnetController_Ethena_SetDelegatedSigner_Tests is Ethena_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.setDelegatedSigner(makeAddr("signer"));
     }
@@ -89,7 +89,7 @@ contract MainnetController_Ethena_RemoveDelegatedSigner_Tests is Ethena_TestBase
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.removeDelegatedSigner(makeAddr("signer"));
     }
@@ -140,7 +140,7 @@ contract MainnetController_Ethena_PrepareUSDEMint_Tests is Ethena_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.prepareUSDeMint(100);
     }
@@ -228,7 +228,7 @@ contract MainnetController_Ethena_PrepareUSDEBurn_Tests is Ethena_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.prepareUSDeBurn(100);
     }
@@ -316,7 +316,7 @@ contract MainnetController_Ethena_CooldownAssetsSUSDE_Tests is Ethena_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.cooldownAssetsSUSDe(100e18);
     }
@@ -425,7 +425,7 @@ contract MainnetController_Ethena_CooldownSharesSUSDE_Tests is Ethena_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.cooldownSharesSUSDe(100);
     }
@@ -543,7 +543,7 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.unstakeSUSDe();
     }

@@ -62,7 +62,7 @@ contract ForeignController_PSM_Deposit_Tests is PSM_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.depositPSM(address(usdsBase), 1_000_000e18);
     }
@@ -231,7 +231,7 @@ contract ForeignController_PSM_Withdraw_Tests is PSM_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.withdrawPSM(address(usdsBase), 100e18);
     }

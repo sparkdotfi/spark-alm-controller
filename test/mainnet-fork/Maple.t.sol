@@ -98,7 +98,7 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, 0);
     }
@@ -213,7 +213,7 @@ contract MainnetController_Maple_RequestRedemption_Tests is Maple_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.requestMapleRedemption(address(SYRUP), 1_000_000e6);
     }
@@ -288,7 +288,7 @@ contract MainnetController_Maple_CancelRedemption_Tests is Maple_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.cancelMapleRedemption(address(SYRUP), 1_000_000e6);
     }

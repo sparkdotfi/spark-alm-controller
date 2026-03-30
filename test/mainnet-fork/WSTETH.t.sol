@@ -65,7 +65,7 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.depositToWstETH(1e18);
     }
@@ -134,7 +134,7 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.requestWithdrawFromWstETH(1e18);
     }
@@ -237,7 +237,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.claimWithdrawalFromWstETH(1);
     }

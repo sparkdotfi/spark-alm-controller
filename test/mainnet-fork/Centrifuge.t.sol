@@ -67,7 +67,7 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
     }
@@ -139,7 +139,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.claimDepositERC7540(address(jTreasuryVault));
     }
@@ -281,7 +281,7 @@ contract MainnetController_Centrifuge_CancelDeposit_Tests is Centrifuge_TestBase
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
     }
@@ -331,7 +331,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.claimCentrifugeCancelDepositRequest(address(jTreasuryVault));
     }
@@ -418,7 +418,7 @@ contract MainnetController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
     }
@@ -501,7 +501,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.claimRedeemERC7540(address(jTreasuryVault));
     }
@@ -660,7 +660,7 @@ contract MainnetController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
     }
@@ -714,7 +714,7 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.claimCentrifugeCancelRedeemRequest(address(jTreasuryVault));
     }

@@ -60,7 +60,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.depositToFarm(FARM, 1_000_000e18);
     }
@@ -124,7 +124,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.withdrawFromFarm(FARM, 1_000_000e18);
     }

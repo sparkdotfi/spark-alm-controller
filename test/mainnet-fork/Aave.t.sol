@@ -120,7 +120,7 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.depositAave(ATOKEN_USDS, 1_000_000e18);
     }
@@ -260,7 +260,7 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.withdrawAave(ATOKEN_USDS, 1_000_000e18);
     }

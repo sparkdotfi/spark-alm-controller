@@ -35,7 +35,7 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DaiUsds_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.swapUSDSToDAI(1_000_000e18);
     }
@@ -82,7 +82,7 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DaiUsds_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.swapDAIToUSDS(1_000_000e18);
     }

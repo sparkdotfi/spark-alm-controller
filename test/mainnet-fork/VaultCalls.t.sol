@@ -35,7 +35,7 @@ contract MainnetController_Vault_MintUSDS_Tests is Vault_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.mintUSDS(1e18);
     }
@@ -135,7 +135,7 @@ contract MainnetController_Vault_BurnUSDS_Tests is Vault_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.burnUSDS(1e18);
     }

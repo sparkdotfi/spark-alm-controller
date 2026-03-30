@@ -115,7 +115,7 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.depositToWeETH(1e18, 0);
     }
@@ -216,7 +216,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.requestWithdrawFromWeETH(weethModule, 1e18, 0);
     }
@@ -355,7 +355,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.claimWithdrawalFromWeETH(weethModule, 1);
     }

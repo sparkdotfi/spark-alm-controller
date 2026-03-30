@@ -121,6 +121,12 @@ contract Controller_UniswapV4_Admin_Tests is UniswapV4_TestBase {
         controller.setMaxSlippage(bytes32(0), 0);
     }
 
+    function test_setMaxSlippage_zeroPoolId() external {
+        vm.expectRevert("UniswapV4Facet/zero-pool-id");
+        vm.prank(admin);
+        controller.setMaxSlippage(bytes32(0), 0.98e18);
+    }
+
     function test_setMaxSlippage() external {
         vm.expectEmit(address(controller));
         emit IUniswapV4Facet.UniswapV4MaxSlippageSet(_POOL_ID, 0.98e18);

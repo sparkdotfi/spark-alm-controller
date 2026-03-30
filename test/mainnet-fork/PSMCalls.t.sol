@@ -51,7 +51,7 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.swapUSDSToUSDC(1e6);
     }
@@ -174,7 +174,7 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         mainnetController.swapUSDCToUSDS(1e6);
     }

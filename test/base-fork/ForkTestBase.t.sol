@@ -24,6 +24,7 @@ import { IPendleFacet }        from "../../src/interfaces/facets/IPendleFacet.so
 import { IPSM3Facet }          from "../../src/interfaces/facets/IPSM3Facet.sol";
 import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
 import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
+import { IUniswapV3Facet }     from "../../src/interfaces/facets/IUniswapV3Facet.sol";
 
 import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
 import { CurveFacet }         from "../../src/libraries/CurveLib.sol";
@@ -33,6 +34,7 @@ import { PendleFacet }        from "../../src/libraries/PendleLib.sol";
 import { PSM3Facet }          from "../../src/libraries/PSM3Lib.sol";
 import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
 import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
+import { UniswapV3Facet }     from "../../src/libraries/UniswapV3Lib.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
@@ -55,15 +57,15 @@ abstract contract ForkTestBase is Test {
     /*** Constants/state variables                                                              ***/
     /**********************************************************************************************/
 
+    address internal constant UNISWAP_V3_ROUTER           = 0x2626664c2603336E57B271c5C0b26F421741e481;
+    address internal constant UNISWAP_V3_POSITION_MANAGER = 0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1;
+
     bytes32 internal constant _REENTRANCY_GUARD_SLOT        = bytes32(uint256(0));
     bytes32 internal constant _REENTRANCY_GUARD_NOT_ENTERED = bytes32(uint256(1));
     bytes32 internal constant _REENTRANCY_GUARD_ENTERED     = bytes32(uint256(2));
 
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
-
-    bytes32 CONTROLLER;
-    bytes32 FREEZER;
-    bytes32 RELAYER;
+    bytes32 constant RELAYER_ROLE       = keccak256("RELAYER");
 
     address freezer = Base.ALM_FREEZER_MULTISIG;
     address relayer = Base.ALM_RELAYER_MULTISIG;
@@ -135,20 +137,17 @@ abstract contract ForkTestBase is Test {
             admin_          : SPARK_EXECUTOR,
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
-            accessControls_ : address(accessControls),
-            psm_            : address(psmBase),
-            usdc_           : Base.USDC,
-            cctp_           : CCTP_MESSENGER_BASE
+            accessControls_ : address(accessControls)
         })));
-
-        CONTROLLER = almProxy.CONTROLLER();
-        FREEZER    = foreignController.FREEZER();
-        RELAYER    = foreignController.RELAYER();
 
         vm.startPrank(SPARK_EXECUTOR);
 
         accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+
+        almProxy.grantRole(almProxy.CONTROLLER(), address(foreignController));
+
+        rateLimits.grantRole(rateLimits.CONTROLLER(), address(foreignController));
 
         // Facet wiring
         _wireAaveFacet();
@@ -159,23 +158,13 @@ abstract contract ForkTestBase is Test {
         _wirePSM3Facet();
         _wireSparkVaultFacet();
         _wireTransferAssetFacet();
+        _wireUniswapV3Facet();
 
         vm.stopPrank();
 
-        /*** Step 4: Configure ALM system through Spark governance (Spark spell payload) ***/
-
-        address[] memory relayers = new address[](1);
-        relayers[0] = relayer;
+        /*** Step 4: Configure ALM system parameters through Spark governance ***/
 
         vm.startPrank(SPARK_EXECUTOR);
-
-        almProxy.grantRole(almProxy.CONTROLLER(),                address(foreignController));
-        foreignController.grantRole(foreignController.FREEZER(), freezer);
-        rateLimits.grantRole(rateLimits.CONTROLLER(),            address(foreignController));
-
-        for (uint256 i; i < relayers.length; ++i) {
-            foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
-        }
 
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
@@ -303,7 +292,7 @@ abstract contract ForkTestBase is Test {
             IMerklFacet.toggleOperator.selector
         );
     }
-    
+
     function _wirePendleFacet() internal {
         address pendleFacet = address(new PendleFacet(GroveBase.PENDLE_ROUTER));
 
@@ -506,6 +495,118 @@ abstract contract ForkTestBase is Test {
             psm3Facet,
             IPSM3Facet.LIMIT_WITHDRAW.selector
         );
+    }
+
+    function _wireUniswapV3Facet() internal {
+        address uniswapV3Facet = address(new UniswapV3Facet(UNISWAP_V3_POSITION_MANAGER, UNISWAP_V3_ROUTER));
+
+        vm.label(uniswapV3Facet, "UniswapV3Facet");
+
+        // Controller.addLiquidityUniswapV3 -> UniswapV3Facet.addLiquidity
+        foreignController.setDispatch(
+            IForeignControllerFull.addLiquidityUniswapV3.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.addLiquidity.selector
+        );
+
+        // Controller.removeLiquidityUniswapV3 -> UniswapV3Facet.removeLiquidity
+        foreignController.setDispatch(
+            IForeignControllerFull.removeLiquidityUniswapV3.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.removeLiquidity.selector
+        );
+
+        // Controller.swapUniswapV3 -> UniswapV3Facet.swap
+        foreignController.setDispatch(
+            IForeignControllerFull.swapUniswapV3.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.swap.selector
+        );
+
+        // Controller.setUniswapV3MaxSlippage -> UniswapV3Facet.setMaxSlippage
+        foreignController.setDispatch(
+            IForeignControllerFull.setUniswapV3MaxSlippage.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.setMaxSlippage.selector
+        );
+
+        // Controller.setUniswapV3PoolMaxTickDelta -> UniswapV3Facet.setMaxTickDelta
+        foreignController.setDispatch(
+            IForeignControllerFull.setUniswapV3PoolMaxTickDelta.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.setMaxTickDelta.selector
+        );
+
+        // Controller.setUniswapV3AddLiquidityLowerTickBound -> UniswapV3Facet.setLiquidityLowerTickBound
+        foreignController.setDispatch(
+            IForeignControllerFull.setUniswapV3AddLiquidityLowerTickBound.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.setLiquidityLowerTickBound.selector
+        );
+
+        // Controller.setUniswapV3AddLiquidityUpperTickBound -> UniswapV3Facet.setLiquidityUpperTickBound
+        foreignController.setDispatch(
+            IForeignControllerFull.setUniswapV3AddLiquidityUpperTickBound.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.setLiquidityUpperTickBound.selector
+        );
+
+        // Controller.setUniswapV3TWAPSecondsAgo -> UniswapV3Facet.setTWAPSecondsAgo
+        foreignController.setDispatch(
+            IForeignControllerFull.setUniswapV3TWAPSecondsAgo.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.setTWAPSecondsAgo.selector
+        );
+
+        // Controller.LIMIT_UNISWAP_V3_DEPOSIT -> UniswapV3Facet.LIMIT_DEPOSIT
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_UNISWAP_V3_DEPOSIT.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.LIMIT_DEPOSIT.selector
+        );
+
+        // Controller.LIMIT_UNISWAP_V3_SWAP -> UniswapV3Facet.LIMIT_SWAP
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_UNISWAP_V3_SWAP.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.LIMIT_SWAP.selector
+        );
+
+        // Controller.LIMIT_UNISWAP_V3_WITHDRAW -> UniswapV3Facet.LIMIT_WITHDRAW
+        foreignController.setDispatch(
+            IForeignControllerFull.LIMIT_UNISWAP_V3_WITHDRAW.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.LIMIT_WITHDRAW.selector
+        );
+
+        // Controller.getUniswapV3MaxSlippage -> UniswapV3Facet.getMaxSlippag
+        foreignController.setDispatch(
+            IForeignControllerFull.getUniswapV3MaxSlippage.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.getMaxSlippage.selector
+        );
+
+        // Controller.getUniswapV3PoolMaxTickDelta -> UniswapV3Facet.getMaxTickDelta
+        foreignController.setDispatch(
+            IForeignControllerFull.getUniswapV3PoolMaxTickDelta.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.getMaxTickDelta.selector
+        );
+
+        // Controller.getUniswapV3AddLiquidityTickBounds -> UniswapV3Facet.getLiquidityTickBounds
+        foreignController.setDispatch(
+            IForeignControllerFull.getUniswapV3AddLiquidityTickBounds.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.getLiquidityTickBounds.selector
+        );
+
+        // Controller.getUniswapV3TWAPSecondsAgo -> UniswapV3Facet.getTWAPSecondsAgo
+        foreignController.setDispatch(
+            IForeignControllerFull.getUniswapV3TWAPSecondsAgo.selector,
+            uniswapV3Facet,
+            IUniswapV3Facet.getTWAPSecondsAgo.selector
+        );
+
     }
 
 }

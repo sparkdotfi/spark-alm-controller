@@ -67,7 +67,7 @@ contract ForeignController_AaveV3_Deposit_Tests is AaveV3_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e18);
     }
@@ -155,7 +155,7 @@ contract ForeignController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER
+            RELAYER_ROLE
         ));
         foreignController.withdrawAave(ATOKEN_USDC, 1_000_000e18);
     }

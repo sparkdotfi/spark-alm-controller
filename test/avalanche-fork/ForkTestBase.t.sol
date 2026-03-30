@@ -48,10 +48,7 @@ contract ForkTestBase is Test {
     /**********************************************************************************************/
 
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
-
-    bytes32 CONTROLLER;
-    bytes32 FREEZER;
-    bytes32 RELAYER;
+    bytes32 constant RELAYER_ROLE       = keccak256("RELAYER");
 
     address pocket = makeAddr("pocket");
 
@@ -128,41 +125,21 @@ contract ForkTestBase is Test {
             admin_          : GROVE_EXECUTOR,
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
-            accessControls_ : address(accessControls),
-            psm_            : address(psmAvalanche),
-            usdc_           : USDC_AVALANCHE,
-            cctp_           : CCTP_TOKEN_MESSENGER
+            accessControls_ : address(accessControls)
         })));
 
-        CONTROLLER = almProxy.CONTROLLER();
-        FREEZER    = foreignController.FREEZER();
-        RELAYER    = foreignController.RELAYER();
-
         vm.startPrank(GROVE_EXECUTOR);
 
+        accessControls.grantRole(accessControls.FREEZER_ROLE(), ALM_FREEZER);
         accessControls.grantRole(accessControls.RELAYER_ROLE(), ALM_RELAYER);
 
-        // Facet wiring
+        almProxy.grantRole(almProxy.CONTROLLER(), address(foreignController));
 
+        rateLimits.grantRole(rateLimits.CONTROLLER(), address(foreignController));
+
+        // Facet wiring
         _wireCentrifugeFacet();
         _wireERC7540Facet();
-
-        vm.stopPrank();
-
-        /*** Step 3: Configure ALM system through Grove governance (Grove spell payload) ***/
-
-        address[] memory relayers = new address[](1);
-        relayers[0] = ALM_RELAYER;
-
-        vm.startPrank(GROVE_EXECUTOR);
-
-        almProxy.grantRole(almProxy.CONTROLLER(),                address(foreignController));
-        foreignController.grantRole(foreignController.FREEZER(), ALM_FREEZER);
-        rateLimits.grantRole(rateLimits.CONTROLLER(),            address(foreignController));
-
-        for (uint256 i; i < relayers.length; ++i) {
-            foreignController.grantRole(foreignController.RELAYER(), relayers[i]);
-        }
 
         vm.stopPrank();
     }
