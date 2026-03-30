@@ -2,39 +2,59 @@
 pragma solidity ^0.8.34;
 
 import { RateLimits, IRateLimits } from "../../../src/RateLimits.sol";
-import { RateLimitHelpers }        from "../../../src/RateLimitHelpers.sol";
+
+import {
+    makeAddressKey as makeAddressKeyImplementation,
+    makeAddressAddressKey as makeAddressAddressKeyImplementation,
+    makeAddressUint16Key as makeAddressUint16KeyImplementation,
+    makeAddressUint32Key as makeAddressUint32KeyImplementation,
+    makeBytes32Key as makeBytes32KeyImplementation,
+    makeUint32Key as makeUint32KeyImplementation
+} from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { UnitTestBase } from "../UnitTestBase.t.sol";
 
-contract RateLimitHelpersWrapper {
+contract RateLimitHelpersHarness {
 
     function makeAddressKey(bytes32 key, address asset) public pure returns (bytes32) {
-        return RateLimitHelpers.makeAddressKey(key, asset);
+        return makeAddressKeyImplementation(key, asset);
     }
 
     function makeAddressAddressKey(bytes32 key, address asset, address destination) public pure returns (bytes32) {
-        return RateLimitHelpers.makeAddressAddressKey(key, asset, destination);
+        return makeAddressAddressKeyImplementation(key, asset, destination);
+    }
+
+    function makeAddressUint16Key(bytes32 key, address asset, uint16 domain) public pure returns (bytes32) {
+        return makeAddressUint16KeyImplementation(key, asset, domain);
+    }
+
+    function makeAddressUint32Key(bytes32 key, address asset, uint32 domain) public pure returns (bytes32) {
+        return makeAddressUint32KeyImplementation(key, asset, domain);
+    }
+
+    function makeBytes32Key(bytes32 key, bytes32 asset) public pure returns (bytes32) {
+        return makeBytes32KeyImplementation(key, asset);
     }
 
     function makeUint32Key(bytes32 key, uint32 domain) public pure returns (bytes32) {
-        return RateLimitHelpers.makeUint32Key(key, domain);
+        return makeUint32KeyImplementation(key, domain);
     }
 
 }
 
-abstract contract RateLimitHelpers_TestBase is UnitTestBase {
+contract RateLimitHelpers_Tests is UnitTestBase {
 
-    bytes32 constant KEY  = "KEY";
-    string  constant NAME = "NAME";
+    bytes32 internal constant KEY  = "KEY";
+    string  internal constant NAME = "NAME";
 
-    address controller = makeAddr("controller");
+    address internal controller = makeAddr("controller");
 
-    RateLimits              rateLimits;
-    RateLimitHelpersWrapper wrapper;
+    RateLimits              internal rateLimits;
+    RateLimitHelpersHarness internal wrapper;
 
     function setUp() public {
         // Set wrapper as admin so it can set rate limits
-        wrapper    = new RateLimitHelpersWrapper();
+        wrapper    = new RateLimitHelpersHarness();
         rateLimits = new RateLimits(address(wrapper));
     }
 
@@ -55,28 +75,45 @@ abstract contract RateLimitHelpers_TestBase is UnitTestBase {
         assertEq(d.lastUpdated, lastUpdated);
     }
 
-}
-
-contract RateLimitHelpers_PureFunction_Tests is RateLimitHelpers_TestBase {
-
-    function test_makeAddressKey() public view {
+    function test_makeAddressKey() external {
         assertEq(
-            wrapper.makeAddressKey(KEY, address(this)),
-            keccak256(abi.encode(KEY, address(this)))
+            wrapper.makeAddressKey(KEY, makeAddr("account")),
+            keccak256(abi.encode(KEY, makeAddr("account")))
         );
     }
 
-    function test_makeAddressAddressKey() public view {
+    function test_makeAddressAddressKey() external {
         assertEq(
-            wrapper.makeAddressAddressKey(KEY, address(this), address(0)),
-            keccak256(abi.encode(KEY, address(this), address(0)))
+            wrapper.makeAddressAddressKey(KEY, makeAddr("account"), makeAddr("otherAccount")),
+            keccak256(abi.encode(KEY, makeAddr("account"), makeAddr("otherAccount")))
         );
     }
 
-    function test_makeUint32Key() public view {
+    function test_makeAddressUint16Key() external {
         assertEq(
-            wrapper.makeUint32Key(KEY, 123),
-            keccak256(abi.encode(KEY, 123))
+            wrapper.makeAddressUint16Key(KEY, makeAddr("account"), type(uint16).max),
+            keccak256(abi.encode(KEY, makeAddr("account"), uint16(type(uint16).max)))
+        );
+    }
+
+    function test_makeAddressUint32Key() external {
+        assertEq(
+            wrapper.makeAddressUint32Key(KEY, makeAddr("account"), type(uint32).max),
+            keccak256(abi.encode(KEY, makeAddr("account"), uint32(type(uint32).max)))
+        );
+    }
+
+    function test_makeBytes32Key() external view {
+        assertEq(
+            wrapper.makeBytes32Key(KEY, bytes32(type(uint256).max)),
+            keccak256(abi.encode(KEY, bytes32(type(uint256).max)))
+        );
+    }
+
+    function test_makeUint32Key() external view {
+        assertEq(
+            wrapper.makeUint32Key(KEY, type(uint32).max),
+            keccak256(abi.encode(KEY, type(uint32).max))
         );
     }
 

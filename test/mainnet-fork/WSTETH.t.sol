@@ -5,8 +5,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { RateLimits } from "../../src/RateLimits.sol";
-
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {

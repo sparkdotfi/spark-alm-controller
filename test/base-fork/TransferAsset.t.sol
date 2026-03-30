@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { MockTokenReturnFalse, MockTokenReturnNull } from "../mocks/Mocks.sol";
 

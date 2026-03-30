@@ -82,18 +82,6 @@ contract ControllerHarness is Controller {
         return _getControllerStorage().dispatches[callSelector].delegateSelector;
     }
 
-    function accessControls() public view returns (address) {
-        return _getSharedControllerStorage().accessControls;
-    }
-
-    function proxy() public view returns (address) {
-        return _getSharedControllerStorage().proxy;
-    }
-
-    function rateLimits() public view returns (address) {
-        return _getSharedControllerStorage().rateLimits;
-    }
-
 }
 
 contract Controller_Tests is Test {

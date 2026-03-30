@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { makeAddressKey, makeAddressUint16Key } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey, makeAddressUint16Key } from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
     IAsyncRedeemManagerLike,
@@ -14,7 +14,7 @@ import {
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract Centrifuge_TestBase is ForkTestBase {
+abstract contract Centrifuge_TestBase is ForkTestBase {
 
     address constant CENTRIFUGE_VAULT = 0xCF4C60066aAB54b3f750F94c2a06046d5466Ccf9; // deJAAA USDC Vault
 
@@ -60,6 +60,7 @@ contract Centrifuge_TestBase is ForkTestBase {
         globalEscrow = manager.globalEscrow();
         poolEscrow   = manager.poolEscrow(poolId);
     }
+
 }
 
 contract ForeignController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_TestBase {

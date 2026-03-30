@@ -16,17 +16,17 @@ import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
 import { CCTPForwarder }         from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { Domain, DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
-import { ALMProxy }             from "../../src/ALMProxy.sol";
-import { ForeignController }    from "../../src/ForeignController.sol";
-import { makeAddressUint32Key } from "../../src/RateLimitHelpers.sol";
-import { RateLimits }           from "../../src/RateLimits.sol";
-import { AccessControls }       from "../../src/AccessControls.sol";
+import { ILayerZeroFacet } from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
+import { LayerZeroFacet }  from "../../src/facets/layer-zero/LayerZeroFacet.sol";
 
-import { LayerZeroFacet } from "../../src/libraries/LayerZeroLib.sol";
+import { makeAddressUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
+
+import { ALMProxy }       from "../../src/ALMProxy.sol";
+import { Controller }     from "../../src/Controller.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
+import { AccessControls } from "../../src/AccessControls.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
-
-import { ILayerZeroFacet } from "../../src/interfaces/facets/ILayerZeroFacet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -443,8 +443,7 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
         AccessControls accessControls = new AccessControls(SPARK_EXECUTOR);
 
-        foreignController = IForeignControllerFull(payable(address(new ForeignController({
-            admin_          : SPARK_EXECUTOR,
+        foreignController = IForeignControllerFull(payable(address(new Controller({
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
             accessControls_ : address(accessControls)

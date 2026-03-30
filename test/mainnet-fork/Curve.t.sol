@@ -3,8 +3,7 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 

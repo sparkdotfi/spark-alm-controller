@@ -4,20 +4,24 @@ pragma solidity ^0.8.34;
 import { Ethereum as GroveEthereum } from "../../lib/grove-address-registry/src/Ethereum.sol";
 import { Ethereum as SparkEthereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IMerklDistributorLike {
+
     function toggleOperator(address user, address operator) external;
+
     function operators(address user, address operator) external view returns (uint256);
+
     function claim(
         address[] calldata users,
         address[] calldata tokens,
         uint256[] calldata amounts,
         bytes32[][] calldata proofs
     ) external;
+
 }
 
-contract MerklBaseTest is ForkTestBase {
+abstract contract Merkl_TestBase is ForkTestBase {
 
     address constant A_ETH_RLUSD = 0x72eEED8043Dcce2Fe7CdAC950D928F80f472ab80;
 
@@ -31,9 +35,10 @@ contract MerklBaseTest is ForkTestBase {
     function _getBlock() internal pure override returns (uint256) {
         return 23827450;  // Nov 18, 2025
     }
+
 }
 
-contract MainnetControllerToggleOperatorMerklFailureTests is MerklBaseTest {
+contract MainnetController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
 
     function test_toggleOperatorMerkl_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -47,7 +52,7 @@ contract MainnetControllerToggleOperatorMerklFailureTests is MerklBaseTest {
 }
 
 
-contract MainnetControllerToggleOperatorMerklSuccessTests is MerklBaseTest {
+contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
 
     function test_toggleOperatorMerkl_singleOperator() external {
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);

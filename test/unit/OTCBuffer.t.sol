@@ -4,7 +4,7 @@ pragma solidity ^0.8.34;
 import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20Mock }    from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
-import { OTCBuffer } from "../../src/OTCBuffer.sol";
+import { OTCBuffer } from "../../src/facets/otc/OTCBuffer.sol";
 
 import { UnitTestBase } from "./UnitTestBase.t.sol";
 

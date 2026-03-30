@@ -4,20 +4,24 @@ pragma solidity ^0.8.34;
 import { Base as GroveBase } from "lib/grove-address-registry/src/Base.sol";
 import { Base as SparkBase } from "lib/spark-address-registry/src/Base.sol";
 
-import "./ForkTestBase.t.sol";
+import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IMerklDistributorLike {
+
     function toggleOperator(address user, address operator) external;
+
     function operators(address user, address operator) external view returns (uint256);
+
     function claim(
-        address[] calldata users,
-        address[] calldata tokens,
-        uint256[] calldata amounts,
+        address[]   calldata users,
+        address[]   calldata tokens,
+        uint256[]   calldata amounts,
         bytes32[][] calldata proofs
     ) external;
+
 }
 
-contract MerklBaseTest is ForkTestBase {
+abstract contract Merkl_TestBase is ForkTestBase {
 
     event OperatorToggled(address indexed user, address indexed operator, bool isWhitelisted);
 
@@ -25,9 +29,10 @@ contract MerklBaseTest is ForkTestBase {
     address operator2 = makeAddr("operator2");
 
     IMerklDistributorLike merklDistributor = IMerklDistributorLike(GroveBase.MERKL_DISTRIBUTOR);
+
 }
 
-contract ForeignControllerToggleOperatorMerklFailureTests is MerklBaseTest {
+contract ForeignControllerToggleOperatorMerklFailureTests is Merkl_TestBase {
 
     function test_toggleOperatorMerkl_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -40,7 +45,7 @@ contract ForeignControllerToggleOperatorMerklFailureTests is MerklBaseTest {
 
 }
 
-contract ForeignControllerToggleOperatorMerklSuccessTests is MerklBaseTest {
+contract ForeignControllerToggleOperatorMerklSuccessTests is Merkl_TestBase {
 
     function test_toggleOperatorMerkl_singleOperator() external {
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);

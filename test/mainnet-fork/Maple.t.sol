@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
     IMapleTokenExtendedLike,

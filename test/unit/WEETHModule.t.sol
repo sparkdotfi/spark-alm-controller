@@ -3,7 +3,7 @@ pragma solidity ^0.8.34;
 
 import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import { WEETHModule } from "../../src/WEETHModule.sol";
+import { WEETHModule } from "../../src/facets/weeth/WEETHModule.sol";
 
 import { UnitTestBase } from "./UnitTestBase.t.sol";
 

@@ -3,10 +3,9 @@ pragma solidity ^0.8.34;
 
 import { MockERC20Decimals } from "../mocks/Mocks.sol";
 
-import { ICurvePoolLike as ICurvePoolLikeLib } from "../../src/libraries/CurveLib.sol";
+import { ICurvePoolLike as ICurvePoolLikeLib } from "../../src/facets/curve/CurveFacet.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase, ERC20Mock } from "./ForkTestBase.t.sol";
 
@@ -23,14 +22,16 @@ interface IERC20Like {
 }
 
 interface ICurvePoolLike is ICurvePoolLikeLib {
+
     function calc_token_amount(uint256[] memory amounts, bool is_deposit) external view returns (uint256);
 
     function calc_withdraw_one_coin(uint256 amount, int128 index) external view returns (uint256);
 
     function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256);
+
 }
 
-abstract contract CurveTestBase is ForkTestBase {
+abstract contract Curve_TestBase is ForkTestBase {
 
     // TODO: replace with real target pool once available
     address constant CURVE_POOL = 0xa9D6867C347B8b5f395B8421FB31710B8Fb21a16; // USDC/cgUSD
@@ -129,8 +130,8 @@ abstract contract CurveTestBase is ForkTestBase {
         uint256 virtualPrice = curvePool.get_virtual_price();
 
         // Calculate the minimum required total value based on slippage
-        // This matches CurveLib: valueMinWithdrawn >= lpBurnAmount * virtualPrice * maxSlippage / 1e36
-        // After the /1e18 normalization in CurveLib, this gives us the min value in 18 decimals
+        // This matches CurveFacet: valueMinWithdrawn >= lpBurnAmount * virtualPrice * maxSlippage / 1e36
+        // After the /1e18 normalization in CurveFacet, this gives us the min value in 18 decimals
         uint256 minRequiredValue = lpBurnAmount * virtualPrice * maxSlippage / 1e36; // in 18 decimal precision
 
         // Calculate expected withdrawal amounts proportionally
@@ -141,7 +142,7 @@ abstract contract CurveTestBase is ForkTestBase {
             expectedAmounts[i] = curvePool.balances(i) * lpBurnAmount / totalSupply;
             totalExpectedValue += expectedAmounts[i] * rates[i];
         }
-        totalExpectedValue /= 1e18; // Normalize to 18 decimals to match CurveLib
+        totalExpectedValue /= 1e18; // Normalize to 18 decimals to match CurveFacet
 
         // Distribute the minimum required value proportionally across tokens
         // Add 1 to each amount to compensate for rounding errors and ensure we're at/above the boundary
@@ -154,7 +155,7 @@ abstract contract CurveTestBase is ForkTestBase {
 
 }
 
-contract ForeignController_Curve_AddLiquidity_FailureTests is CurveTestBase {
+contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
     function test_addLiquidityCurve_notRelayer() public {
         uint256[] memory amounts = new uint256[](2);
@@ -292,7 +293,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is CurveTestBase {
 
 }
 
-contract ForeignController_Curve_AddLiquidity_SuccessTests is CurveTestBase {
+contract ForeignController_Curve_AddLiquidity_SuccessTests is Curve_TestBase {
 
     function test_addLiquidityCurve() public {
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
@@ -454,7 +455,7 @@ contract ForeignController_Curve_AddLiquidity_SuccessTests is CurveTestBase {
 
 }
 
-contract ForeignController_Curve_RemoveLiquidity_FailureTests is CurveTestBase {
+contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase {
 
     function test_removeLiquidityCurve_notRelayer() public {
         uint256[] memory minWithdrawAmounts = new uint256[](2);
@@ -577,7 +578,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is CurveTestBase {
 
 }
 
-contract ForeignController_Curve_RemoveLiquidity_SuccessTests is CurveTestBase {
+contract ForeignController_Curve_RemoveLiquidity_SuccessTests is Curve_TestBase {
 
     function test_removeLiquidityCurve() public {
         uint256[] memory amounts = new uint256[](2);
@@ -639,7 +640,7 @@ contract ForeignController_Curve_RemoveLiquidity_SuccessTests is CurveTestBase {
 
 }
 
-contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
+contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
 
     function test_swapCurve_notRelayer() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -745,7 +746,7 @@ contract ForeignController_Curve_Swap_FailureTests is CurveTestBase {
 
 }
 
-contract ForeignController_Curve_Swap_SuccessTests is CurveTestBase {
+contract ForeignController_Curve_Swap_SuccessTests is Curve_TestBase {
 
     function test_swapCurve() public {
         _addLiquidity(1_000_000e6, 1_000_000e6);
@@ -773,8 +774,8 @@ contract ForeignController_Curve_Swap_SuccessTests is CurveTestBase {
         // Calculate expected swap output dynamically
         uint256 expectedAmountOut = curvePool.get_dy(1, 0, 1_000_000e6);
 
-        // Calculate minAmountOut to pass CurveLib slippage check
-        // CurveLib requires: minAmountOut >= amountIn * rateIn * maxSlippage / rateOut / 1e18
+        // Calculate minAmountOut to pass CurveFacet slippage check
+        // CurveFacet requires: minAmountOut >= amountIn * rateIn * maxSlippage / rateOut / 1e18
         uint256[] memory rates = curvePool.stored_rates();
         uint256 minAmountOut = 1_000_000e6 * rates[1] * 0.999e18 / rates[0] / 1e18;
 
@@ -797,7 +798,7 @@ contract ForeignController_Curve_Swap_SuccessTests is CurveTestBase {
 
 }
 
-contract ForeignController_Curve_GetVirtualPrice_StressTests is CurveTestBase {
+contract ForeignController_Curve_GetVirtualPrice_StressTests is Curve_TestBase {
 
     function test_getVirtualPrice_stressTest() public {
         vm.startPrank(SPARK_EXECUTOR);
@@ -873,7 +874,7 @@ contract ForeignController_Curve_GetVirtualPrice_StressTests is CurveTestBase {
 
 }
 
-contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is CurveTestBase {
+contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is Curve_TestBase {
 
     function test_e2e_addSwapAndRemoveLiquidityCurve() public {
         // Set a higher slippage to allow for successes

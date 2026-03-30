@@ -8,7 +8,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 import { Ethereum }  from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { SparkLend } from "../../lib/spark-address-registry/src/SparkLend.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 

@@ -3,12 +3,9 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { ForkTestBase } from "./ForkTestBase.t.sol";
-
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
-import { RateLimits }            from "../../src/RateLimits.sol";
+import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 

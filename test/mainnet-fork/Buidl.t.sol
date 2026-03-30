@@ -3,7 +3,7 @@ pragma solidity ^0.8.34;
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 

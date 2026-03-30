@@ -6,9 +6,9 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
-import { WEETHModule }    from "../../src/WEETHModule.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+
+import { WEETHModule } from "../../src/facets/weeth/WEETHModule.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -152,7 +152,7 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
 
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
-        vm.expectRevert("WEETHLib/slippage-too-high");
+        vm.expectRevert("WEETHFacet/slippage-too-high");
         vm.prank(relayer);
         mainnetController.depositToWeETH(1_000e18, minSharesOut + 1);
 
@@ -267,7 +267,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         uint256 minEETHShares = _getMinEETHShares(expectedEETHBalance);
 
-        vm.expectRevert("WEETHLib/slippage-too-high");
+        vm.expectRevert("WEETHFacet/slippage-too-high");
         vm.prank(relayer);
         mainnetController.requestWithdrawFromWeETH(
             weethModule,
@@ -361,7 +361,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     }
 
     function test_claimWithdrawalFromWEETH_failsWhenRequestRateLimitDoesNotExist() external {
-        vm.expectRevert("WEETHLib/invalid-action");
+        vm.expectRevert("WEETHFacet/invalid-action");
         vm.prank(relayer);
         mainnetController.claimWithdrawalFromWeETH(makeAddr("invalid-weethModule"), 1);
     }

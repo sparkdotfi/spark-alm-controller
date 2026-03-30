@@ -3,15 +3,15 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IController }     from "../../../src/interfaces/IController.sol";
-import { IFacetBase }      from "../../../src/interfaces/facets/IFacetBase.sol";
-import { IUniswapV4Facet } from "../../../src/interfaces/facets/IUniswapV4Facet.sol";
-
-import { UniswapV4Facet } from "../../../src/libraries/UniswapV4Lib.sol";
+import { IFacetBase }      from "../../../src/facets/IFacetBase.sol";
+import { IUniswapV4Facet } from "../../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
+import { UniswapV4Facet }  from "../../../src/facets/uniswap-v4/UniswapV4Facet.sol";
 
 import { Controller_TestBase } from "../TestBase.t.sol";
 
-interface IControllerLike is IController {
+interface IControllerLike {
+
+    function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
 
     function setMaxSlippage(bytes32 poolId, uint256 maxSlippage) external;
 
@@ -31,7 +31,7 @@ interface IControllerLike is IController {
 
 }
 
-contract UniswapV4_TestBase is Controller_TestBase {
+abstract contract UniswapV4_TestBase is Controller_TestBase {
 
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
 

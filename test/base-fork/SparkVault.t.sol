@@ -8,7 +8,7 @@ import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { SparkVault } from "../../lib/spark-vaults-v2/src/SparkVault.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 

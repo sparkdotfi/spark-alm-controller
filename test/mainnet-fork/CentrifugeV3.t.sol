@@ -9,7 +9,7 @@ import {
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract CentrifugeTestBase is ForkTestBase {
+abstract contract Centrifuge_TestBase is ForkTestBase {
 
     address constant CENTRIFUGE_VAULT = 0x1121F4e21eD8B9BC1BB9A2952cDD8639aC897784; // DEJAAA_VAULT_USDC
 
@@ -44,7 +44,7 @@ contract CentrifugeTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTestBase {
+contract MainnetController_CentrifugeV3_TransferShares_FailureTests is Centrifuge_TestBase {
 
     function test_transferSharesCentrifuge_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -129,7 +129,7 @@ contract MainnetControllerTransferSharesCentrifugeFailureTests is CentrifugeTest
 
 }
 
-contract MainnetControllerTransferSharesCentrifugeSuccessTests is CentrifugeTestBase {
+contract MainnetController_CentrifugeV3_TransferShares_SuccessTests is Centrifuge_TestBase {
 
     event InitiateTransferShares(
         uint16 centrifugeId,

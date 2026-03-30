@@ -12,19 +12,16 @@ import { Avalanche } from "../../lib/grove-address-registry/src/Avalanche.sol";
 import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
-import { CCTPv2Forwarder as CCTPForwarder } from "../../lib/grove-xchain-helpers/src/forwarders/CCTPv2Forwarder.sol";
+import { ICentrifugeFacet } from "../../src/facets/centrifuge/ICentrifugeFacet.sol";
+import { IERC7540Facet }    from "../../src/facets/erc7540/IERC7540Facet.sol";
 
-import { ICentrifugeFacet } from "../../src/interfaces/facets/ICentrifugeFacet.sol";
-import { IERC7540Facet }    from "../../src/interfaces/facets/IERC7540Facet.sol";
+import { CentrifugeFacet } from "../../src/facets/centrifuge/CentrifugeFacet.sol";
+import { ERC7540Facet }    from "../../src/facets/erc7540/ERC7540Facet.sol";
 
-import { CentrifugeFacet } from "../../src/libraries/CentrifugeLib.sol";
-import { ERC7540Facet }    from "../../src/libraries/ERC7540Lib.sol";
-
-import { ALMProxy }          from "../../src/ALMProxy.sol";
-import { ForeignController } from "../../src/ForeignController.sol";
-import { RateLimits }        from "../../src/RateLimits.sol";
-import { AccessControls }    from "../../src/AccessControls.sol";
-import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
+import { ALMProxy }       from "../../src/ALMProxy.sol";
+import { Controller }     from "../../src/Controller.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
+import { AccessControls } from "../../src/AccessControls.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
@@ -121,8 +118,7 @@ contract ForkTestBase is Test {
 
         accessControls = new AccessControls(GROVE_EXECUTOR);
 
-        foreignController = IForeignControllerFull(payable(new ForeignController({
-            admin_          : GROVE_EXECUTOR,
+        foreignController = IForeignControllerFull(payable(new Controller({
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
             accessControls_ : address(accessControls)

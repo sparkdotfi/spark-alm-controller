@@ -5,13 +5,13 @@ import { MarketParamsLib } from "../../lib/metamorpho/lib/morpho-blue/src/librar
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { IMetaMorphoLike, IMorphoLike, Id, Market, MarketParams } from "../interfaces/Morpho.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-abstract contract ERC4626DonationAttack_TestBase is ForkTestBase {
+abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
 
     IMetaMorphoLike internal constant MORPHO_VAULT = IMetaMorphoLike(0xe41a0583334f0dc4E023Acd0bFef3667F6FE0597);
 
@@ -86,7 +86,7 @@ abstract contract ERC4626DonationAttack_TestBase is ForkTestBase {
 
 }
 
-contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626DonationAttack_TestBase {
+contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626_DonationAttack_TestBase {
 
     function test_depositERC4626_donationAttackFailure() external {
         vm.startPrank(Ethereum.SPARK_PROXY);

@@ -12,9 +12,9 @@ import { ERC20Mock } from "../../lib/openzeppelin-contracts/contracts/mocks/toke
 
 import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { IUniswapV3Facet } from "../../src/interfaces/facets/IUniswapV3Facet.sol";
+import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
-import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
     INonfungiblePositionManager,

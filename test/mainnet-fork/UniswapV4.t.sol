@@ -20,9 +20,9 @@ import { IV4Router }     from "../../lib/uniswap-v4-periphery/src/interfaces/IV4
 import { Actions }       from "../../lib/uniswap-v4-periphery/src/libraries/Actions.sol";
 import { SlippageCheck } from "../../lib/uniswap-v4-periphery/src/libraries/SlippageCheck.sol";
 
-import { IUniswapV4Facet } from "../../src/interfaces/facets/IUniswapV4Facet.sol";
+import { IUniswapV4Facet } from "../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
 
-import { makeBytes32Key } from "../../src/RateLimitHelpers.sol";
+import { makeBytes32Key } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 

@@ -2,11 +2,11 @@
 pragma solidity ^0.8.34;
 
 import { IController }     from "../../src/interfaces/IController.sol";
-import { IUniswapV3Facet } from "../../src/interfaces/facets/IUniswapV3Facet.sol";
+import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
-import { MainnetController } from "../../src/MainnetController.sol";
+import { Controller } from "../../src/Controller.sol";
 
-abstract contract IMainnetControllerFull is IController, MainnetController {
+abstract contract IMainnetControllerFull is IController, Controller {
 
     /**********************************************************************************************/
     /*** DaiUsdsFacet actions                                                                   ***/

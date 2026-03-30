@@ -2,11 +2,11 @@
 pragma solidity ^0.8.34;
 
 import { IController }     from "../../src/interfaces/IController.sol";
-import { IUniswapV3Facet } from "../../src/interfaces/facets/IUniswapV3Facet.sol";
+import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
-import { ForeignController } from "../../src/ForeignController.sol";
+import { Controller } from "../../src/Controller.sol";
 
-abstract contract IForeignControllerFull is IController, ForeignController {
+abstract contract IForeignControllerFull is IController, Controller {
 
     /**********************************************************************************************/
     /*** ERC4626 actions                                                                        ***/

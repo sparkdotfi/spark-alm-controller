@@ -23,61 +23,61 @@ import { Ethereum as GroveEthereum } from "../../lib/grove-address-registry/src/
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
-import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
-import { ICCTPFacet }          from "../../src/interfaces/facets/ICCTPFacet.sol";
-import { ICentrifugeFacet }    from "../../src/interfaces/facets/ICentrifugeFacet.sol";
-import { ICurveFacet }         from "../../src/interfaces/facets/ICurveFacet.sol";
-import { IDAIUSDSFacet }       from "../../src/interfaces/facets/IDAIUSDSFacet.sol";
-import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
-import { IERC7540Facet }       from "../../src/interfaces/facets/IERC7540Facet.sol";
-import { IFarmFacet }          from "../../src/interfaces/facets/IFarmFacet.sol";
-import { ILayerZeroFacet }     from "../../src/interfaces/facets/ILayerZeroFacet.sol";
-import { IMapleFacet }         from "../../src/interfaces/facets/IMapleFacet.sol";
-import { IMerklFacet }         from "../../src/interfaces/facets/IMerklFacet.sol";
-import { IOTCFacet }           from "../../src/interfaces/facets/IOTCFacet.sol";
-import { IPendleFacet }        from "../../src/interfaces/facets/IPendleFacet.sol";
-import { IPSMFacet }           from "../../src/interfaces/facets/IPSMFacet.sol";
-import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
-import { ISuperstateFacet }    from "../../src/interfaces/facets/ISuperstateFacet.sol";
-import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
-import { IUniswapV3Facet }     from "../../src/interfaces/facets/IUniswapV3Facet.sol";
-import { IUniswapV4Facet }     from "../../src/interfaces/facets/IUniswapV4Facet.sol";
-import { IUSDEFacet }          from "../../src/interfaces/facets/IUSDEFacet.sol";
-import { IUSDSFacet }          from "../../src/interfaces/facets/IUSDSFacet.sol";
-import { IWEETHFacet }         from "../../src/interfaces/facets/IWEETHFacet.sol";
-import { IWrapProxyETHFacet }  from "../../src/interfaces/facets/IWrapProxyETHFacet.sol";
-import { IWSTETHFacet }        from "../../src/interfaces/facets/IWSTETHFacet.sol";
+import { IAaveFacet }          from "../../src/facets/aave/IAaveFacet.sol";
+import { ICCTPFacet }          from "../../src/facets/cctp/ICCTPFacet.sol";
+import { ICentrifugeFacet }    from "../../src/facets/centrifuge/ICentrifugeFacet.sol";
+import { ICurveFacet }         from "../../src/facets/curve/ICurveFacet.sol";
+import { IDAIUSDSFacet }       from "../../src/facets/dai-usds/IDAIUSDSFacet.sol";
+import { IERC4626Facet }       from "../../src/facets/erc4626/IERC4626Facet.sol";
+import { IERC7540Facet }       from "../../src/facets/erc7540/IERC7540Facet.sol";
+import { IFarmFacet }          from "../../src/facets/farm/IFarmFacet.sol";
+import { ILayerZeroFacet }     from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
+import { IMapleFacet }         from "../../src/facets/maple/IMapleFacet.sol";
+import { IMerklFacet }         from "../../src/facets/merkl/IMerklFacet.sol";
+import { IOTCFacet }           from "../../src/facets/otc/IOTCFacet.sol";
+import { IPendleFacet }        from "../../src/facets/pendle/IPendleFacet.sol";
+import { IPSMFacet }           from "../../src/facets/psm/IPSMFacet.sol";
+import { ISparkVaultFacet }    from "../../src/facets/spark-vault/ISparkVaultFacet.sol";
+import { ISuperstateFacet }    from "../../src/facets/superstate/ISuperstateFacet.sol";
+import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
+import { IUniswapV3Facet }     from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
+import { IUniswapV4Facet }     from "../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
+import { IUSDEFacet }          from "../../src/facets/usde/IUSDEFacet.sol";
+import { IUSDSFacet }          from "../../src/facets/usds/IUSDSFacet.sol";
+import { IWEETHFacet }         from "../../src/facets/weeth/IWEETHFacet.sol";
+import { IWrapProxyETHFacet }  from "../../src/facets/wrap-proxy-eth/IWrapProxyETHFacet.sol";
+import { IWSTETHFacet }        from "../../src/facets/wsteth/IWSTETHFacet.sol";
 
-import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
-import { CCTPFacet }          from "../../src/libraries/CCTPLib.sol";
-import { CentrifugeFacet }    from "../../src/libraries/CentrifugeLib.sol";
-import { CurveFacet }         from "../../src/libraries/CurveLib.sol";
-import { DAIUSDSFacet }       from "../../src/libraries/DAIUSDSLib.sol";
-import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
-import { ERC7540Facet }       from "../../src/libraries/ERC7540Lib.sol";
-import { FarmFacet }          from "../../src/libraries/FarmLib.sol";
-import { LayerZeroFacet }     from "../../src/libraries/LayerZeroLib.sol";
-import { MapleFacet }         from "../../src/libraries/MapleLib.sol";
-import { MerklFacet }         from "../../src/libraries/MerklLib.sol";
-import { OTCFacet }           from "../../src/libraries/OTCLib.sol";
-import { PendleFacet }        from "../../src/libraries/PendleLib.sol";
-import { PSMFacet }           from "../../src/libraries/PSMLib.sol";
-import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
-import { SuperstateFacet }    from "../../src/libraries/SuperstateLib.sol";
-import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
-import { UniswapV3Facet }     from "../../src/libraries/UniswapV3Lib.sol";
-import { UniswapV4Facet }     from "../../src/libraries/UniswapV4Lib.sol";
-import { USDEFacet }          from "../../src/libraries/USDELib.sol";
-import { USDSFacet }          from "../../src/libraries/USDSLib.sol";
-import { WEETHFacet }         from "../../src/libraries/WEETHLib.sol";
-import { WrapProxyETHFacet }  from "../../src/libraries/WrapProxyETHLib.sol";
-import { WSTETHFacet }        from "../../src/libraries/WSTETHLib.sol";
+import { AaveFacet }          from "../../src/facets/aave/AaveFacet.sol";
+import { CCTPFacet }          from "../../src/facets/cctp/CCTPFacet.sol";
+import { CentrifugeFacet }    from "../../src/facets/centrifuge/CentrifugeFacet.sol";
+import { CurveFacet }         from "../../src/facets/curve/CurveFacet.sol";
+import { DAIUSDSFacet }       from "../../src/facets/dai-usds/DAIUSDSFacet.sol";
+import { ERC4626Facet }       from "../../src/facets/erc4626/ERC4626Facet.sol";
+import { ERC7540Facet }       from "../../src/facets/erc7540/ERC7540Facet.sol";
+import { FarmFacet }          from "../../src/facets/farm/FarmFacet.sol";
+import { LayerZeroFacet }     from "../../src/facets/layer-zero/LayerZeroFacet.sol";
+import { MapleFacet }         from "../../src/facets/maple/MapleFacet.sol";
+import { MerklFacet }         from "../../src/facets/merkl/MerklFacet.sol";
+import { OTCFacet }           from "../../src/facets/otc/OTCFacet.sol";
+import { PendleFacet }        from "../../src/facets/pendle/PendleFacet.sol";
+import { PSMFacet }           from "../../src/facets/psm/PSMFacet.sol";
+import { SparkVaultFacet }    from "../../src/facets/spark-vault/SparkVaultFacet.sol";
+import { SuperstateFacet }    from "../../src/facets/superstate/SuperstateFacet.sol";
+import { TransferAssetFacet } from "../../src/facets/transfer-asset/TransferAssetFacet.sol";
+import { UniswapV3Facet }     from "../../src/facets/uniswap-v3/UniswapV3Facet.sol";
+import { UniswapV4Facet }     from "../../src/facets/uniswap-v4/UniswapV4Facet.sol";
+import { USDEFacet }          from "../../src/facets/usde/USDEFacet.sol";
+import { USDSFacet }          from "../../src/facets/usds/USDSFacet.sol";
+import { WEETHFacet }         from "../../src/facets/weeth/WEETHFacet.sol";
+import { WrapProxyETHFacet }  from "../../src/facets/wrap-proxy-eth/WrapProxyETHFacet.sol";
+import { WSTETHFacet }        from "../../src/facets/wsteth/WSTETHFacet.sol";
 
-import { AccessControls }    from "../../src/AccessControls.sol";
-import { ALMProxy }          from "../../src/ALMProxy.sol";
-import { MainnetController } from "../../src/MainnetController.sol";
-import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
-import { RateLimits }        from "../../src/RateLimits.sol";
+import { AccessControls }   from "../../src/AccessControls.sol";
+import { ALMProxy }         from "../../src/ALMProxy.sol";
+import { Controller }       from "../../src/Controller.sol";
+import { makeUint32Key }    from "../../src/libraries/RateLimitHelpers.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
 
 import { IMainnetControllerFull } from "../interfaces/IMainnetControllerFull.sol";
 
@@ -272,8 +272,7 @@ abstract contract ForkTestBase is DssTest {
 
         accessControls = new AccessControls(Ethereum.SPARK_PROXY);
 
-        mainnetController = IMainnetControllerFull(payable(new MainnetController({
-            admin_          : Ethereum.SPARK_PROXY,
+        mainnetController = IMainnetControllerFull(payable(new Controller({
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
             accessControls_ : address(accessControls)
@@ -344,7 +343,7 @@ abstract contract ForkTestBase is DssTest {
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
-        bytes32 domainKeyBase = RateLimitHelpers.makeUint32Key(
+        bytes32 domainKeyBase = makeUint32Key(
             mainnetController.LIMIT_USDC_TO_DOMAIN(),
             CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
         );

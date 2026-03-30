@@ -13,9 +13,9 @@ import { SafeERC20 }          from "../../lib/openzeppelin-contracts/contracts/t
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { IUniswapV3Facet } from "../../src/interfaces/facets/IUniswapV3Facet.sol";
+import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
-import { makeAddressAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
     INonfungiblePositionManager,

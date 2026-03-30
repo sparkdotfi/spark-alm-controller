@@ -6,7 +6,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 import { Ethereum as SparkEthereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { Ethereum as GroveEthereum } from "../../lib/grove-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -38,7 +38,7 @@ interface IYTLike {
 
 }
 
-contract PendleTestBase is ForkTestBase {
+abstract contract Pendle_TestBase is ForkTestBase {
 
     // sUSDe 25 Sep 2025 market
     IPendleMarketLike pendleMarket = IPendleMarketLike(0xA36b60A14A1A5247912584768C6e53E1a269a9F7);
@@ -65,7 +65,7 @@ contract PendleTestBase is ForkTestBase {
 
 }
 
-contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
+contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
     function test_redeemPendlePT_notRelayer() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -170,7 +170,7 @@ contract MainnetControllerRedeemFailurePendleTests is PendleTestBase {
 
 }
 
-contract MainnetControllerRedeemSuccessPendleTests is PendleTestBase {
+contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
     function test_redeemPendlePT_sUSDe() public {
         // Default Pendle market used in tests is already a sUSDe market

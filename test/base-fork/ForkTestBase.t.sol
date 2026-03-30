@@ -16,31 +16,32 @@ import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
 
-import { IAaveFacet }          from "../../src/interfaces/facets/IAaveFacet.sol";
-import { ICurveFacet }         from "../../src/interfaces/facets/ICurveFacet.sol";
-import { IERC4626Facet }       from "../../src/interfaces/facets/IERC4626Facet.sol";
-import { IMerklFacet }         from "../../src/interfaces/facets/IMerklFacet.sol";
-import { IPendleFacet }        from "../../src/interfaces/facets/IPendleFacet.sol";
-import { IPSM3Facet }          from "../../src/interfaces/facets/IPSM3Facet.sol";
-import { ISparkVaultFacet }    from "../../src/interfaces/facets/ISparkVaultFacet.sol";
-import { ITransferAssetFacet } from "../../src/interfaces/facets/ITransferAssetFacet.sol";
-import { IUniswapV3Facet }     from "../../src/interfaces/facets/IUniswapV3Facet.sol";
+import { IAaveFacet }          from "../../src/facets/aave/IAaveFacet.sol";
+import { ICurveFacet }         from "../../src/facets/curve/ICurveFacet.sol";
+import { IERC4626Facet }       from "../../src/facets/erc4626/IERC4626Facet.sol";
+import { IMerklFacet }         from "../../src/facets/merkl/IMerklFacet.sol";
+import { IPendleFacet }        from "../../src/facets/pendle/IPendleFacet.sol";
+import { IPSM3Facet }          from "../../src/facets/psm3/IPSM3Facet.sol";
+import { ISparkVaultFacet }    from "../../src/facets/spark-vault/ISparkVaultFacet.sol";
+import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
+import { IUniswapV3Facet }     from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
-import { AaveFacet }          from "../../src/libraries/AaveLib.sol";
-import { CurveFacet }         from "../../src/libraries/CurveLib.sol";
-import { ERC4626Facet }       from "../../src/libraries/ERC4626Lib.sol";
-import { MerklFacet }         from "../../src/libraries/MerklLib.sol";
-import { PendleFacet }        from "../../src/libraries/PendleLib.sol";
-import { PSM3Facet }          from "../../src/libraries/PSM3Lib.sol";
-import { SparkVaultFacet }    from "../../src/libraries/SparkVaultLib.sol";
-import { TransferAssetFacet } from "../../src/libraries/TransferAssetLib.sol";
-import { UniswapV3Facet }     from "../../src/libraries/UniswapV3Lib.sol";
+import { AaveFacet }          from "../../src/facets/aave/AaveFacet.sol";
+import { CurveFacet }         from "../../src/facets/curve/CurveFacet.sol";
+import { ERC4626Facet }       from "../../src/facets/erc4626/ERC4626Facet.sol";
+import { MerklFacet }         from "../../src/facets/merkl/MerklFacet.sol";
+import { PendleFacet }        from "../../src/facets/pendle/PendleFacet.sol";
+import { PSM3Facet }          from "../../src/facets/psm3/PSM3Facet.sol";
+import { SparkVaultFacet }    from "../../src/facets/spark-vault/SparkVaultFacet.sol";
+import { TransferAssetFacet } from "../../src/facets/transfer-asset/TransferAssetFacet.sol";
+import { UniswapV3Facet }     from "../../src/facets/uniswap-v3/UniswapV3Facet.sol";
 
-import { ALMProxy }          from "../../src/ALMProxy.sol";
-import { ForeignController } from "../../src/ForeignController.sol";
-import { RateLimitHelpers }  from "../../src/RateLimitHelpers.sol";
-import { RateLimits }        from "../../src/RateLimits.sol";
-import { AccessControls }    from "../../src/AccessControls.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+
+import { ALMProxy }         from "../../src/ALMProxy.sol";
+import { Controller }       from "../../src/Controller.sol";
+import { RateLimits }       from "../../src/RateLimits.sol";
+import { AccessControls }   from "../../src/AccessControls.sol";
 
 import { IForeignControllerFull }  from "../interfaces/IForeignControllerFull.sol";
 
@@ -133,8 +134,7 @@ abstract contract ForkTestBase is Test {
 
         accessControls = new AccessControls(SPARK_EXECUTOR);
 
-        foreignController = IForeignControllerFull(payable(new ForeignController({
-            admin_          : SPARK_EXECUTOR,
+        foreignController = IForeignControllerFull(payable(new Controller({
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
             accessControls_ : address(accessControls)
@@ -175,13 +175,13 @@ abstract contract ForkTestBase is Test {
         bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
 
         // NOTE: Using minimal config for test base setup
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  address(usdcBase)),  usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(usdcBase)),  usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  address(usdsBase)),  usdsMaxAmount, usdsSlope);
-        rateLimits.setRateLimitData(RateLimitHelpers.makeAddressKey(depositKey,  address(susdsBase)), usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(makeAddressKey(depositKey,  address(usdcBase)),  usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(makeAddressKey(withdrawKey, address(usdcBase)),  usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(makeAddressKey(depositKey,  address(usdsBase)),  usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(makeAddressKey(depositKey,  address(susdsBase)), usdsMaxAmount, usdsSlope);
 
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(usdsBase)));
-        rateLimits.setUnlimitedRateLimitData(RateLimitHelpers.makeAddressKey(withdrawKey, address(susdsBase)));
+        rateLimits.setUnlimitedRateLimitData(makeAddressKey(withdrawKey, address(usdsBase)));
+        rateLimits.setUnlimitedRateLimitData(makeAddressKey(withdrawKey, address(susdsBase)));
 
         vm.stopPrank();
     }

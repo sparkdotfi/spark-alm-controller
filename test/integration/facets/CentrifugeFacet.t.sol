@@ -3,22 +3,22 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { ICentrifugeFacet } from "../../../src/interfaces/facets/ICentrifugeFacet.sol";
-import { IController }      from "../../../src/interfaces/IController.sol";
-
-import { CentrifugeFacet } from "../../../src/libraries/CentrifugeLib.sol";
+import { ICentrifugeFacet } from "../../../src/facets/centrifuge/ICentrifugeFacet.sol";
+import { CentrifugeFacet }  from "../../../src/facets/centrifuge/CentrifugeFacet.sol";
 
 import { Controller_TestBase } from "../TestBase.t.sol";
 
-interface IControllerLike is IController {
+interface IControllerLike {
 
     function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external;
+
+    function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
 
     function getCentrifugeRecipient(uint16 centrifugeId) external view returns (bytes32);
 
 }
 
-contract CentrifugeFacet_TestBase is Controller_TestBase {
+abstract contract CentrifugeFacet_TestBase is Controller_TestBase {
 
     IControllerLike internal controller;
 

@@ -3,22 +3,22 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IAaveFacet }  from "../../../src/interfaces/facets/IAaveFacet.sol";
-import { IController } from "../../../src/interfaces/IController.sol";
-
-import { AaveFacet } from "../../../src/libraries/AaveLib.sol";
+import { IAaveFacet } from "../../../src/facets/aave/IAaveFacet.sol";
+import { AaveFacet }  from "../../../src/facets/aave/AaveFacet.sol";
 
 import { Controller_TestBase } from "../TestBase.t.sol";
 
-interface IControllerLike is IController {
+interface IControllerLike {
 
-    function getAaveMaxSlippage(address aToken) external view returns (uint256);
+    function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
 
     function setAaveMaxSlippage(address aToken, uint256 maxSlippage) external;
 
+    function getAaveMaxSlippage(address aToken) external view returns (uint256);
+
 }
 
-contract AaveFacet_TestBase is Controller_TestBase {
+abstract contract AaveFacet_TestBase is Controller_TestBase {
 
     IControllerLike internal controller;
 

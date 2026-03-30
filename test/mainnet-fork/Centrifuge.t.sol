@@ -3,7 +3,7 @@ pragma solidity ^0.8.34;
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/RateLimitHelpers.sol";
+import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
     ICentrifugeV3VaultLike,
@@ -14,7 +14,7 @@ import {
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
-contract Centrifuge_TestBase is ForkTestBase {
+abstract contract Centrifuge_TestBase is ForkTestBase {
 
     address constant ESCROW                         = 0x0000000005F458Fd6ba9EEb5f365D83b7dA913dD;
     address constant INVESTMENT_MANAGER             = 0x427A1ce127b1775e4Cbd4F58ad468B9F832eA7e9;

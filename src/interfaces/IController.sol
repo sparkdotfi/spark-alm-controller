@@ -42,6 +42,12 @@ interface IController {
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
+    function accessControls() external view returns (address);
+
+    function proxy() external view returns (address);
+
+    function rateLimits() external view returns (address);
+
     function getDispatch(bytes4 callSelector)
         external
         view

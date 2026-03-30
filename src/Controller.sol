@@ -72,6 +72,18 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    function accessControls() external view returns (address) {
+        return _getSharedControllerStorage().accessControls;
+    }
+
+    function proxy() external view returns (address) {
+        return _getSharedControllerStorage().proxy;
+    }
+
+    function rateLimits() external view returns (address) {
+        return _getSharedControllerStorage().rateLimits;
+    }
+
     function getDispatch(bytes4 callSelector)
         external
         view
