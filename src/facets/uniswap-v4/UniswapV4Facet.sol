@@ -12,6 +12,7 @@ import {
     PositionInfo
 } from "../../../lib/uniswap-v4-periphery/src/libraries/PositionInfoLibrary.sol";
 
+import { ApproveLib }     from "../../libraries/ApproveLib.sol";
 import { makeBytes32Key } from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
@@ -341,38 +342,13 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /**********************************************************************************************/
 
     // TODO: Might be able to just use `ApproveLib` here.
-    function _approveWithPermit2(address proxy, address token, address spender, uint128 amount)
-        internal
-    {
-        // Approve the Permit2 contract to spend none of the token (success is optional).
-        // NOTE: We don't care about the success of this call, since the only outcomes are:
-        //         - the allowance is 0 (it was reset or was already 0)
-        //         - the allowance is not 0, in which case the success of the overall set of
-        //           operations is dependent on the success of the subsequent calls.
-        //       In other words, this is a convenience call that may not even be needed for success.
-        proxy.call(
-            abi.encodeCall(
-                IALMProxy.doCall,
-                (token, abi.encodeCall(IERC20Like.approve, (permit2, 0)))
-            )
-        );
+    function _approveWithPermit2(address token, address spender, uint128 amount) internal {
+        address proxy = _getSharedControllerStorage().proxy;
 
-        if (amount != 0) {
-            // Approve the Permit2 contract to spend the amount of token (success is mandatory).
-            bytes memory approveResult = IALMProxy(proxy).doCall(
-                token,
-                abi.encodeCall(IERC20Like.approve, (permit2, amount))
-            );
+        // Approve the Permit2 contract to spend the amount of token.
+        ApproveLib.approve(token, proxy, permit2, amount);
 
-            // Revert if approve returns anything, and that anything is not `true`.
-            require(
-                approveResult.length == 0 ||
-                (approveResult.length == 32 && abi.decode(approveResult, (bool))),
-                "UniswapV4Facet/permit2-approve-failed"
-            );
-        }
-
-        // Finally, approve the spender to spend the token via Permit2.
+        // Approve the spender to spend the token via Permit2.
         IALMProxy(proxy).doCall(
             permit2,
             abi.encodeCall(
@@ -392,10 +368,10 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     )
         internal
     {
-        address proxy = _getSharedControllerStorage().proxy;
+        _approveWithPermit2(token0, positionManager, amount0Max);
+        _approveWithPermit2(token1, positionManager, amount1Max);
 
-        _approveWithPermit2(proxy, token0, positionManager, amount0Max);
-        _approveWithPermit2(proxy, token1, positionManager, amount1Max);
+        address proxy = _getSharedControllerStorage().proxy;
 
         // Get token balances before liquidity increase.
         uint256 startingBalance0 = _getBalance(token0, proxy);
@@ -424,8 +400,8 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         _decreaseRateLimit(LIMIT_DEPOSIT, poolId, rateLimitDecrease);
 
         // Reset approvals for token0 and token1.
-        _approveWithPermit2(proxy, token0, positionManager, 0);
-        _approveWithPermit2(proxy, token1, positionManager, 0);
+        _approveWithPermit2(token0, positionManager, 0);
+        _approveWithPermit2(token1, positionManager, 0);
     }
 
     function _decreaseLiquidity(
@@ -463,15 +439,13 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     function _swap(bytes32 poolId, address tokenIn, uint128 amountIn, bytes memory callData)
         internal
     {
-        address proxy = _getSharedControllerStorage().proxy;
-
-        _approveWithPermit2(proxy, tokenIn, router, amountIn);
+        _approveWithPermit2(tokenIn, router, amountIn);
 
         // Perform action.
-        IALMProxy(proxy).doCall(router, callData);
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(router, callData);
 
         // Reset approval of Permit2 in tokenIn.
-        _approveWithPermit2(proxy, tokenIn, router, 0);
+        _approveWithPermit2(tokenIn, router, 0);
     }
 
     function _decreaseRateLimit(bytes32 key, bytes32 poolId, uint256 amount) internal {
