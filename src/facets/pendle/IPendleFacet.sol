@@ -6,13 +6,13 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IPendleFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function redeem(address market, uint256 pyAmountIn, uint256 minAmountOut) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_REDEEM() external pure returns (bytes32);

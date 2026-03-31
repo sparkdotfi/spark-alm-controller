@@ -6,7 +6,7 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IUSDSFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function burn(uint256 usdsAmount) external;
@@ -14,9 +14,13 @@ interface IUSDSFacet is IFacetBase {
     function mint(uint256 usdsAmount) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_MINT() external pure returns (bytes32);
+
+    function vault() external view returns (address);
+
+    function usds() external view returns (address);
 
 }

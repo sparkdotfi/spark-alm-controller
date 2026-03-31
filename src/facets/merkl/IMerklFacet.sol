@@ -6,13 +6,13 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IMerklFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function toggleOperator(address operator) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function distributor() external view returns (address);

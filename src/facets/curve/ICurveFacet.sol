@@ -12,8 +12,20 @@ interface ICurveFacet is IFacetBase {
     event CurveMaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
+
+    function addLiquidity(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
+        external
+        returns (uint256);
+
+    function removeLiquidity(
+        address            pool,
+        uint256            lpBurnAmount,
+        uint256[] calldata minWithdrawAmounts
+    )
+        external
+        returns (uint256[] memory withdrawnTokens);
 
     function setMaxSlippage(address pool, uint256 maxSlippage) external;
 
@@ -23,22 +35,12 @@ interface ICurveFacet is IFacetBase {
         uint256 outputIndex,
         uint256 amountIn,
         uint256 minAmountOut
-    ) external returns (uint256 amountOut);
-
-    function addLiquidity(
-        address            pool,
-        uint256[] calldata depositAmounts,
-        uint256            minLpAmount
-    ) external returns (uint256 shares);
-
-    function removeLiquidity(
-        address            pool,
-        uint256            lpBurnAmount,
-        uint256[] calldata minWithdrawAmounts
-    ) external returns (uint256[] memory withdrawnTokens);
+    )
+        external
+        returns (uint256 amountOut);
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_DEPOSIT() external pure returns (bytes32);
@@ -46,6 +48,10 @@ interface ICurveFacet is IFacetBase {
     function LIMIT_SWAP() external pure returns (bytes32);
 
     function LIMIT_WITHDRAW() external pure returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     function getMaxSlippage(address pool) external view returns (uint256);
 

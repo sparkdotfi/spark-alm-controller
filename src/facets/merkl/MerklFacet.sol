@@ -19,7 +19,7 @@ contract MerklFacet is IMerklFacet, FacetBase {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable distributor;
+    address public immutable override distributor;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -30,10 +30,15 @@ contract MerklFacet is IMerklFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function toggleOperator(address operator) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function toggleOperator(address operator)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
         address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(

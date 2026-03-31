@@ -32,14 +32,14 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_MINT = keccak256("LIMIT_USDS_MINT");
+    bytes32 public constant override LIMIT_MINT = keccak256("LIMIT_USDS_MINT");
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable vault;
-    address public immutable usds;
+    address public immutable override vault;
+    address public immutable override usds;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -50,7 +50,11 @@ contract USDSFacet is IUSDSFacet, FacetBase {
         usds  = usds_;
     }
 
-    function mint(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+    /**********************************************************************************************/
+    /*** External Interactive Relayer Functions                                                 ***/
+    /**********************************************************************************************/
+
+    function mint(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_MINT, usdsAmount);
@@ -71,7 +75,7 @@ contract USDSFacet is IUSDSFacet, FacetBase {
         );
     }
 
-    function burn(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function burn(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitIncrease(LIMIT_MINT, usdsAmount);

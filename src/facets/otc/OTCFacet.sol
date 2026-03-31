@@ -48,7 +48,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_SWAP = keccak256("LIMIT_OTC_SWAP");
+    bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_OTC_SWAP");
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
@@ -56,6 +56,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
     function setMaxSlippage(address exchange, uint256 maxSlippage)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -69,6 +70,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
     function setBuffer(address exchange, address buffer)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -87,20 +89,22 @@ contract OTCFacet is IOTCFacet, FacetBase {
         emit OTCBufferSet(exchange, $.parameters[exchange].buffer = buffer);
     }
 
-    function setRechargeRate(address exchange, uint256 rechargeRate18)
+    function setRechargeRate(address exchange, uint256 normalizedRate)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(exchange != address(0), "OTCFacet/exchange-zero-address");
 
-        _getFacetStorage().parameters[exchange].rechargeRate18 = rechargeRate18;
+        _getFacetStorage().parameters[exchange].normalizedRate = normalizedRate;
 
-        emit OTCRechargeRateSet(exchange, rechargeRate18);
+        emit OTCRechargeRateSet(exchange, normalizedRate);
     }
 
     function setIsWhitelisted(address exchange, address asset, bool isWhitelisted)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -109,7 +113,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
         Parameters storage parameters = _getFacetStorage().parameters[exchange];
 
-        require(parameters.buffer != address(0), "OTCFacet/otc-buffer-not-set");
+        require(parameters.buffer != address(0), "OTCFacet/buffer-not-set");
 
         parameters.assetWhitelisted[asset] = isWhitelisted;
 
@@ -122,6 +126,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
     function send(address exchange, address assetToSend, uint256 amount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -130,32 +135,34 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
         FacetStorage storage $          = _getFacetStorage();
         Parameters   storage parameters = $.parameters[exchange];
-        State        storage state      = $.states[exchange];
 
         // NOTE: The only way an asset can be whitelisted is if the buffer is set.
         require(parameters.assetWhitelisted[assetToSend], "OTCFacet/asset-not-whitelisted");
 
         // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 sent18 = amount * 1e18 / 10 ** IERC20Like(assetToSend).decimals();
+        uint256 normalizedSent = _toNormalizedAmount(assetToSend, amount);
 
         IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
             makeAddressKey(LIMIT_SWAP, exchange),
-            sent18
+            normalizedSent
         );
 
         require(isSwapReady(exchange), "OTCFacet/last-swap-not-returned");
 
-        state.sent18        = sent18;
-        state.sentTimestamp = block.timestamp;
-        state.claimed18     = 0;
+        State storage state = $.states[exchange];
 
-        emit OTCSwapSent(exchange, parameters.buffer, assetToSend, amount, sent18);
+        state.normalizedSent    = normalizedSent;
+        state.sentTimestamp     = block.timestamp;
+        state.normalizedClaimed = 0;
+
+        emit OTCSwapSent(exchange, parameters.buffer, assetToSend, amount, normalizedSent);
 
         _transfer(assetToSend, exchange, amount);
     }
 
     function claim(address exchange, address assetToClaim)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -166,60 +173,61 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
         address buffer = parameters.buffer;
 
-        require(buffer != address(0),                      "OTCFacet/otc-buffer-not-set");
+        require(buffer != address(0),                      "OTCFacet/buffer-not-set");
         require(parameters.assetWhitelisted[assetToClaim], "OTCFacet/asset-not-whitelisted");
 
-        uint256 amountToClaim   = IERC20Like(assetToClaim).balanceOf(buffer);
-        uint256 amountToClaim18 = amountToClaim * 1e18 / 10 ** IERC20Like(assetToClaim).decimals();
+        uint256 amount           = IERC20Like(assetToClaim).balanceOf(buffer);
+        uint256 normalizedAmount = _toNormalizedAmount(assetToClaim, amount);
 
-        $.states[exchange].claimed18 += amountToClaim18;
+        $.states[exchange].normalizedClaimed += normalizedAmount;
 
-        emit OTCClaimed(exchange, buffer, assetToClaim, amountToClaim, amountToClaim18);
+        emit OTCClaimed(exchange, buffer, assetToClaim, amount, normalizedAmount);
 
-        _transferFrom(assetToClaim, buffer, amountToClaim);
+        _transferFrom(assetToClaim, buffer, amount);
     }
 
     /**********************************************************************************************/
-    /*** External View/Pure functions                                                           ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function getBuffer(address exchange) external view returns (address) {
+    function getBuffer(address exchange) external view override returns (address) {
         return _getFacetStorage().parameters[exchange].buffer;
     }
 
-    function getMaxSlippage(address exchange) external view returns (uint256) {
+    function getMaxSlippage(address exchange) external view override returns (uint256) {
         return _getFacetStorage().parameters[exchange].maxSlippage;
     }
 
-    function getRechargeRate(address exchange) external view returns (uint256) {
-        return _getFacetStorage().parameters[exchange].rechargeRate18;
+    function getRechargeRate(address exchange) external view override returns (uint256) {
+        return _getFacetStorage().parameters[exchange].normalizedRate;
     }
 
-    function getIsWhitelisted(address exchange, address asset) external view returns (bool) {
+    function getIsWhitelisted(address exchange, address asset) external view override returns (bool) {
         return _getFacetStorage().parameters[exchange].assetWhitelisted[asset];
     }
 
     function getState(address exchange)
         external
         view
-        returns (uint256 sent18, uint256 sentTimestamp, uint256 claimed18)
+        override
+        returns (uint256 normalizedSent, uint256 sentTimestamp, uint256 normalizedClaimed)
     {
         State storage state = _getFacetStorage().states[exchange];
-        return (state.sent18, state.sentTimestamp, state.claimed18);
+        return (state.normalizedSent, state.sentTimestamp, state.normalizedClaimed);
     }
 
-    function getClaimWithRecharge(address exchange) public view returns (uint256) {
+    function getClaimWithRecharge(address exchange) public view override returns (uint256) {
         FacetStorage storage $     = _getFacetStorage();
         State        storage state = $.states[exchange];
 
         if (state.sentTimestamp == 0) return 0;
 
         return
-            state.claimed18 +
-            (block.timestamp - state.sentTimestamp) * $.parameters[exchange].rechargeRate18;
+            state.normalizedClaimed +
+            (block.timestamp - state.sentTimestamp) * $.parameters[exchange].normalizedRate;
     }
 
-    function isSwapReady(address exchange) public view returns (bool) {
+    function isSwapReady(address exchange) public view override returns (bool) {
         FacetStorage storage $ = _getFacetStorage();
 
         uint256 maxSlippage = $.parameters[exchange].maxSlippage;
@@ -227,11 +235,13 @@ contract OTCFacet is IOTCFacet, FacetBase {
         // If maxSlippages is not set, the exchange is not onboarded.
         if (maxSlippage == 0) return false;
 
-        return getClaimWithRecharge(exchange) >= $.states[exchange].sent18 * maxSlippage / 1e18;
+        return
+            getClaimWithRecharge(exchange) >=
+            $.states[exchange].normalizedSent * maxSlippage / 1e18;
     }
 
     /**********************************************************************************************/
-    /*** Internal functions                                                                     ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
     function _transfer(address asset, address destination, uint256 amount) internal {
@@ -258,6 +268,14 @@ contract OTCFacet is IOTCFacet, FacetBase {
             returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "OTCFacet/transferFrom-failed"
         );
+    }
+
+    /**********************************************************************************************/
+    /*** Internal View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    function _toNormalizedAmount(address asset, uint256 amount) internal view returns (uint256) {
+        return amount * 1e18 / 10 ** IERC20Like(asset).decimals();
     }
 
 }

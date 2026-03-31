@@ -1,38 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import {
+    IAccessControlEnumerable
+} from "../../../lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlEnumerable.sol";
 
-interface IPSMFacet is IFacetBase {
+interface IOTCBuffer is IAccessControlEnumerable {
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
-    function swapUSDSToUSDC(uint256 usdcAmount) external;
+    function approve(address asset, uint256 allowance) external;
 
-    function swapUSDCToUSDS(uint256 usdcAmount) external;
+    function initialize(address admin, address almProxy) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    function LIMIT_USDS_TO_USDC() external pure returns (bytes32);
-
-    function dai() external view returns (address);
-
-    function daiUSDS() external view returns (address);
-
-    function psm() external view returns (address);
-
-    function usdc() external view returns (address);
-
-    function usds() external view returns (address);
+    function almProxy() external view returns (address);
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
-    function to18ConversionFactor() external view returns (uint256);
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
 
 }

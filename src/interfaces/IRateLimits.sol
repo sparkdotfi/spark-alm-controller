@@ -77,17 +77,7 @@ interface IRateLimits is IAccessControl {
     );
 
     /**********************************************************************************************/
-    /*** State variables                                                                        ***/
-    /**********************************************************************************************/
-
-    /**
-     * @dev    Returns the controller identifier as a bytes32 value.
-     * @return The controller identifier.
-     */
-    function CONTROLLER() external view returns (bytes32);
-
-    /**********************************************************************************************/
-    /*** Admin functions                                                                        ***/
+    /*** Interactive Admin Functions                                                            ***/
     /**********************************************************************************************/
 
     /**
@@ -122,25 +112,7 @@ interface IRateLimits is IAccessControl {
     function setUnlimitedRateLimitData(bytes32 key) external;
 
     /**********************************************************************************************/
-    /*** Getter Functions                                                                       ***/
-    /**********************************************************************************************/
-
-    /**
-     * @dev    Retrieves the RateLimitData struct associated with a specific key.
-     * @param  key The identifier for the rate limit.
-     * @return The data associated with the rate limit.
-     */
-    function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
-
-    /**
-     * @dev    Retrieves the current rate limit for a specific key.
-     * @param  key The identifier for the rate limit.
-     * @return The current rate limit value for the given key.
-     */
-    function getCurrentRateLimit(bytes32 key) external view returns (uint256);
-
-    /**********************************************************************************************/
-    /*** Controller functions                                                                   ***/
+    /*** Interactive Controller Functions                                                       ***/
     /**********************************************************************************************/
 
     /**
@@ -164,5 +136,33 @@ interface IRateLimits is IAccessControl {
     function triggerRateLimitIncrease(bytes32 key, uint256 amountToIncrease)
         external
         returns (uint256 newLimit);
+
+    /**********************************************************************************************/
+    /*** Variables                                                                              ***/
+    /**********************************************************************************************/
+
+    /**
+     * @dev    Returns the controller identifier as a bytes32 value.
+     * @return The controller identifier.
+     */
+    function CONTROLLER() external view returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
+    /**
+     * @dev    Retrieves the RateLimitData struct associated with a specific key.
+     * @param  key The identifier for the rate limit.
+     * @return The data associated with the rate limit.
+     */
+    function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
+
+    /**
+     * @dev    Retrieves the current rate limit for a specific key.
+     * @param  key The identifier for the rate limit.
+     * @return The current rate limit value for the given key.
+     */
+    function getCurrentRateLimit(bytes32 key) external view returns (uint256);
 
 }

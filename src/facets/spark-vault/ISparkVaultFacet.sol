@@ -6,13 +6,13 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface ISparkVaultFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function take(address sparkVault, uint256 assetAmount) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_TAKE() external pure returns (bytes32);

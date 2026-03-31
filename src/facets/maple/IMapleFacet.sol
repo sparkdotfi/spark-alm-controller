@@ -6,7 +6,7 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IMapleFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function cancelRedemption(address mapleToken, uint256 shares) external;
@@ -14,7 +14,7 @@ interface IMapleFacet is IFacetBase {
     function requestRedemption(address mapleToken, uint256 shares) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_REDEEM() external pure returns (bytes32);

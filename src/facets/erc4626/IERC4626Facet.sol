@@ -12,7 +12,7 @@ interface IERC4626Facet is IFacetBase {
     event ERC4626MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function deposit(address token, uint256 amount, uint256 minSharesOut)
@@ -30,7 +30,7 @@ interface IERC4626Facet is IFacetBase {
         returns (uint256 shares);
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function EXCHANGE_RATE_PRECISION() external pure returns (uint256);
@@ -38,6 +38,10 @@ interface IERC4626Facet is IFacetBase {
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 
     function LIMIT_WITHDRAW() external pure returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     function getMaxExchangeRate(address token) external view returns (uint256);
 

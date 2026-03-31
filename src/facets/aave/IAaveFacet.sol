@@ -12,23 +12,27 @@ interface IAaveFacet is IFacetBase {
     event AaveMaxSlippageSet(address indexed aToken, uint256 maxSlippage);
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
-    function setMaxSlippage(address aToken, uint256 maxSlippage) external;
-
     function deposit(address aToken, uint256 amount) external;
+
+    function setMaxSlippage(address aToken, uint256 maxSlippage) external;
 
     function withdraw(address aToken, uint256 amount) external returns (uint256 amountWithdrawn);
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
-
-    function getMaxSlippage(address aToken) external view returns (uint256);
 
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 
     function LIMIT_WITHDRAW() external pure returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
+    function getMaxSlippage(address aToken) external view returns (uint256);
 
 }

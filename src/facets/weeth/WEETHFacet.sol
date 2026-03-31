@@ -57,15 +57,15 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
-    bytes32 public constant LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
+    bytes32 public constant override LIMIT_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
+    bytes32 public constant override LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable weth;
-    address public immutable weeth;
+    address public immutable override weth;
+    address public immutable override weeth;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -77,11 +77,12 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     function deposit(uint256 amount, uint256 minSharesOut)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
@@ -123,6 +124,7 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
 
     function requestWithdraw(address weethModule, uint256 weethShares, uint256 minEETHShares)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 requestId)
@@ -168,6 +170,7 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
 
     function claimWithdrawal(address weethModule, uint256 requestId)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 ethReceived)
@@ -182,7 +185,7 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
             "WEETHFacet/invalid-action"
         );
 
-        ethReceived = abi.decode(
+        return abi.decode(
             IALMProxy($.proxy).doCall(
                 weethModule,
                 abi.encodeCall(IWEETHModuleLike.claimWithdrawal, (requestId))

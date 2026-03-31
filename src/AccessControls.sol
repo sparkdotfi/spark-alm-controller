@@ -29,16 +29,16 @@ contract AccessControls is IAccessControls, ReentrancyGuard, AccessControlEnumer
     }
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** External Interactive Freezer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function removeRelayer(address relayer) external nonReentrant onlyRole(FREEZER_ROLE) {
+    function removeRelayer(address relayer) external override nonReentrant onlyRole(FREEZER_ROLE) {
         _revokeRole(RELAYER_ROLE, relayer);
         emit RelayerRemoved(relayer);
     }
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
     function supportsInterface(bytes4 interfaceId)

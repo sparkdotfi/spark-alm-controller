@@ -6,11 +6,21 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IDAIUSDSFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function swapUSDSToDAI(uint256 usdsAmount) external;
 
     function swapDAIToUSDS(uint256 daiAmount) external;
+
+    /**********************************************************************************************/
+    /*** Variables                                                                              ***/
+    /**********************************************************************************************/
+
+    function dai() external view returns (address);
+
+    function daiUSDS() external view returns (address);
+
+    function usds() external view returns (address);
 
 }

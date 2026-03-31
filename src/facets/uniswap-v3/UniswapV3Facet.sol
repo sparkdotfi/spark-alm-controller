@@ -140,8 +140,8 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
 
     /// @custom:storage-location erc7201:sky.pau.storage.UniswapV3Facet
     struct FacetStorage {
-        mapping(address pool => uint256 maxSlippage) maxSlippages;
-        mapping(address pool => PoolParams params)   poolParams;
+        mapping (address pool => uint256    maxSlippage) maxSlippages;  // 1e18 precision
+        mapping (address pool => PoolParams params)      poolParams;
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.UniswapV3Facet")) - 1)) & ~bytes32(uint256(0xff))
@@ -158,23 +158,23 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
-    bytes32 public constant LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V3_SWAP");
-    bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V3_WITHDRAW");
+    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
+    bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V3_SWAP");
+    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V3_WITHDRAW");
 
     // https://github.com/sky-ecosystem/dss-allocator/blob/dev/src/funnels/uniV3/TickMath.sol#L15
-    uint24 public constant MAX_TICK_DELTA = 887_272;
+    uint24 public constant override MAX_TICK_DELTA = 887_272;
 
     // https://github.com/uniswap/v4-core/blob/v4.0.0/src/libraries/TickMath.sol#L18-L23
-    int24 public constant MIN_TICK = -887_272;
-    int24 public constant MAX_TICK =  887_272;
+    int24 public constant override MIN_TICK = -887_272;
+    int24 public constant override MAX_TICK =  887_272;
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable positionManager;
-    address public immutable router;
+    address public immutable override positionManager;
+    address public immutable override router;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -186,11 +186,12 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Admin functions                                                   ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
     function setMaxSlippage(address pool, uint256 maxSlippage)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -201,6 +202,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
 
     function setMaxTickDelta(address pool, uint24 maxTickDelta)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -216,6 +218,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
 
     function setLiquidityLowerTickBound(address pool, int24 lowerTickBound)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -231,6 +234,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
 
     function setLiquidityUpperTickBound(address pool, int24 upperTickBound)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -246,6 +250,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
 
     function setTWAPSecondsAgo(address pool, uint32 twapSecondsAgo)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -259,7 +264,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer functions                                                 ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     function swap(
@@ -270,6 +275,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         uint24  tickDelta
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 amountOut)
@@ -282,8 +288,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
 
         _approve(tokenIn, router, amountIn);
 
-        address proxy = _getSharedControllerStorage().proxy;
-
+        address proxy           = _getSharedControllerStorage().proxy;
         uint256 startingBalance = IERC20Like(tokenIn).balanceOf(proxy);
 
         amountOut = _swap({
@@ -304,14 +309,15 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     function addLiquidity(
-        address             pool,
-        uint256             tokenId,
-        Ticks        memory ticks,
-        TokenAmounts memory target,
-        TokenAmounts memory min,
-        uint256             deadline
+        address               pool,
+        uint256               tokenId,
+        Ticks        calldata ticks,
+        TokenAmounts calldata target,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 resultingTokenId, uint128 liquidity, TokenAmounts memory amounts)
@@ -356,13 +362,14 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     function removeLiquidity(
-        address             pool,
-        uint256             tokenId,
-        uint128             liquidity,
-        TokenAmounts memory min,
-        uint256             deadline
+        address               pool,
+        uint256               tokenId,
+        uint128               liquidity,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (TokenAmounts memory amounts)
@@ -392,29 +399,29 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External View/Pure functions                                                           ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function getMaxSlippage(address pool) external view returns (uint256) {
+    function getMaxSlippage(address pool) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[pool];
     }
 
-    function getMaxTickDelta(address pool) external view returns (uint24) {
+    function getMaxTickDelta(address pool) external view override returns (uint24) {
         return _getFacetStorage().poolParams[pool].swapMaxTickDelta;
     }
 
-    function getLiquidityTickBounds(address pool) external view returns (int24 lower, int24 upper) {
+    function getLiquidityTickBounds(address pool) external view override returns (int24 lower, int24 upper) {
         Ticks storage tickBounds = _getFacetStorage().poolParams[pool].liquidityTickBounds;
 
         return (tickBounds.lower, tickBounds.upper);
     }
 
-    function getTWAPSecondsAgo(address pool) external view returns (uint32) {
+    function getTWAPSecondsAgo(address pool) external view override returns (uint32) {
         return _getFacetStorage().poolParams[pool].twapSecondsAgo;
     }
 
     /**********************************************************************************************/
-    /*** Swap helper functions                                                                  ***/
+    /*** Swap Helper Functions                                                                  ***/
     /**********************************************************************************************/
 
     function _swap(
@@ -506,14 +513,14 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Add liquidity helper functions                                                         ***/
+    /*** Add Liquidity Helper Functions                                                         ***/
     /**********************************************************************************************/
 
     function _validateAddLiquidityParameters(
-        address             pool,
-        Ticks        memory ticks,
-        TokenAmounts memory target,
-        TokenAmounts memory min
+        address               pool,
+        Ticks        calldata ticks,
+        TokenAmounts calldata target,
+        TokenAmounts calldata min
     )
         internal
         view
@@ -538,7 +545,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         _validateMinAmount(min.amount1, amount1, maxSlippage);
     }
 
-    function _getExpectedAmounts(address pool, Ticks memory ticks, TokenAmounts memory target)
+    function _getExpectedAmounts(address pool, Ticks calldata ticks, TokenAmounts calldata target)
         internal
         view
         returns (uint256 expectedAmount0, uint256 expectedAmount1)
@@ -608,11 +615,11 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     function _mintLiquidity(
-        address             pool,
-        Ticks        memory ticks,
-        TokenAmounts memory target,
-        TokenAmounts memory min,
-        uint256             deadline
+        address               pool,
+        Ticks        calldata ticks,
+        TokenAmounts calldata target,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         internal
         returns (uint256 tokenId, uint128 liquidity, TokenAmounts memory amounts)
@@ -627,11 +634,11 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     function _callMintLiquidity(
-        address             pool,
-        Ticks        memory ticks,
-        TokenAmounts memory target,
-        TokenAmounts memory min,
-        uint256             deadline
+        address               pool,
+        Ticks        calldata ticks,
+        TokenAmounts calldata target,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         internal
         returns (uint256 tokenId, uint128 liquidity, TokenAmounts memory amounts)
@@ -667,12 +674,12 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     function _increaseLiquidity(
-        address             pool,
-        uint256             tokenId,
-        Ticks        memory ticks,
-        TokenAmounts memory target,
-        TokenAmounts memory min,
-        uint256             deadline
+        address               pool,
+        uint256               tokenId,
+        Ticks        calldata ticks,
+        TokenAmounts calldata target,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         internal
         returns (uint128 liquidity, TokenAmounts memory amounts)
@@ -702,10 +709,10 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     function _callIncreaseLiquidity(
-        uint256             tokenId,
-        TokenAmounts memory target,
-        TokenAmounts memory min,
-        uint256             deadline
+        uint256               tokenId,
+        TokenAmounts calldata target,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         internal
         returns (uint128 liquidity, TokenAmounts memory amounts)
@@ -736,7 +743,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Remove liquidity helper functions                                                      ***/
+    /*** Remove Liquidity Helper Functions                                                      ***/
     /**********************************************************************************************/
 
     function _validateRemoveLiquidityParams(
@@ -773,10 +780,10 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     function _callDecreaseLiquidity(
-        uint256             tokenId,
-        uint128             liquidity,
-        TokenAmounts memory min,
-        uint256             deadline
+        uint256               tokenId,
+        uint128               liquidity,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         internal
         returns (TokenAmounts memory amounts)
@@ -826,7 +833,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** General helper functions                                                               ***/
+    /*** General Helper Functions                                                               ***/
     /**********************************************************************************************/
 
     function _approve(address token, address spender, uint256 amount) internal {

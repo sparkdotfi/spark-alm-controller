@@ -5,7 +5,13 @@ import {
     IAccessControl
 } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
-interface IALMProxy is IAccessControl {
+interface IALMProxyFreezable is IAccessControl {
+
+    /**********************************************************************************************/
+    /*** Events                                                                                 ***/
+    /**********************************************************************************************/
+
+    event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
@@ -33,25 +39,14 @@ interface IALMProxy is IAccessControl {
         payable
         returns (bytes memory result);
 
-    /**
-     * @dev    This function performs a delegate call to the specified `target` with the given
-     *         `data`. Reverts if the call fails.
-     * @param  target The address of the target contract to delegate call.
-     * @param  data   The calldata that will be sent to the target contract.
-     * @return result The returned data from the delegate call.
-     */
-    function doDelegateCall(address target, bytes calldata data)
-        external
-        returns (bytes memory result);
+    function removeRelayer(address relayer) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @dev    This function retrieves a constant `bytes32` value that represents the controller.
-     * @return The `bytes32` identifier of the controller.
-     */
-    function CONTROLLER() external view returns (bytes32);
+    function FREEZER() external view returns (bytes32);
+
+    function RELAYER() external view returns (bytes32);
 
 }

@@ -34,18 +34,18 @@ contract USDEFacet is IUSDEFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_USDE_BURN      = keccak256("LIMIT_USDE_BURN");
-    bytes32 public constant LIMIT_USDE_MINT      = keccak256("LIMIT_USDE_MINT");
-    bytes32 public constant LIMIT_SUSDE_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 public constant override LIMIT_USDE_BURN      = keccak256("LIMIT_USDE_BURN");
+    bytes32 public constant override LIMIT_USDE_MINT      = keccak256("LIMIT_USDE_MINT");
+    bytes32 public constant override LIMIT_SUSDE_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable ethenaMinter;
-    address public immutable susde;
-    address public immutable usdc;
-    address public immutable usde;
+    address public immutable override ethenaMinter;
+    address public immutable override susde;
+    address public immutable override usdc;
+    address public immutable override usde;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -59,11 +59,12 @@ contract USDEFacet is IUSDEFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     function setDelegatedSigner(address delegatedSigner)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -75,6 +76,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
 
     function removeDelegatedSigner(address delegatedSigner)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -84,34 +86,29 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         );
     }
 
-    function prepareMint(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+    function prepareMint(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+        _decreaseRateLimit(LIMIT_USDE_MINT, usdcAmount);
 
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_USDE_MINT, usdcAmount);
-
-        ApproveLib.approve(usdc, $.proxy, ethenaMinter, usdcAmount);
+        ApproveLib.approve(usdc, _getSharedControllerStorage().proxy, ethenaMinter, usdcAmount);
     }
 
-    function prepareBurn(uint256 usdeAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+    function prepareBurn(uint256 usdeAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+        _decreaseRateLimit(LIMIT_USDE_BURN, usdeAmount);
 
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_USDE_BURN, usdeAmount);
-
-        ApproveLib.approve(usde, $.proxy, ethenaMinter, usdeAmount);
+        ApproveLib.approve(usde, _getSharedControllerStorage().proxy, ethenaMinter, usdeAmount);
     }
 
     function cooldownAssets(uint256 usdeAmount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, usdeAmount);
+        _decreaseRateLimit(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
         return abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 susde,
                 abi.encodeCall(ISUSDELike.cooldownAssets, (usdeAmount))
             ),
@@ -121,28 +118,35 @@ contract USDEFacet is IUSDEFacet, FacetBase {
 
     function cooldownShares(uint256 susdeAmount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 assets)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
         // NOTE: Rate limited at end of function, so cannot return here.
         assets = abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 susde,
                 abi.encodeCall(ISUSDELike.cooldownShares, (susdeAmount))
             ),
             (uint256)
         );
 
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_SUSDE_COOLDOWN, assets);
+        _decreaseRateLimit(LIMIT_SUSDE_COOLDOWN, assets);
     }
 
-    function unstakeSUSDE() external nonReentrant onlyRole(RELAYER_ROLE) {
+    function unstakeSUSDE() external override nonReentrant onlyRole(RELAYER_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
+    }
+
+    /**********************************************************************************************/
+    /*** Internal Interactive Functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
     }
 
 }

@@ -8,15 +8,19 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 contract RateLimits is IRateLimits, AccessControl {
 
     /**********************************************************************************************/
-    /*** State variables                                                                        ***/
+    /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public override constant CONTROLLER = keccak256("CONTROLLER");
-
-    mapping(bytes32 => RateLimitData) private _data;
+    bytes32 public constant override CONTROLLER = keccak256("CONTROLLER");
 
     /**********************************************************************************************/
-    /*** Initialization                                                                         ***/
+    /*** Declarations                                                                           ***/
+    /**********************************************************************************************/
+
+    mapping (bytes32 => RateLimitData) private _data;
+
+    /**********************************************************************************************/
+    /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
     constructor(address admin_) {
@@ -24,7 +28,7 @@ contract RateLimits is IRateLimits, AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Admin functions                                                                        ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
     function setRateLimitData(
@@ -60,29 +64,7 @@ contract RateLimits is IRateLimits, AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Getter Functions                                                                       ***/
-    /**********************************************************************************************/
-
-    function getRateLimitData(bytes32 key) external override view returns (RateLimitData memory) {
-        return _data[key];
-    }
-
-    function getCurrentRateLimit(bytes32 key) public override view returns (uint256) {
-        RateLimitData memory d = _data[key];
-
-        // Unlimited rate limit case
-        if (d.maxAmount == type(uint256).max) {
-            return type(uint256).max;
-        }
-
-        return _min(
-            d.slope * (block.timestamp - d.lastUpdated) + d.lastAmount,
-            d.maxAmount
-        );
-    }
-
-    /**********************************************************************************************/
-    /*** Controller functions                                                                   ***/
+    /*** External Interactive Controller Functions                                               ***/
     /**********************************************************************************************/
 
     function triggerRateLimitDecrease(bytes32 key, uint256 amountToDecrease)
@@ -128,7 +110,29 @@ contract RateLimits is IRateLimits, AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Internal Utility Functions                                                             ***/
+    /*** External Variable Getters                                                              ***/
+    /**********************************************************************************************/
+
+    function getRateLimitData(bytes32 key) external view override returns (RateLimitData memory) {
+        return _data[key];
+    }
+
+    function getCurrentRateLimit(bytes32 key) public view override returns (uint256) {
+        RateLimitData memory d = _data[key];
+
+        // Unlimited rate limit case
+        if (d.maxAmount == type(uint256).max) {
+            return type(uint256).max;
+        }
+
+        return _min(
+            d.slope * (block.timestamp - d.lastUpdated) + d.lastAmount,
+            d.maxAmount
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
     function _min(uint256 a, uint256 b) internal pure returns (uint256) {

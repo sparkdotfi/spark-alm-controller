@@ -18,8 +18,8 @@ import { ILayerZeroFacet } from "./ILayerZeroFacet.sol";
 interface ILayerZeroLike {
 
     struct MessagingFee {
-        uint256 nativeFee; // gas amount in native gas token
-        uint256 lzTokenFee; // gas amount in ZRO token
+        uint256 nativeFee;  // Gas amount in native gas token.
+        uint256 lzTokenFee; // Gas amount in ZRO token.
     }
 
     struct MessagingReceipt {
@@ -30,7 +30,8 @@ interface ILayerZeroLike {
 
     /**
      * @dev Struct representing OFT fee details.
-     * @dev Future proof mechanism to provide a standardized way to communicate fees to things like a UI.
+     * @dev Future proof mechanism to provide a standardized way to communicate fees to things like
+     *      a UI.
      */
     struct OFTFeeDetail {
         int256 feeAmountLD; // Amount of the fee in local decimals.
@@ -47,22 +48,30 @@ interface ILayerZeroLike {
     }
 
     struct OFTReceipt {
-        uint256 amountSentLD; // Amount of tokens ACTUALLY debited from the sender in local decimals.
-        // @dev In non-default implementations, the amountReceivedLD COULD differ from this value.
+        uint256 amountSentLD; // Actual amount of tokens debited from the sender in local decimals.
+        /// @dev In non-default implementations, the amountReceivedLD COULD differ from this value.
         uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
     }
 
     /**
      * @dev Struct representing token parameters for the OFT send() operation.
+     * @param dstEid       Destination endpoint ID.
+     * @param to           Recipient address.
+     * @param amountLD     Amount to send in local decimals.
+     * @param minAmountLD  Minimum amount to send in local decimals.
+     * @param extraOptions Additional options supplied by the caller to be used in the LayerZero
+     *                     message.
+     * @param composeMsg   Composed message for the send() operation.
+     * @param oftCmd       OFT command to be executed, unused in default OFT implementations.
      */
     struct SendParam {
-        uint32  dstEid; // Destination endpoint ID.
-        bytes32 to; // Recipient address.
-        uint256 amountLD; // Amount to send in local decimals.
-        uint256 minAmountLD; // Minimum amount to send in local decimals.
-        bytes   extraOptions; // Additional options supplied by the caller to be used in the LayerZero message.
-        bytes   composeMsg; // The composed message for the send() operation.
-        bytes   oftCmd; // The OFT command to be executed, unused in default OFT implementations.
+        uint32  dstEid;
+        bytes32 to;
+        uint256 amountLD;
+        uint256 minAmountLD;
+        bytes   extraOptions;
+        bytes   composeMsg;
+        bytes   oftCmd;
     }
 
     function quoteOFT(SendParam calldata sendParam)
@@ -100,7 +109,7 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
 
     /// @custom:storage-location erc7201:sky.pau.storage.LayerZeroFacet
     struct FacetStorage {
-        mapping(uint32 destinationEndpointId => bytes32 recipient) recipients;
+        mapping (uint32 destinationEndpointId => bytes32 recipient) recipients;
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.LayerZeroFacet")) - 1)) & ~bytes32(uint256(0xff))
@@ -117,7 +126,7 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+    bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
@@ -125,6 +134,7 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
 
     function setRecipient(uint32 destinationEndpointId, bytes32 recipient)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -143,6 +153,7 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     function transfer(address oftAddress, uint256 amount, uint32 destinationEndpointId)
         external
         payable
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -217,10 +228,10 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External View/Pure functions                                                           ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function getRecipient(uint32 destinationEndpointId) external view returns (bytes32) {
+    function getRecipient(uint32 destinationEndpointId) external view override returns (bytes32) {
         return _getFacetStorage().recipients[destinationEndpointId];
     }
 

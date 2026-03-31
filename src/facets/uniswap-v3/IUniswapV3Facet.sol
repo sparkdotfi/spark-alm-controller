@@ -40,26 +40,26 @@ interface IUniswapV3Facet is IFacetBase {
     event UniswapV3TWAPSecondsAgoUpdated(address indexed pool, uint32 twapSecondsAgo);
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function addLiquidity(
-        address             pool,
-        uint256             tokenId,
-        Ticks        memory ticks,
-        TokenAmounts memory target,
-        TokenAmounts memory min,
-        uint256             deadline
+        address               pool,
+        uint256               tokenId,
+        Ticks        calldata ticks,
+        TokenAmounts calldata target,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         external
         returns (uint256 tokenId_, uint128 liquidity_, TokenAmounts memory amounts_);
 
     function removeLiquidity(
-        address             pool,
-        uint256             tokenId,
-        uint128             liquidity,
-        TokenAmounts memory min,
-        uint256             deadline
+        address               pool,
+        uint256               tokenId,
+        uint128               liquidity,
+        TokenAmounts calldata min,
+        uint256               deadline
     )
         external
         returns (TokenAmounts memory amounts);
@@ -85,7 +85,7 @@ interface IUniswapV3Facet is IFacetBase {
         returns (uint256 amountOut);
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_DEPOSIT() external pure returns (bytes32);
@@ -103,6 +103,10 @@ interface IUniswapV3Facet is IFacetBase {
     function positionManager() external view returns (address);
 
     function router() external view returns (address);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     function getMaxSlippage(address pool) external view returns (uint256);
 

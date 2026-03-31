@@ -24,7 +24,7 @@ import { IUniswapV4Facet } from "./IUniswapV4Facet.sol";
 
 interface IERC20Like {
 
-    function approve(address spender, uint256 amount) external returns (bool success);
+    function approve(address spender, uint256 amount) external returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
 
@@ -45,11 +45,11 @@ interface IPositionManagerLike {
     function getPoolAndPositionInfo(uint256 tokenId)
         external
         view
-        returns (PoolKey memory poolKey, PositionInfo info);
+        returns (PoolKey memory, PositionInfo);
 
-    function poolKeys(bytes25 poolId) external view returns (PoolKey memory poolKey);
+    function poolKeys(bytes25 poolId) external view returns (PoolKey memory);
 
-    function ownerOf(uint256 tokenId) external view returns (address owner);
+    function ownerOf(uint256 tokenId) external view returns (address);
 
 }
 
@@ -67,8 +67,8 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
 
     /// @custom:storage-location erc7201:sky.pau.storage.UniswapV4Facet
     struct FacetStorage {
-        mapping(bytes32 poolId => uint256 maxSlippage) maxSlippages;
-        mapping(bytes32 poolId => TickLimits limits) tickLimits;
+        mapping (bytes32 poolId => uint256    maxSlippage) maxSlippages;  // 1e18 precision
+        mapping (bytes32 poolId => TickLimits limits)      tickLimits;
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.UniswapV4Facet")) - 1)) & ~bytes32(uint256(0xff))
@@ -85,9 +85,9 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
-    bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
-    bytes32 public constant LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
+    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
+    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
+    bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
 
     uint256 internal constant _V4_SWAP = 0x10;
 
@@ -95,9 +95,9 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable permit2;
-    address public immutable positionManager;
-    address public immutable router;
+    address public immutable override permit2;
+    address public immutable override positionManager;
+    address public immutable override router;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -115,6 +115,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
 
     function setMaxSlippage(bytes32 poolId, uint256 maxSlippage)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -130,6 +131,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         uint24  maxTickSpacing
     )
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -161,6 +163,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         uint128 amount1Max
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -197,6 +200,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         uint128 amount1Max
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -242,6 +246,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         uint128 amount1Min
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -270,6 +275,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
 
     function swap(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -320,16 +326,17 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External View/Pure functions                                                           ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function getMaxSlippage(bytes32 poolId) external view returns (uint256) {
+    function getMaxSlippage(bytes32 poolId) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[poolId];
     }
 
     function getTickLimits(bytes32 poolId)
         external
         view
+        override
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing)
     {
         TickLimits storage tickLimits = _getFacetStorage().tickLimits[poolId];
@@ -341,7 +348,6 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    // TODO: Might be able to just use `ApproveLib` here.
     function _approveWithPermit2(address token, address spender, uint128 amount) internal {
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -371,18 +377,16 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         _approveWithPermit2(token0, positionManager, amount0Max);
         _approveWithPermit2(token1, positionManager, amount1Max);
 
-        address proxy = _getSharedControllerStorage().proxy;
-
         // Get token balances before liquidity increase.
-        uint256 startingBalance0 = _getBalance(token0, proxy);
-        uint256 startingBalance1 = _getBalance(token1, proxy);
+        uint256 startingBalance0 = _getProxyBalance(token0);
+        uint256 startingBalance1 = _getProxyBalance(token1);
 
         // Perform action
-        IALMProxy(proxy).doCall(positionManager, callData);
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(positionManager, callData);
 
         // Get token balances after liquidity increase.
-        uint256 endingBalance0 = _getBalance(token0, proxy);
-        uint256 endingBalance1 = _getBalance(token1, proxy);
+        uint256 endingBalance0 = _getProxyBalance(token0);
+        uint256 endingBalance1 = _getProxyBalance(token1);
 
         // Account for the theoretical possibility of receiving tokens when adding liquidity by
         // using a clamped subtraction.
@@ -412,18 +416,16 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     )
         internal
     {
-        address proxy = _getSharedControllerStorage().proxy;
-
         // Get token balances before liquidity decrease.
-        uint256 startingBalance0 = _getBalance(token0, proxy);
-        uint256 startingBalance1 = _getBalance(token1, proxy);
+        uint256 startingBalance0 = _getProxyBalance(token0);
+        uint256 startingBalance1 = _getProxyBalance(token1);
 
         // Perform action.
-        IALMProxy(proxy).doCall(positionManager, callData);
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(positionManager, callData);
 
         // Get token balances after liquidity decrease.
-        uint256 endingBalance0 = _getBalance(token0, proxy);
-        uint256 endingBalance1 = _getBalance(token1, proxy);
+        uint256 endingBalance0 = _getProxyBalance(token0);
+        uint256 endingBalance1 = _getProxyBalance(token1);
 
         // NOTE: The limitation of this integration is the assumption that the tokens are valued
         //       equally (i.e. 1.000000 USDC = 1.000000000000000000 USDS).
@@ -480,8 +482,8 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         return a > b ? a - b : 0;
     }
 
-    function _getBalance(address token, address account) internal view returns (uint256 balance) {
-        return IERC20Like(token).balanceOf(account);
+    function _getProxyBalance(address token) internal view returns (uint256 balance) {
+        return IERC20Like(token).balanceOf(_getSharedControllerStorage().proxy);
     }
 
     function _getMintCalldata(

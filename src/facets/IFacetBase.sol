@@ -10,7 +10,7 @@ interface IFacetBase {
     error AccessControlUnauthorizedAccount(address caller, bytes32 role);
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function DEFAULT_ADMIN_ROLE() external pure returns (bytes32);

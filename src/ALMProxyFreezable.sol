@@ -4,25 +4,21 @@ pragma solidity ^0.8.34;
 import { AccessControl } from "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 import { Address }       from "../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
-contract ALMProxyFreezable is AccessControl {
+import { IALMProxyFreezable } from "./interfaces/IALMProxyFreezable.sol";
+
+contract ALMProxyFreezable is IALMProxyFreezable, AccessControl {
 
     using Address for address;
 
     /**********************************************************************************************/
-    /*** Events                                                                                 ***/
+    /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    event RelayerRemoved(address indexed relayer);
+    bytes32 public constant override FREEZER = keccak256("FREEZER");
+    bytes32 public constant override RELAYER = keccak256("RELAYER");
 
     /**********************************************************************************************/
-    /*** State variables                                                                        ***/
-    /**********************************************************************************************/
-
-    bytes32 public constant RELAYER = keccak256("RELAYER");
-    bytes32 public constant FREEZER = keccak256("FREEZER");
-
-    /**********************************************************************************************/
-    /*** Initialization                                                                         ***/
+    /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
     constructor(address admin) {
@@ -30,29 +26,31 @@ contract ALMProxyFreezable is AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** Freezer functions                                                                      ***/
+    /*** External Interactive Freezer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function removeRelayer(address relayer) external onlyRole(FREEZER) {
+    function removeRelayer(address relayer) external override onlyRole(FREEZER) {
         _revokeRole(RELAYER, relayer);
         emit RelayerRemoved(relayer);
     }
 
     /**********************************************************************************************/
-    /*** Call functions                                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function doCall(address target, bytes memory data)
+    function doCall(address target, bytes calldata data)
         external
+        override
         onlyRole(RELAYER)
         returns (bytes memory result)
     {
         result = target.functionCall(data);
     }
 
-    function doCallWithValue(address target, bytes memory data, uint256 value)
+    function doCallWithValue(address target, bytes calldata data, uint256 value)
         external
         payable
+        override
         onlyRole(RELAYER)
         returns (bytes memory result)
     {

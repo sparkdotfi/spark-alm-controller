@@ -6,17 +6,17 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IWSTETHFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
-    function deposit(uint256 amount) external;
-
     function claimWithdrawal(uint256 requestId) external;
+
+    function deposit(uint256 amount) external;
 
     function requestWithdraw(uint256 amountToRedeem) external returns (uint256[] memory requestIds);
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_DEPOSIT() external pure returns (bytes32);

@@ -42,16 +42,16 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
-    bytes32 public constant LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
+    bytes32 public constant override LIMIT_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
+    bytes32 public constant override LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable weth;
-    address public immutable withdrawQueue;
-    address public immutable wsteth;
+    address public immutable override weth;
+    address public immutable override withdrawQueue;
+    address public immutable override wsteth;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -64,15 +64,13 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function deposit(uint256 amount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+    function deposit(uint256 amount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+        _decreaseRateLimit(LIMIT_DEPOSIT, amount);
 
-        _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, amount);
-
-        address proxy = $.proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(weth, abi.encodeCall(IWETHLike.withdraw, (amount)));
 
@@ -81,17 +79,16 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
 
     function requestWithdraw(uint256 amountToRedeem)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256[] memory requestIds)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
         uint256 stethAmount = IWSTETHLike(wsteth).getStETHByWstETH(amountToRedeem);
 
-        _decreaseRateLimit($.rateLimits, LIMIT_REQUEST_WITHDRAW, stethAmount);
+        _decreaseRateLimit(LIMIT_REQUEST_WITHDRAW, stethAmount);
 
-        address proxy = $.proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(
             wsteth,
@@ -113,7 +110,12 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
         );
     }
 
-    function claimWithdrawal(uint256 requestId) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function claimWithdrawal(uint256 requestId)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         address proxy             = $.proxy;
@@ -127,8 +129,12 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
         IALMProxy(proxy).doCallWithValue(weth, "", proxy.balance - initialETHBalance);
     }
 
-    function _decreaseRateLimit(address rateLimits, bytes32 key, uint256 amount) internal {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(key, amount);
+    /**********************************************************************************************/
+    /*** Internal Interactive Functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
     }
 
 }

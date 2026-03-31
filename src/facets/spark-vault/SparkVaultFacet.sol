@@ -22,14 +22,15 @@ contract SparkVaultFacet is ISparkVaultFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 public constant override LIMIT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     function take(address sparkVault, uint256 assetAmount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -40,10 +41,7 @@ contract SparkVaultFacet is ISparkVaultFacet, FacetBase {
             assetAmount
         );
 
-        IALMProxy($.proxy).doCall(
-            sparkVault,
-            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
-        );
+        IALMProxy($.proxy).doCall(sparkVault, abi.encodeCall(ISparkVaultLike.take, (assetAmount)));
     }
 
 }

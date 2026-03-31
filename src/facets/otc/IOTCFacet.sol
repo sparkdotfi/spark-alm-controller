@@ -11,15 +11,15 @@ interface IOTCFacet is IFacetBase {
 
     struct Parameters {
         address buffer;
-        uint256 rechargeRate18;
-        uint256 maxSlippage;
+        uint256 normalizedRate;
+        uint256 maxSlippage;  // 1e18 precision
         mapping (address asset => bool isWhitelisted) assetWhitelisted;
     }
 
     struct State {
-        uint256 sent18;
+        uint256 normalizedSent;
         uint256 sentTimestamp;
-        uint256 claimed18;
+        uint256 normalizedClaimed;
     }
 
     /**********************************************************************************************/
@@ -33,7 +33,7 @@ interface IOTCFacet is IFacetBase {
         address indexed buffer,
         address indexed assetClaimed,
         uint256         amountClaimed,
-        uint256         amountClaimed18
+        uint256         normalizedAmountClaimed
     );
 
     event OTCSwapSent(
@@ -41,10 +41,10 @@ interface IOTCFacet is IFacetBase {
         address indexed buffer,
         address indexed tokenSent,
         uint256         amountSent,
-        uint256         amountSent18
+        uint256         normalizedAmountSent
     );
 
-    event OTCRechargeRateSet(address indexed exchange, uint256 rate18);
+    event OTCRechargeRateSet(address indexed exchange, uint256 normalizedRate);
 
     event OTCWhitelistedAssetSet(
         address indexed exchange,
@@ -55,41 +55,45 @@ interface IOTCFacet is IFacetBase {
     event OTCMaxSlippageSet(address indexed exchange, uint256 maxSlippage);
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Functions                                                                     ***/
     /**********************************************************************************************/
-
-    function setMaxSlippage(address exchange, uint256 maxSlippage) external;
-
-    function setBuffer(address exchange, address buffer) external;
-
-    function setRechargeRate(address exchange, uint256 rechargeRate18) external;
-
-    function setIsWhitelisted(address exchange, address asset, bool isWhitelisted) external;
-
-    function send(address exchange, address assetToSend, uint256 amount) external;
 
     function claim(address exchange, address assetToClaim) external;
 
+    function send(address exchange, address assetToSend, uint256 amount) external;
+
+    function setBuffer(address exchange, address buffer) external;
+
+    function setIsWhitelisted(address exchange, address asset, bool isWhitelisted) external;
+
+    function setMaxSlippage(address exchange, uint256 maxSlippage) external;
+
+    function setRechargeRate(address exchange, uint256 normalizedRate) external;
+
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_SWAP() external pure returns (bytes32);
 
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
     function getBuffer(address exchange) external view returns (address);
+
+    function getClaimWithRecharge(address exchange) external view returns (uint256);
+
+    function getIsWhitelisted(address exchange, address asset) external view returns (bool);
 
     function getMaxSlippage(address exchange) external view returns (uint256);
 
     function getRechargeRate(address exchange) external view returns (uint256);
 
-    function getIsWhitelisted(address exchange, address asset) external view returns (bool);
-
     function getState(address exchange)
         external
         view
-        returns (uint256 sent18, uint256 sentTimestamp, uint256 claimed18);
-
-    function getClaimWithRecharge(address exchange) external view returns (uint256);
+        returns (uint256 normalizedSent, uint256 sentTimestamp, uint256 normalizedClaimed);
 
     function isSwapReady(address exchange) external view returns (bool);
 

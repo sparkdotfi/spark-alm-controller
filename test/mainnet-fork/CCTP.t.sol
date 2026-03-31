@@ -542,11 +542,11 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
             ICCTPFacet.setMintRecipient.selector
         );
 
-        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.getMaxFeeCap()
+        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.maxFeeCap()
         foreignController.setDispatch(
             IForeignControllerFull.getCCTPMaxFeeCap.selector,
             cctpFacet,
-            ICCTPFacet.getMaxFeeCap.selector
+            ICCTPFacet.maxFeeCap.selector
         );
 
         // Controller.getCCTPMintRecipient() -> CCTPFacet.getMintRecipient()

@@ -40,13 +40,25 @@ interface IPSMLike {
 
 contract PSMFacet is IPSMFacet, FacetBase {
 
-    bytes32 public constant LIMIT_USDS_TO_USDC = keccak256("LIMIT_USDS_TO_USDC");
+    /**********************************************************************************************/
+    /*** Constants                                                                              ***/
+    /**********************************************************************************************/
 
-    address public immutable dai;
-    address public immutable daiUSDS;
-    address public immutable psm;
-    address public immutable usdc;
-    address public immutable usds;
+    bytes32 public constant override LIMIT_USDS_TO_USDC = keccak256("LIMIT_USDS_TO_USDC");
+
+    /**********************************************************************************************/
+    /*** Declarations                                                                           ***/
+    /**********************************************************************************************/
+
+    address public immutable override dai;
+    address public immutable override daiUSDS;
+    address public immutable override psm;
+    address public immutable override usdc;
+    address public immutable override usds;
+
+    /**********************************************************************************************/
+    /*** Constructor                                                                            ***/
+    /**********************************************************************************************/
 
     constructor(address dai_, address daiUSDS_, address psm_, address usdc_, address usds_) {
         dai     = dai_;
@@ -57,21 +69,27 @@ contract PSMFacet is IPSMFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     // NOTE: The param `usdcAmount` is denominated in 1e6 precision to match how PSM uses
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
-    function swapUSDSToUSDC(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function swapUSDSToUSDC(uint256 usdcAmount)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_USDS_TO_USDC, usdcAmount);
 
-        uint256 usdsAmount = usdcAmount * IPSMLike(psm).to18ConversionFactor();
-        address proxy      = $.proxy;
+        uint256 usdsAmount = usdcAmount * to18ConversionFactor();
 
         // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS).
-        _approve(usds, proxy, daiUSDS, usdsAmount);
+        _approve(usds, daiUSDS, usdsAmount);
+
+        address proxy = $.proxy;
 
         // Swap USDS to DAI 1:1.
         IALMProxy(proxy).doCall(
@@ -80,24 +98,28 @@ contract PSMFacet is IPSMFacet, FacetBase {
         );
 
         // Approve DAI to PSM from the proxy because conversion from USDS to DAI was 1:1.
-        _approve(dai, proxy, psm, usdsAmount);
+        _approve(dai, psm, usdsAmount);
 
         // Swap DAI to USDC through the PSM.
         IALMProxy(proxy).doCall(psm, abi.encodeCall(IPSMLike.buyGemNoFee, (proxy, usdcAmount)));
     }
 
-    function swapUSDCToUSDS(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function swapUSDCToUSDS(uint256 usdcAmount)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitIncrease(LIMIT_USDS_TO_USDC, usdcAmount);
 
-        address proxy = $.proxy;
-
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC).
-        _approve(usdc, proxy, psm, usdcAmount);
+        _approve(usdc, psm, usdcAmount);
 
-        uint256 conversionFactor = IPSMLike(psm).to18ConversionFactor();
+        uint256 conversionFactor = to18ConversionFactor();
         uint256 daiAmount        = usdcAmount * conversionFactor;
+        address proxy            = $.proxy;
 
         // Swap all if amount is less than or equal to the max USDC that can be swapped to DAI in
         // one call, else refill and swap in chunks within the limits.
@@ -122,7 +144,7 @@ contract PSMFacet is IPSMFacet, FacetBase {
         }
 
         // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI).
-        _approve(dai, proxy, daiUSDS, daiAmount);
+        _approve(dai, daiUSDS, daiAmount);
 
         // Swap DAI to USDS 1:1.
         IALMProxy(proxy).doCall(
@@ -131,17 +153,24 @@ contract PSMFacet is IPSMFacet, FacetBase {
         );
     }
 
-    function to18ConversionFactor() external view returns (uint256) {
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    function to18ConversionFactor() public view override returns (uint256) {
         return IPSMLike(psm).to18ConversionFactor();
     }
 
     /**********************************************************************************************/
-    /*** Helper functions                                                                       ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
     // NOTE: As swaps are only done between USDC and USDS, no need for `ApproveLib`.
-    function _approve(address token, address proxy, address spender, uint256 amount) internal {
-        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20Like.approve, (spender, amount)));
+    function _approve(address token, address spender, uint256 amount) internal {
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(
+            token,
+            abi.encodeCall(IERC20Like.approve, (spender, amount))
+        );
     }
 
     function _swapUSDCToDAI(address proxy, address _psm, uint256 usdcAmount) internal {

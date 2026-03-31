@@ -13,7 +13,7 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, FacetBase {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable weth;
+    address public immutable override weth;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -24,16 +24,15 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function wrapAll() external nonReentrant onlyRole(RELAYER_ROLE) {
-        address proxy        = _getSharedControllerStorage().proxy;
-        uint256 proxyBalance = proxy.balance;
+    function wrapAll() external override nonReentrant onlyRole(RELAYER_ROLE) {
+        address proxy = _getSharedControllerStorage().proxy;
 
-        if (proxyBalance == 0) return;
+        if (proxy.balance == 0) return;
 
-        IALMProxy(proxy).doCallWithValue(weth, "", proxyBalance);
+        IALMProxy(proxy).doCallWithValue(weth, "", proxy.balance);
     }
 
 }

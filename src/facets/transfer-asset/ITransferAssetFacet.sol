@@ -6,13 +6,13 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface ITransferAssetFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function transfer(address asset, address destination, uint256 amount) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_TRANSFER() external pure returns (bytes32);

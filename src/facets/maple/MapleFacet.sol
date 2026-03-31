@@ -26,14 +26,15 @@ contract MapleFacet is IMapleFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_REDEEM = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_MAPLE_REDEEM");
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     function requestRedemption(address mapleToken, uint256 shares)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -54,6 +55,7 @@ contract MapleFacet is IMapleFacet, FacetBase {
 
     function cancelRedemption(address mapleToken, uint256 shares)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {

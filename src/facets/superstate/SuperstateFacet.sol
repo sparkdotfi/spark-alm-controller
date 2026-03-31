@@ -23,14 +23,14 @@ contract SuperstateFacet is ISuperstateFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
+    bytes32 public constant override LIMIT_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable usdc;
-    address public immutable ustb;
+    address public immutable override usdc;
+    address public immutable override ustb;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -42,10 +42,10 @@ contract SuperstateFacet is ISuperstateFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function subscribe(uint256 usdcAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function subscribe(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_SUBSCRIBE, usdcAmount);

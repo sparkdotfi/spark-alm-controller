@@ -84,13 +84,13 @@ contract PendleFacet is IPendleFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_REDEEM = keccak256("LIMIT_PENDLE_PT_REDEEM");
+    bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_PENDLE_PT_REDEEM");
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable router;
+    address public immutable override router;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -101,7 +101,7 @@ contract PendleFacet is IPendleFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     // NOTE: DO NOT use for markets with non-standard SYs, without additional testing
@@ -109,19 +109,18 @@ contract PendleFacet is IPendleFacet, FacetBase {
     //       (Non-standard SYs: ePENDLE, mPENDLE, aTokens (aUSDC, aUSDT))
     function redeem(address market, uint256 pyAmountIn, uint256 minAmountOut)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
         require(IPendleMarketLike(market).isExpired(), "PendleFacet/market-not-expired");
         require(minAmountOut != 0,                     "PendleFacet/min-amount-out-not-set");
 
-        uint256 totalTokenOutAmount = _executePyRedeem($.proxy, market, pyAmountIn);
+        uint256 totalTokenOutAmount = _executePyRedeem(market, pyAmountIn);
 
         require(totalTokenOutAmount >= minAmountOut, "PendleFacet/min-amount-not-met");
 
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
             makeAddressKey(LIMIT_REDEEM, market),
             totalTokenOutAmount
         );
@@ -129,10 +128,10 @@ contract PendleFacet is IPendleFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Internal Interactive functions                                                         ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function _executePyRedeem(address proxy, address market, uint256 pyAmountIn)
+    function _executePyRedeem(address market, uint256 pyAmountIn)
         internal
         returns (uint256 totalTokenOutAmount)
     {
@@ -140,9 +139,10 @@ contract PendleFacet is IPendleFacet, FacetBase {
 
         address tokenOut = ISYLike(sy).yieldToken();
 
-        // expected to receive full amount, but the buffer is subtracted
-        // to avoid reverts due to potential rounding errors
+        // Expecting to receive full amount, but the buffer is subtracted to avoid reverts due to
+        // potential rounding errors.
         uint256 minTokenOut = pyAmountIn * 1e18 / IYTLike(yt).pyIndexCurrent() - 5;
+        address proxy       = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(pt, proxy, router, pyAmountIn);
 
@@ -164,7 +164,7 @@ contract PendleFacet is IPendleFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Internal View/Pure functions                                                            ***/
+    /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
     function _createSimpleTokenOutput(address tokenOut, uint256 minTokenOut)

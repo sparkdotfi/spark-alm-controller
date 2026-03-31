@@ -6,7 +6,7 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IUSDEFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function cooldownAssets(uint256 usdeAmount) external returns (uint256 shares);
@@ -24,7 +24,7 @@ interface IUSDEFacet is IFacetBase {
     function unstakeSUSDE() external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_USDE_BURN() external view returns (bytes32);

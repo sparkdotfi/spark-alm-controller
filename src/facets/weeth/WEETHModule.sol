@@ -11,6 +11,8 @@ import {
 
 import { Ethereum } from "../../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IWEETHModule } from "./IWEETHModule.sol";
+
 interface IERC20Like {
 
     function transfer(address to, uint256 amount) external returns (bool);
@@ -52,7 +54,7 @@ interface IWithdrawRequestNFTLike {
 }
 
 // NOTE: This contract is is specifically for Mainnet Ethereum.
-contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
+contract WEETHModule is IWEETHModule, AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     /**********************************************************************************************/
     /*** UUPS Storage                                                                           ***/
@@ -73,14 +75,18 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     }
 
     /**********************************************************************************************/
-    /*** Initialization                                                                         ***/
+    /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
     constructor() {
         _disableInitializers();  // Avoid initializing in the context of the implementation
     }
 
-    function initialize(address admin_, address almProxy_) external initializer {
+    /**********************************************************************************************/
+    /*** Initialization                                                                         ***/
+    /**********************************************************************************************/
+
+    function initialize(address admin_, address almProxy_) external override initializer {
         require(almProxy_ != address(0), "WEETHModule/invalid-alm-proxy");
         require(admin_    != address(0), "WEETHModule/invalid-admin");
 
@@ -92,15 +98,12 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         _getWEETHModuleStorage().almProxy = almProxy_;
     }
 
-    // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
-    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
-
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive ALMProxy Functions                                                ***/
     /**********************************************************************************************/
 
-    function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceived) {
-        require(msg.sender == almProxy(), "WEETHModule/invalid-sender");
+    function claimWithdrawal(uint256 requestId) external override returns (uint256 ethReceived) {
+        require(msg.sender == _getWEETHModuleStorage().almProxy, "WEETHModule/invalid-sender");
 
         address eeth               = IWEETHLike(Ethereum.WEETH).eETH();
         address liquidityPool      = IEETHLike(eeth).liquidityPool();
@@ -127,22 +130,49 @@ contract WEETHModule is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
         IERC20Like(Ethereum.WETH).transfer(msg.sender, ethReceived);
     }
 
+    /**********************************************************************************************/
+    /*** External Variable Getters                                                              ***/
+    /**********************************************************************************************/
+
+    function almProxy() external view override returns (address) {
+        return _getWEETHModuleStorage().almProxy;
+    }
+
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
     function onERC721Received(address, address, uint256, bytes calldata)
         external
         pure
+        override
         returns (bytes4)
     {
         return this.onERC721Received.selector;
     }
 
-    function almProxy() public view returns (address) {
-        return _getWEETHModuleStorage().almProxy;
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(IWEETHModule, AccessControlEnumerableUpgradeable)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IWEETHModule).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /**********************************************************************************************/
     /*** Receive function                                                                       ***/
     /**********************************************************************************************/
 
-    receive() external payable { }
+    receive() external payable {}
+
+    /**********************************************************************************************/
+    /*** Internal Interactive Functions                                                         ***/
+    /**********************************************************************************************/
+
+    // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
 }

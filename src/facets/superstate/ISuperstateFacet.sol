@@ -6,13 +6,13 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface ISuperstateFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function subscribe(uint256 usdcAmount) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_SUBSCRIBE() external pure returns (bytes32);

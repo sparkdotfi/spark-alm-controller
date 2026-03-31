@@ -15,8 +15,8 @@ abstract contract FacetBase is IFacetBase, ControllerSharedStorage, ReentrancyGu
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;
-    bytes32 public constant RELAYER_ROLE       = keccak256("RELAYER");
+    bytes32 public constant override DEFAULT_ADMIN_ROLE = 0x00;
+    bytes32 public constant override RELAYER_ROLE       = keccak256("RELAYER");
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/
@@ -25,9 +25,10 @@ abstract contract FacetBase is IFacetBase, ControllerSharedStorage, ReentrancyGu
     modifier onlyRole(bytes32 role) {
         address accessControls = _getSharedControllerStorage().accessControls;
 
-        if (!IAccessControls(accessControls).hasRole(role, msg.sender)) {
-            revert AccessControlUnauthorizedAccount(msg.sender, role);
-        }
+        require(
+            IAccessControls(accessControls).hasRole(role, msg.sender),
+            AccessControlUnauthorizedAccount(msg.sender, role)
+        );
 
         _;
     }

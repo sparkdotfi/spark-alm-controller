@@ -20,12 +20,12 @@ interface IDAIUSDSLike {
 contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
 
     /**********************************************************************************************/
-    /*** Immutable state                                                                       ***/
+    /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable dai;
-    address public immutable daiUSDS;
-    address public immutable usds;
+    address public immutable override dai;
+    address public immutable override daiUSDS;
+    address public immutable override usds;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -38,10 +38,15 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function swapUSDSToDAI(uint256 usdsAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function swapUSDSToDAI(uint256 usdsAmount)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
         address proxy = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(usds, proxy, daiUSDS, usdsAmount);
@@ -52,7 +57,12 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
         );
     }
 
-    function swapDAIToUSDS(uint256 daiAmount) external nonReentrant onlyRole(RELAYER_ROLE) {
+    function swapDAIToUSDS(uint256 daiAmount)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
         address proxy = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(dai, proxy, daiUSDS, daiAmount);

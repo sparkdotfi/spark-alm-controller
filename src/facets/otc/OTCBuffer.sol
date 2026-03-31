@@ -10,14 +10,16 @@ import {
 } from "../../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {
-    UUPSUpgradeable
-} from "../../../lib/oz-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
-
-import {
     AccessControlEnumerableUpgradeable
 } from "../../../lib/oz-upgradeable/contracts/access/extensions/AccessControlEnumerableUpgradeable.sol";
 
-contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
+import {
+    UUPSUpgradeable
+} from "../../../lib/oz-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+
+import { IOTCBuffer } from "./IOTCBuffer.sol";
+
+contract OTCBuffer is IOTCBuffer, AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     using SafeERC20 for IERC20;
 
@@ -40,38 +42,67 @@ contract OTCBuffer is AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     }
 
     /**********************************************************************************************/
-    /*** Initialization                                                                         ***/
+    /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
     constructor() {
         _disableInitializers();  // Avoid initializing in the context of the implementation
     }
 
-    function initialize(address admin, address almProxy_) external initializer {
-        require(admin     != address(0), "OTCBuffer/invalid-admin");
+    /**********************************************************************************************/
+    /*** Initialization                                                                         ***/
+    /**********************************************************************************************/
+
+    function initialize(address admin_, address almProxy_) external override initializer {
+        require(admin_    != address(0), "OTCBuffer/invalid-admin");
         require(almProxy_ != address(0), "OTCBuffer/invalid-alm-proxy");
 
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
 
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
         _getOTCBufferStorage().almProxy = almProxy_;
     }
 
-    // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
-    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
-
     /**********************************************************************************************/
-    /*** Call functions                                                                         ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
-    function approve(address asset, uint256 allowance) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        IERC20(asset).forceApprove(almProxy(), allowance);
+    function approve(address asset, uint256 allowance)
+        external
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        IERC20(asset).forceApprove(_getOTCBufferStorage().almProxy, allowance);
     }
 
-    function almProxy() public view returns (address) {
+    /**********************************************************************************************/
+    /*** External Variable Getters                                                              ***/
+    /**********************************************************************************************/
+
+    function almProxy() external view override returns (address) {
         return _getOTCBufferStorage().almProxy;
     }
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(IOTCBuffer, AccessControlEnumerableUpgradeable)
+        returns (bool)
+    {
+        return interfaceId == type(IOTCBuffer).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    /**********************************************************************************************/
+    /*** Internal Interactive Functions                                                         ***/
+    /**********************************************************************************************/
+
+    // Only DEFAULT_ADMIN_ROLE can upgrade the implementation
+    function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
 }

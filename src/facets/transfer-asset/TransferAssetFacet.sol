@@ -22,14 +22,15 @@ contract TransferAssetFacet is ITransferAssetFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_TRANSFER = keccak256("LIMIT_ASSET_TRANSFER");
+    bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_ASSET_TRANSFER");
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     function transfer(address asset, address destination, uint256 amount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {

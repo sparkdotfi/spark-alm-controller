@@ -90,11 +90,11 @@ library UniswapV3Utils {
     }
 
     // https://github.com/Uniswap/v3-core/blob/v1.0.0/contracts/libraries/SqrtPriceMath.sol#L201
-    function getAmount0Delta(
-        uint160 sqrtRatioAX96,
-        uint160 sqrtRatioBX96,
-        int128  liquidity
-    ) internal pure returns (int256 amount0) {
+    function getAmount0Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, int128 liquidity)
+        internal
+        pure
+        returns (int256 amount0)
+    {
         return
             liquidity < 0
                 ? -getAmount0Delta(
@@ -112,11 +112,11 @@ library UniswapV3Utils {
     }
 
     // https://github.com/Uniswap/v3-core/blob/v1.0.0/contracts/libraries/SqrtPriceMath.sol#L217
-    function getAmount1Delta(
-        uint160 sqrtRatioAX96,
-        uint160 sqrtRatioBX96,
-        int128  liquidity
-    ) internal pure returns (int256 amount1) {
+    function getAmount1Delta(uint160 sqrtRatioAX96, uint160 sqrtRatioBX96, int128 liquidity)
+        internal
+        pure
+        returns (int256 amount1)
+    {
         return
             liquidity < 0
                 ? -getAmount1Delta(

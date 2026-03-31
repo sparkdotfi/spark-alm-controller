@@ -29,31 +29,37 @@ contract FarmFacet is IFarmFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_FARM_DEPOSIT");
-    bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_FARM_DEPOSIT");
+    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_FARM_WITHDRAW");
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function deposit(address farm, uint256 amount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+    function deposit(address farm, uint256 amount)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        _decreaseRateLimit(LIMIT_DEPOSIT, farm, amount);
 
-        _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, farm, amount);
-
-        address proxy = $.proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(IFarmLike(farm).stakingToken(), proxy, farm, amount);
 
         IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.stake, (amount)));
     }
 
-    function withdraw(address farm, uint256 amount) external nonReentrant onlyRole(RELAYER_ROLE) {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+    function withdraw(address farm, uint256 amount)
+        external
+        override
+        nonReentrant
+        onlyRole(RELAYER_ROLE)
+    {
+        _decreaseRateLimit(LIMIT_WITHDRAW, farm, amount);
 
-        _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, farm, amount);
-
-        address proxy = $.proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.withdraw, (amount)));
 
@@ -61,13 +67,14 @@ contract FarmFacet is IFarmFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Internal interactive functions                                                         ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(address rateLimits, bytes32 key, address farm, uint256 amount)
-        internal
-    {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(makeAddressKey(key, farm), amount);
+    function _decreaseRateLimit(bytes32 key, address farm, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
+            makeAddressKey(key, farm),
+            amount
+        );
     }
 
 }

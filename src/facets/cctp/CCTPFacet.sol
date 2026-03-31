@@ -48,7 +48,7 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /// @custom:storage-location erc7201:sky.pau.storage.CCTPFacet
     struct FacetStorage {
         uint256 maxFeeCap;
-        mapping(uint32 destinationDomain => bytes32 mintRecipient) mintRecipients;
+        mapping (uint32 destinationDomain => bytes32 mintRecipient) mintRecipients;
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CCTPFacet")) - 1)) & ~bytes32(uint256(0xff))
@@ -62,18 +62,26 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Declarations and Constructor                                                           ***/
+    /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public constant LIMIT_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public constant override LIMIT_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 public constant override LIMIT_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
 
-    bytes32 public constant DESTINATION_CALLER     = 0;      // 0 means anyone can relay
-    uint256 public constant MAX_FEE                = 0;      // 0 for standard burns (no fast burn fee)
-    uint32  public constant MAX_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
+    bytes32 public constant override DESTINATION_CALLER     = 0;      // 0 means anyone can relay
+    uint256 public constant override MAX_FEE                = 0;      // 0 for standard burns (no fast burn fee)
+    uint32  public constant override MAX_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
 
-    address public immutable cctp;
-    address public immutable usdc;
+    /**********************************************************************************************/
+    /*** Declarations                                                                           ***/
+    /**********************************************************************************************/
+
+    address public immutable override cctp;
+    address public immutable override usdc;
+
+    /**********************************************************************************************/
+    /*** Constructor                                                                            ***/
+    /**********************************************************************************************/
 
     constructor(address cctp_, address usdc_) {
         cctp = cctp_;
@@ -81,19 +89,21 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External interactive functions                                                         ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
-    function setMaxFeeCap(uint256 maxFeeCap)
+    function setMaxFeeCap(uint256 feeCap)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        emit CCTPMaxFeeCapSet(_getFacetStorage().maxFeeCap = maxFeeCap);
+        emit CCTPMaxFeeCapSet(_getFacetStorage().maxFeeCap = feeCap);
     }
 
     function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -103,105 +113,101 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
         );
     }
 
-    function transfer(uint256 usdcAmount, uint32 destinationDomain)
+    /**********************************************************************************************/
+    /*** External Interactive Relayer Functions                                                 ***/
+    /**********************************************************************************************/
+
+    function transfer(uint256 amount, uint32 destinationDomain)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _transfer(usdcAmount, MAX_FEE, destinationDomain);
+        _transfer(amount, MAX_FEE, destinationDomain);
     }
 
-    function transferWithFee(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain)
+    function transferWithFee(uint256 amount, uint256 maxFee, uint32 destinationDomain)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _transfer(usdcAmount, maxFee, destinationDomain);
+        _transfer(amount, maxFee, destinationDomain);
     }
 
     /**********************************************************************************************/
-    /*** Public view/pure functions                                                             ***/
+    /*** External Variable Getters                                                              ***/
     /**********************************************************************************************/
 
-    function getMaxFeeCap() external view returns (uint256) {
+    function maxFeeCap() external view override returns (uint256) {
         return _getFacetStorage().maxFeeCap;
     }
 
-    function getMintRecipient(uint32 destinationDomain) external view returns (bytes32) {
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    function getMintRecipient(uint32 destinationDomain) external view override returns (bytes32) {
         return _getFacetStorage().mintRecipients[destinationDomain];
     }
 
     /**********************************************************************************************/
-    /*** Internal interactive functions                                                         ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function _transfer(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain) internal {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+    function _transfer(uint256 amount, uint256 maxFee, uint32 destinationDomain) internal {
+        _decreaseRateLimit(LIMIT_TO_CCTP,                                     amount);
+        _decreaseRateLimit(makeUint32Key(LIMIT_TO_DOMAIN, destinationDomain), amount);
 
-        address proxy      = $.proxy;
-        address rateLimits = $.rateLimits;
+        FacetStorage storage $ = _getFacetStorage();
 
-        _decreaseRateLimit(rateLimits, LIMIT_TO_CCTP, usdcAmount);
+        bytes32 recipient = $.mintRecipients[destinationDomain];
 
-        _decreaseRateLimit(
-            rateLimits,
-            makeUint32Key(LIMIT_TO_DOMAIN, destinationDomain),
-            usdcAmount
-        );
-
-        FacetStorage storage fs = _getFacetStorage();
-
-        bytes32 recipient = fs.mintRecipients[destinationDomain];
-
-        require(recipient != 0,         "CCTPFacet/domain-not-configured");
-        require(maxFee <= fs.maxFeeCap, "CCTPFacet/max-fee-exceeds-cap");
+        require(recipient != 0,        "CCTPFacet/domain-not-configured");
+        require(maxFee <= $.maxFeeCap, "CCTPFacet/max-fee-exceeds-cap");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
-        _approve(usdc, proxy, cctp, usdcAmount);
+        _approve(usdc, cctp, amount);
 
         // If amount is larger than limit it must be split into multiple calls.
         uint256 burnLimit =
             ICCTPTokenMinterLike(ICCTPLike(cctp).localMinter()).burnLimitsPerMessage(usdc);
 
-        while (usdcAmount > 0) {
-            uint256 amount = usdcAmount > burnLimit ? burnLimit : usdcAmount;
+        while (amount > 0) {
+            uint256 transferAmount = amount > burnLimit ? burnLimit : amount;
 
-            // NOTE: When amount is split into chunks, the last chunk may be
+            // NOTE: When `amount` is split into chunks, the last chunk may be
             //       smaller than maxFee causing a revert.
-            require(maxFee < amount, "CCTPFacet/incorrect-max-fee");
+            require(maxFee < transferAmount, "CCTPFacet/incorrect-max-fee");
 
-            _initiateTransfer(
-                proxy,
-                amount,
-                maxFee,
-                recipient,
-                destinationDomain
-            );
+            _initiateTransfer(transferAmount, maxFee, recipient, destinationDomain);
 
-            usdcAmount -= amount;
+            amount -= transferAmount;
         }
     }
 
     // NOTE: As USDC is the only asset transferred using CCTP, `ApproveLib` is unnecessary.
-    function _approve(address token, address proxy, address spender, uint256 amount) internal {
-        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20Like.approve, (spender, amount)));
+    function _approve(address token, address spender, uint256 amount) internal {
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(
+            token,
+            abi.encodeCall(IERC20Like.approve, (spender, amount))
+        );
     }
 
     function _initiateTransfer(
-        address proxy,
-        uint256 usdcAmount,
+        uint256 amount,
         uint256 maxFee,
         bytes32 mintRecipient,
         uint32  destinationDomain
     )
         internal
     {
-        IALMProxy(proxy).doCall(
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(
             cctp,
             abi.encodeCall(
                 ICCTPLike.depositForBurn,
                 (
-                    usdcAmount,
+                    amount,
                     destinationDomain,
                     mintRecipient,
                     usdc,
@@ -212,11 +218,11 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
             )
         );
 
-        emit CCTPTransferInitiated(destinationDomain, mintRecipient, usdcAmount);
+        emit CCTPTransferInitiated(destinationDomain, mintRecipient, amount);
     }
 
-    function _decreaseRateLimit(address rateLimits, bytes32 key, uint256 amount) internal {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(key, amount);
+    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
     }
 
 }

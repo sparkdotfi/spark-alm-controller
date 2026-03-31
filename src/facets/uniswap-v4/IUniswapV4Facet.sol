@@ -29,7 +29,7 @@ interface IUniswapV4Facet is IFacetBase {
     );
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function decreasePosition(
@@ -73,7 +73,7 @@ interface IUniswapV4Facet is IFacetBase {
     function swap(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_DEPOSIT() external pure returns (bytes32);
@@ -87,6 +87,10 @@ interface IUniswapV4Facet is IFacetBase {
     function positionManager() external view returns (address);
 
     function router() external view returns (address);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     function getMaxSlippage(bytes32 poolId) external view returns (uint256);
 

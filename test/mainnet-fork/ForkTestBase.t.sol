@@ -551,11 +551,11 @@ abstract contract ForkTestBase is DssTest {
             ICCTPFacet.setMintRecipient.selector
         );
 
-        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.getMaxFeeCap()
+        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.maxFeeCap()
         mainnetController.setDispatch(
             IMainnetControllerFull.getCCTPMaxFeeCap.selector,
             cctpFacet,
-            ICCTPFacet.getMaxFeeCap.selector
+            ICCTPFacet.maxFeeCap.selector
         );
 
         // Controller.getCCTPMintRecipient() -> CCTPFacet.getMintRecipient()

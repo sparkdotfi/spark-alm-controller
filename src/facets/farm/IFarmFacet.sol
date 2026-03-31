@@ -6,7 +6,7 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IFarmFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function deposit(address farm, uint256 amount) external;
@@ -14,7 +14,7 @@ interface IFarmFacet is IFacetBase {
     function withdraw(address farm, uint256 amount) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_DEPOSIT() external pure returns (bytes32);

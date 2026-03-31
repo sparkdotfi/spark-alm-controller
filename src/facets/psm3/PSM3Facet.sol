@@ -29,14 +29,14 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_PSM_DEPOSIT");
-    bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_PSM_WITHDRAW");
+    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_PSM_DEPOSIT");
+    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_PSM_WITHDRAW");
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable psm;
+    address public immutable override psm;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -47,20 +47,19 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** External interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
     function deposit(address asset, uint256 amount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _decreaseRateLimit(LIMIT_DEPOSIT, asset, amount);
 
-        _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, asset, amount);
-
-        address proxy = $.proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
         ApproveLib.approve(asset, proxy, psm, amount);
@@ -77,13 +76,12 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
 
     function withdraw(address asset, uint256 maxAmount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 assetsWithdrawn)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
-        address proxy = $.proxy;
+        address proxy = _getSharedControllerStorage().proxy;
 
         // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result to get
         // `assetsWithdrawn` (assumes the proxy has enough PSM shares).
@@ -96,17 +94,18 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
             (uint256)
         );
 
-        _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, asset, assetsWithdrawn);
+        _decreaseRateLimit(LIMIT_WITHDRAW, asset, assetsWithdrawn);
     }
 
     /**********************************************************************************************/
-    /*** Internal interactive functions                                                         ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(address rateLimits, bytes32 key, address asset, uint256 amount)
-        internal
-    {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(makeAddressKey(key, asset), amount);
+    function _decreaseRateLimit(bytes32 key, address asset, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
+            makeAddressKey(key, asset),
+            amount
+        );
     }
 
 }

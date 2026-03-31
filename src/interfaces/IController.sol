@@ -39,7 +39,7 @@ interface IController {
     function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
 
     /**********************************************************************************************/
-    /*** View/Pure Functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function accessControls() external view returns (address);
@@ -47,6 +47,10 @@ interface IController {
     function proxy() external view returns (address);
 
     function rateLimits() external view returns (address);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     function getDispatch(bytes4 callSelector)
         external

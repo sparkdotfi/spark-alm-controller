@@ -6,13 +6,13 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IWrapProxyETHFacet is IFacetBase {
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function wrapAll() external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function weth() external view returns (address);

@@ -40,11 +40,11 @@ abstract contract CCTPFacet_TestBase is Controller_TestBase {
 
         vm.label(facet, "CCTPFacet");
 
-        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.getMaxFeeCap()
+        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.maxFeeCap()
         controller.setDispatch(
             IControllerLike.getCCTPMaxFeeCap.selector,
             facet,
-            ICCTPFacet.getMaxFeeCap.selector
+            ICCTPFacet.maxFeeCap.selector
         );
 
         // Controller.getCCTPMintRecipient() -> CCTPFacet.getMintRecipient()

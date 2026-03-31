@@ -16,7 +16,7 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
 
     /// @custom:storage-location erc7201:sky.pau.storage.Controller
     struct ControllerStorage {
-        mapping(bytes4 => Dispatch) dispatches;
+        mapping (bytes4 => Dispatch) dispatches;
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.Controller")) - 1)) & ~bytes32(uint256(0xff))
@@ -48,11 +48,12 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Functions                                                         ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
     function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector)
         external
+        override
         nonReentrant
     {
         require(
@@ -69,24 +70,29 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
     }
 
     /**********************************************************************************************/
-    /*** External View/Pure Functions                                                           ***/
+    /*** External Variable Getters                                                              ***/
     /**********************************************************************************************/
 
-    function accessControls() external view returns (address) {
+    function accessControls() external view override returns (address) {
         return _getSharedControllerStorage().accessControls;
     }
 
-    function proxy() external view returns (address) {
+    function proxy() external view override returns (address) {
         return _getSharedControllerStorage().proxy;
     }
 
-    function rateLimits() external view returns (address) {
+    function rateLimits() external view override returns (address) {
         return _getSharedControllerStorage().rateLimits;
     }
+
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
 
     function getDispatch(bytes4 callSelector)
         external
         view
+        override
         returns (address facet, bytes4 delegateSelector)
     {
         Dispatch storage dispatch = _getControllerStorage().dispatches[callSelector];

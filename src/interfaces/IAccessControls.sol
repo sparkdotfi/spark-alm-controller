@@ -20,18 +20,22 @@ interface IAccessControls is IAccessControlEnumerable {
     error ZeroAdmin();
 
     /**********************************************************************************************/
-    /*** Interactive functions                                                                  ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function removeRelayer(address relayer) external;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function FREEZER_ROLE() external view returns (bytes32);
 
     function RELAYER_ROLE() external view returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 

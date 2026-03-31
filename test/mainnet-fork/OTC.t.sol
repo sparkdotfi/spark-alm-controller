@@ -473,7 +473,7 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
     }
 
     function test_otcClaim_otcBufferNotSet() external {
-        vm.expectRevert("OTCFacet/otc-buffer-not-set");
+        vm.expectRevert("OTCFacet/buffer-not-set");
         vm.prank(relayer);
         mainnetController.otcClaim(makeAddr("fake-exchange"), address(1));
     }

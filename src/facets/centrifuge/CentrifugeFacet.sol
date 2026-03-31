@@ -59,7 +59,7 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
 
     /// @custom:storage-location erc7201:sky.pau.storage.CentrifugeFacet
     struct FacetStorage {
-        mapping(uint16 centrifugeId => bytes32 recipient) recipients;
+        mapping (uint16 centrifugeId => bytes32 recipient) recipients;
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CentrifugeFacet")) - 1)) & ~bytes32(uint256(0xff))
@@ -76,19 +76,20 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
-    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public constant LIMIT_REDEEM   = keccak256("LIMIT_7540_REDEEM");
+    bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
+    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 public constant override LIMIT_REDEEM   = keccak256("LIMIT_7540_REDEEM");
 
     // Requests for Centrifuge pools are non-fungible and all have ID = 0.
-    uint256 public constant REQUEST_ID = 0;
+    uint256 public constant override REQUEST_ID = 0;
 
     /**********************************************************************************************/
-    /*** External interactive functions                                                         ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
     function setRecipient(uint16 centrifugeId, bytes32 recipient)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -98,16 +99,19 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
         );
     }
 
+    /**********************************************************************************************/
+    /*** External Interactive Relayer Functions                                                 ***/
+    /**********************************************************************************************/
+
     function cancelDepositRequest(address token)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _rateLimitExists(makeAddressKey(LIMIT_DEPOSIT, token));
 
-        address proxy = $.proxy;
-
-        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_DEPOSIT, token));
+        address proxy = _getSharedControllerStorage().proxy;
 
         // NOTE: While the cancellation is pending, no new deposit request can be submitted.
         IALMProxy(proxy).doCall(
@@ -118,14 +122,13 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
 
     function claimCancelDepositRequest(address token)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _rateLimitExists(makeAddressKey(LIMIT_DEPOSIT, token));
 
-        address proxy = $.proxy;
-
-        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_DEPOSIT, token));
+        address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(
             token,
@@ -138,14 +141,13 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
 
     function cancelRedeemRequest(address token)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _rateLimitExists(makeAddressKey(LIMIT_REDEEM, token));
 
-        address proxy = $.proxy;
-
-        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_REDEEM, token));
+        address proxy = _getSharedControllerStorage().proxy;
 
         // NOTE: While the cancellation is pending, no new redeem request can be submitted.
         IALMProxy(proxy).doCall(
@@ -156,14 +158,13 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
 
     function claimCancelRedeemRequest(address token)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _rateLimitExists(makeAddressKey(LIMIT_REDEEM, token));
 
-        address proxy = $.proxy;
-
-        _rateLimitExists($.rateLimits, makeAddressKey(LIMIT_REDEEM, token));
+        address proxy = _getSharedControllerStorage().proxy;
 
         IALMProxy(proxy).doCall(
             token,
@@ -177,12 +178,11 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
     function transferShares(address token, uint128 amount, uint16 centrifugeId)
         external
         payable
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
-
-        address proxy = $.proxy;
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(
             makeAddressUint16Key(LIMIT_TRANSFER, token, centrifugeId),
@@ -196,8 +196,8 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
         address spoke
             = IAsyncRedeemManagerLike(ICentrifugeV3VaultLike(token).baseManager()).spoke();
 
-        // Initiate cross-chain transfer via the specific spoke address
-        IALMProxy(proxy).doCallWithValue{value: msg.value}(
+        // Initiate cross-chain transfer via the specific spoke address.
+        IALMProxy($.proxy).doCallWithValue{value: msg.value}(
             spoke,
             abi.encodeCall(
                 ISpokeLike.crosschainTransferShares,
@@ -215,20 +215,22 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Public view/pure functions.                                                            ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function getRecipient(uint16 centrifugeId) external view returns (bytes32) {
+    function getRecipient(uint16 centrifugeId) external view override returns (bytes32) {
         return _getFacetStorage().recipients[centrifugeId];
     }
 
     /**********************************************************************************************/
-    /*** Internal view/pure functions                                                           ***/
+    /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _rateLimitExists(address rateLimits, bytes32 key) internal view {
+    function _rateLimitExists(bytes32 key) internal view {
         require(
-            IRateLimits(rateLimits).getRateLimitData(key).maxAmount > 0,
+            IRateLimits(
+                _getSharedControllerStorage().rateLimits
+            ).getRateLimitData(key).maxAmount > 0,
             "CentrifugeFacet/invalid-action"
         );
     }

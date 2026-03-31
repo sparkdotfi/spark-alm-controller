@@ -12,7 +12,7 @@ interface ILayerZeroFacet is IFacetBase {
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
 
     /**********************************************************************************************/
-    /*** External functions                                                                     ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function setRecipient(uint32 destinationEndpointId, bytes32 recipient) external;
@@ -22,10 +22,14 @@ interface ILayerZeroFacet is IFacetBase {
         payable;
 
     /**********************************************************************************************/
-    /*** View/Pure functions                                                                    ***/
+    /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
     function LIMIT_TRANSFER() external pure returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     function getRecipient(uint32 destinationEndpointId) external view returns (bytes32);
 }

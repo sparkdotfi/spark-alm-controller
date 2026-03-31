@@ -19,7 +19,7 @@ interface IERC20Like {
 
 interface ICurvePoolLike is IERC20Like {
 
-    function add_liquidity(uint256[] memory amounts, uint256 minMintAmount, address receiver)
+    function add_liquidity(uint256[] calldata amounts, uint256 minMintAmount, address receiver)
         external;
 
     function balances(uint256 index) external view returns (uint256);
@@ -41,9 +41,9 @@ interface ICurvePoolLike is IERC20Like {
     function N_COINS() external view returns (uint256);
 
     function remove_liquidity(
-        uint256          burnAmount,
-        uint256[] memory minAmounts,
-        address          receiver
+        uint256            burnAmount,
+        uint256[] calldata minAmounts,
+        address            receiver
     )
         external;
 
@@ -59,7 +59,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
 
     /// @custom:storage-location erc7201:sky.pau.storage.CurveFacet
     struct FacetStorage {
-        mapping(address pool => uint256 maxSlippage) maxSlippages;  // 1e18 precision
+        mapping (address pool => uint256 maxSlippage) maxSlippages;  // 1e18 precision
     }
 
     // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CurveFacet")) - 1)) & ~bytes32(uint256(0xff))
@@ -76,16 +76,17 @@ contract CurveFacet is ICurveFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_DEPOSIT  = keccak256("LIMIT_CURVE_DEPOSIT");
-    bytes32 public constant LIMIT_SWAP     = keccak256("LIMIT_CURVE_SWAP");
-    bytes32 public constant LIMIT_WITHDRAW = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_CURVE_WITHDRAW");
 
     /**********************************************************************************************/
-    /*** External interactive functions                                                         ***/
+    /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
     function setMaxSlippage(address pool, uint256 maxSlippage)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -93,6 +94,10 @@ contract CurveFacet is ICurveFacet, FacetBase {
 
         emit CurveMaxSlippageSet(pool, _getFacetStorage().maxSlippages[pool] = maxSlippage);
     }
+
+    /**********************************************************************************************/
+    /*** External Interactive Relayer Functions                                                 ***/
+    /**********************************************************************************************/
 
     function swap(
         address pool,
@@ -102,12 +107,11 @@ contract CurveFacet is ICurveFacet, FacetBase {
         uint256 minAmountOut
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 amountOut)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
         uint256 maxSlippage = _getFacetStorage().maxSlippages[pool];
 
         require(inputIndex  != outputIndex, "CurveFacet/invalid-indices");
@@ -127,34 +131,30 @@ contract CurveFacet is ICurveFacet, FacetBase {
             "CurveFacet/min-amount-not-met"
         );
 
-        _decreaseRateLimit($.rateLimits, LIMIT_SWAP, pool, valueIn);
+        _decreaseRateLimit(LIMIT_SWAP, pool, valueIn);
 
-        ApproveLib.approve(
-            ICurvePoolLike(pool).coins(inputIndex),
-            $.proxy,
-            pool,
-            amountIn
+        _approve(ICurvePoolLike(pool).coins(inputIndex), pool, amountIn);
+
+        bytes memory callData = _getExchangeCalldata({
+            inputIndex   : inputIndex,
+            outputIndex  : outputIndex,
+            amountIn     : amountIn,
+            minAmountOut : minAmountOut
+        });
+
+        return abi.decode(
+            IALMProxy(_getSharedControllerStorage().proxy).doCall(pool, callData),
+            (uint256)
         );
-
-        bytes memory callData = _getExchangeCalldata($.proxy, inputIndex, outputIndex, amountIn, minAmountOut);
-
-        return abi.decode(IALMProxy($.proxy).doCall(pool, callData), (uint256));
     }
 
-    function addLiquidity(
-        address            pool,
-        uint256[] calldata depositAmounts,
-        uint256            minLpAmount
-    )
+    function addLiquidity(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
-        address proxy = $.proxy;
-
         uint256 maxSlippage = _getFacetStorage().maxSlippages[pool];
 
         require(maxSlippage != 0, "CurveFacet/max-slippage-not-set");
@@ -170,12 +170,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
         // Aggregate the value of the deposited assets (e.g. USD).
         uint256 valueDeposited;
         for (uint256 i = 0; i < depositAmounts.length; ++i) {
-            ApproveLib.approve(
-                ICurvePoolLike(pool).coins(i),
-                proxy,
-                pool,
-                depositAmounts[i]
-            );
+            _approve(ICurvePoolLike(pool).coins(i), pool, depositAmounts[i]);
 
             valueDeposited += depositAmounts[i] * rates[i];
         }
@@ -191,7 +186,9 @@ contract CurveFacet is ICurveFacet, FacetBase {
         );
 
         // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD).
-        _decreaseRateLimit($.rateLimits, LIMIT_DEPOSIT, pool, valueDeposited);
+        _decreaseRateLimit(LIMIT_DEPOSIT, pool, valueDeposited);
+
+        address proxy = _getSharedControllerStorage().proxy;
 
         shares = abi.decode(
             IALMProxy(proxy).doCall(
@@ -201,13 +198,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
             (uint256)
         );
 
-        _applySwapRateLimit(
-            pool,
-            depositAmounts,
-            rates,
-            $.rateLimits,
-            shares
-        );
+        _applySwapRateLimit(pool, depositAmounts, rates, shares);
     }
 
     function removeLiquidity(
@@ -216,14 +207,11 @@ contract CurveFacet is ICurveFacet, FacetBase {
         uint256[] calldata minWithdrawAmounts
     )
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
         returns (uint256[] memory withdrawnTokens)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
-        address proxy = $.proxy;
-
         uint256 maxSlippage = _getFacetStorage().maxSlippages[pool];
 
         require(maxSlippage != 0, "CurveFacet/max-slippage-not-set");
@@ -250,6 +238,8 @@ contract CurveFacet is ICurveFacet, FacetBase {
             "CurveFacet/min-amount-not-met"
         );
 
+        address proxy = _getSharedControllerStorage().proxy;
+
         withdrawnTokens = abi.decode(
             IALMProxy(proxy).doCall(
                 pool,
@@ -268,50 +258,29 @@ contract CurveFacet is ICurveFacet, FacetBase {
         }
         valueWithdrawn /= 1e18;
 
-        _decreaseRateLimit($.rateLimits, LIMIT_WITHDRAW, pool, valueWithdrawn);
+        _decreaseRateLimit(LIMIT_WITHDRAW, pool, valueWithdrawn);
     }
 
     /**********************************************************************************************/
-    /*** View functions                                                                         ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function getMaxSlippage(address pool) external view returns (uint256) {
+    function getMaxSlippage(address pool) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[pool];
     }
 
     /**********************************************************************************************/
-    /*** Rate Limit helper functions                                                            ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(address rateLimits, bytes32 key, address pool, uint256 amount)
-        internal
-    {
-        IRateLimits(rateLimits).triggerRateLimitDecrease(makeAddressKey(key, pool), amount);
-    }
-
-    /**********************************************************************************************/
-    /*** Helper functions                                                                       ***/
-    /**********************************************************************************************/
-
-    function _getSwapNormalizedValues(
-        address pool,
-        uint256 inputIndex,
-        uint256 outputIndex,
-        uint256 amountIn
-    ) internal view returns (uint256 valueIn, uint256 equivalentAmountOut) {
-        // Normalized to provide 36 decimal precision when multiplied by asset amount.
-        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
-
-        // Makes the assumption that value in should equal value out.
-        valueIn             = _toNormalizedAmount(amountIn,  rates[inputIndex]);
-        equivalentAmountOut = _fromNormalizedAmount(valueIn, rates[outputIndex]);
+    function _approve(address token, address pool, uint256 amount) internal {
+        ApproveLib.approve(token, _getSharedControllerStorage().proxy, pool, amount);
     }
 
     function _applySwapRateLimit(
         address            pool,
         uint256[] calldata depositAmounts,
         uint256[] memory   rates,
-        address            rateLimits,
         uint256            shares
     ) internal returns (uint256 totalSwapped) {
         uint256 totalSupply = ICurvePoolLike(pool).totalSupply();
@@ -327,22 +296,32 @@ contract CurveFacet is ICurveFacet, FacetBase {
         totalSwapped /= 1e18;
 
         // Convert the total value moved into an aggregated swap "amount in" by dividing it by 2.
-        _decreaseRateLimit(rateLimits, LIMIT_SWAP, pool, totalSwapped / 2);
+        _decreaseRateLimit(LIMIT_SWAP, pool, totalSwapped / 2);
     }
+
+    function _decreaseRateLimit(bytes32 key, address pool, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
+            makeAddressKey(key, pool),
+            amount
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** Internal View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
 
     function _absSubtraction(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : b - a;
     }
 
     function _getExchangeCalldata(
-        address proxy,
         uint256 inputIndex,
         uint256 outputIndex,
         uint256 amountIn,
         uint256 minAmountOut
     )
         internal
-        pure
+        view
         returns (bytes memory)
     {
         return abi.encodeCall(
@@ -352,9 +331,23 @@ contract CurveFacet is ICurveFacet, FacetBase {
                 int128(int256(outputIndex)),  // Safe cast because of 8 token max.
                 amountIn,
                 minAmountOut,
-                proxy
+                _getSharedControllerStorage().proxy
             )
         );
+    }
+
+    function _getSwapNormalizedValues(
+        address pool,
+        uint256 inputIndex,
+        uint256 outputIndex,
+        uint256 amountIn
+    ) internal view returns (uint256 valueIn, uint256 equivalentAmountOut) {
+        // Normalized to provide 36 decimal precision when multiplied by asset amount.
+        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
+
+        // Makes the assumption that value in should equal value out.
+        valueIn             = _toNormalizedAmount(amountIn,  rates[inputIndex]);
+        equivalentAmountOut = _fromNormalizedAmount(valueIn, rates[outputIndex]);
     }
 
     function _fromNormalizedAmount(uint256 value, uint256 rate) internal pure returns (uint256) {
