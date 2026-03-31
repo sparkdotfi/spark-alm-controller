@@ -6,9 +6,9 @@ import { ALMProxy }       from "./ALMProxy.sol";
 import { Controller }     from "./Controller.sol";
 import { RateLimits }     from "./RateLimits.sol";
 
-import { IDiamondPAUFactory } from "./interfaces/IDiamondPAUFactory.sol";
+import { IPAUFactory } from "./interfaces/IPAUFactory.sol";
 
-contract DiamondPAUFactory is IDiamondPAUFactory {
+contract PAUFactory is IPAUFactory {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
@@ -17,7 +17,7 @@ contract DiamondPAUFactory is IDiamondPAUFactory {
     bytes32 internal constant _DEFAULT_ADMIN_ROLE = 0x00;
 
     /**********************************************************************************************/
-    /*** Deploy function                                                                        ***/
+    /*** Deploy Function                                                                        ***/
     /**********************************************************************************************/
 
     function deploy(address admin) external override returns (address controller) {
@@ -49,7 +49,7 @@ contract DiamondPAUFactory is IDiamondPAUFactory {
         almProxy.revokeRole(_DEFAULT_ADMIN_ROLE,   address(this));
         rateLimits.revokeRole(_DEFAULT_ADMIN_ROLE, address(this));
 
-        emit DiamondPAUDeployed(
+        emit PAUDeployed(
             admin,
             controller,
             accessControls,

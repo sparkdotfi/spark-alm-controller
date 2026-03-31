@@ -3,15 +3,15 @@ pragma solidity ^0.8.34;
 
 import { Test } from "../../lib/forge-std/src/Test.sol";
 
-import { IDiamondPAUFactory }  from "../../src/interfaces/IDiamondPAUFactory.sol";
+import { IPAUFactory }  from "../../src/interfaces/IPAUFactory.sol";
 
-import { AccessControls }    from "../../src/AccessControls.sol";
-import { ALMProxy }          from "../../src/ALMProxy.sol";
-import { Controller }        from "../../src/Controller.sol";
-import { DiamondPAUFactory } from "../../src/DiamondPAUFactory.sol";
-import { RateLimits }        from "../../src/RateLimits.sol";
+import { AccessControls } from "../../src/AccessControls.sol";
+import { ALMProxy }       from "../../src/ALMProxy.sol";
+import { Controller }     from "../../src/Controller.sol";
+import { PAUFactory }     from "../../src/PAUFactory.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
 
-contract DiamondPAUFactory_Tests is Test {
+contract PAUFactory_Tests is Test {
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
@@ -24,14 +24,14 @@ contract DiamondPAUFactory_Tests is Test {
     address internal newController = makeAddr("newController");
     address internal relayer       = makeAddr("relayer");
 
-    DiamondPAUFactory internal factory;
+    PAUFactory internal factory;
 
     /**********************************************************************************************/
     /*** Setup                                                                                  ***/
     /**********************************************************************************************/
 
     function setUp() external {
-        factory = new DiamondPAUFactory();
+        factory = new PAUFactory();
     }
 
     /**********************************************************************************************/
@@ -47,7 +47,7 @@ contract DiamondPAUFactory_Tests is Test {
         address expectedController     = vm.computeCreateAddress(address(factory), nonce + 3);
 
         vm.expectEmit(address(factory));
-        emit IDiamondPAUFactory.DiamondPAUDeployed(
+        emit IPAUFactory.PAUDeployed(
             admin,
             expectedController,
             expectedAccessControls,
@@ -55,9 +55,7 @@ contract DiamondPAUFactory_Tests is Test {
             expectedRateLimits
         );
 
-        address controllerAddress = factory.deploy(admin);
-
-        Controller     controller     = Controller(payable(controllerAddress));
+        Controller     controller     = Controller(payable(factory.deploy(admin)));
         AccessControls accessControls = AccessControls(controller.accessControls());
         ALMProxy       almProxy       = ALMProxy(payable(controller.proxy()));
         RateLimits     rateLimits     = RateLimits(controller.rateLimits());
@@ -70,8 +68,8 @@ contract DiamondPAUFactory_Tests is Test {
 
         // CONTROLLER role granted on ALMProxy and RateLimits to the Controller.
 
-        assertEq(almProxy.hasRole(almProxy.CONTROLLER(),     controllerAddress), true);
-        assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), controllerAddress), true);
+        assertEq(almProxy.hasRole(almProxy.CONTROLLER(),     address(controller)), true);
+        assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(controller)), true);
 
         // DEFAULT_ADMIN_ROLE granted to admin on all three.
 
