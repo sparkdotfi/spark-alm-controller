@@ -189,6 +189,10 @@ contract MainnetController_NFATPrime_Collect_Tests is NFATPrime_TestBase {
 
         nfatFacility.issue(address(almProxy), TOKEN_ID, SUBSCRIBE_AMOUNT);
 
+        assertEq(nfatFacility.balanceOf(address(almProxy)), 1);
+
+        assertEq(nfatFacility.ownerOf(TOKEN_ID), address(almProxy));
+
         // Fund the collectable balance via an external repayer
         deal(Ethereum.USDS, address(this), REPAY_AMOUNT);
         usds.approve(address(nfatFacility), REPAY_AMOUNT);
