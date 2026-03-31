@@ -161,6 +161,14 @@ abstract contract IMainnetControllerFull is IController, Controller {
     function maxExchangeRates(address token) external view virtual returns (uint256);
 
     /**********************************************************************************************/
+    /*** ERC721Facet actions                                                                    ***/
+    /**********************************************************************************************/
+
+    function safeTransferERC721(address nft, address destination, uint256 tokenId) external virtual;
+
+    function transferERC721(address nft, address destination, uint256 tokenId) external virtual;
+
+    /**********************************************************************************************/
     /*** ERC7540Facet actions                                                                   ***/
     /**********************************************************************************************/
 
@@ -530,5 +538,27 @@ abstract contract IMainnetControllerFull is IController, Controller {
         external
         virtual
         returns (uint256[] memory requestIds);
+
+    /**********************************************************************************************/
+    /*** NFATPrimeFacet actions                                                                 ***/
+    /**********************************************************************************************/
+
+    function subscribeNFAT(address nfatFacility, uint256 amount, bytes calldata data) external virtual;
+
+    function withdrawNFAT(address nfatFacility, uint256 amount) external virtual;
+
+    function collectNFAT(address nfatFacility, uint256 tokenId, uint256 amount) external virtual;
+
+    function LIMIT_NFAT_SUBSCRIBE() external pure virtual returns (bytes32);
+
+    function LIMIT_NFAT_COLLECT() external pure virtual returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** NFATHaloFacet actions                                                                  ***/
+    /**********************************************************************************************/
+
+    function repayNFAT(address nfatFacility, uint256 tokenId, uint256 amount) external virtual;
+
+    function LIMIT_NFAT_REPAY() external pure virtual returns (bytes32);
 
 }

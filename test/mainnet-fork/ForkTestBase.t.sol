@@ -30,11 +30,14 @@ import { ICentrifugeFacet }    from "../../src/facets/centrifuge/ICentrifugeFace
 import { ICurveFacet }         from "../../src/facets/curve/ICurveFacet.sol";
 import { IDAIUSDSFacet }       from "../../src/facets/dai-usds/IDAIUSDSFacet.sol";
 import { IERC4626Facet }       from "../../src/facets/erc4626/IERC4626Facet.sol";
+import { IERC721Facet }        from "../../src/facets/erc721/IERC721Facet.sol";
 import { IERC7540Facet }       from "../../src/facets/erc7540/IERC7540Facet.sol";
 import { IFarmFacet }          from "../../src/facets/farm/IFarmFacet.sol";
 import { ILayerZeroFacet }     from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
 import { IMapleFacet }         from "../../src/facets/maple/IMapleFacet.sol";
 import { IMerklFacet }         from "../../src/facets/merkl/IMerklFacet.sol";
+import { INFATHaloFacet }      from "../../src/facets/nfat/INFATHaloFacet.sol";
+import { INFATPrimeFacet }     from "../../src/facets/nfat/INFATPrimeFacet.sol";
 import { IOTCFacet }           from "../../src/facets/otc/IOTCFacet.sol";
 import { IPendleFacet }        from "../../src/facets/pendle/IPendleFacet.sol";
 import { IPSMFacet }           from "../../src/facets/psm/IPSMFacet.sol";
@@ -56,11 +59,14 @@ import { CentrifugeFacet }    from "../../src/facets/centrifuge/CentrifugeFacet.
 import { CurveFacet }         from "../../src/facets/curve/CurveFacet.sol";
 import { DAIUSDSFacet }       from "../../src/facets/dai-usds/DAIUSDSFacet.sol";
 import { ERC4626Facet }       from "../../src/facets/erc4626/ERC4626Facet.sol";
+import { ERC721Facet }        from "../../src/facets/erc721/ERC721Facet.sol";
 import { ERC7540Facet }       from "../../src/facets/erc7540/ERC7540Facet.sol";
 import { FarmFacet }          from "../../src/facets/farm/FarmFacet.sol";
 import { LayerZeroFacet }     from "../../src/facets/layer-zero/LayerZeroFacet.sol";
 import { MapleFacet }         from "../../src/facets/maple/MapleFacet.sol";
 import { MerklFacet }         from "../../src/facets/merkl/MerklFacet.sol";
+import { NFATHaloFacet }      from "../../src/facets/nfat/NFATHaloFacet.sol";
+import { NFATPrimeFacet }     from "../../src/facets/nfat/NFATPrimeFacet.sol";
 import { OTCFacet }           from "../../src/facets/otc/OTCFacet.sol";
 import { PendleFacet }        from "../../src/facets/pendle/PendleFacet.sol";
 import { PSMFacet }           from "../../src/facets/psm/PSMFacet.sol";
@@ -294,11 +300,14 @@ abstract contract ForkTestBase is DssTest {
         _wireCurveFacet();
         _wireDAIUSDSFacet();
         _wireERC4626Facet();
+        _wireERC721Facet();
         _wireERC7540Facet();
         _wireFarmFacet();
         _wireLayerZeroFacet();
         _wireMapleFacet();
         _wireMerklFacet();
+        _wireNFATHaloFacet();
+        _wireNFATPrimeFacet();
         _wireOTCFacet();
         _wirePendleFacet();
         _wirePSMFacet();
@@ -745,6 +754,67 @@ abstract contract ForkTestBase is DssTest {
         beacon.setIntegration("MERKL_FACET", config);
     }
 
+    function _wireNFATPrimeFacet() internal {
+        address nfatPrimeFacet = address(new NFATPrimeFacet());
+
+        vm.label(nfatPrimeFacet, "NFATPrimeFacet");
+
+        // "Controller.subscribeNFAT()" -> "NFATPrimeFacet.subscribe()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.subscribeNFAT.selector,
+            nfatPrimeFacet,
+            INFATPrimeFacet.subscribe.selector
+        );
+
+        // "Controller.withdrawNFAT()" -> "NFATPrimeFacet.withdraw()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.withdrawNFAT.selector,
+            nfatPrimeFacet,
+            INFATPrimeFacet.withdraw.selector
+        );
+
+        // "Controller.collectNFAT()" -> "NFATPrimeFacet.collect()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.collectNFAT.selector,
+            nfatPrimeFacet,
+            INFATPrimeFacet.collect.selector
+        );
+
+        // "Controller.LIMIT_NFAT_SUBSCRIBE()" -> "NFATPrimeFacet.LIMIT_SUBSCRIBE()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_NFAT_SUBSCRIBE.selector,
+            nfatPrimeFacet,
+            INFATPrimeFacet.LIMIT_SUBSCRIBE.selector
+        );
+
+        // "Controller.LIMIT_NFAT_COLLECT()" -> "NFATPrimeFacet.LIMIT_COLLECT()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_NFAT_COLLECT.selector,
+            nfatPrimeFacet,
+            INFATPrimeFacet.LIMIT_COLLECT.selector
+        );
+    }
+
+    function _wireNFATHaloFacet() internal {
+        address nfatHaloFacet = address(new NFATHaloFacet());
+
+        vm.label(nfatHaloFacet, "NFATHaloFacet");
+
+        // "Controller.repayNFAT()" -> "NFATHaloFacet.repay()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.repayNFAT.selector,
+            nfatHaloFacet,
+            INFATHaloFacet.repay.selector
+        );
+
+        // "Controller.LIMIT_NFAT_REPAY()" -> "NFATHaloFacet.LIMIT_REPAY()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.LIMIT_NFAT_REPAY.selector,
+            nfatHaloFacet,
+            INFATHaloFacet.LIMIT_REPAY.selector
+        );
+    }
+
     function _wireERC4626Facet() internal {
         address erc4626Facet = address(new ERC4626Facet());
 
@@ -798,6 +868,26 @@ abstract contract ForkTestBase is DssTest {
         });
 
         beacon.setIntegration("ERC4626_FACET", config);
+    }
+
+    function _wireERC721Facet() internal {
+        address erc721Facet = address(new ERC721Facet());
+
+        vm.label(erc721Facet, "ERC721Facet");
+
+        // "Controller.safeTransferERC721()" -> "ERC721Facet.safeTransfer()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.safeTransferERC721.selector,
+            erc721Facet,
+            IERC721Facet.safeTransfer.selector
+        );
+
+        // "Controller.transferERC721()" -> "ERC721Facet.transfer()"
+        mainnetController.setDispatch(
+            IMainnetControllerFull.transferERC721.selector,
+            erc721Facet,
+            IERC721Facet.transfer.selector
+        );
     }
 
     function _wireERC7540Facet() internal {
