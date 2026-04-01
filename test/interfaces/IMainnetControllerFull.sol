@@ -9,6 +9,98 @@ import { Controller } from "../../src/Controller.sol";
 abstract contract IMainnetControllerFull is IController, Controller {
 
     /**********************************************************************************************/
+    /*** AaveFacet actions                                                                      ***/
+    /**********************************************************************************************/
+
+    function getAaveMaxSlippage(address aToken) external view virtual returns (uint256);
+
+    function depositAave(address aToken, uint256 amount) external virtual;
+
+    function LIMIT_AAVE_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_AAVE_WITHDRAW() external pure virtual returns (bytes32);
+
+    function setAaveMaxSlippage(address aToken, uint256 maxSlippage) external virtual;
+
+    function withdrawAave(address aToken, uint256 amount)
+        external virtual returns (uint256 amountWithdrawn);
+
+    /**********************************************************************************************/
+    /*** CCTPFacet actions                                                                      ***/
+    /**********************************************************************************************/
+
+    function getCCTPMaxFeeCap() external view virtual returns (uint256);
+
+    function LIMIT_USDC_TO_CCTP() external pure virtual returns (bytes32);
+
+    function LIMIT_USDC_TO_DOMAIN() external pure virtual returns (bytes32);
+
+    function getCCTPMintRecipient(uint32 destinationDomain) external view virtual returns (bytes32);
+
+    function setCCTPMaxFeeCap(uint256 maxFeeCap) external virtual;
+
+    function setCCTPMintRecipient(uint32 destinationDomain, bytes32 recipient) external virtual;
+
+    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external virtual;
+
+    function transferUSDCToCCTPWithFee(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain)
+        external virtual;
+
+    /**********************************************************************************************/
+    /*** CentrifugeFacet actions                                                                ***/
+    /**********************************************************************************************/
+
+    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external virtual;
+
+    function cancelCentrifugeDepositRequest(address token) external virtual;
+
+    function claimCentrifugeCancelDepositRequest(address token) external virtual;
+
+    function cancelCentrifugeRedeemRequest(address token) external virtual;
+
+    function claimCentrifugeCancelRedeemRequest(address token) external virtual;
+
+    function transferSharesCentrifuge(address token, uint128 amount, uint16 centrifugeId)
+        external
+        payable
+        virtual;
+
+    function LIMIT_CENTRIFUGE_TRANSFER() external pure virtual returns (bytes32); // NOTE: DEPOSIT, REDEEM keys will be reused from ERC7450Facet wiring
+
+    function getCentrifugeRecipient(uint16 centrifugeId) external view virtual returns (bytes32);
+
+    /**********************************************************************************************/
+    /*** CurveFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function addLiquidityCurve(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
+        external virtual returns (uint256 shares);
+
+    function getCurveMaxSlippage(address pool) external view virtual returns (uint256);
+
+    function LIMIT_CURVE_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_CURVE_SWAP() external pure virtual returns (bytes32);
+
+    function LIMIT_CURVE_WITHDRAW() external pure virtual returns (bytes32);
+
+    function removeLiquidityCurve(
+        address            pool,
+        uint256            lpBurnAmount,
+        uint256[] calldata minWithdrawAmounts
+    ) external virtual returns (uint256[] memory withdrawnTokens);
+
+    function setCurveMaxSlippage(address pool, uint256 maxSlippage) external virtual;
+
+    function swapCurve(
+        address pool,
+        uint256 inputIndex,
+        uint256 outputIndex,
+        uint256 amountIn,
+        uint256 minAmountOut
+    ) external virtual returns (uint256 amountOut);
+
+    /**********************************************************************************************/
     /*** DaiUsdsFacet actions                                                                   ***/
     /**********************************************************************************************/
 
@@ -67,6 +159,36 @@ abstract contract IMainnetControllerFull is IController, Controller {
     function LIMIT_7540_REDEEM() external pure virtual returns (bytes32);
 
     /**********************************************************************************************/
+    /*** FarmFacet actions                                                                      ***/
+    /**********************************************************************************************/
+
+    function LIMIT_FARM_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_FARM_WITHDRAW() external pure virtual returns (bytes32);
+
+    function depositToFarm(address farm, uint256 amount) external virtual;
+
+    function withdrawFromFarm(address farm, uint256 amount) external virtual;
+
+    /**********************************************************************************************/
+    /*** LayerZero actions                                                                      ***/
+    /**********************************************************************************************/
+
+    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
+        external virtual;
+
+    function transferTokenLayerZero(
+        address oftAddress,
+        uint256 amount,
+        uint32 destinationEndpointId
+    ) external payable virtual;
+
+    function LIMIT_LAYERZERO_TRANSFER() external pure virtual returns (bytes32);
+
+    function layerZeroRecipients(uint32 destinationEndpointId)
+        external view virtual returns (bytes32);
+
+    /**********************************************************************************************/
     /*** MapleFacet actions                                                                     ***/
     /**********************************************************************************************/
 
@@ -83,12 +205,65 @@ abstract contract IMainnetControllerFull is IController, Controller {
     function toggleOperatorMerkl(address operator) external virtual;
 
     /**********************************************************************************************/
+    /*** OTCFacet actions                                                                       ***/
+    /**********************************************************************************************/
+
+    function setOTCMaxSlippage(address exchange, uint256 maxSlippage) external virtual;
+
+    function setOTCBuffer(address exchange, address otcBuffer) external virtual;
+
+    function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external virtual;
+
+    function setOTCWhitelistedAsset(
+        address exchange,
+        address asset,
+        bool isWhitelisted
+    ) external virtual;
+
+    function otcSend(address exchange, address assetToSend, uint256 amount) external virtual;
+
+    function otcClaim(address exchange, address assetToClaim) external virtual;
+
+    function LIMIT_OTC_SWAP() external pure virtual returns (bytes32);
+
+    function getOtcClaimWithRecharge(address exchange) external view virtual returns (uint256);
+
+    function isOtcSwapReady(address exchange) external view virtual returns (bool);
+
+    function otcs(address exchange)
+        external
+        view
+        virtual
+        returns (uint256 sent18, uint256 sentTimestamp, uint256 claimed18);
+
+    function otcWhitelistedAssets(
+        address exchange,
+        address asset
+    ) external view virtual returns (bool);
+
+    /**********************************************************************************************/
     /*** PendleFacet actions                                                                    ***/
     /**********************************************************************************************/
 
     function LIMIT_PENDLE_PT_REDEEM() external pure virtual returns (bytes32);
 
-    function redeemPendlePT(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut) external virtual;
+    function redeemPendlePT(
+        address pendleMarket,
+        uint256 pyAmountIn,
+        uint256 minAmountOut
+    ) external virtual;
+
+    /**********************************************************************************************/
+    /*** PSMFacet actions                                                                       ***/
+    /**********************************************************************************************/
+
+    function LIMIT_USDS_TO_USDC() external pure virtual returns (bytes32);
+
+    function psmTo18ConversionFactor() external view virtual returns (uint256);
+
+    function swapUSDSToUSDC(uint256 usdcAmount) external virtual;
+
+    function swapUSDCToUSDS(uint256 usdcAmount) external virtual;
 
     /**********************************************************************************************/
     /*** SparkVaultFacet actions                                                                ***/
@@ -99,110 +274,6 @@ abstract contract IMainnetControllerFull is IController, Controller {
     function takeFromSparkVault(address sparkVault, uint256 assetAmount) external virtual;
 
     /**********************************************************************************************/
-    /*** TransferAssetFacet actions                                                             ***/
-    /**********************************************************************************************/
-
-    function LIMIT_ASSET_TRANSFER() external pure virtual returns (bytes32);
-
-    function transferAsset(address asset, address destination, uint256 amount) external virtual;
-
-    /**********************************************************************************************/
-    /*** USDS vault actions                                                                     ***/
-    /**********************************************************************************************/
-
-    function LIMIT_USDS_MINT() external pure virtual returns (bytes32);
-
-    function mintUSDS(uint256 usdsAmount) external virtual;
-
-    function burnUSDS(uint256 usdsAmount) external virtual;
-
-    /**********************************************************************************************/
-    /*** WrapProxyETH actions                                                             ***/
-    /**********************************************************************************************/
-
-    function wrapAllProxyETH() external virtual;
-
-    /**********************************************************************************************/
-    /*** Ethena (USDE) actions                                                                  ***/
-    /**********************************************************************************************/
-
-    function LIMIT_USDE_BURN() external virtual view returns (bytes32);
-
-    function LIMIT_USDE_MINT() external virtual view returns (bytes32);
-
-    function LIMIT_SUSDE_COOLDOWN() external virtual view returns (bytes32);
-
-    function cooldownAssetsSUSDe(uint256 usdeAmount) external virtual returns (uint256 cooldownShares);
-
-    function cooldownSharesSUSDe(uint256 susdeAmount) external virtual returns (uint256 cooldownAssets);
-
-    function prepareUSDeMint(uint256 usdcAmount) external virtual;
-
-    function prepareUSDeBurn(uint256 usdeAmount) external virtual;
-
-    function removeDelegatedSigner(address delegatedSigner) external virtual;
-
-    function setDelegatedSigner(address delegatedSigner) external virtual;
-
-    function unstakeSUSDe() external virtual;
-
-    /**********************************************************************************************/
-    /*** WSTETH actions                                                                      1   ***/
-    /**********************************************************************************************/
-
-    function LIMIT_WSTETH_DEPOSIT() external pure virtual returns (bytes32);
-
-    function LIMIT_WSTETH_REQUEST_WITHDRAW() external pure virtual returns (bytes32);
-
-    function depositToWstETH(uint256 amount) external virtual;
-
-    function claimWithdrawalFromWstETH(uint256 requestId) external virtual;
-
-    function requestWithdrawFromWstETH(uint256 amountToRedeem)
-        external
-        virtual
-        returns (uint256[] memory requestIds);
-
-    /**********************************************************************************************/
-    /*** WEETHFacet actions                                                                     ***/
-    /**********************************************************************************************/
-
-    function LIMIT_WEETH_DEPOSIT() external pure virtual returns (bytes32);
-
-    function LIMIT_WEETH_REQUEST_WITHDRAW() external pure virtual returns (bytes32);
-
-    function depositToWeETH(uint256 amount, uint256 minSharesOut)
-        external
-        virtual
-        returns (uint256 shares);
-
-    function claimWithdrawalFromWeETH(address weethModule, uint256 requestId)
-        external
-        virtual
-        returns (uint256 ethReceived);
-
-    function requestWithdrawFromWeETH(
-        address weethModule,
-        uint256 weethShares,
-        uint256 minEETHShares
-    )
-        external
-        virtual
-        returns (uint256 requestId);
-
-    /**********************************************************************************************/
-    /*** FarmFacet actions                                                                      ***/
-    /**********************************************************************************************/
-
-    function LIMIT_FARM_DEPOSIT() external pure virtual returns (bytes32);
-
-    function LIMIT_FARM_WITHDRAW() external pure virtual returns (bytes32);
-
-    function depositToFarm(address farm, uint256 amount) external virtual;
-
-    function withdrawFromFarm(address farm, uint256 amount) external virtual;
-
-    /**********************************************************************************************/
     /*** SuperstateFacet actions                                                                ***/
     /**********************************************************************************************/
 
@@ -211,172 +282,12 @@ abstract contract IMainnetControllerFull is IController, Controller {
     function subscribeSuperstate(uint256 usdcAmount) external virtual;
 
     /**********************************************************************************************/
-    /*** PSMFacet actions                                                                       ***/
+    /*** TransferAssetFacet actions                                                             ***/
     /**********************************************************************************************/
 
-    function LIMIT_USDS_TO_USDC() external pure virtual returns (bytes32);
+    function LIMIT_ASSET_TRANSFER() external pure virtual returns (bytes32);
 
-    function swapUSDSToUSDC(uint256 usdcAmount) external virtual;
-
-    function swapUSDCToUSDS(uint256 usdcAmount) external virtual;
-
-    function psmTo18ConversionFactor() external view virtual returns (uint256);
-
-    /**********************************************************************************************/
-    /*** CentrifugeFacet actions                                                                ***/
-    /**********************************************************************************************/
-
-    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external virtual;
-
-    function cancelCentrifugeDepositRequest(address token) external virtual;
-
-    function claimCentrifugeCancelDepositRequest(address token) external virtual;
-
-    function cancelCentrifugeRedeemRequest(address token) external virtual;
-
-    function claimCentrifugeCancelRedeemRequest(address token) external virtual;
-
-    function transferSharesCentrifuge(address token, uint128 amount, uint16 centrifugeId)
-        external
-        payable
-        virtual;
-
-    function LIMIT_CENTRIFUGE_TRANSFER() external pure virtual returns (bytes32); // NOTE: DEPOSIT, REDEEM keys will be reused from ERC7450Facet wiring
-
-    function getCentrifugeRecipient(uint16 centrifugeId) external view virtual returns (bytes32);
-
-    /**********************************************************************************************/
-    /*** AaveFacet actions                                                                      ***/
-    /**********************************************************************************************/
-
-    function getAaveMaxSlippage(address aToken) external view virtual returns (uint256);
-
-    function depositAave(address aToken, uint256 amount) external virtual;
-
-    function LIMIT_AAVE_DEPOSIT() external pure virtual returns (bytes32);
-
-    function LIMIT_AAVE_WITHDRAW() external pure virtual returns (bytes32);
-
-    function setAaveMaxSlippage(address aToken, uint256 maxSlippage) external virtual;
-
-    function withdrawAave(address aToken, uint256 amount)
-        external virtual returns (uint256 amountWithdrawn);
-
-    /**********************************************************************************************/
-    /*** CCTPFacet actions                                                                      ***/
-    /**********************************************************************************************/
-
-    function getCCTPMaxFeeCap() external view virtual returns (uint256);
-
-    function LIMIT_USDC_TO_CCTP() external pure virtual returns (bytes32);
-
-    function LIMIT_USDC_TO_DOMAIN() external pure virtual returns (bytes32);
-
-    function getCCTPMintRecipient(uint32 destinationDomain) external view virtual returns (bytes32);
-
-    function setCCTPMaxFeeCap(uint256 maxFeeCap) external virtual;
-
-    function setCCTPMintRecipient(uint32 destinationDomain, bytes32 recipient) external virtual;
-
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external virtual;
-
-    function transferUSDCToCCTPWithFee(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain)
-        external virtual;
-
-    /**********************************************************************************************/
-    /*** CurveFacet actions                                                                     ***/
-    /**********************************************************************************************/
-
-    function addLiquidityCurve(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
-        external virtual returns (uint256 shares);
-
-    function getCurveMaxSlippage(address pool) external view virtual returns (uint256);
-
-    function LIMIT_CURVE_DEPOSIT() external pure virtual returns (bytes32);
-
-    function LIMIT_CURVE_SWAP() external pure virtual returns (bytes32);
-
-    function LIMIT_CURVE_WITHDRAW() external pure virtual returns (bytes32);
-
-    function removeLiquidityCurve(
-        address            pool,
-        uint256            lpBurnAmount,
-        uint256[] calldata minWithdrawAmounts
-    ) external virtual returns (uint256[] memory withdrawnTokens);
-
-    function setCurveMaxSlippage(address pool, uint256 maxSlippage) external virtual;
-
-    function swapCurve(
-        address pool,
-        uint256 inputIndex,
-        uint256 outputIndex,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) external virtual returns (uint256 amountOut);
-
-    /**********************************************************************************************/
-    /*** UniswapV4Facet actions                                                                 ***/
-    /**********************************************************************************************/
-
-    function decreaseLiquidityUniswapV4(
-        bytes32 poolId,
-        uint256 tokenId,
-        uint128 liquidityDecrease,
-        uint128 amount0Min,
-        uint128 amount1Min
-    )
-        external
-        virtual;
-
-    function increaseLiquidityUniswapV4(
-        bytes32 poolId,
-        uint256 tokenId,
-        uint128 liquidityIncrease,
-        uint128 amount0Max,
-        uint128 amount1Max
-    )
-        external
-        virtual;
-
-    function mintPositionUniswapV4(
-        bytes32 poolId,
-        int24   tickLower,
-        int24   tickUpper,
-        uint128 liquidity,
-        uint128 amount0Max,
-        uint128 amount1Max
-    )
-        external
-        virtual;
-
-    function setUniswapV4MaxSlippage(bytes32 poolId, uint256 maxSlippage) external virtual;
-
-    function setUniswapV4TickLimits(
-        bytes32 poolId,
-        int24 tickLowerMin,
-        int24 tickUpperMax,
-        uint24 maxTickSpacing
-    )
-        external
-        virtual;
-
-    function swapUniswapV4(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
-        external
-        virtual;
-
-    function LIMIT_UNISWAP_V4_DEPOSIT() external pure virtual returns (bytes32);
-
-    function LIMIT_UNISWAP_V4_SWAP() external pure virtual returns (bytes32);
-
-    function LIMIT_UNISWAP_V4_WITHDRAW() external pure virtual returns (bytes32);
-
-    function uniswapV4MaxSlippages(bytes32 poolId) external view virtual returns (uint256);
-
-    function uniswapV4TickLimits(bytes32 poolId)
-        external
-        view
-        virtual
-        returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
+    function transferAsset(address asset, address destination, uint256 amount) external virtual;
 
     /**********************************************************************************************/
     /*** UniswapV3Facet actions                                                                 ***/
@@ -441,43 +352,155 @@ abstract contract IMainnetControllerFull is IController, Controller {
     function getUniswapV3TWAPSecondsAgo(address pool) external view virtual returns (uint32);
 
     /**********************************************************************************************/
-    /*** OTCFacet actions                                                                       ***/
+    /*** UniswapV4Facet actions                                                                 ***/
     /**********************************************************************************************/
 
-    function setOTCMaxSlippage(address exchange, uint256 maxSlippage) external virtual;
+    function decreaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityDecrease,
+        uint128 amount0Min,
+        uint128 amount1Min
+    )
+        external
+        virtual;
 
-    function setOTCBuffer(address exchange, address otcBuffer) external virtual;
+    function increaseLiquidityUniswapV4(
+        bytes32 poolId,
+        uint256 tokenId,
+        uint128 liquidityIncrease,
+        uint128 amount0Max,
+        uint128 amount1Max
+    )
+        external
+        virtual;
 
-    function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external virtual;
+    function mintPositionUniswapV4(
+        bytes32 poolId,
+        int24   tickLower,
+        int24   tickUpper,
+        uint128 liquidity,
+        uint128 amount0Max,
+        uint128 amount1Max
+    )
+        external
+        virtual;
 
-    function setOTCWhitelistedAsset(address exchange, address asset, bool isWhitelisted) external virtual;
+    function setUniswapV4MaxSlippage(bytes32 poolId, uint256 maxSlippage) external virtual;
 
-    function otcSend(address exchange, address assetToSend, uint256 amount) external virtual;
+    function setUniswapV4TickLimits(
+        bytes32 poolId,
+        int24 tickLowerMin,
+        int24 tickUpperMax,
+        uint24 maxTickSpacing
+    )
+        external
+        virtual;
 
-    function otcClaim(address exchange, address assetToClaim) external virtual;
+    function swapUniswapV4(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
+        external
+        virtual;
 
-    function LIMIT_OTC_SWAP() external pure virtual returns (bytes32);
+    function LIMIT_UNISWAP_V4_DEPOSIT() external pure virtual returns (bytes32);
 
-    function getOtcClaimWithRecharge(address exchange) external view virtual returns (uint256);
+    function LIMIT_UNISWAP_V4_SWAP() external pure virtual returns (bytes32);
 
-    function isOtcSwapReady(address exchange) external view virtual returns (bool);
+    function LIMIT_UNISWAP_V4_WITHDRAW() external pure virtual returns (bytes32);
 
-    function otcs(address exchange) external view virtual returns (uint256 sent18, uint256 sentTimestamp, uint256 claimed18);
+    function uniswapV4MaxSlippages(bytes32 poolId) external view virtual returns (uint256);
 
-    function otcWhitelistedAssets(address exchange, address asset) external view virtual returns (bool);
+    function uniswapV4TickLimits(bytes32 poolId)
+        external
+        view
+        virtual
+        returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
+    
+    /**********************************************************************************************/
+    /*** USDE (Ethena) actions                                                                  ***/
+    /**********************************************************************************************/
+
+    function LIMIT_USDE_BURN() external view virtual returns (bytes32);
+
+    function LIMIT_USDE_MINT() external view virtual returns (bytes32);
+
+    function LIMIT_SUSDE_COOLDOWN() external view virtual returns (bytes32);
+
+    function cooldownAssetsSUSDe(
+        uint256 usdeAmount
+    ) external virtual returns (uint256 cooldownShares);
+
+    function cooldownSharesSUSDe(
+        uint256 susdeAmount
+    ) external virtual returns (uint256 cooldownAssets);
+
+    function prepareUSDeMint(uint256 usdcAmount) external virtual;
+
+    function prepareUSDeBurn(uint256 usdeAmount) external virtual;
+
+    function removeDelegatedSigner(address delegatedSigner) external virtual;
+
+    function setDelegatedSigner(address delegatedSigner) external virtual;
+
+    function unstakeSUSDe() external virtual;
 
     /**********************************************************************************************/
-    /*** LayerZero actions                                                                      ***/
+    /*** USDS vault actions                                                                     ***/
     /**********************************************************************************************/
 
-    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
-        external virtual;
+    function LIMIT_USDS_MINT() external pure virtual returns (bytes32);
 
-    function transferTokenLayerZero(address oftAddress, uint256 amount, uint32 destinationEndpointId)
-        external payable virtual;
+    function mintUSDS(uint256 usdsAmount) external virtual;
 
-    function LIMIT_LAYERZERO_TRANSFER() external pure virtual returns (bytes32);
+    function burnUSDS(uint256 usdsAmount) external virtual;
 
-    function layerZeroRecipients(uint32 destinationEndpointId) external view virtual returns (bytes32);
+    /**********************************************************************************************/
+    /*** WEETHFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function LIMIT_WEETH_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_WEETH_REQUEST_WITHDRAW() external pure virtual returns (bytes32);
+
+    function depositToWeETH(uint256 amount, uint256 minSharesOut)
+        external
+        virtual
+        returns (uint256 shares);
+
+    function claimWithdrawalFromWeETH(address weethModule, uint256 requestId)
+        external
+        virtual
+        returns (uint256 ethReceived);
+
+    function requestWithdrawFromWeETH(
+        address weethModule,
+        uint256 weethShares,
+        uint256 minEETHShares
+    )
+        external
+        virtual
+        returns (uint256 requestId);
+
+    /**********************************************************************************************/
+    /*** WrapProxyETH actions                                                                   ***/
+    /**********************************************************************************************/
+
+    function wrapAllProxyETH() external virtual;
+
+    /**********************************************************************************************/
+    /*** WSTETH actions                                                                         ***/
+    /**********************************************************************************************/
+
+    function LIMIT_WSTETH_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_WSTETH_REQUEST_WITHDRAW() external pure virtual returns (bytes32);
+
+    function depositToWstETH(uint256 amount) external virtual;
+
+    function claimWithdrawalFromWstETH(uint256 requestId) external virtual;
+
+    function requestWithdrawFromWstETH(uint256 amountToRedeem)
+        external
+        virtual
+        returns (uint256[] memory requestIds);
 
 }

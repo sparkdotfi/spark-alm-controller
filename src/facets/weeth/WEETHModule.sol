@@ -53,7 +53,7 @@ interface IWithdrawRequestNFTLike {
 
 }
 
-// NOTE: This contract is is specifically for Mainnet Ethereum.
+// NOTE: This contract is specifically for Mainnet Ethereum.
 contract WEETHModule is IWEETHModule, AccessControlEnumerableUpgradeable, UUPSUpgradeable {
 
     /**********************************************************************************************/

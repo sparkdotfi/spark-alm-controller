@@ -48,7 +48,7 @@ abstract contract Curve_TestBase is ForkTestBase {
 
     uint256 maxSlippage;
 
-    function setUp() public virtual override  {
+    function setUp() public virtual override {
         super.setUp();
 
         // There is something weird with the CGUSD token that causes deal to under/overflow.

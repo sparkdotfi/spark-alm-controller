@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
+import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
 import { FacetBase } from "../FacetBase.sol";
 

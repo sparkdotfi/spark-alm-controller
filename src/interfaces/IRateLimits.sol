@@ -152,17 +152,17 @@ interface IRateLimits is IAccessControl {
     /**********************************************************************************************/
 
     /**
-     * @dev    Retrieves the RateLimitData struct associated with a specific key.
-     * @param  key The identifier for the rate limit.
-     * @return The data associated with the rate limit.
-     */
-    function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
-
-    /**
      * @dev    Retrieves the current rate limit for a specific key.
      * @param  key The identifier for the rate limit.
      * @return The current rate limit value for the given key.
      */
     function getCurrentRateLimit(bytes32 key) external view returns (uint256);
+
+    /**
+     * @dev    Retrieves the RateLimitData struct associated with a specific key.
+     * @param  key The identifier for the rate limit.
+     * @return The data associated with the rate limit.
+     */
+    function getRateLimitData(bytes32 key) external view returns (RateLimitData memory);
 
 }

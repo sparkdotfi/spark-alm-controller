@@ -32,7 +32,7 @@ abstract contract Merkl_TestBase is ForkTestBase {
 
 }
 
-contract ForeignControllerToggleOperatorMerklFailureTests is Merkl_TestBase {
+contract ForeignController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
 
     function test_toggleOperatorMerkl_notRelayer() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -45,7 +45,7 @@ contract ForeignControllerToggleOperatorMerklFailureTests is Merkl_TestBase {
 
 }
 
-contract ForeignControllerToggleOperatorMerklSuccessTests is Merkl_TestBase {
+contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
 
     function test_toggleOperatorMerkl_singleOperator() external {
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);

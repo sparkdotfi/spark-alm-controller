@@ -64,7 +64,7 @@ contract RateLimits is IRateLimits, AccessControl {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Controller Functions                                               ***/
+    /*** External Interactive Controller Functions                                              ***/
     /**********************************************************************************************/
 
     function triggerRateLimitDecrease(bytes32 key, uint256 amountToDecrease)

@@ -4,8 +4,8 @@ pragma solidity ^0.8.34;
 import { ApproveLib }     from "../../libraries/ApproveLib.sol";
 import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
+import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
 import { FacetBase } from "../FacetBase.sol";
 
@@ -25,7 +25,7 @@ interface ILiquidityPoolLike {
 
     function deposit() external payable returns (uint256 shareAmount);
 
-    function requestWithdraw(address receiver,uint256 amount) external returns (uint256 requestId);
+    function requestWithdraw(address receiver, uint256 amount) external returns (uint256 requestId);
 
 }
 

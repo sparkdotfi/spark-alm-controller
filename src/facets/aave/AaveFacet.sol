@@ -37,7 +37,7 @@ interface IPoolLike {
 contract AaveFacet is IAaveFacet, FacetBase {
 
     /**********************************************************************************************/
-    /*** AaveFacet Storage Domain                                                               ***/
+    /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
     /// @custom:storage-location erc7201:sky.pau.storage.AaveFacet

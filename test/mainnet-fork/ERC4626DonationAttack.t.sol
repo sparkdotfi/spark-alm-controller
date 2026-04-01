@@ -35,7 +35,7 @@ abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
 
     address internal attacker = makeAddr("attacker");
 
-    function setUp() override public {
+    function setUp() public override {
         super.setUp();
 
         morpho = MORPHO_VAULT.MORPHO();
@@ -80,7 +80,7 @@ abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
         vm.stopPrank();
     }
 
-    function _getBlock() internal override pure returns (uint256) {
+    function _getBlock() internal pure override returns (uint256) {
         return 22932160;  // July 16, 2025
     }
 

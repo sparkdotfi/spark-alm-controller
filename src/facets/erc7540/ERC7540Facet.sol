@@ -115,7 +115,7 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
     }
 
     /**********************************************************************************************/
-    /*** Internal View/Pure Functions                                                           ***/
+    /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
     function _decreaseRateLimit(bytes32 key, address token, uint256 amount) internal {
@@ -124,6 +124,10 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
             amount
         );
     }
+
+    /**********************************************************************************************/
+    /*** Internal View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
 
     function _rateLimitExists(bytes32 key) internal view {
         require(

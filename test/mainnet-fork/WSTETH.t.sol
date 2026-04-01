@@ -45,8 +45,8 @@ abstract contract WSTETH_TestBase is ForkTestBase {
     IWithdrawalQueue internal constant WITHDRAW_QUEUE = IWithdrawalQueue(Ethereum.WSTETH_WITHDRAW_QUEUE);
     IWSTETH          internal constant WSTETH         = IWSTETH(Ethereum.WSTETH);
 
-    function _getBlock() internal override pure returns (uint256) {
-        return 23469772; //  September 29, 2025
+    function _getBlock() internal pure override returns (uint256) {
+        return 23469772; // September 29, 2025
     }
 
 }

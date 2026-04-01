@@ -32,4 +32,5 @@ interface ILayerZeroFacet is IFacetBase {
     /**********************************************************************************************/
 
     function getRecipient(uint32 destinationEndpointId) external view returns (bytes32);
+
 }

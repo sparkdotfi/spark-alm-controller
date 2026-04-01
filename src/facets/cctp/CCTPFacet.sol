@@ -42,7 +42,7 @@ interface IERC20Like {
 contract CCTPFacet is ICCTPFacet, FacetBase {
 
     /**********************************************************************************************/
-    /*** CCTPFacet Storage Domain                                                               ***/
+    /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
     /// @custom:storage-location erc7201:sky.pau.storage.CCTPFacet

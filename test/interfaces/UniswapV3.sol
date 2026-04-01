@@ -11,12 +11,12 @@ interface ISwapRouter {
         uint256 amountIn;
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
-    }//
+    }
 
     function exactInputSingle(ExactInputSingleParams calldata params)
         external
         payable
-        returns (uint256 amountOut);//
+        returns (uint256 amountOut);
 
 }
 
@@ -24,11 +24,11 @@ interface IUniswapV3PoolLike {
 
     function initialize(uint160 sqrtPriceX96) external;
 
-    function token0() external view returns (address);//
+    function token0() external view returns (address);
 
-    function token1() external view returns (address);//
+    function token1() external view returns (address);
 
-    function fee() external view returns (uint24);//
+    function fee() external view returns (uint24);
 
     function tickSpacing() external view returns (int24);
 
@@ -43,7 +43,7 @@ interface IUniswapV3PoolLike {
             uint16  observationCardinalityNext,
             uint8   feeProtocol,
             bool    unlocked
-        );//
+        );
 
     function observe(uint32[] calldata secondsAgos)
         external
@@ -66,7 +66,7 @@ interface INonfungiblePositionManager {
         uint256 amount1Min;
         address recipient;
         uint256 deadline;
-    }//
+    }
 
     struct IncreaseLiquidityParams {
         uint256 tokenId;
@@ -94,7 +94,7 @@ interface INonfungiblePositionManager {
 
     function mint(MintParams calldata params)
         external
-        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);//
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
 
     function increaseLiquidity(IncreaseLiquidityParams calldata params)
         external
@@ -108,7 +108,7 @@ interface INonfungiblePositionManager {
         external
         returns (uint256 amount0, uint256 amount1);
 
-    function ownerOf(uint256 tokenId) external view returns (address owner);//
+    function ownerOf(uint256 tokenId) external view returns (address owner);
 
     function positions(uint256 tokenId)
         external

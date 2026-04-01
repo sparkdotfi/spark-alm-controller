@@ -152,7 +152,7 @@ library UniswapV3Utils {
         view
         returns (int24 arithmeticMeanTick, uint128 harmonicMeanLiquidity)
     {
-        require(secondsAgo != 0, 'UniswapV3Facet/consult-seconds-ago-not-zero');
+        require(secondsAgo != 0, "UniswapV3Facet/consult-seconds-ago-not-zero");
 
         uint32[] memory secondsAgos = new uint32[](2);
         secondsAgos[0]              = secondsAgo;

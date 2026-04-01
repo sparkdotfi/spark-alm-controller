@@ -177,7 +177,6 @@ contract ALMProxy_DoDelegateCall_SuccessTests is ALMProxy_Call_TestBase {
 
 }
 
-
 abstract contract ALMProxyFreezable_Call_TestBase is UnitTestBase {
 
     event ExampleEvent(

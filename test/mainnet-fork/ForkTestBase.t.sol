@@ -107,7 +107,7 @@ interface ISUSDELike is IERC4626 {
 
     function unstake(address receiver) external;
 
-    function silo() external view returns(address);
+    function silo() external view returns (address);
 
 }
 
@@ -366,7 +366,7 @@ abstract contract ForkTestBase is DssTest {
     }
 
     // Default configuration for the fork, can be overridden in inheriting tests
-    function _getBlock() internal virtual pure returns (uint256) {
+    function _getBlock() internal pure virtual returns (uint256) {
         return 20917850; //  October 7, 2024
     }
 

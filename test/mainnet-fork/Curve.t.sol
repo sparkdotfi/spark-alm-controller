@@ -35,7 +35,7 @@ abstract contract Curve_TestBase is ForkTestBase {
     bytes32 internal curveSwapKey;
     bytes32 internal curveWithdrawKey;
 
-    function setUp() public virtual override  {
+    function setUp() public virtual override {
         super.setUp();
 
         curveDepositKey  = makeAddressKey(mainnetController.LIMIT_CURVE_DEPOSIT(),  CURVE_POOL);
@@ -461,7 +461,7 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
     function test_removeLiquidityCurve_underAllowableSlippageBoundary() external {
         uint256 lpTokensReceived = _addLiquidity(1_000_000e6, 1_000_000e6);
 
-        uint256 minTotalReturned = lpTokensReceived * ICurvePoolLike(CURVE_POOL).get_virtual_price() * 98/100 / 1e18;
+        uint256 minTotalReturned = lpTokensReceived * ICurvePoolLike(CURVE_POOL).get_virtual_price() * 98 / 100 / 1e18;
 
         assertApproxEqAbs(minTotalReturned, 1_960_000e18, 50_000e18);  // Sanity check on precision
 
@@ -832,7 +832,7 @@ contract MainnetController_Curve_3Pool_Tests is ForkTestBase {
     bytes32 internal curveSwapKey;
     bytes32 internal curveWithdrawKey;
 
-    function setUp() public virtual override  {
+    function setUp() public virtual override {
         super.setUp();
 
         curveDepositKey  = makeAddressKey(mainnetController.LIMIT_CURVE_DEPOSIT(),  CURVE_POOL);
@@ -907,7 +907,7 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_Tests is ForkTestBase {
     bytes32 internal curveSwapKey;
     bytes32 internal curveWithdrawKey;
 
-    function setUp() public virtual override  {
+    function setUp() public virtual override {
         super.setUp();
 
         curveDepositKey  = makeAddressKey(mainnetController.LIMIT_CURVE_DEPOSIT(),  CURVE_POOL);
@@ -1119,7 +1119,7 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
     bytes32 internal curveSwapKey;
     bytes32 internal curveWithdrawKey;
 
-    function setUp() public virtual override  {
+    function setUp() public virtual override {
         super.setUp();
 
         curveDepositKey  = makeAddressKey(mainnetController.LIMIT_CURVE_DEPOSIT(),  CURVE_POOL);

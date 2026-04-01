@@ -99,7 +99,7 @@ contract MainnetController_CentrifugeV3_TransferShares_FailureTests is Centrifug
         );
     }
 
-        function test_transferSharesCentrifuge_invalidCentrifugeId() external {
+    function test_transferSharesCentrifuge_invalidCentrifugeId() external {
         vm.startPrank(SPARK_PROXY);
 
         rateLimits.setRateLimitData(

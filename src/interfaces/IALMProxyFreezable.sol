@@ -39,6 +39,10 @@ interface IALMProxyFreezable is IAccessControl {
         payable
         returns (bytes memory result);
 
+    /**
+     * @dev   This function allows a freezer to remove a relayer.
+     * @param relayer The address of the relayer to be removed.
+     */
     function removeRelayer(address relayer) external;
 
     /**********************************************************************************************/

@@ -51,7 +51,6 @@ contract MainnetController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
 
 }
 
-
 contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
 
     function test_toggleOperatorMerkl_singleOperator() external {

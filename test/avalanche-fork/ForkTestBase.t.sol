@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import "../../lib/forge-std/src/Test.sol";
+import { Test } from "../../lib/forge-std/src/Test.sol";
 
 import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
@@ -141,7 +141,7 @@ contract ForkTestBase is Test {
     }
 
     // Default configuration for the fork, can be overridden in inheriting tests
-    function _getBlock() internal virtual pure returns (uint256) {
+    function _getBlock() internal pure virtual returns (uint256) {
         return 65896755;  // July 22, 2025
     }
 

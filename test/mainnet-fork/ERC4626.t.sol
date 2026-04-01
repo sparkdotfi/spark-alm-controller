@@ -22,7 +22,7 @@ abstract contract ERC4626_SUSDS_TestBase is ForkTestBase {
     bytes32 internal depositKey;
     bytes32 internal withdrawKey;
 
-    function setUp() override public {
+    function setUp() public override {
         super.setUp();
 
         depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);

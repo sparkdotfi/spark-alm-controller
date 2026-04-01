@@ -83,8 +83,8 @@ contract Approve_Tests is Test {
         vm.stopPrank();
     }
 
-    function _getBlock() internal virtual pure returns (uint256) {
-        return 20917850; //  October 7, 2024
+    function _getBlock() internal pure virtual returns (uint256) {
+        return 20917850; // October 7, 2024
     }
 
     function _approveTest(address token) internal {

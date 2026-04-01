@@ -9,9 +9,9 @@ interface IDAIUSDSFacet is IFacetBase {
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
-    function swapUSDSToDAI(uint256 usdsAmount) external;
-
     function swapDAIToUSDS(uint256 daiAmount) external;
+
+    function swapUSDSToDAI(uint256 usdsAmount) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/

@@ -30,7 +30,7 @@ interface IERC4626Like {
 contract ERC4626Facet is IERC4626Facet, FacetBase {
 
     /**********************************************************************************************/
-    /*** ERC4626Facet Storage Domain                                                            ***/
+    /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
     /// @custom:storage-location erc7201:sky.pau.storage.ERC4626Facet

@@ -322,7 +322,6 @@ contract ForeignController_Morpho_Withdraw_FailureTests is Morpho_TestBase {
         vm.stopPrank();
     }
 
-
 }
 
 contract ForeignController_Morpho_Withdraw_SuccessTests is Morpho_TestBase {

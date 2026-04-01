@@ -8,7 +8,7 @@ import { Base }     from "../../lib/spark-address-registry/src/Base.sol";
 
 import { Bridge }                from "../../lib/grove-xchain-helpers/src/testing/Bridge.sol";
 import { CCTPv2BridgeTesting }   from "../../lib/grove-xchain-helpers/src/testing/bridges/CCTPv2BridgeTesting.sol";
-import { CCTPv2Forwarder  }      from "../../lib/grove-xchain-helpers/src/forwarders/CCTPv2Forwarder.sol";
+import { CCTPv2Forwarder }       from "../../lib/grove-xchain-helpers/src/forwarders/CCTPv2Forwarder.sol";
 import { Domain, DomainHelpers } from "../../lib/grove-xchain-helpers/src/testing/Domain.sol";
 
 import { CCTPFacet } from "../../src/facets/cctp/CCTPFacet.sol";
@@ -65,7 +65,7 @@ abstract contract MainnetController_CCTP_TestBase is ForkTestBase {
         mainnetController.setCCTPMaxFeeCap(CCTP_MAX_FEE_CAP);
     }
 
-    function _getBlock() internal override pure returns (uint256) {
+    function _getBlock() internal pure override returns (uint256) {
         return 23700802; // November 1, 2025
     }
 
@@ -515,7 +515,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         );
     }
 
-    function _getBlock() internal override pure returns (uint256) {
+    function _getBlock() internal pure override returns (uint256) {
         return 23700802; // November 1, 2025
     }
 
@@ -591,7 +591,7 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
 
     using DomainHelpers for *;
 
-    function setUp( ) public override {
+    function setUp() public override {
         super.setUp();
         destination.selectFork();
     }
@@ -732,7 +732,7 @@ contract ForeignController_CCTP_TransferWithFee_Tests is BaseChain_CCTP_TestBase
 
     uint256 internal constant MAX_FEE = 10;
 
-    function setUp( ) public override {
+    function setUp() public override {
         super.setUp();
         destination.selectFork();
     }

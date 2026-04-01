@@ -37,7 +37,6 @@ abstract contract Centrifuge_TestBase is ForkTestBase {
     bytes16 scId;
     uint128 usdcAssetId;
 
-
     function _getBlock() internal pure override returns (uint256) {
         return 65896755;  // July 22, 2025
     }

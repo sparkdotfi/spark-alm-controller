@@ -9,9 +9,9 @@ interface IPSMFacet is IFacetBase {
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
-    function swapUSDSToUSDC(uint256 usdcAmount) external;
-
     function swapUSDCToUSDS(uint256 usdcAmount) external;
+
+    function swapUSDSToUSDC(uint256 usdcAmount) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/

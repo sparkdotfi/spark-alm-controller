@@ -54,7 +54,7 @@ interface ISpokeLike {
 contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
 
     /**********************************************************************************************/
-    /*** CentrifugeFacet Storage Domain                                                         ***/
+    /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
     /// @custom:storage-location erc7201:sky.pau.storage.CentrifugeFacet

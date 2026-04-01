@@ -36,6 +36,10 @@ interface IOTCFacet is IFacetBase {
         uint256         normalizedAmountClaimed
     );
 
+    event OTCMaxSlippageSet(address indexed exchange, uint256 maxSlippage);
+
+    event OTCRechargeRateSet(address indexed exchange, uint256 normalizedRate);
+
     event OTCSwapSent(
         address indexed exchange,
         address indexed buffer,
@@ -44,18 +48,14 @@ interface IOTCFacet is IFacetBase {
         uint256         normalizedAmountSent
     );
 
-    event OTCRechargeRateSet(address indexed exchange, uint256 normalizedRate);
-
     event OTCWhitelistedAssetSet(
         address indexed exchange,
         address indexed asset,
         bool            isWhitelisted
     );
 
-    event OTCMaxSlippageSet(address indexed exchange, uint256 maxSlippage);
-
     /**********************************************************************************************/
-    /*** External Functions                                                                     ***/
+    /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     function claim(address exchange, address assetToClaim) external;

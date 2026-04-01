@@ -54,7 +54,7 @@ interface ICurvePoolLike is IERC20Like {
 contract CurveFacet is ICurveFacet, FacetBase {
 
     /**********************************************************************************************/
-    /*** CurveFacet Storage Domain                                                              ***/
+    /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
     /// @custom:storage-location erc7201:sky.pau.storage.CurveFacet
@@ -119,7 +119,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
 
         uint256 numCoins = ICurvePoolLike(pool).N_COINS();
 
-        require(inputIndex < numCoins && outputIndex < numCoins,"CurveFacet/index-too-high");
+        require(inputIndex < numCoins && outputIndex < numCoins, "CurveFacet/index-too-high");
 
         (
             uint256 valueIn,

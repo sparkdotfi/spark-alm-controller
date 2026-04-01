@@ -19,8 +19,8 @@ interface IUSDSFacet is IFacetBase {
 
     function LIMIT_MINT() external pure returns (bytes32);
 
-    function vault() external view returns (address);
-
     function usds() external view returns (address);
+
+    function vault() external view returns (address);
 
 }

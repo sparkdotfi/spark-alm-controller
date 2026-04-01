@@ -71,7 +71,7 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
 
     address internal stranger;
 
-    function setUp() public virtual override  {
+    function setUp() public virtual override {
         super.setUp();
 
         stranger = makeAddr("stranger");

@@ -13,9 +13,9 @@ interface IUSDEFacet is IFacetBase {
 
     function cooldownShares(uint256 susdeAmount) external returns (uint256 assets);
 
-    function prepareMint(uint256 usdcAmount) external;
-
     function prepareBurn(uint256 usdeAmount) external;
+
+    function prepareMint(uint256 usdcAmount) external;
 
     function removeDelegatedSigner(address delegatedSigner) external;
 

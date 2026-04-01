@@ -44,7 +44,7 @@ abstract contract Maple_TestBase is ForkTestBase {
     bytes32 internal depositKey;
     bytes32 internal redeemKey;
 
-    function setUp() override public {
+    function setUp() public override {
         super.setUp();
 
         depositKey = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), address(SYRUP));

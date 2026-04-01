@@ -9,7 +9,7 @@ interface IERC20Like {
 
 }
 
-interface IERC4626Like is IERC20Like{
+interface IERC4626Like is IERC20Like {
 
     function convertToAssets(uint256 shares) external view returns (uint256 assets);
 
