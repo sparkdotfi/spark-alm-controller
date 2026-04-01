@@ -1,6 +1,6 @@
 # Security
 
-This document describes protocol-specific security considerations for Diamond PAU.
+This document describes protocol-specific security considerations for PAU.
 
 ## Trust Assumptions
 
@@ -16,7 +16,7 @@ This document describes protocol-specific security considerations for Diamond PA
 
 When assuming a compromised `RELAYER`:
 
-1. **Value movement restrictions:** Smart contract logic must prevent movement of value outside the Diamond PAU system of contracts
+1. **Value movement restrictions:** Smart contract logic must prevent movement of value outside the PAU system of contracts
    - Exception: Asynchronous integrations (e.g., BUIDL) where `transferAsset` sends funds to whitelisted addresses, with LP tokens minted asynchronously, or OTC trades.
 
 2. **Loss limitations:** Any action must be limited to "reasonable" slippage/losses/opportunity cost by rate limits
@@ -79,7 +79,7 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 | Method            | Access                            | Description                                                  |
 | ----------------- | --------------------------------- | ------------------------------------------------------------ |
 | `doCallWithValue` | `DEFAULT_ADMIN_ROLE` (governance) | Allows arbitrary calls with ETH value attached from ALMProxy |
-| `wrapAllProxyETH` | `RELAYER`                         | Wraps all ETH in ALMProxy to WETH (MainnetController only)   |
+| `wrapAllProxyETH` | `RELAYER`                         | Wraps all ETH in ALMProxy to WETH (via WrapProxyETHFacet)    |
 
 **Use Cases:**
 

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the architecture of the Diamond PAU system.
+This document describes the architecture of the PAU system.
 
 ## Core Contracts
 
@@ -13,32 +13,27 @@ The proxy contract that holds custody of all funds. This contract routes calls t
 - Allows future iterations in logic by onboarding new controllers
 - New controllers can route calls through the proxy with new logic
 
-### Controllers
+### Controller
 
-#### MainnetController
+The unified controller contract that serves as the entry point for all relayer operations. Inspired by the [EIP-2535 Diamond Proxy](https://eips.ethereum.org/EIPS/eip-2535) pattern, the Controller uses dispatch-based routing to delegate calls to specialized facets. Rather than maintaining separate controllers per domain (e.g., mainnet vs L2), a single Controller is deployed on each chain and configured with only the facets relevant to that deployment.
 
-Controller contract intended for use on Ethereum mainnet. Uses 24 libraries.
+**Key characteristics:**
+- Dispatch-based call routing: admin maps call selectors to (facet address, delegate selector) pairs via `setDispatch`
+- Each facet uses its own ERC-7201 namespaced storage domain, preventing storage collisions
+- Shared state (access controls, proxy, rate limits) is accessible to all facets via `ControllerSharedStorage`
+- Reentrancy protection across all facet calls
 
-**Capabilities:**
+**Capabilities (determined by which facets are wired):**
 - Interact with the Sky allocation system to mint and burn USDS
 - Swap USDS to USDC in the PSM
-- Interact with mainnet external protocols
-- Bridge USDC via CCTP and OFTs with LayerZero
-- Transfer shares via Centrifuge cross-chain
-
-#### ForeignController
-
-Controller contract intended for use on "foreign" domains (any domain that is not Ethereum mainnet). Uses 12 libraries.
-
-**Capabilities:**
 - Deposit, withdraw, and swap assets in L2 PSMs
-- Interact with external protocols on L2s
+- Interact with external protocols (Aave, ERC-4626 vaults, Curve, Uniswap, etc.)
 - Bridge USDC via CCTP and OFTs with LayerZero
 - Transfer shares via Centrifuge cross-chain
 
 ### RateLimits
 
-Contract used to enforce and update rate limits on the controller contracts.
+Contract used to enforce and update rate limits on the Controller.
 
 **Key characteristics:**
 - Stateful contract storing rate limit data
@@ -49,10 +44,10 @@ See [RATE_LIMITS.md](./RATE_LIMITS.md) for detailed rate limit documentation.
 
 ### ALMProxyFreezable
 
-A variant of the `ALMProxy` that is not intended to hold funds or have critical authority. It defines low-risk parameters within the Diamond PAU ecosystem.
+A variant of the `ALMProxy` that is not intended to hold funds or have critical authority. It defines low-risk parameters within the PAU ecosystem.
 
 **Architectural differences from standard ALMProxy:**
-- **Controller role usage:** In the standard `ALMProxy`, the controller is a controller contract (e.g., `MainnetController`) that acts when approved relayers interact with it. In `ALMProxyFreezable`, the "controllers" are the relayers themselves (granted the `CONTROLLER` role directly).
+- **Controller role usage:** In the standard `ALMProxy`, the controller is the `Controller` contract that acts when approved relayers interact with it. In `ALMProxyFreezable`, the "controllers" are the relayers themselves (granted the `CONTROLLER` role directly).
 - **Additional safety mechanism:** The `FREEZER` role can remove controllers via `removeController`, providing quick revocation of access from compromised or malicious relayers without slower governance processes.
 
 ### OTCBuffer
@@ -67,7 +62,7 @@ Module contract used for facilitating NFT-based WEETH withdrawals. See [WEETH_IN
 
 ### General Call Flow
 
-The general structure of calls is shown below. The `controller` contract is the entry point for all calls. It checks rate limits if necessary and executes the relevant logic. The controller can perform multiple calls to the `ALMProxy` contract atomically with specified calldata.
+The general structure of calls is shown below. The `Controller` is the entry point for all calls. It dispatches to the appropriate facet, which checks rate limits if necessary and executes the relevant logic. Facets perform calls to the `ALMProxy` contract atomically with specified calldata.
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/832db958-14e6-482f-9dbc-b10e672029f7" alt="Call Flow Architecture" height="700px" style="margin-right:100px;"/>
@@ -90,52 +85,53 @@ All contracts in this repo inherit and implement the `AccessControl` contract fr
 | `DEFAULT_ADMIN_ROLE` | Admin role that can grant and revoke roles. Also used for general admin functions in all contracts. |
 | `RELAYER` | Used for the offchain relayer system. Can call functions on controller contracts to perform actions on behalf of the `ALMProxy`. |
 | `FREEZER` | Allows removal of a compromised `RELAYER`. Intended for use with a backup relayer that the system can fall back to. |
-| `CONTROLLER` | Used for the `ALMProxy` contract. Only contracts with this role can call the `call` functions on `ALMProxy`. Also used in `RateLimits` contract for updating rate limits. |
+| `CONTROLLER` | Used for the `ALMProxy` contract. Only the `Controller` with this role can call the `call` functions on `ALMProxy`. Also used in `RateLimits` contract for updating rate limits. |
 
 ## Contract Interactions
 
 ```
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│     Relayer     │────▶│  MainnetController   │────▶│    ALMProxy     │
-│   (External)    │     │  or ForeignController│     │ (Funds Custody) │
-└─────────────────┘     └──────────────────────┘     └─────────────────┘
-                                   │                          │
-                                   │                          │
-                                   ▼                          ▼
-                        ┌──────────────────┐       ┌────────────────────┐
-                        │   RateLimits     │       │ External Protocols │
-                        │   (State Store)  │       │  (Sky, PSM, etc.)  │
-                        └──────────────────┘       └────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│     Relayer     │────▶│   Controller     │────▶│    ALMProxy     │
+│   (External)    │     │  (Dispatches to  │     │ (Funds Custody) │
+└─────────────────┘     │    Facets)       │     └─────────────────┘
+                        └──────────────────┘              │
+                                   │                      │
+                                   │                      │
+                                   ▼                      ▼
+                        ┌──────────────────┐    ┌────────────────────┐
+                        │   RateLimits     │    │ External Protocols │
+                        │   (State Store)  │    │  (Sky, PSM, etc.)  │
+                        └──────────────────┘    └────────────────────┘
 ```
 
-## Libraries
+## Facets
 
-The system uses several libraries for protocol integrations. The Mainnet and Foreign columns indicate which controller uses each library:
+The system uses a facet-based architecture where each protocol integration is encapsulated in its own facet. Each facet has its own ERC-7201 namespaced storage domain and is wired to the Controller via dispatch configuration. Which facets are active depends on the deployment (e.g., a mainnet deployment may have different facets than an L2 deployment).
 
-| Library | Purpose | Mainnet | Foreign |
-|---------|---------|:-------:|:-------:|
-| `AaveLib` | Aave protocol deposit/withdraw | x | x |
-| `ApproveLib` | Token approval utilities | x | - |
-| `CCTPLib` | Circle CCTP v2 USDC bridging | x | x |
-| `CentrifugeLib` | Centrifuge async vault (ERC-7887) interactions | x | x |
-| `CurveLib` | Curve StableSwap pool operations | x | - |
-| `DAIUSDSLib` | DAI to USDS conversion | x | - |
-| `ERC4626Lib` | ERC-4626 vault deposit/withdraw | x | x |
-| `ERC7540Lib` | ERC-7540 async vault interactions | x | x |
-| `FarmLib` | SPK farming deposit/withdraw | x | - |
-| `LayerZeroLib` | LayerZero v2 cross-chain messaging | x | x |
-| `MapleLib` | Maple token redemptions | x | - |
-| `MerklLib` | Merkl operator toggles | x | x |
-| `OTCLib` | Over-the-counter swap buffering | x | - |
-| `PendleLib` | Pendle PT redemptions | x | x |
-| `PSMLib` | Mainnet PSM USDS/USDC swaps | x | - |
-| `PSM3Lib` | PSM3 deposit/withdraw | - | x |
-| `SparkVaultLib` | Spark Vault asset withdrawals | x | x |
-| `SuperstateLib` | Superstate USTB subscriptions | x | - |
-| `TransferAssetLib` | Generic ERC-20 transfers | x | x |
-| `UniswapV4Lib` | Uniswap V4 positions and swaps | x | - |
-| `USDELib` | Ethena USDe/sUSDe operations | x | - |
-| `USDSLib` | USDS minting/burning via vault | x | - |
-| `WEETHLib` | EtherFi weETH/eETH operations | x | - |
-| `WrapProxyETHLib` | WETH wrapping utility | x | - |
-| `WSTETHLib` | Lido wstETH deposit/withdraw | x | - |
+| Facet | Purpose |
+|-------|---------|
+| `AaveFacet` | Aave protocol deposit/withdraw |
+| `CCTPFacet` | Circle CCTP v2 USDC bridging |
+| `CentrifugeFacet` | Centrifuge async vault (ERC-7887) interactions |
+| `CurveFacet` | Curve StableSwap pool operations |
+| `DAIUSDSFacet` | DAI to USDS conversion |
+| `ERC4626Facet` | ERC-4626 vault deposit/withdraw |
+| `ERC7540Facet` | ERC-7540 async vault interactions |
+| `FarmFacet` | SPK farming deposit/withdraw |
+| `LayerZeroFacet` | LayerZero v2 cross-chain messaging |
+| `MapleFacet` | Maple token redemptions |
+| `MerklFacet` | Merkl operator toggles |
+| `OTCFacet` | Over-the-counter swap buffering |
+| `PendleFacet` | Pendle PT redemptions |
+| `PSMFacet` | Mainnet PSM USDS/USDC swaps |
+| `PSM3Facet` | PSM3 deposit/withdraw |
+| `SparkVaultFacet` | Spark Vault asset withdrawals |
+| `SuperstateFacet` | Superstate USTB subscriptions |
+| `TransferAssetFacet` | Generic ERC-20 transfers |
+| `UniswapV3Facet` | Uniswap V3 positions and swaps |
+| `UniswapV4Facet` | Uniswap V4 positions and swaps |
+| `USDEFacet` | Ethena USDe/sUSDe operations |
+| `USDSFacet` | USDS minting/burning via vault |
+| `WEETHFacet` | EtherFi weETH/eETH operations |
+| `WrapProxyETHFacet` | WETH wrapping utility |
+| `WSTETHFacet` | Lido wstETH deposit/withdraw |

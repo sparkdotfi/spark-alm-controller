@@ -1,12 +1,12 @@
 # Operational Requirements
 
-This document describes operational requirements for deploying and managing integrations with Diamond PAU.
+This document describes operational requirements for deploying and managing integrations with PAU.
 
 ---
 
 ## Protocol Seeding Requirements
 
-Certain protocols require initialization before Diamond PAU can safely interact with them.
+Certain protocols require initialization before PAU can safely interact with them.
 
 ### ERC-4626 Vault Seeding
 
@@ -38,7 +38,7 @@ Certain protocols require initialization before Diamond PAU can safely interact 
 
 ## Token Requirements
 
-All ERC-20 tokens used with Diamond PAU must be:
+All ERC-20 tokens used with PAU must be:
 
 | Requirement | Rationale |
 |-------------|-----------|
@@ -100,7 +100,7 @@ Only pools with 1:1 assets can be onboarded:
 
 ## General Onboarding Process
 
-1. **Verify protocol compatibility** with Diamond PAU requirements
+1. **Verify protocol compatibility** with PAU requirements
 2. **Configure rate limit keys** via governance
 3. **Set safety parameters** if applicable
 4. **Test on fork** before mainnet deployment

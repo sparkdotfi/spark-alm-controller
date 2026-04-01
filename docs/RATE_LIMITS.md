@@ -1,10 +1,10 @@
 # Rate Limits
 
-This document describes the rate limiting system used in Diamond PAU.
+This document describes the rate limiting system used in PAU.
 
 ## Overview
 
-The `RateLimits` contract enforces rate limits on the controller contracts. Rate limits are keyed by individual `bytes32` hashes derived from a `bytes32` identifier unique to the integration and function, and optionally some data unique to the recipient, assets, pool, etc to apply the rate limit to. This design allows flexibility in future function signatures while maintaining the same high-level functionality.
+The `RateLimits` contract enforces rate limits on the Controller. Rate limits are keyed by individual `bytes32` hashes derived from a `bytes32` identifier unique to the integration and function, and optionally some data unique to the recipient, assets, pool, etc to apply the rate limit to. This design allows flexibility in future function signatures while maintaining the same high-level functionality.
 
 ### Whitelisting via Rate Limit Keys
 
@@ -80,7 +80,7 @@ For example, after minting USDS:
 
 #### PSM3 Integration (No Cancellation, No minShares)
 
-**Decision:** Rate limits are **not** cancelled in the PSM3 integration (ForeignController).
+**Decision:** Rate limits are **not** cancelled in the PSM3 integration (PSM3Facet).
 
 | Operation | Rate Limit Behavior |
 |-----------|---------------------|
@@ -108,7 +108,7 @@ For example, after minting USDS:
 
 ## Rate Limit Uses
 
-The current uses of rate limits can be seen in [`./printers/rate_limits.py`](../printers/rate_limits.py) (for both the Foreign and Mainnet controllers). The file is also an executable [Wake](https://github.com/Ackee-Blockchain/wake) printer, which can verify that the information in the file is correct at any time.
+The current uses of rate limits can be seen in [`./printers/rate_limits.py`](../printers/rate_limits.py). The file is also an executable [Wake](https://github.com/Ackee-Blockchain/wake) printer, which can verify that the information in the file is correct at any time.
 
 ### Running the Rate Limits Printer
 
@@ -128,10 +128,8 @@ Execute the printer:
            Loaded previous build in 0.47 s                                             compiler.py:862
            Compiled 0 files using 0 solc runs in 0.00 s                               compiler.py:1242
            Processed compilation results in 0.01 s                                    compiler.py:1495
-📦 Checking MainnetController...
-✅ Successfully checked MainnetController...
-📦 Checking ForeignController...
-✅ Successfully checked ForeignController...
+📦 Checking Controller...
+✅ Successfully checked Controller...
 ```
 
 A zero exit-code indicates the spec is satisfied.

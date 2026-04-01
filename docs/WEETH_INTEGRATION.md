@@ -4,7 +4,7 @@ This document describes the weETH (wrapped eETH) integration with EtherFi, inclu
 
 ## Overview
 
-weETH is EtherFi's wrapped version of eETH (staked ETH). The integration allows the Diamond PAU system to deposit ETH into EtherFi's staking system and receive yield-bearing weETH tokens.
+weETH is EtherFi's wrapped version of eETH (staked ETH). The integration allows the PAU system to deposit ETH into EtherFi's staking system and receive yield-bearing weETH tokens.
 
 ## Why a Separate Module is Necessary
 
@@ -70,7 +70,7 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 
 ### Deposit (WETH → weETH)
 
-**Function:** `MainnetController.depositToWeETH(amount, minSharesOut)`
+**Function:** `Controller.depositToWeETH(amount, minSharesOut)` (dispatched to WEETHFacet)
 
 **Flow:**
 1. Unwrap WETH to ETH in ALMProxy
@@ -83,7 +83,7 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 
 ### Request Withdrawal (weETH → NFT)
 
-**Function:** `MainnetController.requestWithdrawFromWeETH(weETHModule, shares)`
+**Function:** `Controller.requestWithdrawFromWeETH(weETHModule, shares)` (dispatched to WEETHFacet)
 
 **Flow:**
 1. Unwrap weETH to eETH in ALMProxy
@@ -97,7 +97,7 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 
 ### Claim Withdrawal (NFT → WETH)
 
-**Function:** `MainnetController.claimWithdrawalFromWeETH(weETHModule, requestId)`
+**Function:** `Controller.claimWithdrawalFromWeETH(weETHModule, requestId)` (dispatched to WEETHFacet)
 
 **Flow:**
 1. ALMProxy calls `WEETHModule.claimWithdrawal(requestId)`
@@ -190,7 +190,7 @@ The WEETHModule:
 
 1. Deploy `WEETHModule` proxy with implementation
 2. Initialize with admin and ALMProxy address
-3. Configure rate limit keys in MainnetController:
+3. Configure rate limit keys in the Controller:
    - `LIMIT_WEETH_DEPOSIT`
    - `makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule)`
    - `makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule)`

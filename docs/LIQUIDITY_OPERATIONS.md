@@ -1,10 +1,10 @@
 # Liquidity Operations
 
-This document describes the stablecoin market making, swapping, and liquidity provision functionality in Diamond PAU.
+This document describes the stablecoin market making, swapping, and liquidity provision functionality in PAU.
 
 ## Overview
 
-Diamond PAU performs liquidity operations across multiple venues:
+PAU performs liquidity operations across multiple venues:
 
 | Venue | Operations | Use Case |
 |-------|------------|----------|
@@ -123,7 +123,7 @@ OTC buffers require infinite allowance (`type(uint256).max`) to the ALMProxy. Th
 
 There are two PSM integrations with different rate limit behaviors:
 
-### Mainnet PSM (MainnetController)
+### Mainnet PSM (PSMFacet)
 
 **Operations:** USDS ↔ USDC swaps (via DAI conversion)
 
@@ -134,7 +134,7 @@ There are two PSM integrations with different rate limit behaviors:
 
 **Rationale:** Swapping USDC back to USDS returns value to the system, so rate limit is restored.
 
-### PSM3 (ForeignController)
+### PSM3 (PSM3Facet)
 
 **Operations:** Deposit/withdraw assets to/from L2 PSM
 

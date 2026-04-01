@@ -1,4 +1,4 @@
-# Diamond PAU
+# PAU
 
 ![Foundry CI](https://github.com/marsfoundation/spark-alm-controller/actions/workflows/ci.yml/badge.svg)
 [![Foundry][foundry-badge]][foundry]
@@ -9,17 +9,18 @@
 
 ## Overview
 
-This repository contains the onchain components of the Diamond PAU system. The system enables controlled interaction with various DeFi protocols while enforcing rate limits and maintaining custody of funds through the ALMProxy.
+This repository contains the onchain components of the PAU system. The system enables controlled interaction with various DeFi protocols while enforcing rate limits and maintaining custody of funds through the ALMProxy.
 
 ### Core Contracts
 
 | Contract | Description |
 |----------|-------------|
 | `ALMProxy` | Proxy contract that holds custody of all funds and routes calls to external contracts |
-| `MainnetController` | Controller for Ethereum mainnet operations (Sky allocation, PSM, CCTP bridging) |
-| `ForeignController` | Controller for L2 operations (PSM, external protocols, CCTP bridging) |
+| `Controller` | Unified controller with dispatch-based routing to specialized facets |
 | `RateLimits` | Enforces and manages rate limits on controller operations |
+| `AccessControls` | Role-based access control for the system |
 | `OTCBuffer` | Buffer contract for offchain OTC swap operations |
+| `PAUFactory` | Factory contract that deploys and configures the full PAU system |
 
 ## Documentation
 
@@ -43,46 +44,32 @@ This repository contains the onchain components of the Diamond PAU system. The s
 forge test
 ```
 
-### Deployments
-
-Deploy commands follow the pattern: `make deploy-<domain>-<env>-<type>`
-
-```bash
-# Deploy full Diamond PAU system to Base production
-make deploy-base-production-full
-
-# Deploy controller to Mainnet production
-make deploy-mainnet-production-controller
-
-# Deploy full staging environment
-make deploy-staging-full
-```
-
 See [Development Guide](./docs/DEVELOPMENT.md) for detailed instructions.
 
 ## Architecture Overview
 
-The controller contract is the entry point for all calls. It checks rate limits and executes logic, performing multiple calls to the ALMProxy atomically.
+The Controller is the entry point for all calls. It dispatches to the appropriate facet, which checks rate limits and executes logic, performing calls to the ALMProxy atomically.
 
 ```
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│     Relayer     │────▶│  MainnetController   │────▶│    ALMProxy     │
-│   (External)    │     │  or ForeignController│     │ (Funds Custody) │
-└─────────────────┘     └──────────────────────┘     └─────────────────┘
-                                   │                          │
-                                   │                          │
-                                   ▼                          ▼
-                        ┌──────────────────┐       ┌────────────────────┐
-                        │   RateLimits     │       │ External Protocols │
-                        │   (State Store)  │       │  (Sky, PSM, etc.)  │
-                        └──────────────────┘       └────────────────────┘
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│     Relayer     │────▶│   Controller     │────▶│    ALMProxy     │
+│   (External)    │     │  (Dispatches to  │     │ (Funds Custody) │
+└─────────────────┘     │    Facets)       │     └─────────────────┘
+                        └──────────────────┘              │
+                                   │                      │
+                                   │                      ▼
+                                   ▼               ┌────────────────────┐
+                        ┌──────────────────┐       │ External Protocols │
+                        │   RateLimits     │       │  (Sky, PSM, etc.)  │
+                        │   (State Store)  │       └────────────────────┘
+                        └──────────────────┘
 ```
 
 See [Architecture Documentation](./docs/ARCHITECTURE.md) for detailed diagrams and explanations.
 
 ## Max Slippages
 
-Max slippage values throughout Diamond PAU integrations are defined as how close the resulting value should be to the expected or minimum value, **not** as how much deviation is allowed. This is an inverse way of denoting max slippages compared to common DeFi nomenclature.
+Max slippage values throughout PAU integrations are defined as how close the resulting value should be to the expected or minimum value, **not** as how much deviation is allowed. This is an inverse way of denoting max slippages compared to common DeFi nomenclature.
 
 ### How It Works
 

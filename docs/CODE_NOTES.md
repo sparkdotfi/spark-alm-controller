@@ -4,9 +4,9 @@ This document captures specific implementation decisions and behaviors that may 
 
 ---
 
-## CurveLib.addLiquidity - Virtual Price Zero Handling
+## CurveFacet.addLiquidity - Virtual Price Zero Handling
 
-**Location:** `src/libraries/CurveLib.sol` - `addLiquidity` function
+**Location:** `src/facets/curve/CurveFacet.sol` - `addLiquidity` function
 
 **Behavior:** Reverts when `get_virtual_price() == 0`.
 
@@ -18,7 +18,7 @@ require(
     params.minLpAmount >= valueDeposited
         * params.maxSlippage
         / curvePool.get_virtual_price(),
-    "CurveLib/min-amount-not-met"
+    "CurveFacet/min-amount-not-met"
 );
 ```
 
@@ -26,9 +26,9 @@ See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding)
 
 ---
 
-## CCTPLib.transfer - maxFee Validation with Chunked Transfers
+## CCTPFacet.transfer - maxFee Validation with Chunked Transfers
 
-**Location:** `src/libraries/CCTPLib.sol` - `transfer` function
+**Location:** `src/facets/cctp/CCTPFacet.sol` - `transfer` function
 
 **Known Issue:** When a transfer exceeds `burnLimit` and is split into chunks, the same `maxFee` is passed to each `depositForBurn` call. The last chunk may be smaller than `maxFee`, causing the `maxFee < amount` check to revert at the CCTP level.
 
@@ -36,17 +36,17 @@ See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding)
 
 ---
 
-## CCTPLib.transfer - Zero Burn Limit
+## CCTPFacet.transfer - Zero Burn Limit
 
-**Location:** `src/libraries/CCTPLib.sol` - `transfer` function
+**Location:** `src/facets/cctp/CCTPFacet.sol` - `transfer` function
 
 **Known Issue:** If Circle sets `burnLimitsPerMessage` to zero, the loop passes `amount = 0` to `depositForBurn()`, reverting with a misleading `"Amount must be nonzero"` error instead of indicating a zero burn limit.
 
 ---
 
-## CCTPLib.transfer - Gas Exhaustion from Small Burn Limits
+## CCTPFacet.transfer - Gas Exhaustion from Small Burn Limits
 
-**Location:** `src/libraries/CCTPLib.sol` - `transfer` function
+**Location:** `src/facets/cctp/CCTPFacet.sol` - `transfer` function
 
 **Known Issue:** If Circle drastically reduces `burnLimitsPerMessage`, large transfers could require thousands of loop iterations, exceeding the block gas limit. No funds are at risk as the transaction simply reverts.
 
@@ -54,50 +54,53 @@ See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding)
 
 ## Error Message Prefixes
 
-Error messages follow the pattern `ContractOrLibName/error-description`. Each library uses its own prefix:
+Error messages follow the pattern `ComponentName/error-description`. Each facet and supporting contract uses its own prefix:
 
 ### Controller and Core Contract Prefixes
 
 | Prefix | Source |
 |--------|--------|
-| `MC/` | MainnetController |
-| `FC/` | ForeignController |
+| `Controller/` | Controller contract |
 | `RateLimits/` | RateLimits contract |
 | `OTCBuffer/` | OTCBuffer contract |
 | `WEETHModule/` | WEETHModule contract |
+
+### Facet Prefixes
+
+| Prefix | Source |
+|--------|--------|
+| `AaveFacet/` | Aave deposit/withdraw operations |
+| `CCTPFacet/` | CCTP V2 bridging operations |
+| `CentrifugeFacet/` | Centrifuge vault operations |
+| `CurveFacet/` | Curve pool operations |
+| `ERC4626Facet/` | ERC-4626 vault operations |
+| `LayerZeroFacet/` | LayerZero V2 bridging operations |
+| `MapleFacet/` | Maple redemption operations |
+| `OTCFacet/` | OTC swap operations |
+| `PendleFacet/` | Pendle PT redemption operations |
+| `TransferAssetFacet/` | Generic asset transfer operations |
+| `UniswapV3Facet/` | Uniswap V3 operations |
+| `UniswapV4Facet/` | Uniswap V4 operations |
+| `WEETHFacet/` | weETH deposit/withdraw operations |
 
 ### Library Prefixes
 
 | Prefix | Source |
 |--------|--------|
-| `AaveLib/` | Aave deposit/withdraw operations |
 | `ApproveLib/` | Token approval utility |
-| `CCTPLib/` | CCTP V2 bridging operations |
-| `CentrifugeLib/` | Centrifuge vault operations |
-| `CurveLib/` | Curve pool operations |
-| `ERC4626Lib/` | ERC-4626 vault operations |
-| `ERC7540Lib/` | ERC-7540 async vault operations |
-| `LayerZeroLib/` | LayerZero V2 bridging operations |
-| `MapleLib/` | Maple redemption operations |
-| `MerklLib/` | Merkl operator operations |
-| `OTCLib/` | OTC swap operations |
-| `PendleLib/` | Pendle PT redemption operations |
-| `TransferAssetLib/` | Generic asset transfer operations |
-| `UniswapV4Lib/` | Uniswap V4 operations |
-| `WEETHLib/` | weETH deposit/withdraw operations |
 
-Libraries without custom error messages (use only rate limit reverts): `DAIUSDSLib`, `FarmLib`, `PSMLib`, `PSM3Lib`, `SparkVaultLib`, `SuperstateLib`, `USDELib`, `USDSLib`, `WrapProxyETHLib`, `WSTETHLib`.
+Facets without custom error messages (use only rate limit reverts): `DAIUSDSFacet`, `ERC7540Facet`, `FarmFacet`, `MerklFacet`, `PSMFacet`, `PSM3Facet`, `SparkVaultFacet`, `SuperstateFacet`, `USDEFacet`, `USDSFacet`, `WrapProxyETHFacet`, `WSTETHFacet`.
 
 ---
 
 ## Slippage Checks
 
-All swap and liquidity operations require `maxSlippage != 0`. Each library enforces this with its own prefix:
+All swap and liquidity operations require `maxSlippage != 0`. Each facet enforces this with its own prefix:
 
 ```solidity
-require(params.maxSlippage != 0, "CurveLib/max-slippage-not-set");
-require(params.maxSlippage != 0, "AaveLib/max-slippage-not-set");
-require(params.maxSlippage != 0, "UniswapV4Lib/max-slippage-not-set");
+require(maxSlippage != 0, "CurveFacet/max-slippage-not-set");
+require(maxSlippage != 0, "AaveFacet/max-slippage-not-set");
+require(maxSlippage != 0, "UniswapV4Facet/max-slippage-not-set");
 ```
 
 **Rationale:** Zero slippage would disable protection, allowing arbitrarily bad trades by compromised relayers.
@@ -117,11 +120,11 @@ Rate limit keys combine a function identifier with contextual data via `keccak25
 
 | Helper | Parameters | Used By |
 |--------|------------|---------|
-| `makeAddressKey` | `(bytes32 limit, address)` | Most libraries (ERC4626, Aave, Curve, etc.) |
-| `makeBytes32Key` | `(bytes32 limit, bytes32)` | UniswapV4Lib (pool ID) |
-| `makeUint32Key` | `(bytes32 limit, uint32)` | CCTPLib (destination domain) |
-| `makeAddressUint32Key` | `(bytes32 limit, address, uint32)` | LayerZeroLib (OFT + endpoint) |
-| `makeAddressUint16Key` | `(bytes32 limit, address, uint16)` | CentrifugeLib (vault + region ID) |
-| `makeAddressAddressKey` | `(bytes32 limit, address, address)` | TransferAssetLib (asset + destination) |
+| `makeAddressKey` | `(bytes32 limit, address)` | Most facets (ERC4626, Aave, Curve, etc.) |
+| `makeBytes32Key` | `(bytes32 limit, bytes32)` | UniswapV4Facet (pool ID) |
+| `makeUint32Key` | `(bytes32 limit, uint32)` | CCTPFacet (destination domain) |
+| `makeAddressUint32Key` | `(bytes32 limit, address, uint32)` | LayerZeroFacet (OFT + endpoint) |
+| `makeAddressUint16Key` | `(bytes32 limit, address, uint16)` | CentrifugeFacet (vault + region ID) |
+| `makeAddressAddressKey` | `(bytes32 limit, address, address)` | TransferAssetFacet (asset + destination) |
 
 See [Rate Limits](./RATE_LIMITS.md#whitelisting-via-rate-limit-keys) for design rationale.
