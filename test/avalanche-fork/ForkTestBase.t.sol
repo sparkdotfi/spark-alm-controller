@@ -22,6 +22,7 @@ import { ALMProxy }       from "../../src/ALMProxy.sol";
 import { Controller }     from "../../src/Controller.sol";
 import { RateLimits }     from "../../src/RateLimits.sol";
 import { AccessControls } from "../../src/AccessControls.sol";
+import { PAUFactory }     from "../../src/PAUFactory.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
@@ -69,6 +70,7 @@ contract ForkTestBase is Test {
     ALMProxy               almProxy;
     IForeignControllerFull foreignController;
     RateLimits             rateLimits;
+    PAUFactory             factory;
 
     /**********************************************************************************************/
     /*** Addresses for testing                                                                  ***/
@@ -118,10 +120,13 @@ contract ForkTestBase is Test {
 
         accessControls = new AccessControls(GROVE_EXECUTOR);
 
+        factory = new PAUFactory(GROVE_EXECUTOR, GROVE_EXECUTOR);
+
         foreignController = IForeignControllerFull(payable(new Controller({
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
-            accessControls_ : address(accessControls)
+            accessControls_ : address(accessControls),
+            factory_        : address(factory)
         })));
 
         vm.startPrank(GROVE_EXECUTOR);
@@ -153,6 +158,8 @@ contract ForkTestBase is Test {
         // NOTE: We are NOT wiring DEPOSIT, REDEEM keys, as they already wired in _wireERC7540Facet.
 
         address centrifugeFacet = address(new CentrifugeFacet());
+
+        factory.setValidFacet(centrifugeFacet, true);
 
         vm.label(centrifugeFacet, "CentrifugeFacet");
 
@@ -215,6 +222,8 @@ contract ForkTestBase is Test {
 
     function _wireERC7540Facet() internal {
         address erc7540Facet = address(new ERC7540Facet());
+
+        factory.setValidFacet(erc7540Facet, true);
 
         vm.label(erc7540Facet, "ERC7540Facet");
 

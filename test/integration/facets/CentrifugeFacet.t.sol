@@ -28,13 +28,17 @@ abstract contract CentrifugeFacet_TestBase is Controller_TestBase {
     function setUp() external {
         controller = IControllerLike(_deploy());
 
-        // NOTE: Only wires the functions needed for the tests.
-        //       If more functions are needed in future tests, they should be wired here.
+        vm.startPrank(facetValidator);
+
         address facet = address(new CentrifugeFacet());
 
-        vm.startPrank(admin);
+        factory.setValidFacet(facet, true);
+
+        vm.stopPrank();
 
         vm.label(facet, "CentrifugeFacet");
+
+        vm.startPrank(admin);
 
         // Controller.setCentrifugeRecipient() -> CentrifugeFacet.setRecipient()
         controller.setDispatch(
@@ -49,6 +53,7 @@ abstract contract CentrifugeFacet_TestBase is Controller_TestBase {
             facet,
             ICentrifugeFacet.getRecipient.selector
         );
+
         vm.stopPrank();
     }
 

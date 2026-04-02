@@ -25,13 +25,17 @@ abstract contract AaveFacet_TestBase is Controller_TestBase {
     function setUp() external {
         controller = IControllerLike(_deploy());
 
-        // NOTE: Only wires the functions needed for the tests.
-        //       If more functions are needed in future tests, they should be wired here.
+        vm.startPrank(facetValidator);
+
         address facet = address(new AaveFacet());
 
-        vm.startPrank(admin);
+        factory.setValidFacet(facet, true);
+
+        vm.stopPrank();
 
         vm.label(facet, "AaveFacet");
+
+        vm.startPrank(admin);
 
         // Controller.setAaveMaxSlippage() -> AaveFacet.setMaxSlippage()
         controller.setDispatch(
@@ -46,6 +50,7 @@ abstract contract AaveFacet_TestBase is Controller_TestBase {
             facet,
             IAaveFacet.getMaxSlippage.selector
         );
+
         vm.stopPrank();
     }
 

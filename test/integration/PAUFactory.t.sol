@@ -3,6 +3,8 @@ pragma solidity ^0.8.34;
 
 import { Test } from "../../lib/forge-std/src/Test.sol";
 
+import { IAccessControl } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+
 import { IPAUFactory }  from "../../src/interfaces/IPAUFactory.sol";
 
 import { AccessControls } from "../../src/AccessControls.sol";
@@ -17,12 +19,16 @@ contract PAUFactory_Tests is Test {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    bytes32 internal constant DEFAULT_ADMIN_ROLE = 0x00;
+    bytes32 internal constant DEFAULT_ADMIN_ROLE   = 0x00;
+    bytes32 internal constant FACET_VALIDATOR_ROLE = keccak256("FACET_VALIDATOR_ROLE");
 
-    address internal admin         = makeAddr("admin");
-    address internal freezer       = makeAddr("freezer");
-    address internal newController = makeAddr("newController");
-    address internal relayer       = makeAddr("relayer");
+    address internal admin          = makeAddr("admin");
+    address internal facetValidator = makeAddr("facetValidator");
+    address internal factoryAdmin   = makeAddr("factoryAdmin");
+    address internal freezer        = makeAddr("freezer");
+    address internal newController  = makeAddr("newController");
+    address internal relayer        = makeAddr("relayer");
+    address internal unauthorized   = makeAddr("unauthorized");
 
     PAUFactory internal factory;
 
@@ -31,7 +37,140 @@ contract PAUFactory_Tests is Test {
     /**********************************************************************************************/
 
     function setUp() external {
-        factory = new PAUFactory();
+        factory = new PAUFactory(factoryAdmin, facetValidator);
+    }
+
+    /**********************************************************************************************/
+    /*** Initial State Tests                                                                    ***/
+    /**********************************************************************************************/
+
+    function test_initialState() external {
+        assertEq(factory.FACET_VALIDATOR_ROLE(), FACET_VALIDATOR_ROLE);
+
+        assertEq(factory.hasRole(DEFAULT_ADMIN_ROLE,   factoryAdmin),   true);
+        assertEq(factory.hasRole(FACET_VALIDATOR_ROLE, facetValidator), true);
+
+        assertEq(factory.getRoleMemberCount(DEFAULT_ADMIN_ROLE),   1);
+        assertEq(factory.getRoleMemberCount(FACET_VALIDATOR_ROLE), 1);
+    }
+
+    /**********************************************************************************************/
+    /*** setValidFacet Tests                                                                    ***/
+    /**********************************************************************************************/
+
+    function test_setValidFacet_notFacetValidator() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                unauthorized,
+                FACET_VALIDATOR_ROLE
+            )
+        );
+
+        vm.prank(unauthorized);
+        factory.setValidFacet(address(0), false);
+    }
+
+    function test_setValidFacet_zeroFacet() external {
+        vm.expectRevert(IPAUFactory.ZeroFacet.selector);
+        vm.prank(facetValidator);
+        factory.setValidFacet(address(0), false);
+    }
+
+    function test_setValidFacet() external {
+        address facet = makeAddr("facet");
+
+        assertEq(factory.isValidFacet(facet), false);
+
+        vm.expectEmit(address(factory));
+        emit IPAUFactory.ValidFacetSet(facet, true);
+
+        vm.prank(facetValidator);
+        factory.setValidFacet(facet, true);
+
+        assertEq(factory.isValidFacet(facet), true);
+
+        vm.expectEmit(address(factory));
+        emit IPAUFactory.ValidFacetSet(facet, false);
+
+        vm.prank(facetValidator);
+        factory.setValidFacet(facet, false);
+
+        assertEq(factory.isValidFacet(facet), false);
+    }
+
+    /**********************************************************************************************/
+    /*** setValidFacets Tests                                                                   ***/
+    /**********************************************************************************************/
+
+    function test_setValidFacets_notFacetValidator() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                unauthorized,
+                FACET_VALIDATOR_ROLE
+            )
+        );
+
+        vm.prank(unauthorized);
+        factory.setValidFacets(new address[](0), new bool[](0));
+    }
+
+    function test_setValidFacets_zeroFacet() external {
+        address[] memory facets = new address[](2);
+        facets[0] = address(0);
+        facets[1] = makeAddr("facet");
+
+        vm.expectRevert(IPAUFactory.ZeroFacet.selector);
+        vm.prank(facetValidator);
+        factory.setValidFacets(facets, new bool[](2));
+
+        facets[0] = makeAddr("facet");
+        facets[1] = address(0);
+
+        vm.expectRevert(IPAUFactory.ZeroFacet.selector);
+        vm.prank(facetValidator);
+        factory.setValidFacets(facets, new bool[](2));
+    }
+
+    function test_setValidFacets() external {
+        address[] memory facets = new address[](2);
+        facets[0] = makeAddr("facet1");
+        facets[1] = makeAddr("facet2");
+
+        assertEq(factory.isValidFacet(facets[0]), false);
+        assertEq(factory.isValidFacet(facets[1]), false);
+
+        bool[] memory valid = new bool[](2);
+        valid[0] = true;
+        valid[1] = true;
+
+        vm.expectEmit(address(factory));
+        emit IPAUFactory.ValidFacetSet(facets[0], true);
+
+        vm.expectEmit(address(factory));
+        emit IPAUFactory.ValidFacetSet(facets[1], true);
+
+        vm.prank(facetValidator);
+        factory.setValidFacets(facets, valid);
+
+        assertEq(factory.isValidFacet(facets[0]), true);
+        assertEq(factory.isValidFacet(facets[1]), true);
+
+        valid[0] = false;
+        valid[1] = false;
+
+        vm.expectEmit(address(factory));
+        emit IPAUFactory.ValidFacetSet(facets[0], false);
+
+        vm.expectEmit(address(factory));
+        emit IPAUFactory.ValidFacetSet(facets[1], false);
+
+        vm.prank(facetValidator);
+        factory.setValidFacets(facets, valid);
+
+        assertEq(factory.isValidFacet(facets[0]), false);
+        assertEq(factory.isValidFacet(facets[1]), false);
     }
 
     /**********************************************************************************************/
@@ -55,7 +194,9 @@ contract PAUFactory_Tests is Test {
             expectedRateLimits
         );
 
-        Controller     controller     = Controller(payable(factory.deploy(admin)));
+        vm.prank(admin);
+        Controller controller = Controller(payable(factory.deploy(admin)));
+
         AccessControls accessControls = AccessControls(controller.accessControls());
         ALMProxy       almProxy       = ALMProxy(payable(controller.proxy()));
         RateLimits     rateLimits     = RateLimits(controller.rateLimits());

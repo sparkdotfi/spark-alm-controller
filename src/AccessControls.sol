@@ -38,7 +38,7 @@ contract AccessControls is IAccessControls, ReentrancyGuard, AccessControlEnumer
     }
 
     /**********************************************************************************************/
-    /*** View/Pure Functions                                                                    ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
     function supportsInterface(bytes4 interfaceId)

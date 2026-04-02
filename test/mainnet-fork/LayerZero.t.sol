@@ -21,10 +21,11 @@ import { LayerZeroFacet }  from "../../src/facets/layer-zero/LayerZeroFacet.sol"
 
 import { makeAddressUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { AccessControls } from "../../src/AccessControls.sol";
 import { ALMProxy }       from "../../src/ALMProxy.sol";
 import { Controller }     from "../../src/Controller.sol";
+import { PAUFactory }     from "../../src/PAUFactory.sol";
 import { RateLimits }     from "../../src/RateLimits.sol";
-import { AccessControls } from "../../src/AccessControls.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
@@ -394,8 +395,9 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
     /**********************************************************************************************/
 
     ALMProxy               internal foreignAlmProxy;
-    RateLimits             internal foreignRateLimits;
     IForeignControllerFull internal foreignController;
+    PAUFactory             internal foreignFactory;
+    RateLimits             internal foreignRateLimits;
 
     /**********************************************************************************************/
     /*** Casted addresses for testing                                                           ***/
@@ -441,18 +443,21 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         foreignAlmProxy   = new ALMProxy(SPARK_EXECUTOR);
         foreignRateLimits = new RateLimits(SPARK_EXECUTOR);
 
-        AccessControls accessControls = new AccessControls(SPARK_EXECUTOR);
+        AccessControls foreignAccessControls = new AccessControls(SPARK_EXECUTOR);
+
+        foreignFactory = new PAUFactory(SPARK_EXECUTOR, SPARK_EXECUTOR);
 
         foreignController = IForeignControllerFull(payable(address(new Controller({
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
-            accessControls_ : address(accessControls)
+            accessControls_ : address(foreignAccessControls),
+            factory_        : address(foreignFactory)
         }))));
 
         vm.startPrank(SPARK_EXECUTOR);
 
-        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
-        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
+        foreignAccessControls.grantRole(foreignAccessControls.RELAYER_ROLE(), relayer);
+        foreignAccessControls.grantRole(foreignAccessControls.FREEZER_ROLE(), freezer);
 
         foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(), address(foreignController));
 
@@ -466,6 +471,8 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
     function _wireLayerZeroFacetForeignController() internal {
         address layerZeroFacet = address(new LayerZeroFacet());
+
+        foreignFactory.setValidFacet(layerZeroFacet, true);
 
         vm.label(layerZeroFacet, "LayerZeroFacet");
 

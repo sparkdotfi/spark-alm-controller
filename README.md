@@ -13,28 +13,28 @@ This repository contains the onchain components of the PAU system. The system en
 
 ### Core Contracts
 
-| Contract | Description |
-|----------|-------------|
-| `ALMProxy` | Proxy contract that holds custody of all funds and routes calls to external contracts |
-| `Controller` | Unified controller with dispatch-based routing to specialized facets |
-| `RateLimits` | Enforces and manages rate limits on controller operations |
-| `AccessControls` | Role-based access control for the system |
-| `OTCBuffer` | Buffer contract for offchain OTC swap operations |
-| `PAUFactory` | Factory contract that deploys and configures the full PAU system |
+| Contract         | Description                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `ALMProxy`       | Proxy contract that holds custody of all funds and routes calls to external contracts |
+| `Controller`     | Unified controller with dispatch-based routing to specialized facets                  |
+| `RateLimits`     | Enforces and manages rate limits on controller operations                             |
+| `AccessControls` | Role-based access control for the system                                              |
+| `OTCBuffer`      | Buffer contract for offchain OTC swap operations                                      |
+| `PAUFactory`     | Factory contract that deploys and configures the full PAU system                      |
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](./docs/ARCHITECTURE.md) | System architecture, contract interactions, and permissions |
-| [Rate Limits](./docs/RATE_LIMITS.md) | Rate limit design, calculations, and configuration |
-| [Liquidity Operations](./docs/LIQUIDITY_OPERATIONS.md) | Curve, Uniswap V4, OTC, and PSM integrations |
-| [weETH Integration](./docs/WEETH_INTEGRATION.md) | EtherFi weETH module architecture and withdrawal flow |
-| [Threat Model](./docs/THREAT_MODEL.md) | Attack vectors, trust assumptions, and security invariants |
-| [Security](./docs/SECURITY.md) | Protocol-specific considerations and audit information |
-| [Operational Requirements](./docs/OPERATIONAL_REQUIREMENTS.md) | Seeding, configuration, and onboarding checklists |
-| [Development](./docs/DEVELOPMENT.md) | Testing, deployment, and upgrade procedures |
-| [Code Notes](./docs/CODE_NOTES.md) | Implementation details and design decisions |
+| Document                                                       | Description                                                 |
+| -------------------------------------------------------------- | ----------------------------------------------------------- |
+| [Architecture](./docs/ARCHITECTURE.md)                         | System architecture, contract interactions, and permissions |
+| [Rate Limits](./docs/RATE_LIMITS.md)                           | Rate limit design, calculations, and configuration          |
+| [Liquidity Operations](./docs/LIQUIDITY_OPERATIONS.md)         | Curve, Uniswap V4, OTC, and PSM integrations                |
+| [weETH Integration](./docs/WEETH_INTEGRATION.md)               | EtherFi weETH module architecture and withdrawal flow       |
+| [Threat Model](./docs/THREAT_MODEL.md)                         | Attack vectors, trust assumptions, and security invariants  |
+| [Security](./docs/SECURITY.md)                                 | Protocol-specific considerations and audit information      |
+| [Operational Requirements](./docs/OPERATIONAL_REQUIREMENTS.md) | Seeding, configuration, and onboarding checklists           |
+| [Development](./docs/DEVELOPMENT.md)                           | Testing, deployment, and upgrade procedures                 |
+| [Code Notes](./docs/CODE_NOTES.md)                             | Implementation details and design decisions                 |
 
 ## Quick Start
 
@@ -58,11 +58,11 @@ The Controller is the entry point for all calls. It dispatches to the appropriat
                         └──────────────────┘              │
                                    │                      │
                                    │                      ▼
-                                   ▼               ┌────────────────────┐
-                        ┌──────────────────┐       │ External Protocols │
-                        │   RateLimits     │       │  (Sky, PSM, etc.)  │
-                        │   (State Store)  │       └────────────────────┘
-                        └──────────────────┘
+                                   ▼            ┌────────────────────┐
+                         ┌──────────────────┐   │ External Protocols │
+                         │   RateLimits     │   │  (Sky, PSM, etc.)  │
+                         │   (State Store)  │   └────────────────────┘
+                         └──────────────────┘
 ```
 
 See [Architecture Documentation](./docs/ARCHITECTURE.md) for detailed diagrams and explanations.
@@ -110,6 +110,7 @@ See [Security Documentation](./docs/SECURITY.md) for complete trust assumptions 
 ### Audits
 
 Audit reports are available in the [`audits/`](./audits/) directory. The system has been audited by:
+
 - Cantina
 - ChainSecurity
 - Certora

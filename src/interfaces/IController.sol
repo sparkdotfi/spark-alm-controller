@@ -29,6 +29,9 @@ interface IController {
     /// @notice Thrown when a dispatch is not found for a given call selector.
     error DispatchNotFound(bytes4 callSelector);
 
+    /// @notice Thrown when the facet is not registered as valid on the factory.
+    error InvalidFacet(address facet);
+
     /// @notice Thrown when the caller is not an admin.
     error NotAdmin(address caller);
 

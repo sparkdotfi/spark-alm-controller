@@ -38,10 +38,11 @@ import { UniswapV3Facet }     from "../../src/facets/uniswap-v3/UniswapV3Facet.s
 
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
-import { ALMProxy }         from "../../src/ALMProxy.sol";
-import { Controller }       from "../../src/Controller.sol";
-import { RateLimits }       from "../../src/RateLimits.sol";
-import { AccessControls }   from "../../src/AccessControls.sol";
+import { ALMProxy }       from "../../src/ALMProxy.sol";
+import { Controller }     from "../../src/Controller.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
+import { AccessControls } from "../../src/AccessControls.sol";
+import { PAUFactory }     from "../../src/PAUFactory.sol";
 
 import { IForeignControllerFull }  from "../interfaces/IForeignControllerFull.sol";
 
@@ -89,6 +90,7 @@ abstract contract ForkTestBase is Test {
     ALMProxy               almProxy;
     IForeignControllerFull foreignController;
     RateLimits             rateLimits;
+    PAUFactory             factory;
 
     /**********************************************************************************************/
     /*** Casted addresses for testing                                                           ***/
@@ -134,10 +136,13 @@ abstract contract ForkTestBase is Test {
 
         accessControls = new AccessControls(SPARK_EXECUTOR);
 
+        factory = new PAUFactory(SPARK_EXECUTOR, SPARK_EXECUTOR);
+
         foreignController = IForeignControllerFull(payable(new Controller({
             proxy_          : address(almProxy),
             rateLimits_     : address(rateLimits),
-            accessControls_ : address(accessControls)
+            accessControls_ : address(accessControls),
+            factory_        : address(factory)
         })));
 
         vm.startPrank(SPARK_EXECUTOR);
@@ -221,6 +226,8 @@ abstract contract ForkTestBase is Test {
     function _wireCurveFacet() internal {
         address curveFacet = address(new CurveFacet());
 
+        factory.setValidFacet(curveFacet, true);
+
         vm.label(curveFacet, "CurveFacet");
 
         // Controller.setCurveMaxSlippage() -> CurveFacet.setMaxSlippage()
@@ -283,6 +290,8 @@ abstract contract ForkTestBase is Test {
     function _wireMerklFacet() internal {
         address merklFacet = address(new MerklFacet(GroveBase.MERKL_DISTRIBUTOR));
 
+        factory.setValidFacet(merklFacet, true);
+
         vm.label(merklFacet, "MerklFacet");
 
         // "Controller.toggleOperatorMerkl()" -> "MerklFacet.toggleOperator()"
@@ -295,6 +304,8 @@ abstract contract ForkTestBase is Test {
 
     function _wirePendleFacet() internal {
         address pendleFacet = address(new PendleFacet(GroveBase.PENDLE_ROUTER));
+
+        factory.setValidFacet(pendleFacet, true);
 
         vm.label(pendleFacet, "PendleFacet");
 
@@ -315,6 +326,8 @@ abstract contract ForkTestBase is Test {
 
     function _wireAaveFacet() internal {
         address aaveFacet = address(new AaveFacet());
+
+        factory.setValidFacet(aaveFacet, true);
 
         vm.label(aaveFacet, "AaveFacet");
 
@@ -363,6 +376,8 @@ abstract contract ForkTestBase is Test {
 
     function _wireERC4626Facet() internal {
         address erc4626Facet = address(new ERC4626Facet());
+
+        factory.setValidFacet(erc4626Facet, true);
 
         vm.label(erc4626Facet, "ERC4626Facet");
 
@@ -426,6 +441,8 @@ abstract contract ForkTestBase is Test {
     function _wireSparkVaultFacet() internal {
         address sparkVaultFacet = address(new SparkVaultFacet());
 
+        factory.setValidFacet(sparkVaultFacet, true);
+
         vm.label(sparkVaultFacet, "SparkVaultFacet");
 
         // "Controller.takeFromSparkVault()" -> "SparkVaultFacet.take()"
@@ -446,6 +463,8 @@ abstract contract ForkTestBase is Test {
     function _wireTransferAssetFacet() internal {
         address transferAssetFacet = address(new TransferAssetFacet());
 
+        factory.setValidFacet(transferAssetFacet, true);
+
         vm.label(transferAssetFacet, "TransferAssetFacet");
 
         // "Controller.transferAsset()" -> "TransferAssetFacet.transfer()"
@@ -465,6 +484,8 @@ abstract contract ForkTestBase is Test {
 
     function _wirePSM3Facet() internal {
         address psm3Facet = address(new PSM3Facet(address(psmBase)));
+
+        factory.setValidFacet(psm3Facet, true);
 
         vm.label(psm3Facet, "PSM3Facet");
 
@@ -499,6 +520,8 @@ abstract contract ForkTestBase is Test {
 
     function _wireUniswapV3Facet() internal {
         address uniswapV3Facet = address(new UniswapV3Facet(UNISWAP_V3_POSITION_MANAGER, UNISWAP_V3_ROUTER));
+
+        factory.setValidFacet(uniswapV3Facet, true);
 
         vm.label(uniswapV3Facet, "UniswapV3Facet");
 

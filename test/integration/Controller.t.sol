@@ -53,10 +53,21 @@ contract ControllerIntegration_Tests is Controller_TestBase {
         controller.setDispatch(bytes4(0), address(0), bytes4(0));
     }
 
+    function test_setDispatch_notValidFacet() external {
+        address facet = makeAddr("facet");
+
+        vm.expectRevert(abi.encodeWithSelector(IController.InvalidFacet.selector, facet));
+        vm.prank(admin);
+        controller.setDispatch(bytes4(0), facet, bytes4(0));
+    }
+
     function test_setDispatch() external {
         bytes4  callSelector     = 0x12345678;
         address facet            = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
         bytes4  delegateSelector = 0x87654321;
+
+        vm.prank(facetValidator);
+        factory.setValidFacet(facet, true);
 
         vm.expectEmit(address(controller));
         emit IController.DispatchSet(callSelector, facet, delegateSelector);
@@ -97,6 +108,11 @@ contract ControllerIntegration_Tests is Controller_TestBase {
 
         address facet1 = address(new MockFacet1());
         address facet2 = address(new MockFacet2());
+
+        vm.startPrank(facetValidator);
+        factory.setValidFacet(facet1, true);
+        factory.setValidFacet(facet2, true);
+        vm.stopPrank();
 
         vm.prank(admin);
         controller.setDispatch(IMockController.foo.selector, facet1, MockFacet1.divide.selector);

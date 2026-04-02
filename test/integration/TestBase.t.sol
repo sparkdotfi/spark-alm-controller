@@ -7,6 +7,7 @@ import { AccessControls } from "../../src/AccessControls.sol";
 import { ALMProxy }       from "../../src/ALMProxy.sol";
 import { Controller }     from "../../src/Controller.sol";
 import { RateLimits }     from "../../src/RateLimits.sol";
+import { PAUFactory }     from "../../src/PAUFactory.sol";
 
 abstract contract Controller_TestBase is Test {
 
@@ -20,10 +21,14 @@ abstract contract Controller_TestBase is Test {
     bytes32 internal constant _REENTRANCY_GUARD_NOT_ENTERED = bytes32(uint256(1));
     bytes32 internal constant _REENTRANCY_GUARD_ENTERED     = bytes32(uint256(2));
 
-    address internal admin        = makeAddr("admin");
-    address internal freezer      = makeAddr("freezer");
-    address internal relayer      = makeAddr("relayer");
-    address internal unauthorized = makeAddr("unauthorized");
+    address internal admin          = makeAddr("admin");
+    address internal facetValidator = makeAddr("facetValidator");
+    address internal factoryAdmin   = makeAddr("factoryAdmin");
+    address internal freezer        = makeAddr("freezer");
+    address internal relayer        = makeAddr("relayer");
+    address internal unauthorized   = makeAddr("unauthorized");
+
+    PAUFactory internal factory;
 
     /**********************************************************************************************/
     /*** Setup                                                                                  ***/
@@ -34,7 +39,14 @@ abstract contract Controller_TestBase is Test {
         ALMProxy       proxy          = new ALMProxy(admin);
         RateLimits     rateLimits     = new RateLimits(admin);
 
-        controller = address(new Controller(address(accessControls), address(proxy), address(rateLimits)));
+        factory = new PAUFactory(factoryAdmin, facetValidator);
+
+        controller = address(new Controller(
+            address(accessControls),
+            address(proxy),
+            address(rateLimits),
+            address(factory)
+        ));
 
         vm.startPrank(admin);
         proxy.grantRole(proxy.CONTROLLER(), controller);

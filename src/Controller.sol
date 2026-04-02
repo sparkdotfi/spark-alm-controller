@@ -7,6 +7,7 @@ import { ControllerSharedStorage } from "./ControllerSharedStorage.sol";
 
 import { IAccessControls } from "./interfaces/IAccessControls.sol";
 import { IController }     from "./interfaces/IController.sol";
+import { IPAUFactory }     from "./interfaces/IPAUFactory.sol";
 
 contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
 
@@ -16,6 +17,7 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
 
     /// @custom:storage-location erc7201:sky.pau.storage.Controller
     struct ControllerStorage {
+        address factory;
         mapping (bytes4 => Dispatch) dispatches;
     }
 
@@ -39,12 +41,14 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor(address accessControls_, address proxy_, address rateLimits_) {
+    constructor(address accessControls_, address proxy_, address rateLimits_, address factory_) {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         $.accessControls = accessControls_;
         $.proxy          = proxy_;
         $.rateLimits     = rateLimits_;
+
+        _getControllerStorage().factory = factory_;
     }
 
     /**********************************************************************************************/
@@ -62,6 +66,11 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
                 msg.sender
             ),
             NotAdmin(msg.sender)
+        );
+
+        require(
+            facet == address(0) || IPAUFactory(_getControllerStorage().factory).isValidFacet(facet),
+            InvalidFacet(facet)
         );
 
         _getControllerStorage().dispatches[callSelector] = Dispatch(facet, delegateSelector);

@@ -15,13 +15,13 @@ import { CCTPFacet } from "../../src/facets/cctp/CCTPFacet.sol";
 
 import { ICCTPFacet } from "../../src/facets/cctp/ICCTPFacet.sol";
 
-import { ALMProxy }   from "../../src/ALMProxy.sol";
-import { Controller } from "../../src/Controller.sol";
-
 import { makeUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
 
-import { RateLimits }     from "../../src/RateLimits.sol";
 import { AccessControls } from "../../src/AccessControls.sol";
+import { ALMProxy }       from "../../src/ALMProxy.sol";
+import { Controller }     from "../../src/Controller.sol";
+import { PAUFactory }     from "../../src/PAUFactory.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
@@ -422,6 +422,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
     ALMProxy               internal foreignAlmProxy;
     IForeignControllerFull internal foreignController;
+    PAUFactory             internal foreignFactory;
     RateLimits             internal foreignRateLimits;
 
     /**********************************************************************************************/
@@ -450,18 +451,21 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         foreignAlmProxy   = new ALMProxy(Base.SPARK_EXECUTOR);
         foreignRateLimits = new RateLimits(Base.SPARK_EXECUTOR);
 
-        AccessControls accessControls = new AccessControls(Base.SPARK_EXECUTOR);
+        AccessControls foreignAccessControls = new AccessControls(Base.SPARK_EXECUTOR);
+
+        foreignFactory = new PAUFactory(Base.SPARK_EXECUTOR, Base.SPARK_EXECUTOR);
 
         foreignController = IForeignControllerFull(payable(new Controller({
             proxy_          : address(foreignAlmProxy),
             rateLimits_     : address(foreignRateLimits),
-            accessControls_ : address(accessControls)
+            accessControls_ : address(foreignAccessControls),
+            factory_        : address(foreignFactory)
         })));
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
-        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
-        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+        foreignAccessControls.grantRole(foreignAccessControls.FREEZER_ROLE(), freezer);
+        foreignAccessControls.grantRole(foreignAccessControls.RELAYER_ROLE(), relayer);
 
         foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(), address(foreignController));
 
@@ -525,6 +529,8 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
     function _wireForeignCCTPFacet() internal {
         address cctpFacet = address(new CCTPFacet(BASE_CCTP_TOKEN_MESSENGER, Base.USDC));
+
+        foreignFactory.setValidFacet(cctpFacet, true);
 
         vm.label(cctpFacet, "CCTPFacet");
 

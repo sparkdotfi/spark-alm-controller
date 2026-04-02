@@ -11,6 +11,8 @@ import { IController } from "../../src/interfaces/IController.sol";
 
 import { Controller } from "../../src/Controller.sol";
 
+import { MockPAUFactory } from "../mocks/Mocks.sol";
+
 interface IMockFacet {
 
     error MockError(uint256 arg);
@@ -67,9 +69,9 @@ interface IMockController {
 
 contract ControllerHarness is Controller {
 
-    constructor(address accessControls_, address proxy_, address rateLimits_)
-        Controller(accessControls_, proxy_, rateLimits_) {}
-
+    constructor(address accessControls_, address proxy_, address rateLimits_, address factory_)
+        Controller(accessControls_, proxy_, rateLimits_, factory_) {}
+    
     function __setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external {
         _getControllerStorage().dispatches[callSelector] = Dispatch(facet, delegateSelector);
     }
@@ -100,9 +102,11 @@ contract Controller_Tests is Test {
     address internal unauthorized = makeAddr("unauthorized");
 
     ControllerHarness internal controller;
+    MockPAUFactory    internal factory;
 
     function setUp() external {
-        controller = new ControllerHarness(accessControls, proxy, rateLimits);
+        factory    = new MockPAUFactory();
+        controller = new ControllerHarness(accessControls, proxy, rateLimits, address(factory));
     }
 
     /**********************************************************************************************/

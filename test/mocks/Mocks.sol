@@ -3,6 +3,14 @@ pragma solidity ^0.8.34;
 
 import { ERC20 } from "../../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
+contract MockPAUFactory {
+
+    function isValidFacet(address) external pure returns (bool) {
+        return true;
+    }
+
+}
+
 contract MockTokenReturnFalse is ERC20 {
 
     constructor() ERC20("MockReturnFalse", "MockReturnFalse") {}

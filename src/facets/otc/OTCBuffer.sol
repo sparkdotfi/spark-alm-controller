@@ -86,7 +86,7 @@ contract OTCBuffer is IOTCBuffer, AccessControlEnumerableUpgradeable, UUPSUpgrad
     }
 
     /**********************************************************************************************/
-    /*** View/Pure Functions                                                                    ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
     function supportsInterface(bytes4 interfaceId)
