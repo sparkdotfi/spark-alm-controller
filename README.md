@@ -112,11 +112,12 @@ See [Security Documentation](./docs/SECURITY.md) for complete trust assumptions 
 Audit reports are available in the [`audits/`](./audits/) directory. The system has been audited by:
 
 - Cantina
-- ChainSecurity
 - Certora
+- ChainSecurity
+- Unvariant
 
 ---
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/c83ef7e4-fae1-4c5c-8cff-99494ef75962" height="100"/>
+  <img src="https://github.com/user-attachments/assets/84ca8724-b6ad-42ef-9c5b-32abd1bb5e03" height="100"/>
 </p>
