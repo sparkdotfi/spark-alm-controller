@@ -65,7 +65,7 @@ contract USDSFacet is IUSDSFacet, FacetBase {
         IALMProxy(proxy).doCall(vault, abi.encodeCall(IVaultLike.draw, (usdsAmount)));
 
         // Transfer USDS from the buffer to the proxy.
-        // Not need for ApproveLib as we are transferring USDS with an expected transfer function.
+        // No need for ApproveLib as we are transferring USDS with an expected transfer function.
         IALMProxy(proxy).doCall(
             usds,
             abi.encodeCall(
@@ -83,7 +83,7 @@ contract USDSFacet is IUSDSFacet, FacetBase {
         address proxy = $.proxy;
 
         // Transfer USDS from the proxy to the buffer.
-        // Not need for ApproveLib as we are transferring USDS with an expected transfer function.
+        // No need for ApproveLib as we are transferring USDS with an expected transfer function.
         IALMProxy(proxy).doCall(
             usds,
             abi.encodeCall(IERC20Like.transfer, (IVaultLike(vault).buffer(), usdsAmount))

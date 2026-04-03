@@ -10,9 +10,14 @@ import { Controller_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external;
+    struct Wire {
+        bytes4 callSelector;
+        bytes4 delegateSelector;
+    }
 
-    function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
+    function addWires(address facet, Wire[] calldata wires) external;
+
+    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external;
 
     function getCentrifugeRecipient(uint16 centrifugeId) external view returns (bytes32);
 
@@ -32,29 +37,26 @@ abstract contract CentrifugeFacet_TestBase is Controller_TestBase {
 
         address facet = address(new CentrifugeFacet());
 
+        vm.label(facet, "CentrifugeFacet");
+
         factory.setValidFacet(facet, true);
 
         vm.stopPrank();
 
-        vm.label(facet, "CentrifugeFacet");
+        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](2);
 
-        vm.startPrank(admin);
-
-        // Controller.setCentrifugeRecipient() -> CentrifugeFacet.setRecipient()
-        controller.setDispatch(
+        wires[0] = IControllerLike.Wire(
             IControllerLike.setCentrifugeRecipient.selector,
-            facet,
             ICentrifugeFacet.setRecipient.selector
         );
 
-        // Controller.getCentrifugeRecipient() -> CentrifugeFacet.getRecipient()
-        controller.setDispatch(
+        wires[1] = IControllerLike.Wire(
             IControllerLike.getCentrifugeRecipient.selector,
-            facet,
             ICentrifugeFacet.getRecipient.selector
         );
 
-        vm.stopPrank();
+        vm.prank(admin);
+        controller.addWires(facet, wires);
     }
 
 }

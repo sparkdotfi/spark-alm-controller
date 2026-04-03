@@ -116,7 +116,8 @@ contract PAUFactory is IPAUFactory, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function _setValidFacet(address facet, bool valid) internal {
-        require(facet != address(0), ZeroFacet());
+        require(facet != address(0),   ZeroFacet());
+        require(facet.code.length > 0, EmptyFacet());
 
         emit ValidFacetSet(facet, isValidFacet[facet] = valid);
     }

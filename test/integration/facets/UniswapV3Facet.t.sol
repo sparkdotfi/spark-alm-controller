@@ -11,7 +11,12 @@ import { Controller_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
+    struct Wire {
+        bytes4 callSelector;
+        bytes4 delegateSelector;
+    }
+
+    function addWires(address facet, Wire[] calldata wires) external;
 
     function setLiquidityLowerTickBound(address pool, int24 lowerTickBound) external;
 
@@ -44,78 +49,61 @@ abstract contract UniswapV3Facet_TestBase is Controller_TestBase {
 
         address facet = address(new UniswapV3Facet(makeAddr("positionManager"), makeAddr("router")));
 
+        vm.label(facet, "UniswapV3Facet");
+
         factory.setValidFacet(facet, true);
 
         vm.stopPrank();
 
-        vm.label(facet, "UniswapV3Facet");
+        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](9);
 
-        vm.startPrank(admin);
-
-        // Controller.setMaxSlippage -> UniswapV3Facet.setMaxSlippage
-        controller.setDispatch(
+        wires[0] = IControllerLike.Wire(
             IControllerLike.setMaxSlippage.selector,
-            facet,
             IUniswapV3Facet.setMaxSlippage.selector
         );
 
-        // Controller.setMaxTickDelta -> UniswapV3Facet.setMaxTickDelta
-        controller.setDispatch(
+        wires[1] = IControllerLike.Wire(
             IControllerLike.setMaxTickDelta.selector,
-            facet,
             IUniswapV3Facet.setMaxTickDelta.selector
         );
 
-        // Controller.setLiquidityLowerTickBound -> UniswapV3Facet.setLiquidityLowerTickBound
-        controller.setDispatch(
+        wires[2] = IControllerLike.Wire(
             IControllerLike.setLiquidityLowerTickBound.selector,
-            facet,
             IUniswapV3Facet.setLiquidityLowerTickBound.selector
         );
 
-        // Controller.setLiquidityUpperTickBound -> UniswapV3Facet.setLiquidityUpperTickBound
-        controller.setDispatch(
+        wires[3] = IControllerLike.Wire(
             IControllerLike.setLiquidityUpperTickBound.selector,
-            facet,
             IUniswapV3Facet.setLiquidityUpperTickBound.selector
         );
 
-        // Controller.setTWAPSecondsAgo -> UniswapV3Facet.setTWAPSecondsAgo
-        controller.setDispatch(
+        wires[4] = IControllerLike.Wire(
             IControllerLike.setTWAPSecondsAgo.selector,
-            facet,
             IUniswapV3Facet.setTWAPSecondsAgo.selector
         );
 
-        // Controller.getMaxSlippage -> UniswapV3Facet.getMaxSlippage
-        controller.setDispatch(
+        wires[5] = IControllerLike.Wire(
             IControllerLike.getMaxSlippage.selector,
-            facet,
             IUniswapV3Facet.getMaxSlippage.selector
         );
 
-        // Controller.getMaxTickDelta -> UniswapV3Facet.getMaxTickDelta
-        controller.setDispatch(
+        wires[6] = IControllerLike.Wire(
             IControllerLike.getMaxTickDelta.selector,
-            facet,
             IUniswapV3Facet.getMaxTickDelta.selector
         );
 
-        // Controller.getLiquidityTickBounds -> UniswapV3Facet.getLiquidityTickBounds
-        controller.setDispatch(
+        wires[7] = IControllerLike.Wire(
             IControllerLike.getLiquidityTickBounds.selector,
-            facet,
             IUniswapV3Facet.getLiquidityTickBounds.selector
         );
 
-        // Controller.getTWAPSecondsAgo -> UniswapV3Facet.getTWAPSecondsAgo
-        controller.setDispatch(
+        wires[8] = IControllerLike.Wire(
             IControllerLike.getTWAPSecondsAgo.selector,
-            facet,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
         );
 
-        vm.stopPrank();
+        vm.prank(admin);
+        controller.addWires(facet, wires);
     }
 
 }

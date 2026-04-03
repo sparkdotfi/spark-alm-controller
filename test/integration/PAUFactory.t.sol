@@ -13,6 +13,22 @@ import { Controller }     from "../../src/Controller.sol";
 import { PAUFactory }     from "../../src/PAUFactory.sol";
 import { RateLimits }     from "../../src/RateLimits.sol";
 
+contract MockFacet1 {
+
+    function foo() external pure returns (bool) {
+        return true;
+    }
+
+}
+
+contract MockFacet2 {
+
+    function bar() external pure returns (bool) {
+        return false;
+    }
+
+}
+
 contract PAUFactory_Tests is Test {
 
     /**********************************************************************************************/
@@ -77,8 +93,14 @@ contract PAUFactory_Tests is Test {
         factory.setValidFacet(address(0), false);
     }
 
+    function test_setValidFacet_emptyFacet() external {
+        vm.expectRevert(IPAUFactory.EmptyFacet.selector);
+        vm.prank(facetValidator);
+        factory.setValidFacet(makeAddr("emptyFacet"), false);
+    }
+
     function test_setValidFacet() external {
-        address facet = makeAddr("facet");
+        address facet = address(new MockFacet1());
 
         assertEq(factory.isValidFacet(facet), false);
 
@@ -117,15 +139,17 @@ contract PAUFactory_Tests is Test {
     }
 
     function test_setValidFacets_zeroFacet() external {
+        address facet = address(new MockFacet1());
+
         address[] memory facets = new address[](2);
         facets[0] = address(0);
-        facets[1] = makeAddr("facet");
+        facets[1] = facet;
 
         vm.expectRevert(IPAUFactory.ZeroFacet.selector);
         vm.prank(facetValidator);
         factory.setValidFacets(facets, new bool[](2));
 
-        facets[0] = makeAddr("facet");
+        facets[0] = facet;
         facets[1] = address(0);
 
         vm.expectRevert(IPAUFactory.ZeroFacet.selector);
@@ -135,8 +159,8 @@ contract PAUFactory_Tests is Test {
 
     function test_setValidFacets() external {
         address[] memory facets = new address[](2);
-        facets[0] = makeAddr("facet1");
-        facets[1] = makeAddr("facet2");
+        facets[0] = address(new MockFacet1());
+        facets[1] = address(new MockFacet2());
 
         assertEq(factory.isValidFacet(facets[0]), false);
         assertEq(factory.isValidFacet(facets[1]), false);

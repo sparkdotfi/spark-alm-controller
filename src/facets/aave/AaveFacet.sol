@@ -13,9 +13,9 @@ import { IAaveFacet } from "./IAaveFacet.sol";
 
 interface IATokenWithPoolLike {
 
-    function POOL() external view returns(address);
+    function POOL() external view returns (address);
 
-    function UNDERLYING_ASSET_ADDRESS() external view returns(address);
+    function UNDERLYING_ASSET_ADDRESS() external view returns (address);
 
 }
 

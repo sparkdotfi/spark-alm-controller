@@ -73,13 +73,15 @@ import { WEETHFacet }         from "../../src/facets/weeth/WEETHFacet.sol";
 import { WrapProxyETHFacet }  from "../../src/facets/wrap-proxy-eth/WrapProxyETHFacet.sol";
 import { WSTETHFacet }        from "../../src/facets/wsteth/WSTETHFacet.sol";
 
-import { AccessControls }   from "../../src/AccessControls.sol";
-import { ALMProxy }         from "../../src/ALMProxy.sol";
-import { Controller }       from "../../src/Controller.sol";
-import { PAUFactory }       from "../../src/PAUFactory.sol";
+import { makeUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
 
-import { makeUint32Key }    from "../../src/libraries/RateLimitHelpers.sol";
-import { RateLimits }       from "../../src/RateLimits.sol";
+import { IController } from "../../src/interfaces/IController.sol";
+
+import { AccessControls } from "../../src/AccessControls.sol";
+import { ALMProxy }       from "../../src/ALMProxy.sol";
+import { Controller }     from "../../src/Controller.sol";
+import { PAUFactory }     from "../../src/PAUFactory.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
 
 import { IMainnetControllerFull } from "../interfaces/IMainnetControllerFull.sol";
 
@@ -417,243 +419,199 @@ abstract contract ForkTestBase is DssTest {
 
         address centrifugeFacet = address(new CentrifugeFacet());
 
-        factory.setValidFacet(centrifugeFacet, true);
-
         vm.label(centrifugeFacet, "CentrifugeFacet");
 
-        // "Controller.setCentrifugeRecipient()" -> "CentrifugeFacet.setRecipient()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(centrifugeFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](8);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.setCentrifugeRecipient.selector,
-            centrifugeFacet,
             ICentrifugeFacet.setRecipient.selector
         );
 
-        // "Controller.cancelCentrifugeDepositRequest()" -> "CentrifugeFacet.cancelDepositRequest()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.cancelCentrifugeDepositRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.cancelDepositRequest.selector
         );
 
-        // "Controller.claimCentrifugeCancelDepositRequest()" -> "CentrifugeFacet.claimCancelDepositRequest()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.claimCentrifugeCancelDepositRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.claimCancelDepositRequest.selector
         );
 
-        // "Controller.cancelCentrifugeRedeemRequest()" -> "CentrifugeFacet.cancelRedeemRequest()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.cancelCentrifugeRedeemRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.cancelRedeemRequest.selector
         );
 
-        // "Controller.claimCentrifugeCancelRedeemRequest()" -> "CentrifugeFacet.claimCancelRedeemRequest()"
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.claimCentrifugeCancelRedeemRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.claimCancelRedeemRequest.selector
         );
 
-        // "Controller.transferSharesCentrifuge()" -> "CentrifugeFacet.transferShares()"
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.transferSharesCentrifuge.selector,
-            centrifugeFacet,
             ICentrifugeFacet.transferShares.selector
         );
 
-        // "Controller.LIMIT_CENTRIFUGE_TRANSFER()" -> "CentrifugeFacet.LIMIT_TRANSFER()"
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.LIMIT_CENTRIFUGE_TRANSFER.selector,
-            centrifugeFacet,
             ICentrifugeFacet.LIMIT_TRANSFER.selector
         );
 
-        // "Controller.getCentrifugeRecipient()" -> "CentrifugeFacet.getRecipient()"
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.getCentrifugeRecipient.selector,
-            centrifugeFacet,
             ICentrifugeFacet.getRecipient.selector
         );
+
+        mainnetController.addWires(centrifugeFacet, wires);
     }
 
     function _wireCurveFacet() internal {
         address curveFacet = address(new CurveFacet());
 
-        factory.setValidFacet(curveFacet, true);
-
         vm.label(curveFacet, "CurveFacet");
 
-        // Controller.setCurveMaxSlippage() -> CurveFacet.setMaxSlippage()
-        mainnetController.setDispatch(
+        factory.setValidFacet(curveFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](8);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.setCurveMaxSlippage.selector,
-            curveFacet,
             ICurveFacet.setMaxSlippage.selector
         );
 
-        // Controller.getCurveMaxSlippage() -> CurveFacet.getMaxSlippage()
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.getCurveMaxSlippage.selector,
-            curveFacet,
             ICurveFacet.getMaxSlippage.selector
         );
 
-        // Controller.swapCurve() -> CurveFacet.swap()
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.swapCurve.selector,
-            curveFacet,
             ICurveFacet.swap.selector
         );
 
-        // Controller.addLiquidityCurve() -> CurveFacet.addLiquidity()
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.addLiquidityCurve.selector,
-            curveFacet,
             ICurveFacet.addLiquidity.selector
         );
 
-        // Controller.removeLiquidityCurve() -> CurveFacet.removeLiquidity()
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.removeLiquidityCurve.selector,
-            curveFacet,
             ICurveFacet.removeLiquidity.selector
         );
 
-        // Controller.LIMIT_CURVE_DEPOSIT() -> CurveFacet.LIMIT_DEPOSIT()
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.LIMIT_CURVE_DEPOSIT.selector,
-            curveFacet,
             ICurveFacet.LIMIT_DEPOSIT.selector
         );
 
-        // Controller.LIMIT_CURVE_SWAP() -> CurveFacet.LIMIT_SWAP()
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.LIMIT_CURVE_SWAP.selector,
-            curveFacet,
             ICurveFacet.LIMIT_SWAP.selector
         );
 
-        // Controller.LIMIT_CURVE_WITHDRAW() -> CurveFacet.LIMIT_WITHDRAW()
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.LIMIT_CURVE_WITHDRAW.selector,
-            curveFacet,
             ICurveFacet.LIMIT_WITHDRAW.selector
         );
+
+        mainnetController.addWires(curveFacet, wires);
     }
 
     function _wireCCTPFacet() internal {
         address cctpFacet = address(new CCTPFacet(CCTP_MESSENGER, Ethereum.USDC));
 
-        factory.setValidFacet(cctpFacet, true);
-
         vm.label(cctpFacet, "CCTPFacet");
 
-        // Controller.setCCTPMaxFeeCap() -> CCTPFacet.setMaxFeeCap()
-        mainnetController.setDispatch(
+        factory.setValidFacet(cctpFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](8);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.setCCTPMaxFeeCap.selector,
-            cctpFacet,
             ICCTPFacet.setMaxFeeCap.selector
         );
 
-        // Controller.setCCTPMintRecipient() -> CCTPFacet.setMintRecipient()
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.setCCTPMintRecipient.selector,
-            cctpFacet,
             ICCTPFacet.setMintRecipient.selector
         );
 
-        // Controller.getCCTPMaxFeeCap() -> CCTPFacet.maxFeeCap()
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.getCCTPMaxFeeCap.selector,
-            cctpFacet,
             ICCTPFacet.maxFeeCap.selector
         );
 
-        // Controller.getCCTPMintRecipient() -> CCTPFacet.getMintRecipient()
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.getCCTPMintRecipient.selector,
-            cctpFacet,
             ICCTPFacet.getMintRecipient.selector
         );
 
-        // Controller.transferUSDCToCCTP(uint256,uint32) -> CCTPFacet.transfer(uint256,uint32)
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.transferUSDCToCCTP.selector,
-            cctpFacet,
             ICCTPFacet.transfer.selector
         );
 
-        // Controller.transferUSDCToCCTPWithFee(uint256,uint256,uint32) -> CCTPFacet.transferWithFee(uint256,uint256,uint32)
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.transferUSDCToCCTPWithFee.selector,
-            cctpFacet,
             ICCTPFacet.transferWithFee.selector
         );
 
-        // Controller.LIMIT_USDC_TO_CCTP() -> CCTPFacet.LIMIT_TO_CCTP()
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.LIMIT_USDC_TO_CCTP.selector,
-            cctpFacet,
             ICCTPFacet.LIMIT_TO_CCTP.selector
         );
 
-        // Controller.LIMIT_USDC_TO_DOMAIN() -> CCTPFacet.LIMIT_TO_DOMAIN()
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.LIMIT_USDC_TO_DOMAIN.selector,
-            cctpFacet,
             ICCTPFacet.LIMIT_TO_DOMAIN.selector
         );
+
+        mainnetController.addWires(cctpFacet, wires);
     }
 
     function _wireAaveFacet() internal {
         address aaveFacet = address(new AaveFacet());
 
-        factory.setValidFacet(aaveFacet, true);
-
         vm.label(aaveFacet, "AaveFacet");
 
-        // Controller.setAaveMaxSlippage() -> AaveFacet.setMaxSlippage()
-        mainnetController.setDispatch(
+        factory.setValidFacet(aaveFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](6);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.setAaveMaxSlippage.selector,
-            aaveFacet,
             IAaveFacet.setMaxSlippage.selector
         );
 
-        // Controller.getAaveMaxSlippage() -> AaveFacet.getMaxSlippage()
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.getAaveMaxSlippage.selector,
-            aaveFacet,
             IAaveFacet.getMaxSlippage.selector
         );
 
-        // "Controller.depositAave()" -> "AaveFacet.deposit()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.depositAave.selector,
-            aaveFacet,
             IAaveFacet.deposit.selector
         );
 
-        // "Controller.withdrawAave()" -> "AaveFacet.withdraw()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.withdrawAave.selector,
-            aaveFacet,
             IAaveFacet.withdraw.selector
         );
 
-        // "Controller.LIMIT_AAVE_DEPOSIT()" -> "AaveFacet.LIMIT_DEPOSIT()"
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.LIMIT_AAVE_DEPOSIT.selector,
-            aaveFacet,
             IAaveFacet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_AAVE_WITHDRAW()" -> "AaveFacet.LIMIT_WITHDRAW()"
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.LIMIT_AAVE_WITHDRAW.selector,
-            aaveFacet,
             IAaveFacet.LIMIT_WITHDRAW.selector
         );
+
+        mainnetController.addWires(aaveFacet, wires);
     }
 
     function _wireDAIUSDSFacet() internal {
@@ -663,331 +621,286 @@ abstract contract ForkTestBase is DssTest {
             usds_    : Ethereum.USDS
         }));
 
-        factory.setValidFacet(daiUSDSFacet, true);
-
         vm.label(daiUSDSFacet, "DAIUSDSFacet");
 
-        // "Controller.swapUSDSToDAI()" -> "DAIUSDSFacet.swapUSDSToDAI()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(daiUSDSFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.swapUSDSToDAI.selector,
-            daiUSDSFacet,
             IDAIUSDSFacet.swapUSDSToDAI.selector
         );
 
-        // "Controller.swapDAIToUSDS()" -> "DAIUSDSFacet.swapDAIToUSDS()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.swapDAIToUSDS.selector,
-            daiUSDSFacet,
             IDAIUSDSFacet.swapDAIToUSDS.selector
         );
+
+        mainnetController.addWires(daiUSDSFacet, wires);
     }
 
     function _wireMerklFacet() internal {
         address merklFacet = address(new MerklFacet(GroveEthereum.MERKL_DISTRIBUTOR));
 
-        factory.setValidFacet(merklFacet, true);
-
         vm.label(merklFacet, "MerklFacet");
 
-        // "Controller.toggleOperatorMerkl()" -> "MerklFacet.toggleOperator()"
-        mainnetController.setDispatch(
-            IMainnetControllerFull.toggleOperatorMerkl.selector,
+        factory.setValidFacet(merklFacet, true);
+
+        mainnetController.addWire(
             merklFacet,
-            IMerklFacet.toggleOperator.selector
+            IController.Wire(
+                IMainnetControllerFull.toggleOperatorMerkl.selector,
+                IMerklFacet.toggleOperator.selector
+            )
         );
     }
 
     function _wireERC4626Facet() internal {
         address erc4626Facet = address(new ERC4626Facet());
 
-        factory.setValidFacet(erc4626Facet, true);
-
         vm.label(erc4626Facet, "ERC4626Facet");
 
-        // "Controller.setMaxExchangeRate()" -> "ERC4626Facet.setMaxExchangeRate()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(erc4626Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](8);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.setMaxExchangeRate.selector,
-            erc4626Facet,
             IERC4626Facet.setMaxExchangeRate.selector
         );
 
-        // "Controller.maxExchangeRates()" -> "ERC4626Facet.getMaxExchangeRate()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.maxExchangeRates.selector,
-            erc4626Facet,
             IERC4626Facet.getMaxExchangeRate.selector
         );
 
-        // "Controller.depositERC4626()" -> "ERC4626Facet.deposit()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.depositERC4626.selector,
-            erc4626Facet,
             IERC4626Facet.deposit.selector
         );
 
-        // "Controller.withdrawERC4626()" -> "ERC4626Facet.withdraw()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.withdrawERC4626.selector,
-            erc4626Facet,
             IERC4626Facet.withdraw.selector
         );
 
-        // "Controller.redeemERC4626()" -> "ERC4626Facet.redeem()"
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.redeemERC4626.selector,
-            erc4626Facet,
             IERC4626Facet.redeem.selector
         );
 
-        // "Controller.LIMIT_4626_DEPOSIT()" -> "ERC4626Facet.LIMIT_DEPOSIT()"
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.LIMIT_4626_DEPOSIT.selector,
-            erc4626Facet,
             IERC4626Facet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_4626_WITHDRAW()" -> "ERC4626Facet.LIMIT_WITHDRAW()"
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.LIMIT_4626_WITHDRAW.selector,
-            erc4626Facet,
             IERC4626Facet.LIMIT_WITHDRAW.selector
         );
 
-        // "Controller.EXCHANGE_RATE_PRECISION()" -> "ERC4626Facet.EXCHANGE_RATE_PRECISION()"
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.EXCHANGE_RATE_PRECISION.selector,
-            erc4626Facet,
             IERC4626Facet.EXCHANGE_RATE_PRECISION.selector
         );
+
+        mainnetController.addWires(erc4626Facet, wires);
     }
 
     function _wireERC7540Facet() internal {
         address erc7540Facet = address(new ERC7540Facet());
 
-        factory.setValidFacet(erc7540Facet, true);
-
         vm.label(erc7540Facet, "ERC7540Facet");
 
-        // "Controller.requestDepositERC7540()" -> "ERC7540Facet.requestDeposit()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(erc7540Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](6);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.requestDepositERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.requestDeposit.selector
         );
 
-        // "Controller.claimDepositERC7540()" -> "ERC7540Facet.claimDeposit()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.claimDepositERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.claimDeposit.selector
         );
 
-        // "Controller.requestRedeemERC7540()" -> "ERC7540Facet.requestRedeem()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.requestRedeemERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.requestRedeem.selector
         );
 
-        // "Controller.claimRedeemERC7540()" -> "ERC7540Facet.claimRedeem()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.claimRedeemERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.claimRedeem.selector
         );
 
-        // "Controller.LIMIT_7540_DEPOSIT()" -> "ERC7540Facet.LIMIT_DEPOSIT()"
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.LIMIT_7540_DEPOSIT.selector,
-            erc7540Facet,
             IERC7540Facet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_7540_REDEEM()" -> "ERC7540Facet.LIMIT_REDEEM()"
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.LIMIT_7540_REDEEM.selector,
-            erc7540Facet,
             IERC7540Facet.LIMIT_REDEEM.selector
         );
+
+        mainnetController.addWires(erc7540Facet, wires);
     }
 
     function _wireFarmFacet() internal {
         address farmFacet = address(new FarmFacet());
 
-        factory.setValidFacet(farmFacet, true);
-
         vm.label(farmFacet, "FarmFacet");
 
-        // "Controller.depositToFarm()" -> "FarmFacet.deposit()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(farmFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](4);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.depositToFarm.selector,
-            farmFacet,
             IFarmFacet.deposit.selector
         );
 
-        // "Controller.withdrawFromFarm()" -> "FarmFacet.withdraw()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.withdrawFromFarm.selector,
-            farmFacet,
             IFarmFacet.withdraw.selector
         );
 
-        // "Controller.LIMIT_FARM_DEPOSIT()" -> "FarmFacet.LIMIT_DEPOSIT()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.LIMIT_FARM_DEPOSIT.selector,
-            farmFacet,
             IFarmFacet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_FARM_WITHDRAW()" -> "FarmFacet.LIMIT_WITHDRAW()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.LIMIT_FARM_WITHDRAW.selector,
-            farmFacet,
             IFarmFacet.LIMIT_WITHDRAW.selector
         );
+
+        mainnetController.addWires(farmFacet, wires);
     }
 
     function _wireLayerZeroFacet() internal {
         address layerZeroFacet = address(new LayerZeroFacet());
 
-        factory.setValidFacet(layerZeroFacet, true);
-
         vm.label(layerZeroFacet, "LayerZeroFacet");
 
-        // Controller.setLayerZeroRecipient -> LayerZeroFacet.setRecipient
-        mainnetController.setDispatch(
+        factory.setValidFacet(layerZeroFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](4);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.setLayerZeroRecipient.selector,
-            layerZeroFacet,
             ILayerZeroFacet.setRecipient.selector
         );
 
-        // Controller.transferTokenLayerZero -> LayerZeroFacet.transfer
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.transferTokenLayerZero.selector,
-            layerZeroFacet,
             ILayerZeroFacet.transfer.selector
         );
 
-        // Controller.LIMIT_LAYERZERO_TRANSFER -> LayerZeroFacet.LIMIT_TRANSFER
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.LIMIT_LAYERZERO_TRANSFER.selector,
-            layerZeroFacet,
             ILayerZeroFacet.LIMIT_TRANSFER.selector
         );
 
-        // Controller.layerZeroRecipients -> LayerZeroFacet.getRecipient
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.layerZeroRecipients.selector,
-            layerZeroFacet,
             ILayerZeroFacet.getRecipient.selector
         );
+
+        mainnetController.addWires(layerZeroFacet, wires);
     }
 
     function _wireOTCFacet() internal {
         address otcFacet = address(new OTCFacet());
 
-        factory.setValidFacet(otcFacet, true);
-
         vm.label(otcFacet, "OTCFacet");
 
-        // Controller.setOTCMaxSlippage -> OTCFacet.setMaxSlippage
-        mainnetController.setDispatch(
+        factory.setValidFacet(otcFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](11);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.setOTCMaxSlippage.selector,
-            otcFacet,
             IOTCFacet.setMaxSlippage.selector
         );
 
-        // Controller.setOTCBuffer -> OTCFacet.setBuffer
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.setOTCBuffer.selector,
-            otcFacet,
             IOTCFacet.setBuffer.selector
         );
 
-        // Controller.setOTCRechargeRate -> OTCFacet.setRechargeRate
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.setOTCRechargeRate.selector,
-            otcFacet,
             IOTCFacet.setRechargeRate.selector
         );
 
-        // Controller.setOTCWhitelistedAsset -> OTCFacet.setIsWhitelisted
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.setOTCWhitelistedAsset.selector,
-            otcFacet,
             IOTCFacet.setIsWhitelisted.selector
         );
 
-        // Controller.otcSend -> OTCFacet.send
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.otcSend.selector,
-            otcFacet,
             IOTCFacet.send.selector
         );
 
-        // Controller.otcClaim -> OTCFacet.claim
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.otcClaim.selector,
-            otcFacet,
             IOTCFacet.claim.selector
         );
 
-        // Controller.LIMIT_OTC_SWAP -> OTCFacet.LIMIT_SWAP
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.LIMIT_OTC_SWAP.selector,
-            otcFacet,
             IOTCFacet.LIMIT_SWAP.selector
         );
 
-        // Controller.getOtcClaimWithRecharge -> OTCFacet.getClaimWithRecharge
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.getOtcClaimWithRecharge.selector,
-            otcFacet,
             IOTCFacet.getClaimWithRecharge.selector
         );
 
-        // Controller.isOtcSwapReady -> OTCFacet.isSwapReady
-        mainnetController.setDispatch(
+        wires[8] = IController.Wire(
             IMainnetControllerFull.isOtcSwapReady.selector,
-            otcFacet,
             IOTCFacet.isSwapReady.selector
         );
 
-        // Controller.otcs -> OTCFacet.getState
-        mainnetController.setDispatch(
+        wires[9] = IController.Wire(
             IMainnetControllerFull.otcs.selector,
-            otcFacet,
             IOTCFacet.getState.selector
         );
 
-        // Controller.otcWhitelistedAssets -> OTCFacet.isWhitelisted
-        mainnetController.setDispatch(
+        wires[10] = IController.Wire(
             IMainnetControllerFull.otcWhitelistedAssets.selector,
-            otcFacet,
             IOTCFacet.getIsWhitelisted.selector
         );
+
+        mainnetController.addWires(otcFacet, wires);
     }
 
     function _wireSparkVaultFacet() internal {
         address sparkVaultFacet = address(new SparkVaultFacet());
 
-        factory.setValidFacet(sparkVaultFacet, true);
-
         vm.label(sparkVaultFacet, "SparkVaultFacet");
 
-        // "Controller.takeFromSparkVault()" -> "SparkVaultFacet.take()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(sparkVaultFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.takeFromSparkVault.selector,
-            sparkVaultFacet,
             ISparkVaultFacet.take.selector
         );
 
-        // "Controller.LIMIT_SPARK_VAULT_TAKE()" -> "SparkVaultFacet.LIMIT_TAKE()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.LIMIT_SPARK_VAULT_TAKE.selector,
-            sparkVaultFacet,
             ISparkVaultFacet.LIMIT_TAKE.selector
         );
+
+        mainnetController.addWires(sparkVaultFacet, wires);
     }
 
     function _wirePSMFacet() internal {
@@ -999,175 +912,163 @@ abstract contract ForkTestBase is DssTest {
             Ethereum.USDS
         ));
 
-        factory.setValidFacet(psmFacet, true);
-
         vm.label(psmFacet, "PSMFacet");
 
-        // "Controller.swapUSDSToUSDC()" -> "PSMFacet.swapUSDSToUSDC()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(psmFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](4);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.swapUSDSToUSDC.selector,
-            psmFacet,
             IPSMFacet.swapUSDSToUSDC.selector
         );
 
-        // "Controller.swapUSDCToUSDS()" -> "PSMFacet.swapUSDCToUSDS()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.swapUSDCToUSDS.selector,
-            psmFacet,
             IPSMFacet.swapUSDCToUSDS.selector
         );
 
-        // "Controller.psmTo18ConversionFactor()" -> "PSMFacet.to18ConversionFactor()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.psmTo18ConversionFactor.selector,
-            psmFacet,
             IPSMFacet.to18ConversionFactor.selector
         );
 
-        // "Controller.LIMIT_USDS_TO_USDC()" -> "PSMFacet.LIMIT_USDS_TO_USDC()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.LIMIT_USDS_TO_USDC.selector,
-            psmFacet,
             IPSMFacet.LIMIT_USDS_TO_USDC.selector
         );
+
+        mainnetController.addWires(psmFacet, wires);
     }
 
     function _wireTransferAssetFacet() internal {
         address transferAssetFacet = address(new TransferAssetFacet());
 
-        factory.setValidFacet(transferAssetFacet, true);
-
         vm.label(transferAssetFacet, "TransferAssetFacet");
 
-        // "Controller.transferAsset()" -> "TransferAssetFacet.transfer()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(transferAssetFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.transferAsset.selector,
-            transferAssetFacet,
             ITransferAssetFacet.transfer.selector
         );
 
-        // "Controller.LIMIT_ASSET_TRANSFER()" -> "TransferAssetFacet.LIMIT_TRANSFER()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.LIMIT_ASSET_TRANSFER.selector,
-            transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
         );
+
+        mainnetController.addWires(transferAssetFacet, wires);
     }
 
     function _wireMapleFacet() internal {
         address mapleFacet = address(new MapleFacet());
 
-        factory.setValidFacet(mapleFacet, true);
-
         vm.label(mapleFacet, "MapleFacet");
 
-        // "Controller.requestMapleRedemption()" -> "MapleFacet.requestRedemption()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(mapleFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](3);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.requestMapleRedemption.selector,
-            mapleFacet,
             IMapleFacet.requestRedemption.selector
         );
 
-        // "Controller.cancelMapleRedemption()" -> "MapleFacet.cancelRedemption()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.cancelMapleRedemption.selector,
-            mapleFacet,
             IMapleFacet.cancelRedemption.selector
         );
 
-        // "Controller.LIMIT_MAPLE_REDEEM()" -> "MapleFacet.LIMIT_REDEEM()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.LIMIT_MAPLE_REDEEM.selector,
-            mapleFacet,
             IMapleFacet.LIMIT_REDEEM.selector
         );
+
+        mainnetController.addWires(mapleFacet, wires);
     }
 
     function _wirePendleFacet() internal {
         address pendleFacet = address(new PendleFacet(GroveEthereum.PENDLE_ROUTER));
 
-        factory.setValidFacet(pendleFacet, true);
-
         vm.label(pendleFacet, "PendleFacet");
 
-        // "Controller.redeemPendlePT()" -> "PendleFacet.redeem()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(pendleFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.redeemPendlePT.selector,
-            pendleFacet,
             IPendleFacet.redeem.selector
         );
 
-        // "Controller.LIMIT_PENDLE_PT_REDEEM()" -> "PendleFacet.LIMIT_REDEEM()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.LIMIT_PENDLE_PT_REDEEM.selector,
-            pendleFacet,
             IPendleFacet.LIMIT_REDEEM.selector
         );
+
+        mainnetController.addWires(pendleFacet, wires);
     }
 
     function _wireSuperstateFacet() internal {
         address superstateFacet = address(new SuperstateFacet(Ethereum.USDC, Ethereum.USTB));
 
-        factory.setValidFacet(superstateFacet, true);
-
         vm.label(superstateFacet, "SuperstateFacet");
 
-        // "Controller.subscribeSuperstate()" -> "SuperstateFacet.subscribe()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(superstateFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.subscribeSuperstate.selector,
-            superstateFacet,
             ISuperstateFacet.subscribe.selector
         );
 
-        // "Controller.LIMIT_SUPERSTATE_SUBSCRIBE()" -> "SuperstateFacet.LIMIT_SUBSCRIBE()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.LIMIT_SUPERSTATE_SUBSCRIBE.selector,
-            superstateFacet,
             ISuperstateFacet.LIMIT_SUBSCRIBE.selector
         );
+
+        mainnetController.addWires(superstateFacet, wires);
     }
 
     function _wireWEETHFacet() internal {
         address weethFacet = address(new WEETHFacet(Ethereum.WETH, Ethereum.WEETH));
 
-        factory.setValidFacet(weethFacet, true);
-
         vm.label(weethFacet, "WEETHFacet");
 
-        // "Controller.depositToWeETH()" -> "WEETHFacet.deposit()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(weethFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](5);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.depositToWeETH.selector,
-            weethFacet,
             IWEETHFacet.deposit.selector
         );
 
-        // "Controller.requestWithdrawFromWeETH()" -> "WEETHFacet.requestWithdraw()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.requestWithdrawFromWeETH.selector,
-            weethFacet,
             IWEETHFacet.requestWithdraw.selector
         );
 
-        // "Controller.claimWithdrawalFromWeETH()" -> "WEETHFacet.claimWithdrawal()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.claimWithdrawalFromWeETH.selector,
-            weethFacet,
             IWEETHFacet.claimWithdrawal.selector
         );
 
-        // "Controller.LIMIT_WEETH_DEPOSIT()" -> "WEETHFacet.LIMIT_DEPOSIT()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.LIMIT_WEETH_DEPOSIT.selector,
-            weethFacet,
             IWEETHFacet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_WEETH_REQUEST_WITHDRAW()" -> "WEETHFacet.LIMIT_REQUEST_WITHDRAW()"
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.LIMIT_WEETH_REQUEST_WITHDRAW.selector,
-            weethFacet,
             IWEETHFacet.LIMIT_REQUEST_WITHDRAW.selector
         );
+
+        mainnetController.addWires(weethFacet, wires);
     }
 
     function _wireWSTETHFacet() internal {
@@ -1177,44 +1078,38 @@ abstract contract ForkTestBase is DssTest {
             Ethereum.WSTETH
         ));
 
-        factory.setValidFacet(wstethFacet, true);
-
         vm.label(wstethFacet, "WSTETHFacet");
 
-        // "Controller.depositToWstETH()" -> "WSTETHFacet.deposit()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(wstethFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](5);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.depositToWstETH.selector,
-            wstethFacet,
             IWSTETHFacet.deposit.selector
         );
 
-        // "Controller.requestWithdrawFromWstETH()" -> "WSTETHFacet.requestWithdraw()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.requestWithdrawFromWstETH.selector,
-            wstethFacet,
             IWSTETHFacet.requestWithdraw.selector
         );
 
-        // "Controller.claimWithdrawalFromWstETH()" -> "WSTETHFacet.claimWithdrawal()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.claimWithdrawalFromWstETH.selector,
-            wstethFacet,
             IWSTETHFacet.claimWithdrawal.selector
         );
 
-        // "Controller.LIMIT_WSTETH_DEPOSIT()" -> "WSTETHFacet.LIMIT_DEPOSIT()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.LIMIT_WSTETH_DEPOSIT.selector,
-            wstethFacet,
             IWSTETHFacet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_WSTETH_REQUEST_WITHDRAW()" -> "WSTETHFacet.LIMIT_REQUEST_WITHDRAW()"
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.LIMIT_WSTETH_REQUEST_WITHDRAW.selector,
-            wstethFacet,
             IWSTETHFacet.LIMIT_REQUEST_WITHDRAW.selector
         );
+
+        mainnetController.addWires(wstethFacet, wires);
     }
 
     function _wireUSDEFacet() internal {
@@ -1225,123 +1120,106 @@ abstract contract ForkTestBase is DssTest {
             address(usde)
         ));
 
-        factory.setValidFacet(usdeFacet, true);
-
         vm.label(usdeFacet, "USDEFacet");
 
-        // "Controller.cooldownAssetsSUSDe()" -> "IUSDEFacet.cooldownAssets()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(usdeFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](10);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.cooldownAssetsSUSDe.selector,
-            usdeFacet,
             IUSDEFacet.cooldownAssets.selector
         );
 
-        // "Controller.cooldownSharesSUSDe()" -> "IUSDEFacet.cooldownShares()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.cooldownSharesSUSDe.selector,
-            usdeFacet,
             IUSDEFacet.cooldownShares.selector
         );
 
-        // "Controller.prepareUSDeMint()" -> "IUSDEFacet.prepareMint()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.prepareUSDeMint.selector,
-            usdeFacet,
             IUSDEFacet.prepareMint.selector
         );
 
-        // "Controller.prepareUSDeBurn()" -> "IUSDEFacet.prepareBurn()"
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.prepareUSDeBurn.selector,
-            usdeFacet,
             IUSDEFacet.prepareBurn.selector
         );
 
-        // "Controller.removeDelegatedSigner()" -> "IUSDEFacet.removeDelegatedSigner()"
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.removeDelegatedSigner.selector,
-            usdeFacet,
             IUSDEFacet.removeDelegatedSigner.selector
         );
 
-        // "Controller.setDelegatedSigner()" -> "IUSDEFacet.setDelegatedSigner()"
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.setDelegatedSigner.selector,
-            usdeFacet,
             IUSDEFacet.setDelegatedSigner.selector
         );
 
-        // "Controller.unstakeSUSDe()" -> "IUSDEFacet.unstakeSUSDE()"
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.unstakeSUSDe.selector,
-            usdeFacet,
             IUSDEFacet.unstakeSUSDE.selector
         );
 
-        // "Controller.LIMIT_USDE_BURN()" -> "IUSDEFacet.LIMIT_USDE_BURN()"
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.LIMIT_USDE_BURN.selector,
-            usdeFacet,
             IUSDEFacet.LIMIT_USDE_BURN.selector
         );
 
-        // "Controller.LIMIT_USDE_MINT()" -> "IUSDEFacet.LIMIT_USDE_MINT()"
-        mainnetController.setDispatch(
+        wires[8] = IController.Wire(
             IMainnetControllerFull.LIMIT_USDE_MINT.selector,
-            usdeFacet,
             IUSDEFacet.LIMIT_USDE_MINT.selector
         );
 
-        // "Controller.LIMIT_SUSDE_COOLDOWN()" -> "IUSDEFacet.LIMIT_SUSDE_COOLDOWN()"
-        mainnetController.setDispatch(
+        wires[9] = IController.Wire(
             IMainnetControllerFull.LIMIT_SUSDE_COOLDOWN.selector,
-            usdeFacet,
             IUSDEFacet.LIMIT_SUSDE_COOLDOWN.selector
         );
+
+        mainnetController.addWires(usdeFacet, wires);
     }
 
     function _wireWrapProxyETHFacet() internal {
         address wrapProxyETHFacet = address(new WrapProxyETHFacet(Ethereum.WETH));
 
-        factory.setValidFacet(wrapProxyETHFacet, true);
-
         vm.label(wrapProxyETHFacet, "WrapProxyETHFacet");
 
-        // "Controller.wrapAllProxyETH()" -> "WrapProxyETHFacet.wrapAll()"
-        mainnetController.setDispatch(
-            IMainnetControllerFull.wrapAllProxyETH.selector,
+        factory.setValidFacet(wrapProxyETHFacet, true);
+
+        mainnetController.addWire(
             wrapProxyETHFacet,
-            IWrapProxyETHFacet.wrapAll.selector
+            IController.Wire(
+                IMainnetControllerFull.wrapAllProxyETH.selector,
+                IWrapProxyETHFacet.wrapAll.selector
+            )
         );
     }
 
     function _wireUSDSFacet() internal {
         address usdsFacet = address(new USDSFacet(vault, address(usds)));
 
-        factory.setValidFacet(usdsFacet, true);
-
         vm.label(usdsFacet, "USDSFacet");
 
-        // "Controller.mintUSDS()" -> "USDSFacet.mint()"
-        mainnetController.setDispatch(
+        factory.setValidFacet(usdsFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](3);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.mintUSDS.selector,
-            usdsFacet,
             IUSDSFacet.mint.selector
         );
 
-        // "Controller.burnUSDS()" -> "USDSFacet.burn()"
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.burnUSDS.selector,
-            usdsFacet,
             IUSDSFacet.burn.selector
         );
 
-        // "Controller.LIMIT_USDS_MINT()" -> "USDSFacet.LIMIT_MINT()"
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.LIMIT_USDS_MINT.selector,
-            usdsFacet,
             IUSDSFacet.LIMIT_MINT.selector
         );
+
+        mainnetController.addWires(usdsFacet, wires);
     }
 
     function _wireUniswapV4Facet() internal {
@@ -1351,199 +1229,155 @@ abstract contract ForkTestBase is DssTest {
             router_          : _UNISWAP_V4_ROUTER
         }));
 
-        factory.setValidFacet(uniswapV4Facet, true);
-
         vm.label(uniswapV4Facet, "UniswapV4Facet");
 
-        // Controller.decreaseLiquidityUniswapV4 -> IUniswapV4Facet.decreasePosition
-        mainnetController.setDispatch(
+        factory.setValidFacet(uniswapV4Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](11);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.decreaseLiquidityUniswapV4.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.decreasePosition.selector
         );
 
-        // Controller.increaseLiquidityUniswapV4 -> IUniswapV4Facet.increasePosition
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.increaseLiquidityUniswapV4.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.increasePosition.selector
         );
 
-        // Controller.mintPositionUniswapV4 -> IUniswapV4Facet.mintPosition
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.mintPositionUniswapV4.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.mintPosition.selector
         );
 
-        // Controller.setUniswapV4MaxSlippage -> IUniswapV4Facet.setMaxSlippage
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.setUniswapV4MaxSlippage.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.setMaxSlippage.selector
         );
 
-        // Controller.setUniswapV4TickLimits -> IUniswapV4Facet.setTickLimits
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.setUniswapV4TickLimits.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.setTickLimits.selector
         );
 
-        // Controller.swapUniswapV4 -> IUniswapV4Facet.swap
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.swapUniswapV4.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.swap.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V4_DEPOSIT -> IUniswapV4Facet.LIMIT_DEPOSIT
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.LIMIT_UNISWAP_V4_DEPOSIT.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.LIMIT_DEPOSIT.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V4_WITHDRAW -> IUniswapV4Facet.LIMIT_WITHDRAW
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.LIMIT_UNISWAP_V4_WITHDRAW.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.LIMIT_WITHDRAW.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V4_SWAP -> IUniswapV4Facet.LIMIT_SWAP
-        mainnetController.setDispatch(
+        wires[8] = IController.Wire(
             IMainnetControllerFull.LIMIT_UNISWAP_V4_SWAP.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.LIMIT_SWAP.selector
         );
 
-        // Controller.uniswapV4MaxSlippages -> IUniswapV4Facet.getMaxSlippage
-        mainnetController.setDispatch(
+        wires[9] = IController.Wire(
             IMainnetControllerFull.uniswapV4MaxSlippages.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.getMaxSlippage.selector
         );
 
-        // Controller.uniswapV4TickLimits -> IUniswapV4Facet.getTickLimits
-        mainnetController.setDispatch(
+        wires[10] = IController.Wire(
             IMainnetControllerFull.uniswapV4TickLimits.selector,
-            uniswapV4Facet,
             IUniswapV4Facet.getTickLimits.selector
         );
+
+        mainnetController.addWires(uniswapV4Facet, wires);
     }
 
     function _wireUniswapV3Facet() internal {
         address uniswapV3Facet = address(new UniswapV3Facet(UNISWAP_V3_POSITION_MANAGER, UNISWAP_V3_ROUTER));
 
-        factory.setValidFacet(uniswapV3Facet, true);
-
         vm.label(uniswapV3Facet, "UniswapV3Facet");
 
-        // Controller.addLiquidityUniswapV3 -> UniswapV3Facet.addLiquidity
-        mainnetController.setDispatch(
+        factory.setValidFacet(uniswapV3Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](15);
+
+        wires[0] = IController.Wire(
             IMainnetControllerFull.addLiquidityUniswapV3.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.addLiquidity.selector
         );
 
-        // Controller.removeLiquidityUniswapV3 -> UniswapV3Facet.removeLiquidity
-        mainnetController.setDispatch(
+        wires[1] = IController.Wire(
             IMainnetControllerFull.removeLiquidityUniswapV3.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.removeLiquidity.selector
         );
 
-        // Controller.swapUniswapV3 -> UniswapV3Facet.swap
-        mainnetController.setDispatch(
+        wires[2] = IController.Wire(
             IMainnetControllerFull.swapUniswapV3.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.swap.selector
         );
 
-        // Controller.setUniswapV3MaxSlippage -> UniswapV3Facet.setMaxSlippage
-        mainnetController.setDispatch(
+        wires[3] = IController.Wire(
             IMainnetControllerFull.setUniswapV3MaxSlippage.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setMaxSlippage.selector
         );
 
-        // Controller.setUniswapV3PoolMaxTickDelta -> UniswapV3Facet.setMaxTickDelta
-        mainnetController.setDispatch(
+        wires[4] = IController.Wire(
             IMainnetControllerFull.setUniswapV3PoolMaxTickDelta.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setMaxTickDelta.selector
         );
 
-        // Controller.setUniswapV3AddLiquidityLowerTickBound -> UniswapV3Facet.setLiquidityLowerTickBound
-        mainnetController.setDispatch(
+        wires[5] = IController.Wire(
             IMainnetControllerFull.setUniswapV3AddLiquidityLowerTickBound.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setLiquidityLowerTickBound.selector
         );
 
-        // Controller.setUniswapV3AddLiquidityUpperTickBound -> UniswapV3Facet.setLiquidityUpperTickBound
-        mainnetController.setDispatch(
+        wires[6] = IController.Wire(
             IMainnetControllerFull.setUniswapV3AddLiquidityUpperTickBound.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setLiquidityUpperTickBound.selector
         );
 
-        // Controller.setUniswapV3TWAPSecondsAgo -> UniswapV3Facet.setTWAPSecondsAgo
-        mainnetController.setDispatch(
+        wires[7] = IController.Wire(
             IMainnetControllerFull.setUniswapV3TWAPSecondsAgo.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setTWAPSecondsAgo.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V3_DEPOSIT -> UniswapV3Facet.LIMIT_DEPOSIT
-        mainnetController.setDispatch(
+        wires[8] = IController.Wire(
             IMainnetControllerFull.LIMIT_UNISWAP_V3_DEPOSIT.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.LIMIT_DEPOSIT.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V3_SWAP -> UniswapV3Facet.LIMIT_SWAP
-        mainnetController.setDispatch(
+        wires[9] = IController.Wire(
             IMainnetControllerFull.LIMIT_UNISWAP_V3_SWAP.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.LIMIT_SWAP.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V3_WITHDRAW -> UniswapV3Facet.LIMIT_WITHDRAW
-        mainnetController.setDispatch(
+        wires[10] = IController.Wire(
             IMainnetControllerFull.LIMIT_UNISWAP_V3_WITHDRAW.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.LIMIT_WITHDRAW.selector
         );
 
-        // Controller.getUniswapV3MaxSlippage -> UniswapV3Facet.getMaxSlippage
-        mainnetController.setDispatch(
+        wires[11] = IController.Wire(
             IMainnetControllerFull.getUniswapV3MaxSlippage.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getMaxSlippage.selector
         );
 
-        // Controller.getUniswapV3PoolMaxTickDelta -> UniswapV3Facet.getMaxTickDelta
-        mainnetController.setDispatch(
+        wires[12] = IController.Wire(
             IMainnetControllerFull.getUniswapV3PoolMaxTickDelta.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getMaxTickDelta.selector
         );
 
-        // Controller.getUniswapV3AddLiquidityTickBounds -> UniswapV3Facet.getLiquidityTickBounds
-        mainnetController.setDispatch(
+        wires[13] = IController.Wire(
             IMainnetControllerFull.getUniswapV3AddLiquidityTickBounds.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getLiquidityTickBounds.selector
         );
 
-        // Controller.getUniswapV3TWAPSecondsAgo -> UniswapV3Facet.getTWAPSecondsAgo
-        mainnetController.setDispatch(
+        wires[14] = IController.Wire(
             IMainnetControllerFull.getUniswapV3TWAPSecondsAgo.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
         );
+
+        mainnetController.addWires(uniswapV3Facet, wires);
     }
 
 }

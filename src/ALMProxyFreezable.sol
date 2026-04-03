@@ -61,6 +61,6 @@ contract ALMProxyFreezable is IALMProxyFreezable, AccessControl {
     /*** Receive function                                                                       ***/
     /**********************************************************************************************/
 
-    receive() external payable { }
+    receive() external payable {}
 
 }

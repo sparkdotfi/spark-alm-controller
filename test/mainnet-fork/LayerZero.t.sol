@@ -21,6 +21,8 @@ import { LayerZeroFacet }  from "../../src/facets/layer-zero/LayerZeroFacet.sol"
 
 import { makeAddressUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { IController } from "../../src/interfaces/IController.sol";
+
 import { AccessControls } from "../../src/AccessControls.sol";
 import { ALMProxy }       from "../../src/ALMProxy.sol";
 import { Controller }     from "../../src/Controller.sol";
@@ -472,37 +474,33 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
     function _wireLayerZeroFacetForeignController() internal {
         address layerZeroFacet = address(new LayerZeroFacet());
 
-        foreignFactory.setValidFacet(layerZeroFacet, true);
-
         vm.label(layerZeroFacet, "LayerZeroFacet");
 
-        // Controller.setLayerZeroRecipient -> LayerZeroFacet.setRecipient
-        foreignController.setDispatch(
+        foreignFactory.setValidFacet(layerZeroFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](4);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.setLayerZeroRecipient.selector,
-            layerZeroFacet,
             ILayerZeroFacet.setRecipient.selector
         );
 
-        // Controller.transferTokenLayerZero -> LayerZeroFacet.transfer
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.transferTokenLayerZero.selector,
-            layerZeroFacet,
             ILayerZeroFacet.transfer.selector
         );
 
-        // Controller.LIMIT_LAYERZERO_TRANSFER -> LayerZeroFacet.LIMIT_TRANSFER
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.LIMIT_LAYERZERO_TRANSFER.selector,
-            layerZeroFacet,
             ILayerZeroFacet.LIMIT_TRANSFER.selector
         );
 
-        // Controller.layerZeroRecipients -> LayerZeroFacet.getRecipient
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.layerZeroRecipients.selector,
-            layerZeroFacet,
             ILayerZeroFacet.getRecipient.selector
         );
+
+        foreignController.addWires(layerZeroFacet, wires);
     }
 
     function _getBlock() internal pure override returns (uint256) {

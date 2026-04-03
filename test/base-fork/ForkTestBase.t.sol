@@ -38,11 +38,13 @@ import { UniswapV3Facet }     from "../../src/facets/uniswap-v3/UniswapV3Facet.s
 
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { IController } from "../../src/interfaces/IController.sol";
+
+import { AccessControls } from "../../src/AccessControls.sol";
 import { ALMProxy }       from "../../src/ALMProxy.sol";
 import { Controller }     from "../../src/Controller.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
-import { AccessControls } from "../../src/AccessControls.sol";
 import { PAUFactory }     from "../../src/PAUFactory.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
 
 import { IForeignControllerFull }  from "../interfaces/IForeignControllerFull.sol";
 
@@ -226,65 +228,53 @@ abstract contract ForkTestBase is Test {
     function _wireCurveFacet() internal {
         address curveFacet = address(new CurveFacet());
 
-        factory.setValidFacet(curveFacet, true);
-
         vm.label(curveFacet, "CurveFacet");
 
-        // Controller.setCurveMaxSlippage() -> CurveFacet.setMaxSlippage()
-        foreignController.setDispatch(
+        factory.setValidFacet(curveFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](8);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.setCurveMaxSlippage.selector,
-            curveFacet,
             ICurveFacet.setMaxSlippage.selector
         );
 
-        // Controller.getCurveMaxSlippage() -> CurveFacet.getMaxSlippage()
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.getCurveMaxSlippage.selector,
-            curveFacet,
             ICurveFacet.getMaxSlippage.selector
         );
 
-        // Controller.swapCurve() -> CurveFacet.swap()
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.swapCurve.selector,
-            curveFacet,
             ICurveFacet.swap.selector
         );
 
-        // Controller.addLiquidityCurve() -> CurveFacet.addLiquidity()
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.addLiquidityCurve.selector,
-            curveFacet,
             ICurveFacet.addLiquidity.selector
         );
 
-        // Controller.removeLiquidityCurve() -> CurveFacet.removeLiquidity()
-        foreignController.setDispatch(
+        wires[4] = IController.Wire(
             IForeignControllerFull.removeLiquidityCurve.selector,
-            curveFacet,
             ICurveFacet.removeLiquidity.selector
         );
 
-        // Controller.LIMIT_CURVE_DEPOSIT() -> CurveFacet.LIMIT_DEPOSIT()
-        foreignController.setDispatch(
+        wires[5] = IController.Wire(
             IForeignControllerFull.LIMIT_CURVE_DEPOSIT.selector,
-            curveFacet,
             ICurveFacet.LIMIT_DEPOSIT.selector
         );
 
-        // Controller.LIMIT_CURVE_SWAP() -> CurveFacet.LIMIT_SWAP()
-        foreignController.setDispatch(
+        wires[6] = IController.Wire(
             IForeignControllerFull.LIMIT_CURVE_SWAP.selector,
-            curveFacet,
             ICurveFacet.LIMIT_SWAP.selector
         );
 
-        // Controller.LIMIT_CURVE_WITHDRAW() -> CurveFacet.LIMIT_WITHDRAW()
-        foreignController.setDispatch(
+        wires[7] = IController.Wire(
             IForeignControllerFull.LIMIT_CURVE_WITHDRAW.selector,
-            curveFacet,
             ICurveFacet.LIMIT_WITHDRAW.selector
         );
+
+        foreignController.addWires(curveFacet, wires);
     }
 
     function _wireMerklFacet() internal {
@@ -294,342 +284,292 @@ abstract contract ForkTestBase is Test {
 
         vm.label(merklFacet, "MerklFacet");
 
-        // "Controller.toggleOperatorMerkl()" -> "MerklFacet.toggleOperator()"
-        foreignController.setDispatch(
-            IForeignControllerFull.toggleOperatorMerkl.selector,
+        foreignController.addWire(
             merklFacet,
-            IMerklFacet.toggleOperator.selector
+            IController.Wire(
+                IForeignControllerFull.toggleOperatorMerkl.selector,
+                IMerklFacet.toggleOperator.selector
+            )
         );
     }
 
     function _wirePendleFacet() internal {
         address pendleFacet = address(new PendleFacet(GroveBase.PENDLE_ROUTER));
 
-        factory.setValidFacet(pendleFacet, true);
-
         vm.label(pendleFacet, "PendleFacet");
 
-        // "Controller.redeemPendlePT()" -> "PendleFacet.redeem()"
-        foreignController.setDispatch(
+        factory.setValidFacet(pendleFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.redeemPendlePT.selector,
-            pendleFacet,
             IPendleFacet.redeem.selector
         );
 
-        // "Controller.LIMIT_PENDLE_PT_REDEEM()" -> "PendleFacet.LIMIT_REDEEM()"
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.LIMIT_PENDLE_PT_REDEEM.selector,
-            pendleFacet,
             IPendleFacet.LIMIT_REDEEM.selector
         );
+
+        foreignController.addWires(pendleFacet, wires);
     }
 
     function _wireAaveFacet() internal {
         address aaveFacet = address(new AaveFacet());
 
-        factory.setValidFacet(aaveFacet, true);
-
         vm.label(aaveFacet, "AaveFacet");
 
-        // Controller.setAaveMaxSlippage() -> AaveFacet.setMaxSlippage()
-        foreignController.setDispatch(
+        factory.setValidFacet(aaveFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](6);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.setAaveMaxSlippage.selector,
-            aaveFacet,
             IAaveFacet.setMaxSlippage.selector
         );
 
-        // Controller.getAaveMaxSlippage() -> AaveFacet.getMaxSlippage()
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.getAaveMaxSlippage.selector,
-            aaveFacet,
             IAaveFacet.getMaxSlippage.selector
         );
 
-        // Controller.depositAave() -> AaveFacet.deposit()
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.depositAave.selector,
-            aaveFacet,
             IAaveFacet.deposit.selector
         );
 
-        // Controller.withdrawAave() -> AaveFacet.withdraw()
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.withdrawAave.selector,
-            aaveFacet,
             IAaveFacet.withdraw.selector
         );
 
-        // Controller.LIMIT_AAVE_DEPOSIT() -> AaveFacet.LIMIT_DEPOSIT()
-        foreignController.setDispatch(
+        wires[4] = IController.Wire(
             IForeignControllerFull.LIMIT_AAVE_DEPOSIT.selector,
-            aaveFacet,
             IAaveFacet.LIMIT_DEPOSIT.selector
         );
 
-        // Controller.LIMIT_AAVE_WITHDRAW() -> AaveFacet.LIMIT_WITHDRAW()
-        foreignController.setDispatch(
+        wires[5] = IController.Wire(
             IForeignControllerFull.LIMIT_AAVE_WITHDRAW.selector,
-            aaveFacet,
             IAaveFacet.LIMIT_WITHDRAW.selector
         );
+
+        foreignController.addWires(aaveFacet, wires);
     }
 
     function _wireERC4626Facet() internal {
         address erc4626Facet = address(new ERC4626Facet());
 
-        factory.setValidFacet(erc4626Facet, true);
-
         vm.label(erc4626Facet, "ERC4626Facet");
 
-        // Controller.setMaxExchangeRate() -> ERC4626Facet.setMaxExchangeRate()
-        foreignController.setDispatch(
+        factory.setValidFacet(erc4626Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](8);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.setMaxExchangeRate.selector,
-            erc4626Facet,
             IERC4626Facet.setMaxExchangeRate.selector
         );
 
-        // Controller.maxExchangeRates() -> ERC4626Facet.getMaxExchangeRate()
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.maxExchangeRates.selector,
-            erc4626Facet,
             IERC4626Facet.getMaxExchangeRate.selector
         );
 
-        // Controller.depositERC4626() -> ERC4626Facet.deposit()
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.depositERC4626.selector,
-            erc4626Facet,
             IERC4626Facet.deposit.selector
         );
 
-        // Controller.withdrawERC4626() -> ERC4626Facet.withdraw()
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.withdrawERC4626.selector,
-            erc4626Facet,
             IERC4626Facet.withdraw.selector
         );
 
-        // Controller.redeemERC4626() -> ERC4626Facet.redeem()
-        foreignController.setDispatch(
+        wires[4] = IController.Wire(
             IForeignControllerFull.redeemERC4626.selector,
-            erc4626Facet,
             IERC4626Facet.redeem.selector
         );
 
-        // Controller.LIMIT_4626_DEPOSIT() -> ERC4626Facet.LIMIT_DEPOSIT()
-        foreignController.setDispatch(
+        wires[5] = IController.Wire(
             IForeignControllerFull.LIMIT_4626_DEPOSIT.selector,
-            erc4626Facet,
             IERC4626Facet.LIMIT_DEPOSIT.selector
         );
 
-        // Controller.LIMIT_4626_WITHDRAW() -> ERC4626Facet.LIMIT_WITHDRAW()
-        foreignController.setDispatch(
+        wires[6] = IController.Wire(
             IForeignControllerFull.LIMIT_4626_WITHDRAW.selector,
-            erc4626Facet,
             IERC4626Facet.LIMIT_WITHDRAW.selector
         );
 
-        // Controller.EXCHANGE_RATE_PRECISION() -> ERC4626Facet.EXCHANGE_RATE_PRECISION()
-        foreignController.setDispatch(
+        wires[7] = IController.Wire(
             IForeignControllerFull.EXCHANGE_RATE_PRECISION.selector,
-            erc4626Facet,
             IERC4626Facet.EXCHANGE_RATE_PRECISION.selector
         );
+
+        foreignController.addWires(erc4626Facet, wires);
     }
 
     function _wireSparkVaultFacet() internal {
         address sparkVaultFacet = address(new SparkVaultFacet());
 
-        factory.setValidFacet(sparkVaultFacet, true);
-
         vm.label(sparkVaultFacet, "SparkVaultFacet");
 
-        // "Controller.takeFromSparkVault()" -> "SparkVaultFacet.take()"
-        foreignController.setDispatch(
+        factory.setValidFacet(sparkVaultFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.takeFromSparkVault.selector,
-            sparkVaultFacet,
             ISparkVaultFacet.take.selector
         );
 
-        // "Controller.LIMIT_SPARK_VAULT_TAKE()" -> "SparkVaultFacet.LIMIT_TAKE()"
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.LIMIT_SPARK_VAULT_TAKE.selector,
-            sparkVaultFacet,
             ISparkVaultFacet.LIMIT_TAKE.selector
         );
+
+        foreignController.addWires(sparkVaultFacet, wires);
     }
 
     function _wireTransferAssetFacet() internal {
         address transferAssetFacet = address(new TransferAssetFacet());
 
-        factory.setValidFacet(transferAssetFacet, true);
-
         vm.label(transferAssetFacet, "TransferAssetFacet");
 
-        // "Controller.transferAsset()" -> "TransferAssetFacet.transfer()"
-        foreignController.setDispatch(
+        factory.setValidFacet(transferAssetFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](2);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.transferAsset.selector,
-            transferAssetFacet,
             ITransferAssetFacet.transfer.selector
         );
 
-        // "Controller.LIMIT_ASSET_TRANSFER()" -> "TransferAssetFacet.LIMIT_TRANSFER()"
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.LIMIT_ASSET_TRANSFER.selector,
-            transferAssetFacet,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
         );
+
+        foreignController.addWires(transferAssetFacet, wires);
     }
 
     function _wirePSM3Facet() internal {
         address psm3Facet = address(new PSM3Facet(address(psmBase)));
 
-        factory.setValidFacet(psm3Facet, true);
-
         vm.label(psm3Facet, "PSM3Facet");
 
-        // "Controller.depositPSM()" -> "PSM3Facet.deposit()"
-        foreignController.setDispatch(
+        factory.setValidFacet(psm3Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](4);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.depositPSM.selector,
-            psm3Facet,
             IPSM3Facet.deposit.selector
         );
 
-        // "Controller.withdrawPSM()" -> "PSM3Facet.withdraw()"
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.withdrawPSM.selector,
-            psm3Facet,
             IPSM3Facet.withdraw.selector
         );
 
-        // "Controller.LIMIT_PSM_DEPOSIT()" -> "PSM3Facet.LIMIT_DEPOSIT()"
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.LIMIT_PSM_DEPOSIT.selector,
-            psm3Facet,
             IPSM3Facet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_PSM_WITHDRAW()" -> "PSM3Facet.LIMIT_WITHDRAW()"
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.LIMIT_PSM_WITHDRAW.selector,
-            psm3Facet,
             IPSM3Facet.LIMIT_WITHDRAW.selector
         );
+
+        foreignController.addWires(psm3Facet, wires);
     }
 
     function _wireUniswapV3Facet() internal {
         address uniswapV3Facet = address(new UniswapV3Facet(UNISWAP_V3_POSITION_MANAGER, UNISWAP_V3_ROUTER));
 
-        factory.setValidFacet(uniswapV3Facet, true);
-
         vm.label(uniswapV3Facet, "UniswapV3Facet");
 
-        // Controller.addLiquidityUniswapV3 -> UniswapV3Facet.addLiquidity
-        foreignController.setDispatch(
+        factory.setValidFacet(uniswapV3Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](15);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.addLiquidityUniswapV3.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.addLiquidity.selector
         );
 
-        // Controller.removeLiquidityUniswapV3 -> UniswapV3Facet.removeLiquidity
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.removeLiquidityUniswapV3.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.removeLiquidity.selector
         );
 
-        // Controller.swapUniswapV3 -> UniswapV3Facet.swap
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.swapUniswapV3.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.swap.selector
         );
 
-        // Controller.setUniswapV3MaxSlippage -> UniswapV3Facet.setMaxSlippage
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.setUniswapV3MaxSlippage.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setMaxSlippage.selector
         );
 
-        // Controller.setUniswapV3PoolMaxTickDelta -> UniswapV3Facet.setMaxTickDelta
-        foreignController.setDispatch(
+        wires[4] = IController.Wire(
             IForeignControllerFull.setUniswapV3PoolMaxTickDelta.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setMaxTickDelta.selector
         );
 
-        // Controller.setUniswapV3AddLiquidityLowerTickBound -> UniswapV3Facet.setLiquidityLowerTickBound
-        foreignController.setDispatch(
+        wires[5] = IController.Wire(
             IForeignControllerFull.setUniswapV3AddLiquidityLowerTickBound.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setLiquidityLowerTickBound.selector
         );
 
-        // Controller.setUniswapV3AddLiquidityUpperTickBound -> UniswapV3Facet.setLiquidityUpperTickBound
-        foreignController.setDispatch(
+        wires[6] = IController.Wire(
             IForeignControllerFull.setUniswapV3AddLiquidityUpperTickBound.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setLiquidityUpperTickBound.selector
         );
 
-        // Controller.setUniswapV3TWAPSecondsAgo -> UniswapV3Facet.setTWAPSecondsAgo
-        foreignController.setDispatch(
+        wires[7] = IController.Wire(
             IForeignControllerFull.setUniswapV3TWAPSecondsAgo.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.setTWAPSecondsAgo.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V3_DEPOSIT -> UniswapV3Facet.LIMIT_DEPOSIT
-        foreignController.setDispatch(
+        wires[8] = IController.Wire(
             IForeignControllerFull.LIMIT_UNISWAP_V3_DEPOSIT.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.LIMIT_DEPOSIT.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V3_SWAP -> UniswapV3Facet.LIMIT_SWAP
-        foreignController.setDispatch(
+        wires[9] = IController.Wire(
             IForeignControllerFull.LIMIT_UNISWAP_V3_SWAP.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.LIMIT_SWAP.selector
         );
 
-        // Controller.LIMIT_UNISWAP_V3_WITHDRAW -> UniswapV3Facet.LIMIT_WITHDRAW
-        foreignController.setDispatch(
+        wires[10] = IController.Wire(
             IForeignControllerFull.LIMIT_UNISWAP_V3_WITHDRAW.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.LIMIT_WITHDRAW.selector
         );
 
-        // Controller.getUniswapV3MaxSlippage -> UniswapV3Facet.getMaxSlippag
-        foreignController.setDispatch(
+        wires[11] = IController.Wire(
             IForeignControllerFull.getUniswapV3MaxSlippage.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getMaxSlippage.selector
         );
 
-        // Controller.getUniswapV3PoolMaxTickDelta -> UniswapV3Facet.getMaxTickDelta
-        foreignController.setDispatch(
+        wires[12] = IController.Wire(
             IForeignControllerFull.getUniswapV3PoolMaxTickDelta.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getMaxTickDelta.selector
         );
 
-        // Controller.getUniswapV3AddLiquidityTickBounds -> UniswapV3Facet.getLiquidityTickBounds
-        foreignController.setDispatch(
+        wires[13] = IController.Wire(
             IForeignControllerFull.getUniswapV3AddLiquidityTickBounds.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getLiquidityTickBounds.selector
         );
 
-        // Controller.getUniswapV3TWAPSecondsAgo -> UniswapV3Facet.getTWAPSecondsAgo
-        foreignController.setDispatch(
+        wires[14] = IController.Wire(
             IForeignControllerFull.getUniswapV3TWAPSecondsAgo.selector,
-            uniswapV3Facet,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
         );
 
+        foreignController.addWires(uniswapV3Facet, wires);
     }
 
 }

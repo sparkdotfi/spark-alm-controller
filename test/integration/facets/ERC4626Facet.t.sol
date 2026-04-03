@@ -11,7 +11,12 @@ import { Controller_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
+    struct Wire {
+        bytes4 callSelector;
+        bytes4 delegateSelector;
+    }
+
+    function addWires(address facet, Wire[] calldata wires) external;
 
     function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets) external;
 
@@ -30,29 +35,26 @@ contract ERC4626Facet_TestBase is Controller_TestBase {
 
         address facet = address(new ERC4626Facet());
 
+        vm.label(facet, "ERC4626Facet");
+
         factory.setValidFacet(facet, true);
 
         vm.stopPrank();
 
-        vm.label(facet, "ERC4626Facet");
+        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](2);
 
-        vm.startPrank(admin);
-
-        // Controller.setMaxExchangeRate -> ERC4626Facet.setMaxExchangeRate
-        controller.setDispatch(
+        wires[0] = IControllerLike.Wire(
             IControllerLike.setMaxExchangeRate.selector,
-            facet,
             IERC4626Facet.setMaxExchangeRate.selector
         );
 
-        // Controller.getMaxExchangeRate -> ERC4626Facet.getMaxExchangeRate
-        controller.setDispatch(
+        wires[1] = IControllerLike.Wire(
             IControllerLike.getMaxExchangeRate.selector,
-            facet,
             IERC4626Facet.getMaxExchangeRate.selector
         );
 
-        vm.stopPrank();
+        vm.prank(admin);
+        controller.addWires(facet, wires);
     }
 
 }

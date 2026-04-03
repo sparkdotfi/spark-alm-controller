@@ -60,6 +60,6 @@ contract ALMProxy is IALMProxy, AccessControl {
     /*** Receive function                                                                       ***/
     /**********************************************************************************************/
 
-    receive() external payable { }
+    receive() external payable {}
 
 }

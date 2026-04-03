@@ -11,9 +11,14 @@ import { Controller_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setBuffer(address exchange, address buffer) external;
+    struct Wire {
+        bytes4 callSelector;
+        bytes4 delegateSelector;
+    }
 
-    function setDispatch(bytes4 callSelector, address facet, bytes4 delegateSelector) external;
+    function addWires(address facet, Wire[] calldata wires) external;
+
+    function setBuffer(address exchange, address buffer) external;
 
     function setIsWhitelisted(address exchange, address asset, bool isWhitelisted) external;
 
@@ -42,71 +47,56 @@ abstract contract OTCFacet_TestBase is Controller_TestBase {
 
         address facet = address(new OTCFacet());
 
+        vm.label(facet, "OTCFacet");
+
         factory.setValidFacet(facet, true);
 
         vm.stopPrank();
 
-        vm.label(facet, "OTCFacet");
+        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](8);
 
-        vm.startPrank(admin);
-
-        // Controller.setBuffer -> OTCFacet.setBuffer
-        controller.setDispatch(
+        wires[0] = IControllerLike.Wire(
             IControllerLike.setBuffer.selector,
-            facet,
             IOTCFacet.setBuffer.selector
         );
 
-        // Controller.setMaxSlippage -> OTCFacet.setMaxSlippage
-        controller.setDispatch(
+        wires[1] = IControllerLike.Wire(
             IControllerLike.setMaxSlippage.selector,
-            facet,
             IOTCFacet.setMaxSlippage.selector
         );
 
-        // Controller.setRechargeRate -> OTCFacet.setRechargeRate
-        controller.setDispatch(
+        wires[2] = IControllerLike.Wire(
             IControllerLike.setRechargeRate.selector,
-            facet,
             IOTCFacet.setRechargeRate.selector
         );
 
-        // Controller.setIsWhitelisted -> OTCFacet.setIsWhitelisted
-        controller.setDispatch(
+        wires[3] = IControllerLike.Wire(
             IControllerLike.setIsWhitelisted.selector,
-            facet,
             IOTCFacet.setIsWhitelisted.selector
         );
 
-        // Controller.getBuffer -> OTCFacet.getBuffer
-        controller.setDispatch(
+        wires[4] = IControllerLike.Wire(
             IControllerLike.getBuffer.selector,
-            facet,
             IOTCFacet.getBuffer.selector
         );
 
-        // Controller.getMaxSlippage -> OTCFacet.getMaxSlippage
-        controller.setDispatch(
+        wires[5] = IControllerLike.Wire(
             IControllerLike.getMaxSlippage.selector,
-            facet,
             IOTCFacet.getMaxSlippage.selector
         );
 
-        // Controller.getRechargeRate -> OTCFacet.getRechargeRate
-        controller.setDispatch(
+        wires[6] = IControllerLike.Wire(
             IControllerLike.getRechargeRate.selector,
-            facet,
             IOTCFacet.getRechargeRate.selector
         );
 
-        // Controller.getIsWhitelisted -> OTCFacet.getIsWhitelisted
-        controller.setDispatch(
+        wires[7] = IControllerLike.Wire(
             IControllerLike.getIsWhitelisted.selector,
-            facet,
             IOTCFacet.getIsWhitelisted.selector
         );
 
-        vm.stopPrank();
+        vm.prank(admin);
+        controller.addWires(facet, wires);
     }
 
 }

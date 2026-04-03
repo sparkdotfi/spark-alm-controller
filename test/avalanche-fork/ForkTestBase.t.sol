@@ -18,11 +18,13 @@ import { IERC7540Facet }    from "../../src/facets/erc7540/IERC7540Facet.sol";
 import { CentrifugeFacet } from "../../src/facets/centrifuge/CentrifugeFacet.sol";
 import { ERC7540Facet }    from "../../src/facets/erc7540/ERC7540Facet.sol";
 
+import { IController } from "../../src/interfaces/IController.sol";
+
+import { AccessControls } from "../../src/AccessControls.sol";
 import { ALMProxy }       from "../../src/ALMProxy.sol";
 import { Controller }     from "../../src/Controller.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
-import { AccessControls } from "../../src/AccessControls.sol";
 import { PAUFactory }     from "../../src/PAUFactory.sol";
+import { RateLimits }     from "../../src/RateLimits.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
@@ -159,115 +161,95 @@ contract ForkTestBase is Test {
 
         address centrifugeFacet = address(new CentrifugeFacet());
 
-        factory.setValidFacet(centrifugeFacet, true);
-
         vm.label(centrifugeFacet, "CentrifugeFacet");
 
-        // "Controller.setCentrifugeRecipient()" -> "CentrifugeFacet.setRecipient()"
-        foreignController.setDispatch(
+        factory.setValidFacet(centrifugeFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](8);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.setCentrifugeRecipient.selector,
-            centrifugeFacet,
             ICentrifugeFacet.setRecipient.selector
         );
 
-        // "Controller.cancelCentrifugeDepositRequest()" -> "CentrifugeFacet.cancelDepositRequest()"
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.cancelCentrifugeDepositRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.cancelDepositRequest.selector
         );
 
-        // "Controller.claimCentrifugeCancelDepositRequest()" -> "CentrifugeFacet.claimCancelDepositRequest()"
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.claimCentrifugeCancelDepositRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.claimCancelDepositRequest.selector
         );
 
-        // "Controller.cancelCentrifugeRedeemRequest()" -> "CentrifugeFacet.cancelRedeemRequest()"
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.cancelCentrifugeRedeemRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.cancelRedeemRequest.selector
         );
 
-        // "Controller.claimCentrifugeCancelRedeemRequest()" -> "CentrifugeFacet.claimCancelRedeemRequest()"
-        foreignController.setDispatch(
+        wires[4] = IController.Wire(
             IForeignControllerFull.claimCentrifugeCancelRedeemRequest.selector,
-            centrifugeFacet,
             ICentrifugeFacet.claimCancelRedeemRequest.selector
         );
 
-        // "Controller.transferSharesCentrifuge()" -> "CentrifugeFacet.transferShares()"
-        foreignController.setDispatch(
+        wires[5] = IController.Wire(
             IForeignControllerFull.transferSharesCentrifuge.selector,
-            centrifugeFacet,
             ICentrifugeFacet.transferShares.selector
         );
 
-        // "Controller.LIMIT_CENTRIFUGE_TRANSFER()" -> "CentrifugeFacet.LIMIT_TRANSFER()"
-        foreignController.setDispatch(
+        wires[6] = IController.Wire(
             IForeignControllerFull.LIMIT_CENTRIFUGE_TRANSFER.selector,
-            centrifugeFacet,
             ICentrifugeFacet.LIMIT_TRANSFER.selector
         );
 
-        // "Controller.getCentrifugeRecipient()" -> "CentrifugeFacet.getRecipient()"
-        foreignController.setDispatch(
+        wires[7] = IController.Wire(
             IForeignControllerFull.getCentrifugeRecipient.selector,
-            centrifugeFacet,
             ICentrifugeFacet.getRecipient.selector
         );
+
+        foreignController.addWires(centrifugeFacet, wires);
     }
 
     function _wireERC7540Facet() internal {
         address erc7540Facet = address(new ERC7540Facet());
 
-        factory.setValidFacet(erc7540Facet, true);
-
         vm.label(erc7540Facet, "ERC7540Facet");
 
-        // "Controller.requestDepositERC7540()" -> "ERC7540Facet.requestDeposit()"
-        foreignController.setDispatch(
+        factory.setValidFacet(erc7540Facet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](6);
+
+        wires[0] = IController.Wire(
             IForeignControllerFull.requestDepositERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.requestDeposit.selector
         );
 
-        // "Controller.claimDepositERC7540()" -> "ERC7540Facet.claimDeposit()"
-        foreignController.setDispatch(
+        wires[1] = IController.Wire(
             IForeignControllerFull.claimDepositERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.claimDeposit.selector
         );
 
-        // "Controller.requestRedeemERC7540()" -> "ERC7540Facet.requestRedeem()"
-        foreignController.setDispatch(
+        wires[2] = IController.Wire(
             IForeignControllerFull.requestRedeemERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.requestRedeem.selector
         );
 
-        // "Controller.claimRedeemERC7540()" -> "ERC7540Facet.claimRedeem()"
-        foreignController.setDispatch(
+        wires[3] = IController.Wire(
             IForeignControllerFull.claimRedeemERC7540.selector,
-            erc7540Facet,
             IERC7540Facet.claimRedeem.selector
         );
 
-        // "Controller.LIMIT_7540_DEPOSIT()" -> "ERC7540Facet.LIMIT_DEPOSIT()"
-        foreignController.setDispatch(
+        wires[4] = IController.Wire(
             IForeignControllerFull.LIMIT_7540_DEPOSIT.selector,
-            erc7540Facet,
             IERC7540Facet.LIMIT_DEPOSIT.selector
         );
 
-        // "Controller.LIMIT_7540_REDEEM()" -> "ERC7540Facet.LIMIT_REDEEM()"
-        foreignController.setDispatch(
+        wires[5] = IController.Wire(
             IForeignControllerFull.LIMIT_7540_REDEEM.selector,
-            erc7540Facet,
             IERC7540Facet.LIMIT_REDEEM.selector
         );
+
+        foreignController.addWires(erc7540Facet, wires);
     }
 
 }
