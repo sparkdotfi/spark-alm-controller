@@ -121,6 +121,11 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
         address proxy             = $.proxy;
         uint256 initialETHBalance = proxy.balance;
 
+        require(
+            IRateLimits($.rateLimits).getRateLimitData(LIMIT_REQUEST_WITHDRAW).maxAmount > 0,
+            "WSTETHLib/invalid-action"
+        );
+
         IALMProxy(proxy).doCall(
             withdrawQueue,
             abi.encodeCall(IWithdrawalQueueLike.claimWithdrawal, (requestId))

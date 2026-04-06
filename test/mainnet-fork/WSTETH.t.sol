@@ -240,6 +240,12 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         mainnetController.claimWithdrawalFromWstETH(1);
     }
 
+    function test_claimWithdrawalFromWSTETH_failsWhenRequestRateLimitDoesNotExist() external {
+        vm.expectRevert("WSTETHLib/invalid-action");
+        vm.prank(relayer);
+        mainnetController.claimWithdrawalFromWstETH(1);
+    }
+
     function test_claimWithdrawalFromWSTETH() external {
         bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
         bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
