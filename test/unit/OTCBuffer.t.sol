@@ -4,6 +4,8 @@ pragma solidity ^0.8.34;
 import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20Mock }    from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
+import { IERC1967 } from "../../lib/openzeppelin-contracts/contracts/interfaces/IERC1967.sol";
+
 import { OTCBuffer } from "../../src/facets/otc/OTCBuffer.sol";
 
 import { UnitTestBase } from "./UnitTestBase.t.sol";
@@ -112,6 +114,34 @@ contract OTCBuffer_Approve_Tests is OTCBuffer_TestBase {
         buffer.approve(address(usdt), 1_000_000e6);
 
         assertEq(usdt.allowance(address(buffer), almProxy), 1_000_000e6);
+    }
+
+}
+
+contract OTCBuffer_AuthorizeUpgrade_Tests is OTCBuffer_TestBase {
+
+    function test_authorizeUpgrade_notAuthorized() external {
+        address newImplementation = address(new OTCBuffer());
+
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            DEFAULT_ADMIN_ROLE
+        ));
+        buffer.upgradeToAndCall(newImplementation, "");
+    }
+
+    function test_authorizeUpgrade() external {
+        address newImplementation = address(new OTCBuffer());
+
+        vm.expectEmit(address(buffer));
+        emit IERC1967.Upgraded({ implementation: newImplementation });
+
+        vm.prank(admin);
+        buffer.upgradeToAndCall(newImplementation, "");
+
+        // Verify the proxy still works after upgrade
+        assertEq(buffer.almProxy(), almProxy);
     }
 
 }
