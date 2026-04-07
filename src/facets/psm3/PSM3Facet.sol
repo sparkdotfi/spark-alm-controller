@@ -32,6 +32,8 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
     bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_PSM_DEPOSIT");
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_PSM_WITHDRAW");
 
+    string public constant override VERSION = "1.0.0";
+
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/

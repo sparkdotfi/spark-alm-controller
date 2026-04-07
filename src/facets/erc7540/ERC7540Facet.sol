@@ -50,6 +50,8 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
     bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_7540_DEPOSIT");
     bytes32 public constant override LIMIT_REDEEM  = keccak256("LIMIT_7540_REDEEM");
 
+    string public constant override VERSION = "1.0.0";
+
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/

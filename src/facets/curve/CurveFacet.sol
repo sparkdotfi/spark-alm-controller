@@ -57,14 +57,14 @@ contract CurveFacet is ICurveFacet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.CurveFacet
+    /// @custom:storage-location erc7201:sky.pau.storage.CurveFacet.v1
     struct FacetStorage {
         mapping (address pool => uint256 maxSlippage) maxSlippages;  // 1e18 precision
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CurveFacet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CurveFacet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0x9bdc08d6fd054b5f8e5cf1735222ac93f34c8b6269da6b61f2bf1558f810b000;
+        0x13d34bc33acbcda590d5fdaf219fc6bf98cf53cf6ca8f2f488b9345e76156400;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -79,6 +79,8 @@ contract CurveFacet is ICurveFacet, FacetBase {
     bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_CURVE_DEPOSIT");
     bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_CURVE_SWAP");
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_CURVE_WITHDRAW");
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/

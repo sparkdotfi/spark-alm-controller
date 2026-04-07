@@ -46,6 +46,8 @@ contract PSMFacet is IPSMFacet, FacetBase {
 
     bytes32 public constant override LIMIT_USDS_TO_USDC = keccak256("LIMIT_USDS_TO_USDC");
 
+    string public constant override VERSION = "1.0.0";
+
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/

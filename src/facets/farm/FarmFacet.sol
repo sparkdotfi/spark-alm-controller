@@ -32,6 +32,8 @@ contract FarmFacet is IFarmFacet, FacetBase {
     bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_FARM_DEPOSIT");
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_FARM_WITHDRAW");
 
+    string public constant override VERSION = "1.0.0";
+
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/

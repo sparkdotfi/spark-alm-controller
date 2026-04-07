@@ -17,4 +17,6 @@ interface IFacetBase {
 
     function RELAYER_ROLE() external pure returns (bytes32);
 
+    function VERSION() external pure returns (string memory);
+
 }

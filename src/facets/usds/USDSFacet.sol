@@ -34,6 +34,8 @@ contract USDSFacet is IUSDSFacet, FacetBase {
 
     bytes32 public constant override LIMIT_MINT = keccak256("LIMIT_USDS_MINT");
 
+    string public constant override VERSION = "1.0.0";
+
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/

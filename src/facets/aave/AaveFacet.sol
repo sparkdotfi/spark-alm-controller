@@ -40,14 +40,14 @@ contract AaveFacet is IAaveFacet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.AaveFacet
+    /// @custom:storage-location erc7201:sky.pau.storage.AaveFacet.v1
     struct FacetStorage {
         mapping (address aToken => uint256 maxSlippage) maxSlippages;  // 1e18 precision
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.AaveFacet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.AaveFacet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0xf780afd6d0d270fe47bcd379c4ec5db3a9ba953a2d525fd460e499aef394bd00;
+        0x0d8c22a02210da5b8462182c9dc7f9ba6d9489bc70d480a9fc933c236c44b100;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -61,6 +61,8 @@ contract AaveFacet is IAaveFacet, FacetBase {
 
     bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_AAVE_DEPOSIT");
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_AAVE_WITHDRAW");
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/

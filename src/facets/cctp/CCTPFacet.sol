@@ -45,15 +45,15 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.CCTPFacet
+    /// @custom:storage-location erc7201:sky.pau.storage.CCTPFacet.v1
     struct FacetStorage {
         uint256 maxFeeCap;
         mapping (uint32 destinationDomain => bytes32 mintRecipient) mintRecipients;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CCTPFacet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CCTPFacet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0xd2297bc3b0b57b4cc880bf81d7f396bae29a02c9b84df07ff5f86bd65479da00;
+        0x53491f888384d20e0e997ee4365903f1b7563469d6dee4850bb24641e6d23800;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -71,6 +71,8 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     bytes32 public constant override DESTINATION_CALLER     = 0;      // 0 means anyone can relay
     uint256 public constant override MAX_FEE                = 0;      // 0 for standard burns (no fast burn fee)
     uint32  public constant override MAX_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/

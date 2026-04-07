@@ -28,15 +28,15 @@ contract OTCFacet is IOTCFacet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.OTCFacet
+    /// @custom:storage-location erc7201:sky.pau.storage.OTCFacet.v1
     struct FacetStorage {
         mapping (address exchange => Parameters params) parameters;
         mapping (address exchange => State      state)  states;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.OTCFacet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.OTCFacet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0x381032184f0875ab12ce62a17c374889bec43a2e17ec18539168704ac1f83200;
+        0xa486b3c0ee96d4f5203aaa145fd67532540f370a0bbe205b245ddac706af4e00;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -49,6 +49,8 @@ contract OTCFacet is IOTCFacet, FacetBase {
     /**********************************************************************************************/
 
     bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_OTC_SWAP");
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/

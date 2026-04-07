@@ -138,15 +138,15 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.UniswapV3Facet
+    /// @custom:storage-location erc7201:sky.pau.storage.UniswapV3Facet.v1
     struct FacetStorage {
         mapping (address pool => uint256    maxSlippage) maxSlippages;  // 1e18 precision
         mapping (address pool => PoolParams params)      poolParams;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.UniswapV3Facet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.UniswapV3Facet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0xffe4cc6384ffe9aa83799d28feb94200936c780fc060221c25e237bda27dbf00;
+        0xc41601344aaf9df41ecdea44841db009027b523fe5b6592e95408df889815700;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -168,6 +168,8 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     // https://github.com/uniswap/v4-core/blob/v4.0.0/src/libraries/TickMath.sol#L18-L23
     int24 public constant override MIN_TICK = -887_272;
     int24 public constant override MAX_TICK =  887_272;
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/

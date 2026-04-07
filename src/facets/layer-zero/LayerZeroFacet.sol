@@ -107,14 +107,14 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.LayerZeroFacet
+    /// @custom:storage-location erc7201:sky.pau.storage.LayerZeroFacet.v1
     struct FacetStorage {
         mapping (uint32 destinationEndpointId => bytes32 recipient) recipients;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.LayerZeroFacet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.LayerZeroFacet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0x35cbf4f8cec8cb8b455a904d7cdf14cb711e472d3d2849a8f6b768a7e6d72800;
+        0x99943b11321093c9d2d64654221621a5909374bf643d511018c800d9161d3900;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -127,6 +127,8 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     /**********************************************************************************************/
 
     bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/

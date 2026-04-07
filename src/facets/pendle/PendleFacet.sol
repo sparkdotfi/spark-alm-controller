@@ -86,6 +86,8 @@ contract PendleFacet is IPendleFacet, FacetBase {
 
     bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_PENDLE_PT_REDEEM");
 
+    string public constant override VERSION = "1.0.0";
+
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/

@@ -57,14 +57,14 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.CentrifugeFacet
+    /// @custom:storage-location erc7201:sky.pau.storage.CentrifugeFacet.v1
     struct FacetStorage {
         mapping (uint16 centrifugeId => bytes32 recipient) recipients;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CentrifugeFacet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.CentrifugeFacet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0xc069081c0c1d07d37b10d4b49109414316895d1a08146dc2106442b9fa4f7900;
+        0x3b05298d8a8a9ef38d7780d7c82bab887b2a7a923ac41946991c2dd3e283d400;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -82,6 +82,8 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
 
     // Requests for Centrifuge pools are non-fungible and all have ID = 0.
     uint256 public constant override REQUEST_ID = 0;
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/

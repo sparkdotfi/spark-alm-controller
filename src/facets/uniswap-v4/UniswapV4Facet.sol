@@ -65,15 +65,15 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.UniswapV4Facet
+    /// @custom:storage-location erc7201:sky.pau.storage.UniswapV4Facet.v1
     struct FacetStorage {
         mapping (bytes32 poolId => uint256    maxSlippage) maxSlippages;  // 1e18 precision
         mapping (bytes32 poolId => TickLimits limits)      tickLimits;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.UniswapV4Facet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.UniswapV4Facet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0x87da7e510f1adf4bc390fc0575bbe3322b02f09a7fcc1a080301dab0c47ade00;
+        0x2ce6552ef43d5442d5a2e9633c16b55e669383de0d79e2922fe0aaf476410200;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -88,6 +88,8 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
     bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
+
+    string public constant override VERSION = "1.0.0";
 
     uint256 internal constant _V4_SWAP = 0x10;
 

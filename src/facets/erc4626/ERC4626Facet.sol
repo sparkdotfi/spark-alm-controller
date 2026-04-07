@@ -33,14 +33,14 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     /*** Facet Storage Domain                                                                   ***/
     /**********************************************************************************************/
 
-    /// @custom:storage-location erc7201:sky.pau.storage.ERC4626Facet
+    /// @custom:storage-location erc7201:sky.pau.storage.ERC4626Facet.v1
     struct FacetStorage {
         mapping (address token => uint256 maxExchangeRate) maxExchangeRates;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.ERC4626Facet")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.ERC4626Facet.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant FACET_STORAGE_LOCATION =
-        0x2d0a40172b84813d0e50253809f3803008e18680eae5581bd5ffdf3dfdf76f00;
+        0xff00b7bf03054889656e52db9e9ee5ee36d0a6360e21036fb566f0cbe8c36900;
 
     function _getFacetStorage() internal pure returns (FacetStorage storage $) {
         assembly {
@@ -56,6 +56,8 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_4626_WITHDRAW");
 
     uint256 public constant override EXCHANGE_RATE_PRECISION = 1e36;
+
+    string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/

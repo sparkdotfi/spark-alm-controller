@@ -24,6 +24,8 @@ contract SparkVaultFacet is ISparkVaultFacet, FacetBase {
 
     bytes32 public constant override LIMIT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
+    string public constant override VERSION = "1.0.0";
+
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
