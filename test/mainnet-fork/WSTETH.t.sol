@@ -241,7 +241,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
     }
 
     function test_claimWithdrawalFromWSTETH_failsWhenRequestRateLimitDoesNotExist() external {
-        vm.expectRevert("WSTETHLib/invalid-action");
+        vm.expectRevert("WSTETHFacet/invalid-action");
         vm.prank(relayer);
         mainnetController.claimWithdrawalFromWstETH(1);
     }
