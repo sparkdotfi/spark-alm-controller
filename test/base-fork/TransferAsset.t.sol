@@ -7,6 +7,8 @@ import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
+
 import { MockTokenReturnFalse, MockTokenReturnNull } from "../mocks/Mocks.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -109,6 +111,13 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(foreignController));
+        emit ITransferAssetFacet.TransferAssetFacetTransfer({
+            asset       : Base.USDC,
+            destination : receiver,
+            amount      : 1_000_000e6
+        });
+
         vm.prank(relayer);
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
 
@@ -139,6 +148,13 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
 
         assertEq(token.balanceOf(receiver),          0);
         assertEq(token.balanceOf(address(almProxy)), 1_000_000e6);
+
+        vm.expectEmit(address(foreignController));
+        emit ITransferAssetFacet.TransferAssetFacetTransfer({
+            asset       : address(token),
+            destination : receiver,
+            amount      : 1_000_000e6
+        });
 
         vm.prank(relayer);
         foreignController.transferAsset(address(token), receiver, 1_000_000e6);

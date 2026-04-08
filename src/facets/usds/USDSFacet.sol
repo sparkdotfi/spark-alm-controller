@@ -75,6 +75,8 @@ contract USDSFacet is IUSDSFacet, FacetBase {
                 (IVaultLike(vault).buffer(), proxy, usdsAmount)
             )
         );
+
+        emit USDSMint(usdsAmount);
     }
 
     function burn(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
@@ -93,6 +95,8 @@ contract USDSFacet is IUSDSFacet, FacetBase {
 
         // Burn USDS from the buffer.
         IALMProxy(proxy).doCall(vault, abi.encodeCall(IVaultLike.wipe, (usdsAmount)));
+
+        emit USDSBurn(usdsAmount);
     }
 
 }

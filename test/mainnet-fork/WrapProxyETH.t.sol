@@ -5,6 +5,8 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IWrapProxyETHFacet } from "../../src/facets/wrap-proxy-eth/IWrapProxyETHFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -55,6 +57,9 @@ contract MainnetController_WrapAllProxyETH_Tests is ForkTestBase {
         assertEq(WETH.balanceOf(address(almProxy)), 0);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IWrapProxyETHFacet.WrapProxyETHWrap({ ethAmount: 1 ether });
 
         vm.prank(relayer);
         mainnetController.wrapAllProxyETH();

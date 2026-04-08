@@ -52,6 +52,8 @@ contract TransferAssetFacet is ITransferAssetFacet, FacetBase {
             returnData.length == 0 || (returnData.length == 32 && abi.decode(returnData, (bool))),
             "TransferAssetFacet/transfer-failed"
         );
+
+        emit TransferAssetFacetTransfer(asset, destination, amount);
     }
 
 }

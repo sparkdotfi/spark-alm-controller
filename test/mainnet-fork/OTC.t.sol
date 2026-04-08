@@ -384,7 +384,13 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDT, 10_000_000e6, 10_000_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDT,
+            amountSent           : 10_000_000e6,
+            normalizedAmountSent : 10_000_000e18
+        });
 
         // Execute OTC swap
         vm.prank(relayer);
@@ -425,7 +431,13 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDS, 10_000_000e18, 10_000_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDS,
+            amountSent           : 10_000_000e18,
+            normalizedAmountSent : 10_000_000e18
+        });
 
         // Execute OTC swap
         vm.prank(relayer);
@@ -516,7 +528,13 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCClaimed(exchange, address(otcBuffer), Ethereum.USDT, 10_000_000e6, 10_000_000e18);
+        emit IOTCFacet.OTCClaimed({
+            exchange                : exchange,
+            buffer                  : address(otcBuffer),
+            assetClaimed            : Ethereum.USDT,
+            amountClaimed           : 10_000_000e6,
+            normalizedAmountClaimed : 10_000_000e18
+        });
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
@@ -548,7 +566,13 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCClaimed(exchange, address(otcBuffer), Ethereum.USDS, 10_000_000e18, 10_000_000e18);
+        emit IOTCFacet.OTCClaimed({
+            exchange                : exchange,
+            buffer                  : address(otcBuffer),
+            assetClaimed            : Ethereum.USDS,
+            amountClaimed           : 10_000_000e18,
+            normalizedAmountClaimed : 10_000_000e18
+        });
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
@@ -588,7 +612,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDT, 10_000_000e6, 10_000_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDT,
+            amountSent           : 10_000_000e6,
+            normalizedAmountSent : 10_000_000e18
+        });
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDT, 10_000_000e6);
@@ -649,7 +679,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),  0);
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCClaimed(exchange, address(otcBuffer), Ethereum.USDS, 9_980_000e18, 9_980_000e18);
+        emit IOTCFacet.OTCClaimed({
+            exchange                : exchange,
+            buffer                  : address(otcBuffer),
+            assetClaimed            : Ethereum.USDS,
+            amountClaimed           : 9_980_000e18,
+            normalizedAmountClaimed : 9_980_000e18
+        });
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
@@ -702,7 +738,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         assertEq(USDS.balanceOf(exchange),          0);
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDS, 200_000e18, 200_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDS,
+            amountSent           : 200_000e18,
+            normalizedAmountSent : 200_000e18
+        });
 
         // Able to do another swap
         vm.prank(relayer);
@@ -740,7 +782,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDS, 10_000_000e18, 10_000_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDS,
+            amountSent           : 10_000_000e18,
+            normalizedAmountSent : 10_000_000e18
+        });
 
         vm.prank(relayer);
         mainnetController.otcSend(exchange, Ethereum.USDS, 10_000_000e18);
@@ -801,7 +849,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         assertEq(USDT.balanceOf(address(almProxy)),  0);
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCClaimed(exchange, address(otcBuffer), Ethereum.USDT, 9_980_000e6, 9_980_000e18);
+        emit IOTCFacet.OTCClaimed({
+            exchange                : exchange,
+            buffer                  : address(otcBuffer),
+            assetClaimed            : Ethereum.USDT,
+            amountClaimed           : 9_980_000e6,
+            normalizedAmountClaimed : 9_980_000e18
+        });
 
         vm.prank(relayer);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
@@ -854,7 +908,13 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         assertEq(USDT.balanceOf(exchange),          0);
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDT, 200_000e6, 200_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDT,
+            amountSent           : 200_000e6,
+            normalizedAmountSent : 200_000e18
+        });
 
         // Able to do another swap
         vm.prank(relayer);
@@ -890,7 +950,13 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDT, 10_000_000e6, 10_000_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDT,
+            amountSent           : 10_000_000e6,
+            normalizedAmountSent : 10_000_000e18
+        });
 
         // Execute OTC swap
         vm.prank(relayer);
@@ -939,7 +1005,13 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
 
         vm.expectEmit(address(mainnetController));
-        emit IOTCFacet.OTCSwapSent(exchange, address(otcBuffer), Ethereum.USDT, 10_000_000e6, 10_000_000e18);
+        emit IOTCFacet.OTCSwapSent({
+            exchange             : exchange,
+            buffer               : address(otcBuffer),
+            tokenSent            : Ethereum.USDT,
+            amountSent           : 10_000_000e6,
+            normalizedAmountSent : 10_000_000e18
+        });
 
         // Execute OTC swap
         vm.prank(relayer);

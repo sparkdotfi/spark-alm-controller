@@ -105,7 +105,7 @@ contract Controller_ERC4626Facet_Admin_Tests is ERC4626Facet_TestBase {
         vm.record();
 
         vm.expectEmit(address(controller));
-        emit IERC4626Facet.ERC4626MaxExchangeRateSet(token, 1e36);
+        emit IERC4626Facet.ERC4626MaxExchangeRateSet({ token: token, maxExchangeRate: 1e36 });
 
         vm.prank(admin);
         controller.setMaxExchangeRate(token, 1e18, 1e18);
@@ -115,7 +115,7 @@ contract Controller_ERC4626Facet_Admin_Tests is ERC4626Facet_TestBase {
         assertEq(controller.getMaxExchangeRate(token), 1e36);
 
         vm.expectEmit(address(controller));
-        emit IERC4626Facet.ERC4626MaxExchangeRateSet(token, 1e24);
+        emit IERC4626Facet.ERC4626MaxExchangeRateSet({ token: token, maxExchangeRate: 1e24 });
 
         vm.prank(admin);
         controller.setMaxExchangeRate(token, 1e18, 1e6);
@@ -123,7 +123,7 @@ contract Controller_ERC4626Facet_Admin_Tests is ERC4626Facet_TestBase {
         assertEq(controller.getMaxExchangeRate(token), 1e24);
 
         vm.expectEmit(address(controller));
-        emit IERC4626Facet.ERC4626MaxExchangeRateSet(token, 1e48);
+        emit IERC4626Facet.ERC4626MaxExchangeRateSet({ token: token, maxExchangeRate: 1e48 });
 
         vm.prank(admin);
         controller.setMaxExchangeRate(token, 1e6, 1e18);

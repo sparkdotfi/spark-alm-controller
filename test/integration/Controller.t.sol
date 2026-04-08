@@ -73,7 +73,11 @@ contract ControllerIntegration_Tests is Controller_TestBase {
         factory.setValidFacet(facet, true);
 
         vm.expectEmit(address(controller));
-        emit IController.WireAdded(callSelector, delegateSelector, facet);
+        emit IController.WireAdded({
+            callSelector     : callSelector,
+            delegateSelector : delegateSelector,
+            facet            : facet
+        });
 
         vm.prank(admin);
         controller.addWire(facet, IController.Wire(callSelector, delegateSelector));
@@ -84,7 +88,7 @@ contract ControllerIntegration_Tests is Controller_TestBase {
         assertEq(dispatch.delegateSelector, delegateSelector);
 
         vm.expectEmit(address(controller));
-        emit IController.WireRemoved(callSelector);
+        emit IController.WireRemoved({ callSelector: callSelector });
 
         vm.prank(admin);
         controller.removeWire(callSelector);

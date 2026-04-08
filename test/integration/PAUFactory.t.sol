@@ -105,7 +105,7 @@ contract PAUFactory_Tests is Test {
         assertEq(factory.isValidFacet(facet), false);
 
         vm.expectEmit(address(factory));
-        emit IPAUFactory.ValidFacetSet(facet, true);
+        emit IPAUFactory.ValidFacetSet({ facet: facet, valid: true });
 
         vm.prank(facetValidator);
         factory.setValidFacet(facet, true);
@@ -113,7 +113,7 @@ contract PAUFactory_Tests is Test {
         assertEq(factory.isValidFacet(facet), true);
 
         vm.expectEmit(address(factory));
-        emit IPAUFactory.ValidFacetSet(facet, false);
+        emit IPAUFactory.ValidFacetSet({ facet: facet, valid: false });
 
         vm.prank(facetValidator);
         factory.setValidFacet(facet, false);
@@ -170,10 +170,10 @@ contract PAUFactory_Tests is Test {
         valid[1] = true;
 
         vm.expectEmit(address(factory));
-        emit IPAUFactory.ValidFacetSet(facets[0], true);
+        emit IPAUFactory.ValidFacetSet({ facet: facets[0], valid: true });
 
         vm.expectEmit(address(factory));
-        emit IPAUFactory.ValidFacetSet(facets[1], true);
+        emit IPAUFactory.ValidFacetSet({ facet: facets[1], valid: true });
 
         vm.prank(facetValidator);
         factory.setValidFacets(facets, valid);
@@ -185,10 +185,10 @@ contract PAUFactory_Tests is Test {
         valid[1] = false;
 
         vm.expectEmit(address(factory));
-        emit IPAUFactory.ValidFacetSet(facets[0], false);
+        emit IPAUFactory.ValidFacetSet({ facet: facets[0], valid: false });
 
         vm.expectEmit(address(factory));
-        emit IPAUFactory.ValidFacetSet(facets[1], false);
+        emit IPAUFactory.ValidFacetSet({ facet: facets[1], valid: false });
 
         vm.prank(facetValidator);
         factory.setValidFacets(facets, valid);
@@ -210,13 +210,13 @@ contract PAUFactory_Tests is Test {
         address expectedController     = vm.computeCreateAddress(address(factory), nonce + 3);
 
         vm.expectEmit(address(factory));
-        emit IPAUFactory.PAUDeployed(
-            admin,
-            expectedController,
-            expectedAccessControls,
-            expectedAlmProxy,
-            expectedRateLimits
-        );
+        emit IPAUFactory.PAUDeployed({
+            admin          : admin,
+            controller     : expectedController,
+            accessControls : expectedAccessControls,
+            almProxy       : expectedAlmProxy,
+            rateLimits     : expectedRateLimits
+        });
 
         vm.prank(admin);
         Controller controller = Controller(payable(factory.deploy(admin)));

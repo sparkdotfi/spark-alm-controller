@@ -6,6 +6,14 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IMapleFacet is IFacetBase {
 
     /**********************************************************************************************/
+    /*** Events                                                                                 ***/
+    /**********************************************************************************************/
+
+    event MapleCancelRedemption(address indexed mapleToken, uint256 shares);
+
+    event MapleRequestRedemption(address indexed mapleToken, uint256 shares);
+
+    /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 

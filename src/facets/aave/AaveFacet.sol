@@ -114,6 +114,8 @@ contract AaveFacet is IAaveFacet, FacetBase {
         uint256 newATokens = IERC20Like(aToken).balanceOf(proxy) - aTokenBalance;
 
         require(newATokens >= amount * maxSlippage / 1e18, "AaveFacet/slippage-too-high");
+
+        emit AaveDeposit(aToken, amount);
     }
 
     function withdraw(address aToken, uint256 amount)
@@ -140,6 +142,8 @@ contract AaveFacet is IAaveFacet, FacetBase {
 
         _decreaseRateLimit(LIMIT_WITHDRAW, aToken, amountWithdrawn);
         _increaseRateLimit(LIMIT_DEPOSIT,  aToken, amountWithdrawn);
+
+        emit AaveWithdraw(aToken, amountWithdrawn);
     }
 
     /**********************************************************************************************/

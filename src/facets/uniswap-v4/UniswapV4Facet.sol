@@ -47,6 +47,8 @@ interface IPositionManagerLike {
         view
         returns (PoolKey memory, PositionInfo);
 
+    function nextTokenId() external view returns (uint256);
+
     function poolKeys(bytes25 poolId) external view returns (PoolKey memory);
 
     function ownerOf(uint256 tokenId) external view returns (address);
@@ -184,7 +186,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
             amount1Max : amount1Max
         });
 
-        _increaseLiquidity({
+        ( uint128 amount0, uint128 amount1 ) = _increaseLiquidity({
             poolId     : poolId,
             token0     : Currency.unwrap(poolKey.currency0),
             token1     : Currency.unwrap(poolKey.currency1),
@@ -192,6 +194,16 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
             amount1Max : amount1Max,
             callData   : callData
         });
+
+        emit UniswapV4MintPosition(
+            poolId,
+            IPositionManagerLike(positionManager).nextTokenId() - 1,
+            tickLower,
+            tickUpper,
+            liquidity,
+            amount0,
+            amount1
+        );
     }
 
     function increasePosition(
@@ -230,7 +242,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
             amount1Max        : amount1Max
         });
 
-        _increaseLiquidity({
+        ( uint128 amount0, uint128 amount1 ) = _increaseLiquidity({
             poolId     : poolId,
             token0     : Currency.unwrap(poolKey.currency0),
             token1     : Currency.unwrap(poolKey.currency1),
@@ -238,6 +250,8 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
             amount1Max : amount1Max,
             callData   : callData
         });
+
+        emit UniswapV4IncreasePosition(poolId, tokenId, liquidityIncrease, amount0, amount1);
     }
 
     function decreasePosition(
@@ -267,12 +281,14 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
             amount1Min        : amount1Min
         });
 
-        _decreaseLiquidity({
+        ( uint128 amount0, uint128 amount1 ) = _decreaseLiquidity({
             poolId   : poolId,
             token0   : Currency.unwrap(poolKey.currency0),
             token1   : Currency.unwrap(poolKey.currency1),
             callData : callData
         });
+
+        emit UniswapV4DecreasePosition(poolId, tokenId, liquidityDecrease, amount0, amount1);
     }
 
     function swap(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
@@ -319,12 +335,15 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
             amountOutMin : amountOutMin
         });
 
-        _swap({
+        uint128 amountOut = _swap({
             poolId   : poolId,
             tokenIn  : tokenIn,
+            tokenOut : tokenOut,
             amountIn : amountIn,
             callData : callData
         });
+
+        emit UniswapV4Swap(poolId, tokenIn, tokenOut, amountIn, amountOut);
     }
 
     /**********************************************************************************************/
@@ -375,6 +394,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         bytes   memory callData
     )
         internal
+        returns (uint128 amount0, uint128 amount1)
     {
         _approveWithPermit2(token0, positionManager, amount0Max);
         _approveWithPermit2(token1, positionManager, amount1Max);
@@ -408,6 +428,9 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         // Reset approvals for token0 and token1.
         _approveWithPermit2(token0, positionManager, 0);
         _approveWithPermit2(token1, positionManager, 0);
+
+        amount0 = uint128(_clampedSub(startingBalance0, endingBalance0));
+        amount1 = uint128(_clampedSub(startingBalance1, endingBalance1));
     }
 
     function _decreaseLiquidity(
@@ -417,6 +440,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         bytes   memory callData
     )
         internal
+        returns (uint128 amount0, uint128 amount1)
     {
         // Get token balances before liquidity decrease.
         uint256 startingBalance0 = _getProxyBalance(token0);
@@ -426,30 +450,41 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         IALMProxy(_getSharedControllerStorage().proxy).doCall(positionManager, callData);
 
         // Get token balances after liquidity decrease.
-        uint256 endingBalance0 = _getProxyBalance(token0);
-        uint256 endingBalance1 = _getProxyBalance(token1);
+        amount0 = uint128(_getProxyBalance(token0) - startingBalance0);
+        amount1 = uint128(_getProxyBalance(token1) - startingBalance1);
 
         // NOTE: The limitation of this integration is the assumption that the tokens are valued
         //       equally (i.e. 1.000000 USDC = 1.000000000000000000 USDS).
         uint256 rateLimitDecrease =
-            _getNormalizedBalance(token0, endingBalance0 - startingBalance0) +
-            _getNormalizedBalance(token1, endingBalance1 - startingBalance1);
+            _getNormalizedBalance(token0, amount0) +
+            _getNormalizedBalance(token1, amount1);
 
         // Perform rate limit decrease.
         // NOTE: Rate limit decrease includes any token0 or token1 received due to fees.
         _decreaseRateLimit(LIMIT_WITHDRAW, poolId, rateLimitDecrease);
     }
 
-    function _swap(bytes32 poolId, address tokenIn, uint128 amountIn, bytes memory callData)
+    function _swap(
+        bytes32        poolId,
+        address        tokenIn,
+        address        tokenOut,
+        uint128        amountIn,
+        bytes   memory callData
+    )
         internal
+        returns (uint128 amountOut)
     {
         _approveWithPermit2(tokenIn, router, amountIn);
+
+        uint256 startingBalance = _getProxyBalance(tokenOut);
 
         // Perform action.
         IALMProxy(_getSharedControllerStorage().proxy).doCall(router, callData);
 
         // Reset approval of Permit2 in tokenIn.
         _approveWithPermit2(tokenIn, router, 0);
+
+        return uint128(_getProxyBalance(tokenOut) - startingBalance);
     }
 
     function _decreaseRateLimit(bytes32 key, bytes32 poolId, uint256 amount) internal {

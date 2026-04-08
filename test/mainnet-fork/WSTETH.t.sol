@@ -5,6 +5,8 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IWSTETHFacet } from "../../src/facets/wsteth/IWSTETHFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -23,6 +25,8 @@ interface IWithdrawalQueue {
         bool    isFinalized;
         bool    isClaimed;
     }
+
+    function getLastRequestId() external view returns (uint256);
 
     function getWithdrawalStatus(uint256[] calldata requestIds)
         external
@@ -86,6 +90,9 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
         vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18 + 1);
 
+        vm.expectEmit(address(mainnetController));
+        emit IWSTETHFacet.WSTETHDeposit({ amount: 1_000e18 });
+
         vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18);
     }
@@ -104,6 +111,9 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
         assertEq(WSTETH.balanceOf(address(almProxy)), 0);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IWSTETHFacet.WSTETHDeposit({ amount: 1_000e18 });
 
         vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18);
@@ -177,6 +187,9 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
         assertEq(WETH.balanceOf(address(almProxy)),   1_000e18);
         assertEq(WSTETH.balanceOf(address(almProxy)), 0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IWSTETHFacet.WSTETHDeposit({ amount: 1_000e18 });
+
         vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18);
 
@@ -188,11 +201,22 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
 
         assertApproxEqAbs(WSTETH.getStETHByWstETH(WSTETH.balanceOf(address(almProxy))), 1_000e18, 2);
 
-        uint256 expectedETHWithdrawal = WSTETH.getStETHByWstETH(500e18);
+        uint256 expectedStETHWithdrawal = WSTETH.getStETHByWstETH(500e18);
 
-        assertEq(expectedETHWithdrawal, 607.511715620589663161e18);
+        assertEq(expectedStETHWithdrawal, 607.511715620589663161e18);
 
         vm.record();
+
+        uint256[] memory expectedRequestIds = new uint256[](1);
+
+        expectedRequestIds[0] = WITHDRAW_QUEUE.getLastRequestId() + 1;
+
+        vm.expectEmit(address(mainnetController));
+        emit IWSTETHFacet.WSTETHRequestWithdraw({
+            amountToRedeem : 500e18,
+            stethAmount    : expectedStETHWithdrawal,
+            requestIds     : expectedRequestIds
+        });
 
         vm.prank(relayer);
         uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(500e18);
@@ -203,7 +227,7 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
 
         assertEq(
             rateLimits.getCurrentRateLimit(requestWithdrawKey),
-            1_000e18 - expectedETHWithdrawal
+            1_000e18 - expectedStETHWithdrawal
         );
 
         assertEq(requestIds.length, 1);
@@ -212,7 +236,7 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
 
         assertApproxEqAbs(statuses[0].amountOfShares, 500e18, 1);
 
-        assertEq(statuses[0].amountOfSTETH, expectedETHWithdrawal);
+        assertEq(statuses[0].amountOfSTETH, expectedStETHWithdrawal);
         assertEq(statuses[0].owner,         address(almProxy));
         assertEq(statuses[0].timestamp,     block.timestamp);
         assertEq(statuses[0].isFinalized,   false);
@@ -262,6 +286,9 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         assertEq(WETH.balanceOf(address(almProxy)),   1_000e18);
         assertEq(WSTETH.balanceOf(address(almProxy)), 0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IWSTETHFacet.WSTETHDeposit({ amount: 1_000e18 });
+
         vm.prank(relayer);
         mainnetController.depositToWstETH(1_000e18);
 
@@ -273,9 +300,20 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
 
         assertApproxEqAbs(WSTETH.getStETHByWstETH(WSTETH.balanceOf(address(almProxy))), 1_000e18, 2);
 
-        uint256 expectedETHWithdrawal = WSTETH.getStETHByWstETH(5e18);
+        uint256 expectedStETHWithdrawal = WSTETH.getStETHByWstETH(5e18);
 
-        assertEq(expectedETHWithdrawal, 6.075117156205896631e18);
+        assertEq(expectedStETHWithdrawal, 6.075117156205896631e18);
+
+        uint256[] memory expectedRequestIds = new uint256[](1);
+
+        expectedRequestIds[0] = WITHDRAW_QUEUE.getLastRequestId() + 1;
+
+        vm.expectEmit(address(mainnetController));
+        emit IWSTETHFacet.WSTETHRequestWithdraw({
+            amountToRedeem : 5e18,
+            stethAmount    : expectedStETHWithdrawal,
+            requestIds     : expectedRequestIds
+        });
 
         // NOTE: Requesting for a small withdrawal so that it can be finalized.
         vm.prank(relayer);
@@ -285,7 +323,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
 
         assertEq(
             rateLimits.getCurrentRateLimit(requestWithdrawKey),
-            1_000e18 - expectedETHWithdrawal
+            1_000e18 - expectedStETHWithdrawal
         );
 
         assertEq(requestIds.length, 1);
@@ -294,7 +332,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
 
         assertApproxEqAbs(statuses[0].amountOfShares, 5e18, 1);
 
-        assertEq(statuses[0].amountOfSTETH, expectedETHWithdrawal);
+        assertEq(statuses[0].amountOfSTETH, expectedStETHWithdrawal);
         assertEq(statuses[0].owner,         address(almProxy));
         assertEq(statuses[0].timestamp,     block.timestamp);
         assertEq(statuses[0].isFinalized,   false);
@@ -310,6 +348,12 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit IWSTETHFacet.WSTETHClaimWithdrawal({
+            requestId   : requestIds[0],
+            wethClaimed : expectedStETHWithdrawal
+        });
+
         vm.prank(relayer);
         mainnetController.claimWithdrawalFromWstETH(requestIds[0]);
 
@@ -320,7 +364,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         assertEq(statuses[0].isFinalized, true);
         assertEq(statuses[0].isClaimed,   true);
 
-        assertEq(WETH.balanceOf(address(almProxy)),   expectedETHWithdrawal);
+        assertEq(WETH.balanceOf(address(almProxy)),   expectedStETHWithdrawal);
         assertEq(WSTETH.balanceOf(address(almProxy)), 818.02939539073162522e18);
 
         assertApproxEqAbs(

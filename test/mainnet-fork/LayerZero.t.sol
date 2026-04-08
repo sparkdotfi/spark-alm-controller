@@ -277,13 +277,21 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         vm.record();
 
         vm.expectEmit(USDT_OFT);
-        emit ILayerZeroLike.OFTSent(
-            bytes32(0xb6ebf135f758657b482818d84091e50f1af1cb378bd6f4e013f45dfa6f860cd6),
-            DESTINATION_ENDPOINT_ID,
-            address(almProxy),
-            10_000_000e6,
-            10_000_000e6
-        );
+        emit ILayerZeroLike.OFTSent({
+            guid             : bytes32(0xb6ebf135f758657b482818d84091e50f1af1cb378bd6f4e013f45dfa6f860cd6),
+            dstEid           : DESTINATION_ENDPOINT_ID,
+            fromAddress      : address(almProxy),
+            amountSentLD     : 10_000_000e6,
+            amountReceivedLD : 10_000_000e6
+        });
+
+        vm.expectEmit(address(mainnetController));
+        emit ILayerZeroFacet.LayerZeroTransfer({
+            oftAddress            : USDT_OFT,
+            destinationEndpointId : DESTINATION_ENDPOINT_ID,
+            amount                : 10_000_000e6,
+            nativeFeePaid         : fee.nativeFee
+        });
 
         vm.prank(relayer);
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
@@ -345,13 +353,21 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         vm.record();
 
         vm.expectEmit(USDT_OFT);
-        emit ILayerZeroLike.OFTSent(
-            bytes32(0xb6ebf135f758657b482818d84091e50f1af1cb378bd6f4e013f45dfa6f860cd6),
-            DESTINATION_ENDPOINT_ID,
-            address(almProxy),
-            10_000_000e6,
-            10_000_000e6
-        );
+        emit ILayerZeroLike.OFTSent({
+            guid             : bytes32(0xb6ebf135f758657b482818d84091e50f1af1cb378bd6f4e013f45dfa6f860cd6),
+            dstEid           : DESTINATION_ENDPOINT_ID,
+            fromAddress      : address(almProxy),
+            amountSentLD     : 10_000_000e6,
+            amountReceivedLD : 10_000_000e6
+        });
+
+        vm.expectEmit(address(mainnetController));
+        emit ILayerZeroFacet.LayerZeroTransfer({
+            oftAddress            : USDT_OFT,
+            destinationEndpointId : DESTINATION_ENDPOINT_ID,
+            amount                : 10_000_000e6,
+            nativeFeePaid         : fee.nativeFee
+        });
 
         // Sending more native token than required to cover the fee.
         vm.prank(relayer);
@@ -701,13 +717,21 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         vm.record();
 
         vm.expectEmit(USDT_OFT);
-        emit ILayerZeroLike.OFTSent(
-            bytes32(0xce4454206df6ee6a9cab360f7d76fd11ae258f65a9e8cc88faf1110c0bb36864),
-            DESTINATION_ENDPOINT_ID,
-            address(foreignAlmProxy),
-            10_000_000e6,
-            10_000_000e6
-        );
+        emit ILayerZeroLike.OFTSent({
+            guid             : bytes32(0xce4454206df6ee6a9cab360f7d76fd11ae258f65a9e8cc88faf1110c0bb36864),
+            dstEid           : DESTINATION_ENDPOINT_ID,
+            fromAddress      : address(foreignAlmProxy),
+            amountSentLD     : 10_000_000e6,
+            amountReceivedLD : 10_000_000e6
+        });
+
+        vm.expectEmit(address(foreignController));
+        emit ILayerZeroFacet.LayerZeroTransfer({
+            oftAddress            : USDT_OFT,
+            destinationEndpointId : DESTINATION_ENDPOINT_ID,
+            amount                : 10_000_000e6,
+            nativeFeePaid         : fee.nativeFee
+        });
 
         vm.prank(relayer);
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
@@ -766,13 +790,21 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         vm.record();
 
         vm.expectEmit(USDT_OFT);
-        emit ILayerZeroLike.OFTSent(
-            bytes32(0xce4454206df6ee6a9cab360f7d76fd11ae258f65a9e8cc88faf1110c0bb36864),
-            DESTINATION_ENDPOINT_ID,
-            address(foreignAlmProxy),
-            10_000_000e6,
-            10_000_000e6
-        );
+        emit ILayerZeroLike.OFTSent({
+            guid             : bytes32(0xce4454206df6ee6a9cab360f7d76fd11ae258f65a9e8cc88faf1110c0bb36864),
+            dstEid           : DESTINATION_ENDPOINT_ID,
+            fromAddress      : address(foreignAlmProxy),
+            amountSentLD     : 10_000_000e6,
+            amountReceivedLD : 10_000_000e6
+        });
+
+        vm.expectEmit(address(foreignController));
+        emit ILayerZeroFacet.LayerZeroTransfer({
+            oftAddress            : USDT_OFT,
+            destinationEndpointId : DESTINATION_ENDPOINT_ID,
+            amount                : 10_000_000e6,
+            nativeFeePaid         : fee.nativeFee
+        });
 
         // Sending more native token than required to cover the fee.
         vm.prank(relayer);

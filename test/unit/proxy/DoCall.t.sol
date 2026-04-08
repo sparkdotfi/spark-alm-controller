@@ -68,7 +68,13 @@ contract ALMProxy_DoCall_SuccessTests is ALMProxy_Call_TestBase {
     function test_doCall() public {
         // ALM Proxy is msg.sender, target emits the event
         vm.expectEmit(target);
-        emit ExampleEvent(exampleAddress, 42, 84, address(almProxy), 0);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : address(almProxy),
+            value          : 0
+        });
         vm.prank(controller);
         bytes memory returnData = almProxy.doCall(target, data);
 
@@ -121,7 +127,13 @@ contract ALMProxy_DoCallWithValue_SuccessTests is ALMProxy_Call_TestBase {
 
         // ALM Proxy is msg.sender, target emits the event
         vm.expectEmit(target);
-        emit ExampleEvent(exampleAddress, 42, 84, address(almProxy), 1e18);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : address(almProxy),
+            value          : 1e18
+        });
         vm.prank(controller);
         bytes memory returnData = almProxy.doCallWithValue(target, data, 1e18);
 
@@ -133,7 +145,13 @@ contract ALMProxy_DoCallWithValue_SuccessTests is ALMProxy_Call_TestBase {
 
         // ALM Proxy is msg.sender, target emits the event, msg.value sent to proxy then target
         vm.expectEmit(target);
-        emit ExampleEvent(exampleAddress, 42, 84, address(almProxy), 1e18);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : address(almProxy),
+            value          : 1e18
+        });
         vm.prank(controller);
         bytes memory returnData = almProxy.doCallWithValue{value: 1e18}(target, data, 1e18);
 
@@ -168,7 +186,13 @@ contract ALMProxy_DoDelegateCall_SuccessTests is ALMProxy_Call_TestBase {
     function test_doDelegateCall() public {
         // L1 Controller is msg.sender, almProxy emits the event
         vm.expectEmit(address(almProxy));
-        emit ExampleEvent(exampleAddress, 42, 84, controller, 0);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : controller,
+            value          : 0
+        });
         vm.prank(controller);
         bytes memory returnData = almProxy.doDelegateCall(target, data);
 
@@ -236,7 +260,13 @@ contract ALMProxyFreezable_DoCall_SuccessTests is ALMProxyFreezable_Call_TestBas
     function test_doCall() public {
         // ALM Proxy is msg.sender, target emits the event
         vm.expectEmit(target);
-        emit ExampleEvent(exampleAddress, 42, 84, address(almProxyFreezable), 0);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : address(almProxyFreezable),
+            value          : 0
+        });
         vm.prank(relayer);
         bytes memory returnData = almProxyFreezable.doCall(target, data);
 
@@ -289,7 +319,13 @@ contract ALMProxyFreezable_DoCallWithValue_SuccessTests is ALMProxyFreezable_Cal
 
         // ALM Proxy is msg.sender, target emits the event
         vm.expectEmit(target);
-        emit ExampleEvent(exampleAddress, 42, 84, address(almProxyFreezable), 1e18);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : address(almProxyFreezable),
+            value          : 1e18
+        });
         vm.prank(relayer);
         bytes memory returnData = almProxyFreezable.doCallWithValue(target, data, 1e18);
 
@@ -301,7 +337,13 @@ contract ALMProxyFreezable_DoCallWithValue_SuccessTests is ALMProxyFreezable_Cal
 
         // ALM Proxy is msg.sender, target emits the event, msg.value sent to proxy then target
         vm.expectEmit(target);
-        emit ExampleEvent(exampleAddress, 42, 84, address(almProxyFreezable), 1e18);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : address(almProxyFreezable),
+            value          : 1e18
+        });
         vm.prank(relayer);
         bytes memory returnData = almProxyFreezable.doCallWithValue{value: 1e18}(target, data, 1e18);
 

@@ -70,7 +70,13 @@ contract ALMProxy_Freezable_RemoveRelayer_SuccessTests is Freezable_RemoveRelaye
     function test_removeRelayer() public {
         // ALM Proxy Freezable is msg.sender, target emits the event
         vm.expectEmit(target);
-        emit ExampleEvent(exampleAddress, 42, 84, address(almProxyFreezable), 0);
+        emit ExampleEvent({
+            exampleAddress : exampleAddress,
+            exampleValue   : 42,
+            exampleReturn  : 84,
+            caller         : address(almProxyFreezable),
+            value          : 0
+        });
         vm.prank(relayer);
         bytes memory returnData = almProxyFreezable.doCall(target, data);
 
@@ -82,7 +88,7 @@ contract ALMProxy_Freezable_RemoveRelayer_SuccessTests is Freezable_RemoveRelaye
         // Freezer comes in and removes relayer.
         vm.prank(freezer);
         vm.expectEmit(address(almProxyFreezable));
-        emit RelayerRemoved(relayer);
+        emit RelayerRemoved({ relayer: relayer });
         almProxyFreezable.removeRelayer(relayer);
 
         // After no longer has relayer role

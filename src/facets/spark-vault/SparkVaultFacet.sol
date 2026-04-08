@@ -44,6 +44,8 @@ contract SparkVaultFacet is ISparkVaultFacet, FacetBase {
         );
 
         IALMProxy($.proxy).doCall(sparkVault, abi.encodeCall(ISparkVaultLike.take, (assetAmount)));
+
+        emit SparkVaultTake(sparkVault, assetAmount);
     }
 
 }

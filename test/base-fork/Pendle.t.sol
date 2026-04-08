@@ -8,6 +8,8 @@ import { Base as GroveBase } from "../../lib/grove-address-registry/src/Base.sol
 
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { IPendleFacet } from "../../src/facets/pendle/IPendleFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -192,6 +194,13 @@ contract ForeignController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         uint256 pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
         uint256 exactAmountOut = 50_000e18 * 1e18 / pyIndexCurrent;
 
+        vm.expectEmit(address(foreignController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 50_000e18,
+            totalTokenOutAmount : exactAmountOut
+        });
+
         vm.prank(relayer);
         foreignController.redeemPendlePT(address(pendleMarket), 50_000e18, exactAmountOut);
 
@@ -202,6 +211,13 @@ contract ForeignController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
         exactAmountOut = 50_000e18 * 1e18 / pyIndexCurrent;
+
+        vm.expectEmit(address(foreignController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 50_000e18,
+            totalTokenOutAmount : exactAmountOut
+        });
 
         vm.prank(relayer);
         foreignController.redeemPendlePT(address(pendleMarket), 50_000e18, exactAmountOut);

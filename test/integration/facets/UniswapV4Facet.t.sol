@@ -131,7 +131,7 @@ contract Controller_UniswapV4_Admin_Tests is UniswapV4_TestBase {
 
     function test_setMaxSlippage() external {
         vm.expectEmit(address(controller));
-        emit IUniswapV4Facet.UniswapV4MaxSlippageSet(_POOL_ID, 0.98e18);
+        emit IUniswapV4Facet.UniswapV4MaxSlippageSet({ poolId: _POOL_ID, maxSlippage: 0.98e18 });
 
         vm.record();
 
@@ -195,7 +195,12 @@ contract Controller_UniswapV4_Admin_Tests is UniswapV4_TestBase {
 
     function test_setTickLimits() external {
         vm.expectEmit(address(controller));
-        emit IUniswapV4Facet.UniswapV4TickLimitsSet(_POOL_ID, -60, 60, 20);
+        emit IUniswapV4Facet.UniswapV4TickLimitsSet({
+            poolId         : _POOL_ID,
+            tickLowerMin   : -60,
+            tickUpperMax   : 60,
+            maxTickSpacing : 20
+        });
 
         vm.record();
 

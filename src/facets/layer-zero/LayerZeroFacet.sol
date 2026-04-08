@@ -227,6 +227,8 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
 
             require(success, "LayerZeroFacet/refund-failed");
         }
+
+        emit LayerZeroTransfer(oftAddress, destinationEndpointId, amount, fee.nativeFee);
     }
 
     /**********************************************************************************************/

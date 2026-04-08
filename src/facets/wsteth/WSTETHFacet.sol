@@ -77,6 +77,8 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
         IALMProxy(proxy).doCall(weth, abi.encodeCall(IWETHLike.withdraw, (amount)));
 
         IALMProxy(proxy).doCallWithValue(wsteth, "", amount);
+
+        emit WSTETHDeposit(amount);
     }
 
     function requestWithdraw(uint256 amountToRedeem)
@@ -100,7 +102,7 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
         uint256[] memory amountsToRedeem = new uint256[](1);
         amountsToRedeem[0] = amountToRedeem;
 
-        return abi.decode(
+        requestIds = abi.decode(
             IALMProxy(proxy).doCall(
                 withdrawQueue,
                 abi.encodeCall(
@@ -110,6 +112,8 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
             ),
             (uint256[])
         );
+
+        emit WSTETHRequestWithdraw(amountToRedeem, stethAmount, requestIds);
     }
 
     function claimWithdrawal(uint256 requestId)
@@ -133,7 +137,11 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
             abi.encodeCall(IWithdrawalQueueLike.claimWithdrawal, (requestId))
         );
 
-        IALMProxy(proxy).doCallWithValue(weth, "", proxy.balance - initialETHBalance);
+        uint256 ethClaimed = proxy.balance - initialETHBalance;
+
+        IALMProxy(proxy).doCallWithValue(weth, "", ethClaimed);
+
+        emit WSTETHClaimWithdrawal(requestId, ethClaimed);
     }
 
     /**********************************************************************************************/

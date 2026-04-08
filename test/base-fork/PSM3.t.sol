@@ -7,6 +7,8 @@ import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { IPSM3Facet } from "../../src/facets/psm3/IPSM3Facet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -124,6 +126,9 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Deposit({ asset: address(usdsBase), amount: 100e18, shares: 100e18 });
+
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(usdsBase), 100e18);
 
@@ -161,6 +166,9 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Deposit({ asset: Base.USDC, amount: 100e6, shares: 100e18 });
+
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(Base.USDC, 100e6);
 
@@ -197,6 +205,13 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         });
 
         vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Deposit({
+            asset  : address(susdsBase),
+            amount : 100e18,
+            shares : 100.343092065533568746e18
+        });
 
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
@@ -342,6 +357,10 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();
 
         deal(address(usdsBase), address(almProxy), 100e18);
+
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Deposit({ asset: address(usdsBase), amount: 100e18, shares: 100e18 });
+
         vm.prank(relayer);
         foreignController.depositPSM(address(usdsBase), 100e18);
 
@@ -357,6 +376,13 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         });
 
         vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Withdraw({
+            asset           : address(usdsBase),
+            assetsWithdrawn : 100e18,
+            sharesBurnt     : 100e18
+        });
 
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(usdsBase), 100e18);
@@ -382,6 +408,9 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         deal(Base.USDC, address(almProxy), 100e6);
 
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Deposit({ asset: Base.USDC, amount: 100e6, shares: 100e18 });
+
         vm.prank(relayer);
         foreignController.depositPSM(Base.USDC, 100e6);
 
@@ -397,6 +426,13 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         });
 
         vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Withdraw({
+            asset           : Base.USDC,
+            assetsWithdrawn : 100e6,
+            sharesBurnt     : 100e18
+        });
 
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(Base.USDC, 100e6);
@@ -422,6 +458,13 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         deal(address(susdsBase), address(almProxy), 100e18);
 
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Deposit({
+            asset  : address(susdsBase),
+            amount : 100e18,
+            shares : 100.343092065533568746e18
+        });
+
         vm.prank(relayer);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
 
@@ -439,6 +482,13 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         });
 
         vm.record();
+
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Withdraw({
+            asset           : address(susdsBase),
+            assetsWithdrawn : 100e18 - 1,
+            sharesBurnt     : shares
+        });
 
         vm.prank(relayer);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(susdsBase), 100e18);

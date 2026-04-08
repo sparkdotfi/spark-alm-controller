@@ -6,6 +6,25 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IWEETHFacet is IFacetBase {
 
     /**********************************************************************************************/
+    /*** Events                                                                                 ***/
+    /**********************************************************************************************/
+
+    event WEETHClaimWithdrawal(
+        address indexed weethModule,
+        uint256 indexed requestId,
+        uint256         ethReceived
+    );
+
+    event WEETHDeposit(uint256 amount, uint256 eethAmount, uint256 shares);
+
+    event WEETHRequestWithdraw(
+        address indexed weethModule,
+        uint256 indexed requestId,
+        uint256         eethAmount,
+        uint256         weethShares
+    );
+
+    /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 

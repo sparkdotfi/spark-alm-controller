@@ -1179,50 +1179,50 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         // NOTE: Focusing on burnToken, amount, depositor, mintRecipient, and destinationDomain
         //       for assertions
         vm.expectEmit(CCTP_MESSENGER);
-        emit ICCTPLike.DepositForBurn(
-            Ethereum.USDC,
-            amount,
-            address(almProxy),
-            mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
-            bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),  // TokenMessenger v2
-            bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),  // DestinationCaller
-            0,                                                                            // MaxFee
-            2_000,                                                                        // MinFinalityThreshold
-            ""
-        );
+        emit ICCTPLike.DepositForBurn({
+            burnToken                 : Ethereum.USDC,
+            amount                    : amount,
+            depositor                 : address(almProxy),
+            mintRecipient             : mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            destinationDomain         : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
+            destinationTokenMessenger : bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),
+            destinationCaller         : bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),
+            maxFee                    : 0,
+            minFinalityThreshold      : 2_000,
+            hookData                  : ""
+        });
 
         vm.expectEmit(address(mainnetController));
-        emit ICCTPFacet.CCTPTransferInitiated(
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
-            mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
-            amount
-        );
+        emit ICCTPFacet.CCTPTransferInitiated({
+            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
+            mintRecipient     : mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            amount            : amount
+        });
     }
 
     function _expectBaseCCTPEmit(uint64 nonce, uint256 amount) internal {
         // NOTE: Focusing on burnToken, amount, depositor, mintRecipient, and destinationDomain
         //       for assertions
         vm.expectEmit(BASE_CCTP_TOKEN_MESSENGER);
-        emit ICCTPLike.DepositForBurn(
-            Base.USDC,
-            amount,
-            address(foreignAlmProxy),
-            foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),  // TokenMessenger v2
-            bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),  // DestinationCaller
-            0,                                                                            // MaxFee
-            2_000,                                                                        // MinFinalityThreshold
-            ""
-        );
+        emit ICCTPLike.DepositForBurn({
+            burnToken                 : Base.USDC,
+            amount                    : amount,
+            depositor                 : address(foreignAlmProxy),
+            mintRecipient             : foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
+            destinationDomain         : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            destinationTokenMessenger : bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),
+            destinationCaller         : bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),
+            maxFee                    : 0,
+            minFinalityThreshold      : 2_000,
+            hookData                  : ""
+        });
 
         vm.expectEmit(address(foreignController));
-        emit ICCTPFacet.CCTPTransferInitiated(
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
-            amount
-        );
+        emit ICCTPFacet.CCTPTransferInitiated({
+            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            mintRecipient     : foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
+            amount            : amount
+        });
     }
 
 }
@@ -1510,50 +1510,50 @@ contract CCTP_TransferWithFee_IntegrationTests is BaseChain_CCTP_TestBase {
         // NOTE: Focusing on burnToken, amount, depositor, mintRecipient, and destinationDomain
         //       for assertions
         vm.expectEmit(CCTP_MESSENGER);
-        emit ICCTPLike.DepositForBurn(
-            Ethereum.USDC,
-            amount,
-            address(almProxy),
-            mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
-            bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),  // TokenMessenger v2
-            bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),  // DestinationCaller
-            maxFee,                                                                       // MaxFee
-            2_000,                                                                        // MinFinalityThreshold
-            ""
-        );
+        emit ICCTPLike.DepositForBurn({
+            burnToken                 : Ethereum.USDC,
+            amount                    : amount,
+            depositor                 : address(almProxy),
+            mintRecipient             : mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            destinationDomain         : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
+            destinationTokenMessenger : bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),
+            destinationCaller         : bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),
+            maxFee                    : maxFee,
+            minFinalityThreshold      : 2_000,
+            hookData                  : ""
+        });
 
         vm.expectEmit(address(mainnetController));
-        emit ICCTPFacet.CCTPTransferInitiated(
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
-            mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
-            amount
-        );
+        emit ICCTPFacet.CCTPTransferInitiated({
+            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
+            mintRecipient     : mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            amount            : amount
+        });
     }
 
     function _expectBaseCCTPEmit(uint64 nonce, uint256 amount, uint256 maxFee) internal {
         // NOTE: Focusing on burnToken, amount, depositor, mintRecipient, and destinationDomain
         //       for assertions
         vm.expectEmit(BASE_CCTP_TOKEN_MESSENGER);
-        emit ICCTPLike.DepositForBurn(
-            Base.USDC,
-            amount,
-            address(foreignAlmProxy),
-            foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),  // TokenMessenger v2
-            bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),  // DestinationCaller
-            maxFee,                                                                       // MaxFee
-            2_000,                                                                        // MinFinalityThreshold
-            ""
-        );
+        emit ICCTPLike.DepositForBurn({
+            burnToken                 : Base.USDC,
+            amount                    : amount,
+            depositor                 : address(foreignAlmProxy),
+            mintRecipient             : foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
+            destinationDomain         : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            destinationTokenMessenger : bytes32(0x00000000000000000000000028b5a0e9c621a5badaa536219b3a228c8168cf5d),
+            destinationCaller         : bytes32(0x0000000000000000000000000000000000000000000000000000000000000000),
+            maxFee                    : maxFee,
+            minFinalityThreshold      : 2_000,
+            hookData                  : ""
+        });
 
         vm.expectEmit(address(foreignController));
-        emit ICCTPFacet.CCTPTransferInitiated(
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
-            amount
-        );
+        emit ICCTPFacet.CCTPTransferInitiated({
+            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            mintRecipient     : foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
+            amount            : amount
+        });
     }
 
 }

@@ -9,7 +9,11 @@ interface IAaveFacet is IFacetBase {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event AaveDeposit(address indexed aToken, uint256 amount);
+
     event AaveMaxSlippageSet(address indexed aToken, uint256 maxSlippage);
+
+    event AaveWithdraw(address indexed aToken, uint256 amountWithdrawn);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

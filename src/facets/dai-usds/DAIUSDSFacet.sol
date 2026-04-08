@@ -61,6 +61,8 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
             daiUSDS,
             abi.encodeCall(IDAIUSDSLike.usdsToDai, (proxy, usdsAmount))
         );
+
+        emit DAIUSDSSwapUSDSToDAI(usdsAmount);
     }
 
     function swapDAIToUSDS(uint256 daiAmount)
@@ -77,6 +79,8 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
             daiUSDS,
             abi.encodeCall(IDAIUSDSLike.daiToUsds, (proxy, daiAmount))
         );
+
+        emit DAIUSDSSwapDAIToUSDS(daiAmount);
     }
 
 }

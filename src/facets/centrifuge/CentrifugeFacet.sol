@@ -120,6 +120,8 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
             token,
             abi.encodeCall(ICentrifugeV3VaultLike(token).cancelDepositRequest, (REQUEST_ID, proxy))
         );
+
+        emit CentrifugeCancelDepositRequest(token);
     }
 
     function claimCancelDepositRequest(address token)
@@ -139,6 +141,8 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
                 (REQUEST_ID, proxy, proxy)
             )
         );
+
+        emit CentrifugeClaimCancelDepositRequest(token);
     }
 
     function cancelRedeemRequest(address token)
@@ -156,6 +160,8 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
             token,
             abi.encodeCall(ICentrifugeV3VaultLike(token).cancelRedeemRequest, (REQUEST_ID, proxy))
         );
+
+        emit CentrifugeCancelRedeemRequest(token);
     }
 
     function claimCancelRedeemRequest(address token)
@@ -175,6 +181,8 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
                 (REQUEST_ID, proxy, proxy)
             )
         );
+
+        emit CentrifugeClaimCancelRedeemRequest(token);
     }
 
     function transferShares(address token, uint128 amount, uint16 centrifugeId)
@@ -214,6 +222,8 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
             ),
             msg.value
         );
+
+        emit CentrifugeTransferShares(token, amount, centrifugeId);
     }
 
     /**********************************************************************************************/

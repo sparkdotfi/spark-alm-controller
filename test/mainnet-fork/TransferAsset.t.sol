@@ -7,6 +7,8 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
+
 import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -109,6 +111,13 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit ITransferAssetFacet.TransferAssetFacetTransfer({
+            asset       : Ethereum.USDC,
+            destination : receiver,
+            amount      : 1_000_000e6
+        });
+
         vm.prank(relayer);
         mainnetController.transferAsset(Ethereum.USDC, receiver, 1_000_000e6);
 
@@ -137,6 +146,13 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
 
         assertEq(USDT.balanceOf(receiver),          0);
         assertEq(USDT.balanceOf(address(almProxy)), 1_000_000e6);
+
+        vm.expectEmit(address(mainnetController));
+        emit ITransferAssetFacet.TransferAssetFacetTransfer({
+            asset       : Ethereum.USDT,
+            destination : receiver,
+            amount      : 1_000_000e6
+        });
 
         vm.prank(relayer);
         mainnetController.transferAsset(Ethereum.USDT, receiver, 1_000_000e6);

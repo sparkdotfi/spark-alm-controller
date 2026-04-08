@@ -9,7 +9,17 @@ interface ICentrifugeFacet is IFacetBase {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event CentrifugeCancelDepositRequest(address indexed token);
+
+    event CentrifugeCancelRedeemRequest(address indexed token);
+
+    event CentrifugeClaimCancelDepositRequest(address indexed token);
+
+    event CentrifugeClaimCancelRedeemRequest(address indexed token);
+
     event CentrifugeRecipientSet(uint16 indexed centrifugeId, bytes32 indexed recipient);
+
+    event CentrifugeTransferShares(address indexed token, uint128 amount, uint16 indexed centrifugeId);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

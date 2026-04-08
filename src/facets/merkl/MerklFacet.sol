@@ -51,6 +51,8 @@ contract MerklFacet is IMerklFacet, FacetBase {
             distributor,
             abi.encodeCall(IMerklDistributorLike.toggleOperator, (proxy, operator))
         );
+
+        emit MerklToggleOperator(operator);
     }
 
 }

@@ -126,6 +126,8 @@ contract PendleFacet is IPendleFacet, FacetBase {
             makeAddressKey(LIMIT_REDEEM, market),
             totalTokenOutAmount
         );
+
+        emit PendleRedeem(market, pyAmountIn, totalTokenOutAmount);
     }
 
     /**********************************************************************************************/

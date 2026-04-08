@@ -5,7 +5,11 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IERC4626Facet } from "../../src/facets/erc4626/IERC4626Facet.sol";
+
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+
+import { IMapleFacet } from "../../src/facets/maple/IMapleFacet.sol";
 
 import {
     IMapleTokenExtendedLike,
@@ -179,6 +183,13 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
         assertEq(SYRUP.totalAssets(),                syrupTotalAssets);
         assertEq(SYRUP.balanceOf(address(almProxy)), 0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IERC4626Facet.ERC4626Deposit({
+            token  : address(SYRUP),
+            assets : 1_000_000e6,
+            shares : syrupConvertedShares
+        });
+
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(
             address(SYRUP),
@@ -265,6 +276,12 @@ contract MainnetController_Maple_RequestRedemption_Tests is Maple_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit IMapleFacet.MapleRequestRedemption({
+            mapleToken : address(SYRUP),
+            shares     : proxyShares
+        });
+
         vm.prank(relayer);
         mainnetController.requestMapleRedemption(address(SYRUP), proxyShares);
 
@@ -309,12 +326,21 @@ contract MainnetController_Maple_CancelRedemption_Tests is Maple_TestBase {
 
         uint256 proxyShares = mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, 0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IMapleFacet.MapleRequestRedemption({
+            mapleToken : address(SYRUP),
+            shares     : proxyShares
+        });
+
         mainnetController.requestMapleRedemption(address(SYRUP), proxyShares);
 
         assertEq(SYRUP.balanceOf(withdrawalManager), totalEscrowedShares + proxyShares);
         assertEq(SYRUP.balanceOf(address(almProxy)), 0);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IMapleFacet.MapleCancelRedemption({ mapleToken: address(SYRUP), shares: proxyShares });
 
         mainnetController.cancelMapleRedemption(address(SYRUP), proxyShares);
 

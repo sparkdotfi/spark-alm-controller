@@ -10,6 +10,8 @@ import { SparkVault } from "../../lib/spark-vaults-v2/src/SparkVault.sol";
 
 import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { ISparkVaultFacet } from "../../src/facets/spark-vault/ISparkVaultFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -139,6 +141,12 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit ISparkVaultFacet.SparkVaultTake({
+            sparkVault  : address(sparkVault),
+            assetAmount : 1_000_000e6
+        });
+
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e6);
 
@@ -159,6 +167,12 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         testState.rateLimit += rateLimitIncreaseInOneHour;
 
         _assertTestState(testState);
+
+        vm.expectEmit(address(mainnetController));
+        emit ISparkVaultFacet.SparkVaultTake({
+            sparkVault  : address(sparkVault),
+            assetAmount : rateLimitIncreaseInOneHour
+        });
 
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
@@ -197,6 +211,12 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         });
 
         _assertTestState(testState);
+
+        vm.expectEmit(address(mainnetController));
+        emit ISparkVaultFacet.SparkVaultTake({
+            sparkVault  : address(sparkVault),
+            assetAmount : takeAmount
+        });
 
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
@@ -320,6 +340,12 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         skip(1 days);
 
         // Step 3: Take usdc from the spark vault
+
+        vm.expectEmit(address(mainnetController));
+        emit ISparkVaultFacet.SparkVaultTake({
+            sparkVault  : address(sparkVault),
+            assetAmount : 9_000_000e6
+        });
 
         vm.prank(relayer);
         mainnetController.takeFromSparkVault(address(sparkVault), 9_000_000e6);

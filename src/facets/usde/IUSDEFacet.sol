@@ -6,6 +6,24 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IUSDEFacet is IFacetBase {
 
     /**********************************************************************************************/
+    /*** Events                                                                                 ***/
+    /**********************************************************************************************/
+
+    event USDECooldownAssets(uint256 usdeAmount, uint256 shares);
+
+    event USDECooldownShares(uint256 susdeAmount, uint256 assets);
+
+    event USDEPrepareBurn(uint256 usdeAmount);
+
+    event USDEPrepareMint(uint256 usdcAmount);
+
+    event USDERemoveDelegatedSigner(address indexed delegatedSigner);
+
+    event USDESetDelegatedSigner(address indexed delegatedSigner);
+
+    event USDEUnstakeSUSDE(uint256 assets);
+
+    /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 

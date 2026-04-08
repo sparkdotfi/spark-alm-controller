@@ -144,10 +144,12 @@ contract CurveFacet is ICurveFacet, FacetBase {
             minAmountOut : minAmountOut
         });
 
-        return abi.decode(
+        amountOut = abi.decode(
             IALMProxy(_getSharedControllerStorage().proxy).doCall(pool, callData),
             (uint256)
         );
+
+        emit CurveSwap(pool, inputIndex, outputIndex, amountIn, amountOut);
     }
 
     function addLiquidity(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
@@ -201,6 +203,8 @@ contract CurveFacet is ICurveFacet, FacetBase {
         );
 
         _applySwapRateLimit(pool, depositAmounts, rates, shares);
+
+        emit CurveAddLiquidity(pool, shares, valueDeposited, depositAmounts);
     }
 
     function removeLiquidity(
@@ -261,6 +265,8 @@ contract CurveFacet is ICurveFacet, FacetBase {
         valueWithdrawn /= 1e18;
 
         _decreaseRateLimit(LIMIT_WITHDRAW, pool, valueWithdrawn);
+
+        emit CurveRemoveLiquidity(pool, lpBurnAmount, valueWithdrawn, withdrawnTokens);
     }
 
     /**********************************************************************************************/

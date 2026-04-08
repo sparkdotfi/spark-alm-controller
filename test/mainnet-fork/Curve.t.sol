@@ -3,6 +3,8 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+import { ICurveFacet } from "../../src/facets/curve/ICurveFacet.sol";
+
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -18,6 +20,8 @@ interface IERC20Like {
 }
 
 interface ICurvePoolLike {
+
+    function calc_token_amount(uint256[] memory amounts, bool is_deposit) external view returns (uint256);
 
     function get_virtual_price() external view returns (uint256);
 
@@ -233,7 +237,7 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
         amounts[0] = 1_000_000e6;
         amounts[1] = 1_000_000e6;
 
-        uint256 minLpAmount = 1_950_000e18;
+        uint256 minLpAmount = ICurvePoolLike(CURVE_POOL).calc_token_amount(amounts, true);
 
         uint256 startingUSDTBalance = usdt.balanceOf(CURVE_POOL);
         uint256 startingUSDCBalance = usdc.balanceOf(CURVE_POOL);
@@ -256,6 +260,14 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit ICurveFacet.CurveAddLiquidity({
+            pool           : CURVE_POOL,
+            shares         : minLpAmount,
+            valueDeposited : (amounts[0] + amounts[1]) * 1e12,
+            depositAmounts : amounts
+        });
+
         vm.prank(relayer);
         uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
             CURVE_POOL,
@@ -265,7 +277,7 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(lpTokensReceived, 1_987_199.361495730708108741e18);
+        assertEq(lpTokensReceived, minLpAmount);
 
         assertEq(usdc.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy), CURVE_POOL), 0);
@@ -559,7 +571,20 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
         minWithdrawAmounts[0] = 465_000e6;
         minWithdrawAmounts[1] = 1_535_000e6;
 
+        uint256[] memory expectedWithdrawnAmounts = new uint256[](2);
+
+        expectedWithdrawnAmounts[0] = 465_059.586753e6;
+        expectedWithdrawnAmounts[1] = 1_535_013.847298e6;
+
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit ICurveFacet.CurveRemoveLiquidity({
+            pool            : CURVE_POOL,
+            lpBurnAmount    : lpTokensReceived,
+            valueWithdrawn  : (expectedWithdrawnAmounts[0] + expectedWithdrawnAmounts[1]) * 1e12,
+            withdrawnTokens : expectedWithdrawnAmounts
+        });
 
         vm.prank(relayer);
         uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
@@ -570,8 +595,8 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(assetsReceived[0], 465_059.586753e6);
-        assertEq(assetsReceived[1], 1_535_013.847298e6);
+        assertEq(assetsReceived[0], expectedWithdrawnAmounts[0]);
+        assertEq(assetsReceived[1], expectedWithdrawnAmounts[1]);
 
         uint256 sumAssetsReceived = (assetsReceived[0] + assetsReceived[1]) * 1e12;
 
@@ -734,6 +759,15 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         assertEq(usdt.allowance(address(almProxy), CURVE_POOL), 0);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit ICurveFacet.CurveSwap({
+            pool        : CURVE_POOL,
+            inputIndex  : 1,
+            outputIndex : 0,
+            amountIn    : 1_000_000e6,
+            amountOut   : 999_712.1851680e6
+        });
 
         vm.prank(relayer);
         uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 999_500e6);

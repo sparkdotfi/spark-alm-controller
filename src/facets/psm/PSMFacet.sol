@@ -104,6 +104,8 @@ contract PSMFacet is IPSMFacet, FacetBase {
 
         // Swap DAI to USDC through the PSM.
         IALMProxy(proxy).doCall(psm, abi.encodeCall(IPSMLike.buyGemNoFee, (proxy, usdcAmount)));
+
+        emit PSMSwapUSDSToUSDC(usdcAmount);
     }
 
     function swapUSDCToUSDS(uint256 usdcAmount)
@@ -122,6 +124,8 @@ contract PSMFacet is IPSMFacet, FacetBase {
         uint256 conversionFactor = to18ConversionFactor();
         uint256 daiAmount        = usdcAmount * conversionFactor;
         address proxy            = $.proxy;
+
+        emit PSMSwapUSDCToUSDS(usdcAmount);
 
         // Swap all if amount is less than or equal to the max USDC that can be swapped to DAI in
         // one call, else refill and swap in chunks within the limits.

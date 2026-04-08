@@ -9,7 +9,13 @@ interface IERC4626Facet is IFacetBase {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event ERC4626Deposit(address indexed token, uint256 assets, uint256 shares);
+
     event ERC4626MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
+
+    event ERC4626Redeem(address indexed token, uint256 shares, uint256 assets);
+
+    event ERC4626Withdraw(address indexed token, uint256 assets, uint256 shares);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

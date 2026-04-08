@@ -164,7 +164,7 @@ contract Controller_OTCFacet_Admin_Tests is OTCFacet_TestBase {
         assertEq(controller.getBuffer(exchange), address(0));
 
         vm.expectEmit(address(controller));
-        emit IOTCFacet.OTCBufferSet(exchange, buffer);
+        emit IOTCFacet.OTCBufferSet({ exchange: exchange, buffer: buffer });
 
         vm.record();
 
@@ -228,7 +228,7 @@ contract Controller_OTCFacet_Admin_Tests is OTCFacet_TestBase {
         assertEq(controller.getMaxSlippage(exchange), 0);
 
         vm.expectEmit(address(controller));
-        emit IOTCFacet.OTCMaxSlippageSet(exchange, 0.98e18);
+        emit IOTCFacet.OTCMaxSlippageSet({ exchange: exchange, maxSlippage: 0.98e18 });
 
         vm.record();
 
@@ -286,7 +286,7 @@ contract Controller_OTCFacet_Admin_Tests is OTCFacet_TestBase {
         assertEq(controller.getRechargeRate(exchange), 0);
 
         vm.expectEmit(address(controller));
-        emit IOTCFacet.OTCRechargeRateSet(exchange, 1e18);
+        emit IOTCFacet.OTCRechargeRateSet({ exchange: exchange, normalizedRate: 1e18 });
 
         vm.record();
 
@@ -361,7 +361,11 @@ contract Controller_OTCFacet_Admin_Tests is OTCFacet_TestBase {
         assertEq(controller.getIsWhitelisted(exchange, asset), false);
 
         vm.expectEmit(address(controller));
-        emit IOTCFacet.OTCWhitelistedAssetSet(exchange, asset, true);
+        emit IOTCFacet.OTCWhitelistedAssetSet({
+            exchange      : exchange,
+            asset         : asset,
+            isWhitelisted : true
+        });
 
         vm.record();
 
@@ -373,7 +377,11 @@ contract Controller_OTCFacet_Admin_Tests is OTCFacet_TestBase {
         assertEq(controller.getIsWhitelisted(exchange, asset), true);
 
         vm.expectEmit(address(controller));
-        emit IOTCFacet.OTCWhitelistedAssetSet(exchange, asset, false);
+        emit IOTCFacet.OTCWhitelistedAssetSet({
+            exchange      : exchange,
+            asset         : asset,
+            isWhitelisted : false
+        });
 
         vm.prank(admin);
         controller.setIsWhitelisted(exchange, asset, false);

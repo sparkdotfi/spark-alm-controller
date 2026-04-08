@@ -4,6 +4,8 @@ pragma solidity ^0.8.34;
 import { Ethereum as GroveEthereum } from "../../lib/grove-address-registry/src/Ethereum.sol";
 import { Ethereum as SparkEthereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IMerklFacet } from "../../src/facets/merkl/IMerklFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IMerklDistributorLike {
@@ -56,23 +58,47 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
     function test_toggleOperatorMerkl_singleOperator() external {
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
 
-        vm.prank(relayer);
         vm.expectEmit(address(merklDistributor));
-        emit OperatorToggled(address(almProxy), operator1, true);
+        emit OperatorToggled({
+            user          : address(almProxy),
+            operator      : operator1,
+            isWhitelisted : true
+        });
+
+        vm.expectEmit(address(mainnetController));
+        emit IMerklFacet.MerklToggleOperator({ operator: operator1 });
+
+        vm.prank(relayer);
         mainnetController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
 
-        vm.prank(relayer);
         vm.expectEmit(address(merklDistributor));
-        emit OperatorToggled(address(almProxy), operator1, false);
+        emit OperatorToggled({
+            user          : address(almProxy),
+            operator      : operator1,
+            isWhitelisted : false
+        });
+
+        vm.expectEmit(address(mainnetController));
+        emit IMerklFacet.MerklToggleOperator({ operator: operator1 });
+
+        vm.prank(relayer);
         mainnetController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
 
-        vm.prank(relayer);
         vm.expectEmit(address(merklDistributor));
-        emit OperatorToggled(address(almProxy), operator1, true);
+        emit OperatorToggled({
+            user          : address(almProxy),
+            operator      : operator1,
+            isWhitelisted : true
+        });
+
+        vm.expectEmit(address(mainnetController));
+        emit IMerklFacet.MerklToggleOperator({ operator: operator1 });
+
+        vm.prank(relayer);
         mainnetController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
@@ -82,11 +108,17 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IMerklFacet.MerklToggleOperator({ operator: operator1 });
+
         vm.prank(relayer);
         mainnetController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
+
+        vm.expectEmit(address(mainnetController));
+        emit IMerklFacet.MerklToggleOperator({ operator: operator1 });
 
         vm.prank(relayer);
         mainnetController.toggleOperatorMerkl(operator1);
@@ -94,11 +126,17 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IMerklFacet.MerklToggleOperator({ operator: operator1 });
+
         vm.prank(relayer);
         mainnetController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
+
+        vm.expectEmit(address(mainnetController));
+        emit IMerklFacet.MerklToggleOperator({ operator: operator2 });
 
         vm.prank(relayer);
         mainnetController.toggleOperatorMerkl(operator2);

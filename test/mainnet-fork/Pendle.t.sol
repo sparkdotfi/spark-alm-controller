@@ -8,6 +8,8 @@ import { Ethereum as GroveEthereum } from "../../lib/grove-address-registry/src/
 
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { IPendleFacet } from "../../src/facets/pendle/IPendleFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -192,6 +194,13 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         uint256 pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
         uint256 exactAmountOut = 500_000e18 * 1e18 / pyIndexCurrent;
 
+        vm.expectEmit(address(mainnetController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 500_000e18,
+            totalTokenOutAmount : exactAmountOut
+        });
+
         vm.prank(relayer);
         mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
 
@@ -202,6 +211,13 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
         exactAmountOut = 500_000e18 * 1e18 / pyIndexCurrent;
+
+        vm.expectEmit(address(mainnetController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 500_000e18,
+            totalTokenOutAmount : exactAmountOut
+        });
 
         vm.prank(relayer);
         mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
@@ -239,6 +255,13 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         assertEq(exactAmountOut, 500_000e18);
 
+        vm.expectEmit(address(mainnetController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 500_000e18,
+            totalTokenOutAmount : exactAmountOut
+        });
+
         vm.prank(relayer);
         mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
 
@@ -249,6 +272,13 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
         assertEq(pyIndexCurrent, 1e18);
+
+        vm.expectEmit(address(mainnetController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 500_000e18,
+            totalTokenOutAmount : exactAmountOut
+        });
 
         vm.prank(relayer);
         mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
@@ -283,6 +313,13 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         uint256 pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
         uint256 exactAmountOut = 5e18 * 1e18 / pyIndexCurrent;
 
+        vm.expectEmit(address(mainnetController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 5e18,
+            totalTokenOutAmount : exactAmountOut
+        });
+
         vm.prank(relayer);
         mainnetController.redeemPendlePT(address(pendleMarket), 5e18, exactAmountOut);
 
@@ -292,6 +329,13 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         vm.warp(block.timestamp + 14 days);
         pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
         exactAmountOut = 5e18 * 1e18 / pyIndexCurrent;
+
+        vm.expectEmit(address(mainnetController));
+        emit IPendleFacet.PendleRedeem({
+            market              : address(pendleMarket),
+            pyAmountIn          : 5e18,
+            totalTokenOutAmount : exactAmountOut
+        });
 
         vm.prank(relayer);
         mainnetController.redeemPendlePT(address(pendleMarket), 5e18, exactAmountOut);

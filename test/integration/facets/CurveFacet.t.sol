@@ -89,7 +89,7 @@ contract Controller_CurveFacet_Admin_Tests is CurveFacet_TestBase {
         vm.record();
 
         vm.expectEmit(address(controller));
-        emit ICurveFacet.CurveMaxSlippageSet(pool, 0.98e18);
+        emit ICurveFacet.CurveMaxSlippageSet({ pool: pool, maxSlippage: 0.98e18 });
 
         vm.prank(admin);
         controller.setCurveMaxSlippage(pool, 0.98e18);
@@ -99,7 +99,7 @@ contract Controller_CurveFacet_Admin_Tests is CurveFacet_TestBase {
         assertEq(controller.getCurveMaxSlippage(pool), 0.98e18);
 
         vm.expectEmit(address(controller));
-        emit ICurveFacet.CurveMaxSlippageSet(pool, 0.99e18);
+        emit ICurveFacet.CurveMaxSlippageSet({ pool: pool, maxSlippage: 0.99e18 });
 
         vm.prank(admin);
         controller.setCurveMaxSlippage(pool, 0.99e18);

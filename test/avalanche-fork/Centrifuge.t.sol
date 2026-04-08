@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
+import { ICentrifugeFacet } from "../../src/facets/centrifuge/ICentrifugeFacet.sol";
+import { IERC7540Facet }    from "../../src/facets/erc7540/IERC7540Facet.sol";
+
 import { makeAddressKey, makeAddressUint16Key } from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
@@ -121,6 +124,12 @@ contract ForeignController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
 
         assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestDeposit({
+            token  : address(centrifugeV3Vault),
+            assets : 1_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestDepositERC7540(address(centrifugeV3Vault), 1_000_000e6);
 
@@ -171,10 +180,16 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
     function test_claimDepositERC7540_singleRequest() external {
         deal(address(usdcAvalanche), address(almProxy), 1_000_000e6);
 
-        assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID,   address(almProxy)),   0);
+        assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID,   address(almProxy)), 0);
         assertEq(centrifugeV3Vault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Request deposit into Centrifuge V3 Vault by supplying USDC
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestDeposit({
+            token  : address(centrifugeV3Vault),
+            assets : 1_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestDepositERC7540(address(centrifugeV3Vault), 1_000_000e6);
 
@@ -218,6 +233,12 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         assertEq(centrifugeV3Vault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
 
         // Claim shares
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540ClaimDeposit({
+            token  : address(centrifugeV3Vault),
+            shares : 500_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.claimDepositERC7540(address(centrifugeV3Vault));
 
@@ -235,6 +256,12 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         assertEq(centrifugeV3Vault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Request deposit into Centrifuge V3 Vault by supplying USDC
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestDeposit({
+            token  : address(centrifugeV3Vault),
+            assets : 1_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestDepositERC7540(address(centrifugeV3Vault), 1_000_000e6);
 
@@ -249,6 +276,12 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         assertEq(centrifugeV3Vault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Request another deposit into Centrifuge V3 Vault by supplying more USDC
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestDeposit({
+            token  : address(centrifugeV3Vault),
+            assets : 500_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestDepositERC7540(address(centrifugeV3Vault), 500_000e6);
 
@@ -288,6 +321,12 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         assertEq(centrifugeV3Vault.claimableDepositRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
 
         // Claim shares
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540ClaimDeposit({
+            token  : address(centrifugeV3Vault),
+            shares : 750_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.claimDepositERC7540(address(centrifugeV3Vault));
 
@@ -335,11 +374,20 @@ contract ForeignController_Centrifuge_CancelDepositERC7540_Tests is Centrifuge_T
     function test_cancelCentrifugeDepositRequest() external {
         deal(address(usdcAvalanche), address(almProxy), 1_000_000e6);
 
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestDeposit({
+            token  : address(centrifugeV3Vault),
+            assets : 1_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestDepositERC7540(address(centrifugeV3Vault), 1_000_000e6);
 
         assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID,       address(almProxy)), 1_000_000e6);
         assertEq(centrifugeV3Vault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)), false);
+
+        vm.expectEmit(address(foreignController));
+        emit ICentrifugeFacet.CentrifugeCancelDepositRequest({ token: address(centrifugeV3Vault) });
 
         vm.prank(ALM_RELAYER);
         foreignController.cancelCentrifugeDepositRequest(address(centrifugeV3Vault));
@@ -394,10 +442,20 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.pendingCancelDepositRequest(REQUEST_ID,   address(almProxy)), false);
         assertEq(centrifugeV3Vault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
-        vm.startPrank(ALM_RELAYER);
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestDeposit({
+            token  : address(centrifugeV3Vault),
+            assets : 1_000_000e6
+        });
+
+        vm.prank(ALM_RELAYER);
         foreignController.requestDepositERC7540(address(centrifugeV3Vault), 1_000_000e6);
+
+        vm.expectEmit(address(foreignController));
+        emit ICentrifugeFacet.CentrifugeCancelDepositRequest({ token: address(centrifugeV3Vault) });
+
+        vm.prank(ALM_RELAYER);
         foreignController.cancelCentrifugeDepositRequest(address(centrifugeV3Vault));
-        vm.stopPrank();
 
         assertEq(usdcAvalanche.balanceOf(address(almProxy)), 0);
         assertEq(usdcAvalanche.balanceOf(globalEscrow),      initialEscrowBal + 1_000_000e6);
@@ -421,6 +479,11 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID,         address(almProxy)), 0);
         assertEq(centrifugeV3Vault.pendingCancelDepositRequest(REQUEST_ID,   address(almProxy)), false);
         assertEq(centrifugeV3Vault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
+
+        vm.expectEmit(address(foreignController));
+        emit ICentrifugeFacet.CentrifugeClaimCancelDepositRequest({
+            token : address(centrifugeV3Vault)
+        });
 
         vm.prank(ALM_RELAYER);
         foreignController.claimCentrifugeCancelDepositRequest(address(centrifugeV3Vault));
@@ -506,6 +569,12 @@ contract ForeignController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestRedeem({
+            token  : address(centrifugeV3Vault),
+            shares : shares
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestRedeemERC7540(address(centrifugeV3Vault), shares);
 
@@ -565,6 +634,12 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Request Centrifuge V3 Vault redemption
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestRedeem({
+            token  : address(centrifugeV3Vault),
+            shares : 1_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestRedeemERC7540(address(centrifugeV3Vault), 1_000_000e6);
 
@@ -618,6 +693,12 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
 
         // Claim assets
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540ClaimRedeem({
+            token  : address(centrifugeV3Vault),
+            assets : 2_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.claimRedeemERC7540(address(centrifugeV3Vault));
 
@@ -641,6 +722,12 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Request Centrifuge V3 Vault redemption
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestRedeem({
+            token  : address(centrifugeV3Vault),
+            shares : 1_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestRedeemERC7540(address(centrifugeV3Vault), 1_000_000e6);
 
@@ -653,6 +740,12 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
         // Request another Centrifuge V3 Vault redemption
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestRedeem({
+            token  : address(centrifugeV3Vault),
+            shares : 500_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestRedeemERC7540(address(centrifugeV3Vault), 500_000e6);
 
@@ -704,6 +797,12 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.claimableRedeemRequest(REQUEST_ID, address(almProxy)), 1_500_000e6);
 
         // Claim assets
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540ClaimRedeem({
+            token  : address(centrifugeV3Vault),
+            assets : 3_000_000e6
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.claimRedeemERC7540(address(centrifugeV3Vault));
 
@@ -755,11 +854,20 @@ contract ForeignController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
         vm.prank(root);
         vaultToken.mint(address(almProxy), 1_000_000e6);
 
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestRedeem({
+            token  : address(centrifugeV3Vault),
+            shares : shares
+        });
+
         vm.prank(ALM_RELAYER);
         foreignController.requestRedeemERC7540(address(centrifugeV3Vault), shares);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,       address(almProxy)), shares);
         assertEq(centrifugeV3Vault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)), false);
+
+        vm.expectEmit(address(foreignController));
+        emit ICentrifugeFacet.CentrifugeCancelRedeemRequest({ token: address(centrifugeV3Vault) });
 
         vm.prank(ALM_RELAYER);
         foreignController.cancelCentrifugeRedeemRequest(address(centrifugeV3Vault));
@@ -818,10 +926,20 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         assertEq(centrifugeV3Vault.pendingCancelRedeemRequest(REQUEST_ID,   address(almProxy)), false);
         assertEq(centrifugeV3Vault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
-        vm.startPrank(ALM_RELAYER);
+        vm.expectEmit(address(foreignController));
+        emit IERC7540Facet.ERC7540RequestRedeem({
+            token  : address(centrifugeV3Vault),
+            shares : shares
+        });
+
+        vm.prank(ALM_RELAYER);
         foreignController.requestRedeemERC7540(address(centrifugeV3Vault), shares);
+
+        vm.expectEmit(address(foreignController));
+        emit ICentrifugeFacet.CentrifugeCancelRedeemRequest({ token: address(centrifugeV3Vault) });
+
+        vm.prank(ALM_RELAYER);
         foreignController.cancelCentrifugeRedeemRequest(address(centrifugeV3Vault));
-        vm.stopPrank();
 
         assertEq(vaultToken.balanceOf(address(almProxy)), 0);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal + shares);
@@ -845,6 +963,11 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,         address(almProxy)), 0);
         assertEq(centrifugeV3Vault.pendingCancelRedeemRequest(REQUEST_ID,   address(almProxy)), false);
         assertEq(centrifugeV3Vault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), shares);
+
+        vm.expectEmit(address(foreignController));
+        emit ICentrifugeFacet.CentrifugeClaimCancelRedeemRequest({
+            token : address(centrifugeV3Vault)
+        });
 
         vm.prank(ALM_RELAYER);
         foreignController.claimCentrifugeCancelRedeemRequest(address(centrifugeV3Vault));
@@ -951,14 +1074,21 @@ contract ForeignController_Centrifuge_TransferShares_Tests is Centrifuge_TestBas
         uint256 shareTotalSupplyBefore = vaultToken.totalSupply();
 
         vm.expectEmit(address(spoke));
-        emit ISpokeLike.InitiateTransferShares(
-            DESTINATION_CENTRIFUGE_ID,
-            poolId,
-            scId,
-            address(almProxy),
-            target,
-            10_000_000e6
-        );
+        emit ISpokeLike.InitiateTransferShares({
+            centrifugeId       : DESTINATION_CENTRIFUGE_ID,
+            poolId             : poolId,
+            scId               : scId,
+            sender             : address(almProxy),
+            destinationAddress : target,
+            amount             : 10_000_000e6
+        });
+
+        vm.expectEmit(address(foreignController));
+        emit ICentrifugeFacet.CentrifugeTransferShares({
+            token        : CENTRIFUGE_VAULT,
+            amount       : 10_000_000e6,
+            centrifugeId : DESTINATION_CENTRIFUGE_ID
+        });
 
         vm.startPrank(ALM_RELAYER);
         foreignController.transferSharesCentrifuge{value: 0.5 ether}(

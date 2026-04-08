@@ -19,7 +19,42 @@ interface IUniswapV4Facet is IFacetBase {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event UniswapV4DecreasePosition(
+        bytes32 indexed poolId,
+        uint256 indexed tokenId,
+        uint128         liquidityDecrease,
+        uint128         amount0,
+        uint128         amount1
+    );
+
+    event UniswapV4IncreasePosition(
+        bytes32 indexed poolId,
+        uint256 indexed tokenId,
+        uint128         liquidityIncrease,
+        uint128         amount0,
+        uint128         amount1
+    );
+
     event UniswapV4MaxSlippageSet(bytes32 indexed poolId, uint256 maxSlippage);
+
+    event UniswapV4MintPosition(
+        bytes32 indexed poolId,
+        uint256 indexed tokenId,
+        int24           tickLower,
+        int24           tickUpper,
+        uint128         liquidity,
+        uint128         amount0,
+        uint128         amount1
+    );
+
+    event UniswapV4Swap(
+        bytes32 indexed poolId,
+        address indexed tokenIn,
+        address indexed tokenOut,
+        uint128         amountIn,
+        uint128         amountOut
+    );
+
 
     event UniswapV4TickLimitsSet(
         bytes32 indexed poolId,
@@ -27,7 +62,6 @@ interface IUniswapV4Facet is IFacetBase {
         int24           tickUpperMax,
         uint24          maxTickSpacing
     );
-
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/

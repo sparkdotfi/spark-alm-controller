@@ -5,6 +5,8 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IPSMFacet }  from "../../src/facets/psm/IPSMFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -97,6 +99,9 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDSToUSDC({ usdcAmount: 1e6 });
+
         vm.prank(relayer);
         mainnetController.swapUSDSToUSDC(1e6);
 
@@ -134,6 +139,8 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),   9_000_000e18);
         assertEq(USDC.balanceOf(address(almProxy)),   0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDSToUSDC({ usdcAmount: 1_000_000e6 });
         mainnetController.swapUSDSToUSDC(1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 4_000_000e6);
@@ -146,6 +153,8 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),   8_000_000e18);
         assertEq(USDC.balanceOf(address(almProxy)),   1_000_000e6);
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDSToUSDC({ usdcAmount: 4_249_999.9984e6 });
         mainnetController.swapUSDSToUSDC(4_249_999.9984e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
@@ -256,6 +265,9 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDCToUSDS({ usdcAmount: 1e6 });
+
         vm.prank(relayer);
         mainnetController.swapUSDCToUSDS(1e6);
 
@@ -300,6 +312,9 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
         assertEq(DAI.allowance(address(almProxy),  Ethereum.PSM),      0);
 
         ( uint256 Art1, , , , ) = dss.vat.ilks(PSM_ILK);
+
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDCToUSDS({ usdcAmount: swapAmount });
 
         vm.prank(relayer);
         mainnetController.swapUSDCToUSDS(swapAmount);
@@ -373,8 +388,11 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
         assertEq(USDS.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
         assertEq(DAI.allowance(address(almProxy),  Ethereum.PSM),      0);
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDCToUSDS({ usdcAmount: 415_000_000e6 });
+
         vm.expectEmit(Ethereum.PSM);
-        emit IPSMLike.Fill(fillAmount);
+        emit IPSMLike.Fill({ wad: fillAmount });
 
         vm.prank(relayer);
         mainnetController.swapUSDCToUSDS(415_000_000e6);
@@ -458,11 +476,14 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
 
         assertEq(art + fillAmount + expectedFillAmount2, line / 1e27);  // Two fills will increase art to the debt ceiling
 
-        vm.expectEmit(Ethereum.PSM);
-        emit IPSMLike.Fill(fillAmount);
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDCToUSDS({ usdcAmount: 500_000_000e6 });
 
         vm.expectEmit(Ethereum.PSM);
-        emit IPSMLike.Fill(expectedFillAmount2);
+        emit IPSMLike.Fill({ wad: fillAmount });
+
+        vm.expectEmit(Ethereum.PSM);
+        emit IPSMLike.Fill({ wad: expectedFillAmount2 });
 
         vm.prank(relayer);
         mainnetController.swapUSDCToUSDS(500_000_000e6);
@@ -498,12 +519,16 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
 
         mainnetController.mintUSDS(5_000_000e18);
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDSToUSDC({ usdcAmount: 1_000_000e6 });
         mainnetController.swapUSDSToUSDC(1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 4_000_000e6);
         assertEq(USDS.balanceOf(address(almProxy)),   4_000_000e18);
         assertEq(USDC.balanceOf(address(almProxy)),   1_000_000e6);
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDCToUSDS({ usdcAmount: 400_000e6 });
         mainnetController.swapUSDCToUSDS(400_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 4_400_000e6);
@@ -516,6 +541,8 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),   4_400_000e18);
         assertEq(USDC.balanceOf(address(almProxy)),   600_000e6);
 
+        vm.expectEmit(address(mainnetController));
+        emit IPSMFacet.PSMSwapUSDCToUSDS({ usdcAmount: 600_000e6 });
         mainnetController.swapUSDCToUSDS(600_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e6);

@@ -5,6 +5,8 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IDAIUSDSFacet } from "../../src/facets/dai-usds/IDAIUSDSFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -54,6 +56,9 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DaiUsds_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit IDAIUSDSFacet.DAIUSDSSwapUSDSToDAI({ usdsAmount: 1_000_000e18 });
+
         vm.prank(relayer);
         mainnetController.swapUSDSToDAI(1_000_000e18);
 
@@ -99,6 +104,9 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DaiUsds_TestBase {
         assertEq(dai.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IDAIUSDSFacet.DAIUSDSSwapDAIToUSDS({ daiAmount: 1_000_000e18 });
 
         vm.prank(relayer);
         mainnetController.swapDAIToUSDS(1_000_000e18);

@@ -111,6 +111,8 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
             _getExchangeRate(shares, amount) <= _getFacetStorage().maxExchangeRates[token],
             "ERC4626Facet/exchange-rate-too-high"
         );
+
+        emit ERC4626Deposit(token, amount, shares);
     }
 
     function withdraw(address token, uint256 amount, uint256 maxSharesIn)
@@ -137,6 +139,8 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
         require(shares <= maxSharesIn, "ERC4626Facet/shares-burned-too-high");
 
         _increaseRateLimit(LIMIT_DEPOSIT, token, amount);
+
+        emit ERC4626Withdraw(token, amount, shares);
     }
 
     function redeem(address token, uint256 shares, uint256 minAssetsOut)
@@ -162,6 +166,8 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
 
         _decreaseRateLimit(LIMIT_WITHDRAW, token, assets);
         _increaseRateLimit(LIMIT_DEPOSIT,  token, assets);
+
+        emit ERC4626Redeem(token, shares, assets);
     }
 
     /**********************************************************************************************/

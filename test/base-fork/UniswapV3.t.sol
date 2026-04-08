@@ -1031,6 +1031,17 @@ contract ForeignController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             upper: initTick + 100
         });
 
+        vm.expectEmit(address(foreignController));
+        emit IUniswapV3Facet.UniswapV3AddLiquidity({
+            pool      : _getPool(),
+            tokenId   : 4168816,
+            tickLower : tick.lower,
+            tickUpper : tick.upper,
+            liquidity : 1985819769370545184,
+            amount0   : 9_807.642265083487153562e18,
+            amount1   : desired.amount1
+        });
+
         vm.startPrank(relayer);
         ( uint256 tokenId, uint128 liquidity, ) = foreignController.addLiquidityUniswapV3(
             _getPool(),
@@ -1623,6 +1634,15 @@ contract ForeignController_UniswapV3_RemoveLiquidity_AUSDUSDS_E2ETests is Uniswa
     }
 
     function test_e2e_removeLiquidityUniswapV3_ausdUsds_allLiquidity() public {
+        vm.expectEmit(address(foreignController));
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
+            pool      : _getPool(),
+            tokenId   : 4168816,
+            liquidity : 200510416479002803287822012,
+            amount0   : 999999.999999999999999999e18,
+            amount1   : 999999.999999999999999999e18
+        });
+
         _removeLiquidityAndValidate(
             tokenId,
             totalLiquidity,
@@ -1658,6 +1678,15 @@ contract ForeignController_UniswapV3_RemoveLiquidity_USDSUSDC_E2ETests is Uniswa
     }
 
     function test_e2e_removeLiquidityUniswapV3_usdsUsdc_allLiquidity() public {
+        vm.expectEmit(address(foreignController));
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
+            pool      : _getPool(),
+            tokenId   : 4168816,
+            liquidity : 198581976937054518427,
+            amount0   : 980764.226508348715489541e18,
+            amount1   : 999999.999999e6
+        });
+
         _removeLiquidityAndValidate(
             tokenId,
             totalLiquidity,

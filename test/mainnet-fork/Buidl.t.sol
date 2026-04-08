@@ -5,6 +5,8 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -74,6 +76,13 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
 
         assertEq(USDC.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(USDC.balanceOf(buidlDeposit),      0);
+
+        vm.expectEmit(address(mainnetController));
+        emit ITransferAssetFacet.TransferAssetFacetTransfer({
+            asset       : Ethereum.USDC,
+            destination : buidlDeposit,
+            amount      : 1_000_000e6
+        });
 
         vm.prank(relayer);
         mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);

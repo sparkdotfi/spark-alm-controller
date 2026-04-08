@@ -10,6 +10,12 @@ import { FacetBase } from "../FacetBase.sol";
 
 import { IUSDEFacet } from "./IUSDEFacet.sol";
 
+interface IERC20Like {
+
+    function balanceOf(address account) external view returns (uint256);
+
+}
+
 interface IEthenaMinterLike {
 
     function setDelegatedSigner(address delegateSigner) external;
@@ -74,6 +80,8 @@ contract USDEFacet is IUSDEFacet, FacetBase {
             ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.setDelegatedSigner, (delegatedSigner))
         );
+
+        emit USDESetDelegatedSigner(delegatedSigner);
     }
 
     function removeDelegatedSigner(address delegatedSigner)
@@ -86,18 +94,24 @@ contract USDEFacet is IUSDEFacet, FacetBase {
             ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.removeDelegatedSigner, (delegatedSigner))
         );
+
+        emit USDERemoveDelegatedSigner(delegatedSigner);
     }
 
     function prepareMint(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         _decreaseRateLimit(LIMIT_USDE_MINT, usdcAmount);
 
         ApproveLib.approve(usdc, _getSharedControllerStorage().proxy, ethenaMinter, usdcAmount);
+
+        emit USDEPrepareMint(usdcAmount);
     }
 
     function prepareBurn(uint256 usdeAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         _decreaseRateLimit(LIMIT_USDE_BURN, usdeAmount);
 
         ApproveLib.approve(usde, _getSharedControllerStorage().proxy, ethenaMinter, usdeAmount);
+
+        emit USDEPrepareBurn(usdeAmount);
     }
 
     function cooldownAssets(uint256 usdeAmount)
@@ -109,13 +123,15 @@ contract USDEFacet is IUSDEFacet, FacetBase {
     {
         _decreaseRateLimit(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
-        return abi.decode(
+        shares = abi.decode(
             IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 susde,
                 abi.encodeCall(ISUSDELike.cooldownAssets, (usdeAmount))
             ),
             (uint256)
         );
+
+        emit USDECooldownAssets(usdeAmount, shares);
     }
 
     function cooldownShares(uint256 susdeAmount)
@@ -135,12 +151,18 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         );
 
         _decreaseRateLimit(LIMIT_SUSDE_COOLDOWN, assets);
+
+        emit USDECooldownShares(susdeAmount, assets);
     }
 
     function unstakeSUSDE() external override nonReentrant onlyRole(RELAYER_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 
+        uint256 usdeBefore = IERC20Like(usde).balanceOf(proxy);
+
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
+
+        emit USDEUnstakeSUSDE(IERC20Like(usde).balanceOf(proxy) - usdeBefore);
     }
 
     /**********************************************************************************************/

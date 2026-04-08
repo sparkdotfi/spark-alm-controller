@@ -7,6 +7,8 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { IFarmFacet } from "../../src/facets/farm/IFarmFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
@@ -98,6 +100,9 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit IFarmFacet.FarmDeposit({ farmToken: FARM, amount: 1_000_000e18 });
+
         vm.prank(relayer);
         mainnetController.depositToFarm(FARM, 1_000_000e18);
 
@@ -158,6 +163,10 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_FARM_WITHDRAW(), FARM);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+
+        vm.expectEmit(address(mainnetController));
+        emit IFarmFacet.FarmDeposit({ farmToken: FARM, amount: 1_000_000e18 });
+
         vm.prank(relayer);
         mainnetController.depositToFarm(FARM, 1_000_000e18);
 
@@ -170,6 +179,9 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         skip(1 days);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IFarmFacet.FarmWithdraw({ farmToken: FARM, amount: 1_000_000e18 });
 
         vm.prank(relayer);
         mainnetController.withdrawFromFarm(FARM, 1_000_000e18);

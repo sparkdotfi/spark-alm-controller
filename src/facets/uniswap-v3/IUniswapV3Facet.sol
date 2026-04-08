@@ -29,15 +29,40 @@ interface IUniswapV3Facet is IFacetBase {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event UniswapV3AddLiquidity(
+        address indexed pool,
+        uint256 indexed tokenId,
+        int24           tickLower,
+        int24           tickUpper,
+        uint128         liquidity,
+        uint256         amount0,
+        uint256         amount1
+    );
+
+    event UniswapV3LowerTickUpdated(address indexed pool, int24 lowerTick);
+
     event UniswapV3MaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
     event UniswapV3MaxTickDeltaSet(address indexed pool, uint24 maxTickDelta);
 
-    event UniswapV3LowerTickUpdated(address indexed pool, int24 lowerTick);
+    event UniswapV3RemoveLiquidity(
+        address indexed pool,
+        uint256 indexed tokenId,
+        uint128         liquidity,
+        uint256         amount0,
+        uint256         amount1
+    );
 
-    event UniswapV3UpperTickUpdated(address indexed pool, int24 upperTick);
+    event UniswapV3Swap(
+        address indexed pool,
+        address indexed tokenIn,
+        uint256         amountInSpent,
+        uint256         amountOut
+    );
 
     event UniswapV3TWAPSecondsAgoUpdated(address indexed pool, uint32 twapSecondsAgo);
+
+    event UniswapV3UpperTickUpdated(address indexed pool, int24 upperTick);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

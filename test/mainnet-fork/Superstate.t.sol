@@ -7,6 +7,8 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
+import { ISuperstateFacet } from "../../src/facets/superstate/ISuperstateFacet.sol";
+
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IAllowlistV2Like {
@@ -155,6 +157,9 @@ contract MainnetController_Superstate_Subscribe_Tests is Superstate_TestBase {
         assertEq(feeOnStablecoinInAmount,    0);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit ISuperstateFacet.SuperstateSubscribe({ usdcAmount: 1_000_000e6 });
 
         vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6);

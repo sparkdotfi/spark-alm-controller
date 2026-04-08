@@ -5,6 +5,8 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
+import { IERC4626Facet } from "../../src/facets/erc4626/IERC4626Facet.sol";
+
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -163,6 +165,13 @@ contract MainnetController_ERC4626_Deposit_Tests is ERC4626_SUSDS_TestBase {
 
         vm.record();
 
+        vm.expectEmit(address(mainnetController));
+        emit IERC4626Facet.ERC4626Deposit({
+            token  : address(susds),
+            assets : 1e18,
+            shares : SUSDS_CONVERTED_SHARES
+        });
+
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(
             address(susds),
@@ -249,10 +258,18 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
         bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
         bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
+
+        vm.expectEmit(address(mainnetController));
+        emit IERC4626Facet.ERC4626Deposit({
+            token  : address(susds),
+            assets : 1e18,
+            shares : SUSDS_CONVERTED_SHARES
+        });
+
+        vm.prank(relayer);
         mainnetController.depositERC4626(address(susds), 1e18, SUSDS_CONVERTED_SHARES);
-        vm.stopPrank();
 
         assertEq(usds.balanceOf(address(almProxy)),          0);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
@@ -269,6 +286,13 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IERC4626Facet.ERC4626Withdraw({
+            token  : address(susds),
+            assets : 1e18 - 1,
+            shares : SUSDS_CONVERTED_SHARES
+        });
 
         // Max available with rounding
         vm.prank(relayer);
@@ -385,10 +409,18 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
         bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
         bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
 
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
+
+        vm.expectEmit(address(mainnetController));
+        emit IERC4626Facet.ERC4626Deposit({
+            token  : address(susds),
+            assets : 1e18,
+            shares : SUSDS_CONVERTED_SHARES
+        });
+
+        vm.prank(relayer);
         mainnetController.depositERC4626(address(susds), 1e18, SUSDS_CONVERTED_SHARES);
-        vm.stopPrank();
 
         assertEq(usds.balanceOf(address(almProxy)),          0);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
@@ -405,6 +437,13 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
 
         vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IERC4626Facet.ERC4626Redeem({
+            token  : address(susds),
+            shares : SUSDS_CONVERTED_SHARES,
+            assets : 1e18 - 1
+        });
 
         vm.prank(relayer);
         uint256 assets = mainnetController.redeemERC4626(

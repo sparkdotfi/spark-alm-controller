@@ -157,9 +157,9 @@ contract OTCFacet is IOTCFacet, FacetBase {
         state.sentTimestamp     = block.timestamp;
         state.normalizedClaimed = 0;
 
-        emit OTCSwapSent(exchange, parameters.buffer, assetToSend, amount, normalizedSent);
-
         _transfer(assetToSend, exchange, amount);
+
+        emit OTCSwapSent(exchange, parameters.buffer, assetToSend, amount, normalizedSent);
     }
 
     function claim(address exchange, address assetToClaim)
@@ -183,9 +183,9 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
         $.states[exchange].normalizedClaimed += normalizedAmount;
 
-        emit OTCClaimed(exchange, buffer, assetToClaim, amount, normalizedAmount);
-
         _transferFrom(assetToClaim, buffer, amount);
+
+        emit OTCClaimed(exchange, buffer, assetToClaim, amount, normalizedAmount);
     }
 
     /**********************************************************************************************/

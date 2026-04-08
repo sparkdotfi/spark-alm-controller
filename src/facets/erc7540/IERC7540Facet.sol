@@ -6,6 +6,18 @@ import { IFacetBase } from "../IFacetBase.sol";
 interface IERC7540Facet is IFacetBase {
 
     /**********************************************************************************************/
+    /*** Events                                                                                 ***/
+    /**********************************************************************************************/
+
+    event ERC7540ClaimDeposit(address indexed token, uint256 shares);
+
+    event ERC7540ClaimRedeem(address indexed token, uint256 assets);
+
+    event ERC7540RequestDeposit(address indexed token, uint256 assets);
+
+    event ERC7540RequestRedeem(address indexed token, uint256 shares);
+
+    /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 

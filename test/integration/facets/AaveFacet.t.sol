@@ -88,7 +88,7 @@ contract Controller_AaveFacet_Admin_Tests is AaveFacet_TestBase {
 
         vm.prank(admin);
         vm.expectEmit(address(controller));
-        emit IAaveFacet.AaveMaxSlippageSet(aToken, 0.98e18);
+        emit IAaveFacet.AaveMaxSlippageSet({ aToken: aToken, maxSlippage: 0.98e18 });
         controller.setAaveMaxSlippage(aToken, 0.98e18);
 
         assertEq(controller.getAaveMaxSlippage(aToken), 0.98e18);
@@ -97,7 +97,7 @@ contract Controller_AaveFacet_Admin_Tests is AaveFacet_TestBase {
 
         vm.prank(admin);
         vm.expectEmit(address(controller));
-        emit IAaveFacet.AaveMaxSlippageSet(aToken, 0.99e18);
+        emit IAaveFacet.AaveMaxSlippageSet({ aToken: aToken, maxSlippage: 0.99e18 });
         controller.setAaveMaxSlippage(aToken, 0.99e18);
 
         assertEq(controller.getAaveMaxSlippage(aToken), 0.99e18);

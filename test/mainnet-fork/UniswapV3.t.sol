@@ -408,6 +408,14 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 token0BalanceBefore = token0.balanceOf(address(almProxy));
         uint256 token1BalanceBefore = token1.balanceOf(address(almProxy));
 
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV3Facet.UniswapV3Swap({
+            pool          : _getPool(),
+            tokenIn       : address(token0),
+            amountInSpent : amountIn,
+            amountOut     : 249_932.354229e6
+        });
+
         uint256 amountOut = _swap(address(token0), amountIn, amountIn * 999/1000);
 
         uint256 swapLimitAfter  = rateLimits.getCurrentRateLimit(_getSwapKey(address(token0)));
@@ -437,6 +445,14 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 swapLimitBefore     = rateLimits.getCurrentRateLimit(_getSwapKey(address(token1)));
         uint256 token0BalanceBefore = token0.balanceOf(address(almProxy));
         uint256 token1BalanceBefore = token1.balanceOf(address(almProxy));
+
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV3Facet.UniswapV3Swap({
+            pool          : _getPool(),
+            tokenIn       : address(token1),
+            amountInSpent : amountIn,
+            amountOut     : 300_018.569643e6
+        });
 
         uint256 amountOut = _swap(address(token1), amountIn, amountIn * 999/1000);
 
@@ -477,10 +493,17 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 amountIn = 1_000_000_000_000e6;
         _fundProxy(amountIn, 0);
 
-
-        uint256 swapLimitBefore    = rateLimits.getCurrentRateLimit(swapKey);
+        uint256 swapLimitBefore     = rateLimits.getCurrentRateLimit(swapKey);
         uint256 token0BalanceBefore = token0.balanceOf(address(almProxy));
         uint256 token1BalanceBefore = token1.balanceOf(address(almProxy));
+
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV3Facet.UniswapV3Swap({
+            pool          : _getPool(),
+            tokenIn       : address(token0),
+            amountInSpent : 2_140_038.431336e6,
+            amountOut     : 2_139_359.691608e6
+        });
 
         vm.startPrank(relayer);
         uint256 amountOut = mainnetController.swapUniswapV3(
@@ -1453,6 +1476,17 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             upper: _toSpacedTick(initTick + 100)
         });
 
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV3Facet.UniswapV3AddLiquidity({
+            pool      : _getPool(),
+            tokenId   : 1117588,
+            tickLower : tick.lower,
+            tickUpper : tick.upper,
+            liquidity : 1_998_625.137524e6,
+            amount0   : 9_935.368650e6,
+            amount1   : 10_000.000000e6
+        });
+
         vm.startPrank(relayer);
         ( uint256 tokenId, uint128 liquidity, ) = mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -2071,6 +2105,15 @@ contract MainnetController_UniswapV3_RemoveLiquidity_DAIUSDC_E2ETests is Uniswap
     }
 
     function test_e2e_removeLiquidityUniswapV3_daiUsdc_allLiquidity() public {
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
+            pool      : _getPool(),
+            tokenId   : 1117588,
+            liquidity : 192838924760199336527,
+            amount0   : 993472.837339547954822405e18,
+            amount1   : 929999.999999e6
+        });
+
         _removeLiquidityAndValidate(
             tokenId,
             totalLiquidity,
@@ -2106,6 +2149,15 @@ contract MainnetController_UniswapV3_RemoveLiquidity_USDCUSDT_E2ETests is Uniswa
     }
 
     function test_e2e_removeLiquidityUniswapV3_usdcUsdt_allLiquidity() public {
+        vm.expectEmit(address(mainnetController));
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
+            pool      : _getPool(),
+            tokenId   : 1117588,
+            liquidity : 199862513752444,
+            amount0   : 993536.864930e6,
+            amount1   : 999999.999999e6
+        });
+
         _removeLiquidityAndValidate(
             tokenId,
             totalLiquidity,

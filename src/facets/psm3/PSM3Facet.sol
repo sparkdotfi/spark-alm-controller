@@ -21,6 +21,8 @@ interface IPSM3Like {
         external
         returns (uint256 assetsWithdrawn);
 
+    function shares(address user) external view returns (uint256);
+
 }
 
 contract PSM3Facet is IPSM3Facet, FacetBase {
@@ -67,13 +69,15 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
         ApproveLib.approve(asset, proxy, psm, amount);
 
         // Deposit `amount` of `asset` in the PSM, decode the result to get `shares`.
-        return abi.decode(
+        shares = abi.decode(
             IALMProxy(proxy).doCall(
                 psm,
                 abi.encodeCall(IPSM3Like.deposit, (asset, proxy, amount))
             ),
             (uint256)
         );
+
+        emit PSM3Deposit(asset, amount, shares);
     }
 
     function withdraw(address asset, uint256 maxAmount)
@@ -84,6 +88,8 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
         returns (uint256 assetsWithdrawn)
     {
         address proxy = _getSharedControllerStorage().proxy;
+
+        uint256 sharesBefore = IPSM3Like(psm).shares(proxy);
 
         // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result to get
         // `assetsWithdrawn` (assumes the proxy has enough PSM shares).
@@ -97,6 +103,8 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
         );
 
         _decreaseRateLimit(LIMIT_WITHDRAW, asset, assetsWithdrawn);
+
+        emit PSM3Withdraw(asset, assetsWithdrawn, sharesBefore - IPSM3Like(psm).shares(proxy));
     }
 
     /**********************************************************************************************/
