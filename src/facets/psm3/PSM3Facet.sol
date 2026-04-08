@@ -47,6 +47,8 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address psm_) {
+        require(psm_ != address(0), "PSM3Facet/zero-psm");
+
         psm = psm_;
     }
 

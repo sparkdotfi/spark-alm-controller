@@ -280,10 +280,10 @@ abstract contract ForkTestBase is DssTest {
         factory = new PAUFactory(Ethereum.SPARK_PROXY, Ethereum.SPARK_PROXY);
 
         mainnetController = IMainnetControllerFull(payable(new Controller({
-            proxy_          : address(almProxy),
-            rateLimits_     : address(rateLimits),
             accessControls_ : address(accessControls),
-            factory_        : address(factory)
+            factory_        : address(factory),
+            proxy_          : address(almProxy),
+            rateLimits_     : address(rateLimits)
         })));
 
         vm.startPrank(Ethereum.SPARK_PROXY);

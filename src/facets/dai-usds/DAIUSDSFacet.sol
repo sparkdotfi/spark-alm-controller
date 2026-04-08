@@ -38,6 +38,10 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address dai_, address daiUSDS_, address usds_) {
+        require(dai_     != address(0), "DAIUSDSFacet/zero-dai");
+        require(daiUSDS_ != address(0), "DAIUSDSFacet/zero-daiUSDS");
+        require(usds_    != address(0), "DAIUSDSFacet/zero-usds");
+
         dai     = dai_;
         daiUSDS = daiUSDS_;
         usds    = usds_;

@@ -458,10 +458,10 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         foreignFactory = new PAUFactory(Base.SPARK_EXECUTOR, Base.SPARK_EXECUTOR);
 
         foreignController = IForeignControllerFull(payable(new Controller({
-            proxy_          : address(foreignAlmProxy),
-            rateLimits_     : address(foreignRateLimits),
             accessControls_ : address(foreignAccessControls),
-            factory_        : address(foreignFactory)
+            factory_        : address(foreignFactory),
+            proxy_          : address(foreignAlmProxy),
+            rateLimits_     : address(foreignRateLimits)
         })));
 
         vm.startPrank(Base.SPARK_EXECUTOR);

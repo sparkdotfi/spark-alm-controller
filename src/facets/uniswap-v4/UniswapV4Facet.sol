@@ -108,6 +108,10 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address permit2_, address positionManager_, address router_) {
+        require(permit2_         != address(0), "UniswapV4Facet/zero-permit2");
+        require(positionManager_ != address(0), "UniswapV4Facet/zero-position-manager");
+        require(router_          != address(0), "UniswapV4Facet/zero-router");
+
         permit2         = permit2_;
         positionManager = positionManager_;
         router          = router_;

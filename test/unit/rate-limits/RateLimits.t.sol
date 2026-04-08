@@ -66,6 +66,11 @@ abstract contract RateLimits_TestBase is UnitTestBase {
 
 contract RateLimits_Constructor_Tests is RateLimits_TestBase {
 
+    function test_constructor_zeroAdmin() external {
+        vm.expectRevert(IRateLimits.ZeroAdmin.selector);
+        new RateLimits(address(0));
+    }
+
     function test_constructor() public {
         rateLimits = new RateLimits(admin);
 

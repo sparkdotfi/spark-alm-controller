@@ -60,6 +60,11 @@ contract USDEFacet is IUSDEFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address ethenaMinter_, address susde_, address usdc_, address usde_) {
+        require(ethenaMinter_ != address(0), "USDEFacet/zero-ethenaMinter");
+        require(susde_        != address(0), "USDEFacet/zero-susde");
+        require(usdc_         != address(0), "USDEFacet/zero-usdc");
+        require(usde_         != address(0), "USDEFacet/zero-usde");
+
         ethenaMinter = ethenaMinter_;
         susde        = susde_;
         usdc         = usdc_;

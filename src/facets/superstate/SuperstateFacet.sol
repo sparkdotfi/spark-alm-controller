@@ -39,6 +39,9 @@ contract SuperstateFacet is ISuperstateFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address usdc_, address ustb_) {
+        require(usdc_ != address(0), "SuperstateFacet/zero-usdc");
+        require(ustb_ != address(0), "SuperstateFacet/zero-ustb");
+
         usdc = usdc_;
         ustb = ustb_;
     }

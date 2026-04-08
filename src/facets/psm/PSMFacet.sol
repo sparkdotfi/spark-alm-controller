@@ -63,6 +63,12 @@ contract PSMFacet is IPSMFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address dai_, address daiUSDS_, address psm_, address usdc_, address usds_) {
+        require(dai_     != address(0), "PSMFacet/zero-dai");
+        require(daiUSDS_ != address(0), "PSMFacet/zero-daiUSDS");
+        require(psm_     != address(0), "PSMFacet/zero-psm");
+        require(usdc_    != address(0), "PSMFacet/zero-usdc");
+        require(usds_    != address(0), "PSMFacet/zero-usds");
+
         dai     = dai_;
         daiUSDS = daiUSDS_;
         psm     = psm_;

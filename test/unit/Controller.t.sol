@@ -72,8 +72,8 @@ contract ControllerHarness is Controller {
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
-    constructor(address accessControls_, address proxy_, address rateLimits_, address factory_)
-        Controller(accessControls_, proxy_, rateLimits_, factory_) {}
+    constructor(address accessControls_, address factory_, address proxy_, address rateLimits_)
+        Controller(accessControls_, factory_, proxy_, rateLimits_) {}
 
     function __addFacet(address facet) external {
         _getControllerStorage().facets.add(facet);
@@ -132,14 +132,61 @@ contract Controller_Tests is Test {
     ControllerHarness internal controller;
 
     function setUp() external {
-        controller = new ControllerHarness(accessControls, proxy, rateLimits, address(factory));
+        controller = new ControllerHarness(accessControls, factory, proxy, rateLimits);
     }
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/
     /**********************************************************************************************/
 
+    function test_constructor_zeroAccessControls() external {
+        vm.expectRevert(IController.ZeroAccessControls.selector);
+        new Controller({
+            accessControls_ : address(0),
+            factory_        : address(0),
+            proxy_          : address(0),
+            rateLimits_     : address(0)
+        });
+    }
+
+    function test_constructor_zeroFactory() external {
+        vm.expectRevert(IController.ZeroFactory.selector);
+        new Controller({
+            accessControls_ : accessControls,
+            factory_        : address(0),
+            proxy_          : address(0),
+            rateLimits_     : address(0)
+        });
+    }
+
+    function test_constructor_zeroProxy() external {
+        vm.expectRevert(IController.ZeroProxy.selector);
+        new Controller({
+            accessControls_ : accessControls,
+            factory_        : factory,
+            proxy_          : address(0),
+            rateLimits_     : address(0)
+        });
+    }
+
+    function test_constructor_zeroRateLimits() external {
+        vm.expectRevert(IController.ZeroRateLimits.selector);
+        new Controller({
+            accessControls_ : accessControls,
+            factory_        : factory,
+            proxy_          : proxy,
+            rateLimits_     : address(0)
+        });
+    }
+
     function test_constructor() external {
+        Controller controller = new Controller({
+            accessControls_ : accessControls,
+            factory_        : factory,
+            proxy_          : proxy,
+            rateLimits_     : rateLimits
+        });
+
         assertEq(controller.accessControls(), accessControls);
         assertEq(controller.factory(),        factory);
         assertEq(controller.proxy(),          proxy);
@@ -1148,6 +1195,19 @@ contract Controller_Tests is Test {
     /**********************************************************************************************/
     /*** Fallback Tests                                                                         ***/
     /**********************************************************************************************/
+
+    function test_fallback_invalidCallDataLengthBoundary() external {
+        ( bool success, bytes memory data ) = address(controller).call(hex"123456");
+
+        assertEq(success, false);
+        assertEq(data,    abi.encodeWithSelector(IController.InvalidCallDataLength.selector, 3));
+
+        // Expect revert with CallSelectorNotWired error, but not with InvalidCallDataLength.
+        ( success, data ) = address(controller).call(hex"12345678");
+
+        assertEq(success, false);
+        assertEq(data,    abi.encodeWithSelector(IController.CallSelectorNotWired.selector, bytes4(hex"12345678")));
+    }
 
     function test_fallback_callSelectorNotFound() external {
         vm.expectRevert(

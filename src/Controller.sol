@@ -56,7 +56,12 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor(address accessControls_, address proxy_, address rateLimits_, address factory_) {
+    constructor(address accessControls_, address factory_, address proxy_, address rateLimits_) {
+        require(accessControls_ != address(0), ZeroAccessControls());
+        require(factory_        != address(0), ZeroFactory());
+        require(proxy_          != address(0), ZeroProxy());
+        require(rateLimits_     != address(0), ZeroRateLimits());
+
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         $.accessControls = accessControls_;
@@ -204,6 +209,8 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuard {
     /**********************************************************************************************/
 
     fallback() external payable {
+        require(msg.data.length >= 4, InvalidCallDataLength(msg.data.length));
+
         Dispatch storage dispatch = _getControllerStorage().dispatches[msg.sig];
 
         address facet = dispatch.facet;

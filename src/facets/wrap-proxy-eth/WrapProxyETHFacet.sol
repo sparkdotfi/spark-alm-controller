@@ -26,6 +26,8 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address weth_) {
+        require(weth_ != address(0), "WrapProxyETHFacet/zero-weth");
+
         weth = weth_;
     }
 

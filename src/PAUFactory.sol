@@ -33,6 +33,9 @@ contract PAUFactory is IPAUFactory, AccessControlEnumerable {
     /**********************************************************************************************/
 
     constructor(address admin, address facetValidator) {
+        require(admin          != address(0), ZeroAdmin());
+        require(facetValidator != address(0), ZeroFacetValidator());
+
         _grantRole(DEFAULT_ADMIN_ROLE,   admin);
         _grantRole(FACET_VALIDATOR_ROLE, facetValidator);
     }
@@ -82,9 +85,9 @@ contract PAUFactory is IPAUFactory, AccessControlEnumerable {
 
         controller = address(new Controller({
             accessControls_ : accessControls,
+            factory_        : address(this),
             proxy_          : address(almProxy),
-            rateLimits_     : address(rateLimits),
-            factory_        : address(this)
+            rateLimits_     : address(rateLimits)
         }));
 
         // Step 2: Grant CONTROLLER role on ALMProxy and RateLimits to the Controller.

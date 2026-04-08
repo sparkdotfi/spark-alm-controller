@@ -21,6 +21,8 @@ contract ALMProxy is IALMProxy, AccessControl {
     /**********************************************************************************************/
 
     constructor(address admin) {
+        require(admin != address(0), ZeroAdmin());
+
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 

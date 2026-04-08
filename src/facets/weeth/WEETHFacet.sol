@@ -74,6 +74,9 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address weth_, address weeth_) {
+        require(weth_  != address(0), "WEETHFacet/zero-weth");
+        require(weeth_ != address(0), "WEETHFacet/zero-weeth");
+
         weth  = weth_;
         weeth = weeth_;
     }

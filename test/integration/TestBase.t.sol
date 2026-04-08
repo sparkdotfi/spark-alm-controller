@@ -43,9 +43,9 @@ abstract contract Controller_TestBase is Test {
 
         controller = address(new Controller(
             address(accessControls),
+            address(factory),
             address(proxy),
-            address(rateLimits),
-            address(factory)
+            address(rateLimits)
         ));
 
         vm.startPrank(admin);

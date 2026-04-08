@@ -48,6 +48,9 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address vault_, address usds_) {
+        require(vault_ != address(0), "USDSFacet/zero-vault");
+        require(usds_  != address(0), "USDSFacet/zero-usds");
+
         vault = vault_;
         usds  = usds_;
     }

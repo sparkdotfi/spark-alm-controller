@@ -466,10 +466,10 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         foreignFactory = new PAUFactory(SPARK_EXECUTOR, SPARK_EXECUTOR);
 
         foreignController = IForeignControllerFull(payable(address(new Controller({
-            proxy_          : address(foreignAlmProxy),
-            rateLimits_     : address(foreignRateLimits),
             accessControls_ : address(foreignAccessControls),
-            factory_        : address(foreignFactory)
+            factory_        : address(foreignFactory),
+            proxy_          : address(foreignAlmProxy),
+            rateLimits_     : address(foreignRateLimits)
         }))));
 
         vm.startPrank(SPARK_EXECUTOR);

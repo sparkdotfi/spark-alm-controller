@@ -24,6 +24,8 @@ contract RateLimits is IRateLimits, AccessControl {
     /**********************************************************************************************/
 
     constructor(address admin_) {
+        require(admin_ != address(0), ZeroAdmin());
+
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
     }
 

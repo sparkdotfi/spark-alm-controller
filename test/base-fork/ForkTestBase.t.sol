@@ -141,10 +141,10 @@ abstract contract ForkTestBase is Test {
         factory = new PAUFactory(SPARK_EXECUTOR, SPARK_EXECUTOR);
 
         foreignController = IForeignControllerFull(payable(new Controller({
-            proxy_          : address(almProxy),
-            rateLimits_     : address(rateLimits),
             accessControls_ : address(accessControls),
-            factory_        : address(factory)
+            factory_        : address(factory),
+            proxy_          : address(almProxy),
+            rateLimits_     : address(rateLimits)
         })));
 
         vm.startPrank(SPARK_EXECUTOR);

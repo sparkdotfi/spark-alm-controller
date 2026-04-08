@@ -99,6 +99,8 @@ contract PendleFacet is IPendleFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address router_) {
+        require(router_ != address(0), "PendleFacet/zero-router");
+
         router = router_;
     }
 

@@ -51,6 +51,12 @@ contract MainnetController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
         mainnetController.toggleOperatorMerkl(operator1);
     }
 
+    function test_toggleOperatorMerkl_zeroOperator() external {
+        vm.expectRevert("MerklFacet/zero-operator");
+        vm.prank(relayer);
+        mainnetController.toggleOperatorMerkl(address(0));
+    }
+
 }
 
 contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {

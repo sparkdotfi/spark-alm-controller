@@ -27,7 +27,11 @@ interface IPAUFactory is IAccessControlEnumerable {
 
     error EmptyFacet();
 
+    error ZeroAdmin();
+
     error ZeroFacet();
+
+    error ZeroFacetValidator();
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

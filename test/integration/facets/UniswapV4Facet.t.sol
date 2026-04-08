@@ -36,7 +36,7 @@ interface IControllerLike {
 
 }
 
-abstract contract UniswapV4_TestBase is Controller_TestBase {
+contract Controller_UniswapV4Facet_Tests is Controller_TestBase {
 
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
 
@@ -85,9 +85,48 @@ abstract contract UniswapV4_TestBase is Controller_TestBase {
         controller.addWires(facet, wires);
     }
 
-}
+    /**********************************************************************************************/
+    /*** Constructor Tests                                                                      ***/
+    /**********************************************************************************************/
 
-contract Controller_UniswapV4_Admin_Tests is UniswapV4_TestBase {
+    function test_constructor_zeroPermit2() external {
+        vm.expectRevert("UniswapV4Facet/zero-permit2");
+        new UniswapV4Facet({
+            permit2_         : address(0),
+            positionManager_ : address(0),
+            router_          : address(0)
+        });
+    }
+
+    function test_constructor_zeroPositionManager() external {
+        vm.expectRevert("UniswapV4Facet/zero-position-manager");
+        new UniswapV4Facet({
+            permit2_         : makeAddr("permit2"),
+            positionManager_ : address(0),
+            router_          : address(0)
+        });
+    }
+
+    function test_constructor_zeroRouter() external {
+        vm.expectRevert("UniswapV4Facet/zero-router");
+        new UniswapV4Facet({
+            permit2_         : makeAddr("permit2"),
+            positionManager_ : makeAddr("positionManager"),
+            router_          : address(0)
+        });
+    }
+
+    function test_constructor() external {
+        UniswapV4Facet facet = new UniswapV4Facet({
+            permit2_         : makeAddr("permit2"),
+            positionManager_ : makeAddr("positionManager"),
+            router_          : makeAddr("router")
+        });
+
+        assertEq(facet.permit2(),         makeAddr("permit2"));
+        assertEq(facet.positionManager(), makeAddr("positionManager"));
+        assertEq(facet.router(),          makeAddr("router"));
+    }
 
     /**********************************************************************************************/
     /*** setMaxSlippage Tests                                                                   ***/

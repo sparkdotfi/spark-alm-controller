@@ -60,6 +60,10 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address weth_, address withdrawQueue_, address wsteth_) {
+        require(weth_          != address(0), "WSTETHFacet/zero-weth");
+        require(withdrawQueue_ != address(0), "WSTETHFacet/zero-withdrawQueue");
+        require(wsteth_        != address(0), "WSTETHFacet/zero-wsteth");
+
         weth          = weth_;
         withdrawQueue = withdrawQueue_;
         wsteth        = wsteth_;

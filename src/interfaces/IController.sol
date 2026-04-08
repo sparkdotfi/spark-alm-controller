@@ -50,14 +50,29 @@ interface IController {
     /// @notice Thrown when an argument array is empty.
     error EmptyArray();
 
+    /// @notice Thrown when the call data length is less than 4.
+    error InvalidCallDataLength(uint256 callDataLength);
+
     /// @notice Thrown when the facet is not registered as valid on the factory.
     error InvalidFacet(address facet);
 
     /// @notice Thrown when the caller is not an admin.
     error NotAdmin(address caller);
 
+    /// @notice Thrown when the access controls is the zero address.
+    error ZeroAccessControls();
+
     /// @notice Thrown when the dispatch is invalid.
     error ZeroFacet();
+
+    /// @notice Thrown when the factory is the zero address.
+    error ZeroFactory();
+
+    /// @notice Thrown when the proxy is the zero address.
+    error ZeroProxy();
+
+    /// @notice Thrown when the rate limits is the zero address.
+    error ZeroRateLimits();
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

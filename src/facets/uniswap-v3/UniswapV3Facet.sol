@@ -183,6 +183,9 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address positionManager_, address router_) {
+        require(positionManager_ != address(0), "UniswapV3Facet/zero-position-manager");
+        require(router_          != address(0), "UniswapV3Facet/zero-router");
+
         positionManager = positionManager_;
         router          = router_;
     }

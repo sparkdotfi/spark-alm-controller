@@ -86,6 +86,9 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /**********************************************************************************************/
 
     constructor(address cctp_, address usdc_) {
+        require(cctp_ != address(0), "CCTPFacet/zero-cctp");
+        require(usdc_ != address(0), "CCTPFacet/zero-usdc");
+
         cctp = cctp_;
         usdc = usdc_;
     }

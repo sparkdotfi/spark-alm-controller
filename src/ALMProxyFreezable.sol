@@ -22,6 +22,8 @@ contract ALMProxyFreezable is IALMProxyFreezable, AccessControl {
     /**********************************************************************************************/
 
     constructor(address admin) {
+        require(admin != address(0), ZeroAdmin());
+
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
