@@ -3,28 +3,61 @@ pragma solidity ^0.8.34;
 
 import { IFacetBase } from "../IFacetBase.sol";
 
+/**
+ * @title  ICurveFacet
+ * @notice PAU facet for interacting with Curve pools. Supports adding and removing liquidity, and
+ *         token swaps. All value calculations use 18-decimal normalized USD amounts derived from
+ *         Curve stored_rates.
+ */
 interface ICurveFacet is IFacetBase {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    /**
+     * @notice Emitted when liquidity is added to a Curve pool.
+     * @param  pool           Address of the Curve pool.
+     * @param  shares         Amount of LP tokens received.
+     * @param  valueDeposited Aggregate deposited value, 18-decimal normalized USD.
+     * @param  depositAmounts Per-token amounts deposited (native token decimals).
+     */
     event CurveAddLiquidity(
-        address indexed pool,
-        uint256         shares,
-        uint256         valueDeposited,
-        uint256[]       depositAmounts
+        address   indexed pool,
+        uint256           shares,
+        uint256           valueDeposited,
+        uint256[]         depositAmounts
     );
 
+    /**
+     * @notice Emitted when the max slippage for a Curve pool is updated.
+     * @param  pool        Address of the Curve pool.
+     * @param  maxSlippage New max slippage in 1e18 precision (1e18 = no slippage).
+     */
     event CurveMaxSlippageSet(address indexed pool, uint256 maxSlippage);
 
+    /**
+     * @notice Emitted when liquidity is removed from a Curve pool.
+     * @param  pool            Address of the Curve pool.
+     * @param  lpBurnAmount    Amount of LP tokens burned.
+     * @param  valueWithdrawn  Aggregate withdrawn value, 18-decimal normalized USD.
+     * @param  withdrawnTokens Per-token amounts withdrawn (native token decimals).
+     */
     event CurveRemoveLiquidity(
-        address indexed pool,
-        uint256         lpBurnAmount,
-        uint256         valueWithdrawn,
-        uint256[]       withdrawnTokens
+        address   indexed pool,
+        uint256           lpBurnAmount,
+        uint256           valueWithdrawn,
+        uint256[]         withdrawnTokens
     );
 
+    /**
+     * @notice Emitted when a token swap is executed on a Curve pool.
+     * @param  pool        Address of the Curve pool.
+     * @param  inputIndex  Index of the input token in the pool.
+     * @param  outputIndex Index of the output token in the pool.
+     * @param  amountIn    Amount of input tokens swapped (native decimals).
+     * @param  amountOut   Amount of output tokens received (native decimals).
+     */
     event CurveSwap(
         address indexed pool,
         uint256 indexed inputIndex,
@@ -37,10 +70,24 @@ interface ICurveFacet is IFacetBase {
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
+    /**
+     * @notice Adds liquidity to a Curve pool.
+     * @param  pool           Address of the Curve pool.
+     * @param  depositAmounts Per-token amounts to deposit (native token decimals).
+     * @param  minLpAmount    Minimum LP tokens to receive.
+     * @return shares         Amount of LP tokens received.
+     */
     function addLiquidity(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
         external
-        returns (uint256);
+        returns (uint256 shares);
 
+    /**
+     * @notice Removes liquidity from a Curve pool proportionally.
+     * @param  pool               Address of the Curve pool.
+     * @param  lpBurnAmount       Amount of LP tokens to burn.
+     * @param  minWithdrawAmounts Per-token minimum amounts to receive.
+     * @return withdrawnTokens    Per-token amounts actually withdrawn.
+     */
     function removeLiquidity(
         address            pool,
         uint256            lpBurnAmount,
@@ -49,8 +96,22 @@ interface ICurveFacet is IFacetBase {
         external
         returns (uint256[] memory withdrawnTokens);
 
+    /**
+     * @notice Sets the max slippage for a Curve pool.
+     * @param  pool        Address of the Curve pool.
+     * @param  maxSlippage Max slippage in 1e18 precision (1e18 = no slippage).
+     */
     function setMaxSlippage(address pool, uint256 maxSlippage) external;
 
+    /**
+     * @notice Swaps tokens within a Curve pool.
+     * @param  pool         Address of the Curve pool.
+     * @param  inputIndex   Index of the input token in the pool.
+     * @param  outputIndex  Index of the output token in the pool.
+     * @param  amountIn     Amount of input tokens to swap (native decimals).
+     * @param  minAmountOut Minimum output tokens to receive (native decimals).
+     * @return amountOut    Actual amount of output tokens received.
+     */
     function swap(
         address pool,
         uint256 inputIndex,
@@ -65,16 +126,33 @@ interface ICurveFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
+    /**
+     * @notice Rate limit key for Curve deposit operations, combined with the pool address. Rate
+     *         limited by 18-decimal normalized USD value.
+     */
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 
+    /**
+     * @notice Rate limit key for Curve swap operations, combined with the pool address. Rate
+     *         limited by 18-decimal normalized USD value.
+     */
     function LIMIT_SWAP() external pure returns (bytes32);
 
+    /**
+     * @notice Rate limit key for Curve withdraw operations, combined with the pool address. Rate
+     *         limited by 18-decimal normalized USD value.
+     */
     function LIMIT_WITHDRAW() external pure returns (bytes32);
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
-    function getMaxSlippage(address pool) external view returns (uint256);
+    /**
+     * @notice Returns the configured max slippage for a Curve pool.
+     * @param  pool        Address of the Curve pool.
+     * @return maxSlippage Max slippage in 1e18 precision. Zero means not set.
+     */
+    function getMaxSlippage(address pool) external view returns (uint256 maxSlippage);
 
 }

@@ -94,7 +94,7 @@ contract PSMFacet is IPSMFacet, FacetBase {
 
         uint256 usdsAmount = usdcAmount * to18ConversionFactor();
 
-        // Approve USDS to DaiUsds migrator from the proxy (assumes the proxy has enough USDS).
+        // Approve USDS to DAI-USDS migrator from the proxy (assumes the proxy has enough USDS).
         _approve(usds, daiUSDS, usdsAmount);
 
         address proxy = $.proxy;
@@ -155,7 +155,7 @@ contract PSMFacet is IPSMFacet, FacetBase {
             }
         }
 
-        // Approve DAI to DaiUsds migrator from the proxy (assumes the proxy has enough DAI).
+        // Approve DAI to DAI-USDS migrator from the proxy (assumes the proxy has enough DAI).
         _approve(dai, daiUSDS, daiAmount);
 
         // Swap DAI to USDS 1:1.

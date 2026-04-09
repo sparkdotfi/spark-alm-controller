@@ -29,8 +29,8 @@ interface ILayerZeroLike {
     }
 
     /**
-     * @dev Struct representing OFT fee details.
-     * @dev Future proof mechanism to provide a standardized way to communicate fees to things like
+     * @notice Struct representing OFT fee details.
+     * @notice Future proof mechanism to provide a standardized way to communicate fees to things like
      *      a UI.
      */
     struct OFTFeeDetail {
@@ -39,8 +39,8 @@ interface ILayerZeroLike {
     }
 
     /**
-     * @dev Struct representing OFT limit information.
-     * @dev These amounts can change dynamically and are up to the specific oft implementation.
+     * @notice Struct representing OFT limit information.
+     * @notice These amounts can change dynamically and are up to the specific oft implementation.
      */
     struct OFTLimit {
         uint256 minAmountLD; // Minimum amount in local decimals that can be sent to the recipient.
@@ -49,20 +49,20 @@ interface ILayerZeroLike {
 
     struct OFTReceipt {
         uint256 amountSentLD; // Actual amount of tokens debited from the sender in local decimals.
-        /// @dev In non-default implementations, the amountReceivedLD COULD differ from this value.
+        /// @notice In non-default implementations, the amountReceivedLD COULD differ from this value.
         uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
     }
 
     /**
-     * @dev Struct representing token parameters for the OFT send() operation.
-     * @param dstEid       Destination endpoint ID.
-     * @param to           Recipient address.
-     * @param amountLD     Amount to send in local decimals.
-     * @param minAmountLD  Minimum amount to send in local decimals.
-     * @param extraOptions Additional options supplied by the caller to be used in the LayerZero
+     * @notice Struct representing token parameters for the OFT send() operation.
+     * @param  dstEid       Destination endpoint ID.
+     * @param  to           Recipient address.
+     * @param  amountLD     Amount to send in local decimals.
+     * @param  minAmountLD  Minimum amount to send in local decimals.
+     * @param  extraOptions Additional options supplied by the caller to be used in the LayerZero
      *                     message.
-     * @param composeMsg   Composed message for the send() operation.
-     * @param oftCmd       OFT command to be executed, unused in default OFT implementations.
+     * @param  composeMsg   Composed message for the send() operation.
+     * @param  oftCmd       OFT command to be executed, unused in default OFT implementations.
      */
     struct SendParam {
         uint32  dstEid;

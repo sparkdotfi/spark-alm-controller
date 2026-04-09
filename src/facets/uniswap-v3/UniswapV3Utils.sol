@@ -137,12 +137,12 @@ library UniswapV3Utils {
      * Taken from
      * https://github.com/Uniswap/v3-periphery/blob/v1.3.0/contracts/libraries/OracleLibrary.sol
      * @notice Calculates time-weighted means of tick and liquidity for a given Uniswap V3 pool
-     * @param  pool                  Address of the pool that we want to observe.
-     * @param  secondsAgo            Number of seconds in the past from which to calculate the
+     * @param   pool                  Address of the pool that we want to observe.
+     * @param   secondsAgo            Number of seconds in the past from which to calculate the
      *                               time-weighted means.
-     * @return arithmeticMeanTick    The arithmetic mean tick from (block.timestamp - secondsAgo)
+     * @return  arithmeticMeanTick    The arithmetic mean tick from (block.timestamp - secondsAgo)
      *                               to block.timestamp.
-     * @return harmonicMeanLiquidity The harmonic mean liquidity from (block.timestamp - secondsAgo)
+     * @return  harmonicMeanLiquidity The harmonic mean liquidity from (block.timestamp - secondsAgo)
      *                               to block.timestamp.
      * Changes: changed the require message, explicitly cast secondsAgo to int32, and
      *          UniswapV3PoolLike to IUniswapV3PoolLike.
