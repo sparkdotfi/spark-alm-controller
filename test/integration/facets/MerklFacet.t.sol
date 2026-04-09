@@ -13,13 +13,15 @@ contract Controller_MerklFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroDistributor() external {
         vm.expectRevert("MerklFacet/zero-distributor");
-        new MerklFacet({ distributor_ : address(0) });
+        new MerklFacet(address(0));
     }
 
     function test_constructor() external {
-        MerklFacet facet = new MerklFacet({ distributor_ : makeAddr("distributor") });
+        address distributor = makeAddr("distributor");
 
-        assertEq(facet.distributor(), makeAddr("distributor"));
+        MerklFacet facet = new MerklFacet(distributor);
+
+        assertEq(facet.distributor(), distributor);
     }
 
 }

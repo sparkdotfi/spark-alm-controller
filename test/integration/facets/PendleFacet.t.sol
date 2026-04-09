@@ -13,13 +13,15 @@ contract Controller_PendleFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroRouter() external {
         vm.expectRevert("PendleFacet/zero-router");
-        new PendleFacet({ router_ : address(0) });
+        new PendleFacet(address(0));
     }
 
     function test_constructor() external {
-        PendleFacet facet = new PendleFacet({ router_ : makeAddr("router") });
+        address router = makeAddr("router");
 
-        assertEq(facet.router(), makeAddr("router"));
+        PendleFacet facet = new PendleFacet(router);
+
+        assertEq(facet.router(), router);
     }
 
 }

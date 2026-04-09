@@ -13,22 +13,22 @@ contract Controller_SuperstateFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroUSDC() external {
         vm.expectRevert("SuperstateFacet/zero-usdc");
-        new SuperstateFacet({ usdc_ : address(0), ustb_ : address(0) });
+        new SuperstateFacet(address(0), address(0));
     }
 
     function test_constructor_zeroUSTB() external {
         vm.expectRevert("SuperstateFacet/zero-ustb");
-        new SuperstateFacet({ usdc_ : makeAddr("usdc"), ustb_ : address(0) });
+        new SuperstateFacet(makeAddr("usdc"), address(0));
     }
 
     function test_constructor() external {
-        SuperstateFacet facet = new SuperstateFacet({
-            usdc_ : makeAddr("usdc"),
-            ustb_ : makeAddr("ustb")
-        });
+        address usdc = makeAddr("usdc");
+        address ustb = makeAddr("ustb");
 
-        assertEq(facet.usdc(), makeAddr("usdc"));
-        assertEq(facet.ustb(), makeAddr("ustb"));
+        SuperstateFacet facet = new SuperstateFacet(usdc, ustb);
+
+        assertEq(facet.usdc(), usdc);
+        assertEq(facet.ustb(), ustb);
     }
 
 }

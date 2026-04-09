@@ -13,37 +13,29 @@ contract Controller_WSTETHFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroWETH() external {
         vm.expectRevert("WSTETHFacet/zero-weth");
-        new WSTETHFacet({ weth_ : address(0), withdrawQueue_ : address(0), wsteth_ : address(0) });
+        new WSTETHFacet(address(0), address(0), address(0));
     }
 
     function test_constructor_zeroWithdrawQueue() external {
         vm.expectRevert("WSTETHFacet/zero-withdrawQueue");
-        new WSTETHFacet({
-            weth_          : makeAddr("weth"),
-            withdrawQueue_ : address(0),
-            wsteth_        : address(0)
-        });
+        new WSTETHFacet(makeAddr("weth"), address(0), address(0));
     }
 
     function test_constructor_zeroWSTETH() external {
         vm.expectRevert("WSTETHFacet/zero-wsteth");
-        new WSTETHFacet({
-            weth_          : makeAddr("weth"),
-            withdrawQueue_ : makeAddr("withdrawQueue"),
-            wsteth_        : address(0)
-        });
+        new WSTETHFacet(makeAddr("weth"), makeAddr("withdrawQueue"), address(0));
     }
 
     function test_constructor() external {
-        WSTETHFacet facet = new WSTETHFacet({
-            weth_          : makeAddr("weth"),
-            withdrawQueue_ : makeAddr("withdrawQueue"),
-            wsteth_        : makeAddr("wsteth")
-        });
+        address weth          = makeAddr("weth");
+        address withdrawQueue = makeAddr("withdrawQueue");
+        address wsteth        = makeAddr("wsteth");
 
-        assertEq(facet.weth(),          makeAddr("weth"));
-        assertEq(facet.withdrawQueue(), makeAddr("withdrawQueue"));
-        assertEq(facet.wsteth(),        makeAddr("wsteth"));
+        WSTETHFacet facet = new WSTETHFacet(weth, withdrawQueue, wsteth);
+
+        assertEq(facet.weth(),          weth);
+        assertEq(facet.withdrawQueue(), withdrawQueue);
+        assertEq(facet.wsteth(),        wsteth);
     }
 
 }

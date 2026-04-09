@@ -13,13 +13,15 @@ contract Controller_WrapProxyETHFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroWETH() external {
         vm.expectRevert("WrapProxyETHFacet/zero-weth");
-        new WrapProxyETHFacet({ weth_ : address(0) });
+        new WrapProxyETHFacet(address(0));
     }
 
     function test_constructor() external {
-        WrapProxyETHFacet facet = new WrapProxyETHFacet({ weth_ : makeAddr("weth") });
+        address weth = makeAddr("weth");
 
-        assertEq(facet.weth(), makeAddr("weth"));
+        WrapProxyETHFacet facet = new WrapProxyETHFacet(weth);
+
+        assertEq(facet.weth(), weth);
     }
 
 }

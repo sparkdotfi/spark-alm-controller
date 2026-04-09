@@ -66,19 +66,19 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable override weth;
     address public immutable override weeth;
+    address public immutable override weth;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor(address weth_, address weeth_) {
-        require(weth_  != address(0), "WEETHFacet/zero-weth");
+    constructor(address weeth_, address weth_) {
         require(weeth_ != address(0), "WEETHFacet/zero-weeth");
+        require(weth_  != address(0), "WEETHFacet/zero-weth");
 
-        weth  = weth_;
         weeth = weeth_;
+        weth  = weth_;
     }
 
     /**********************************************************************************************/

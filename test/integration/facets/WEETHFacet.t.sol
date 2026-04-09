@@ -11,21 +11,24 @@ contract Controller_WEETHFacet_Tests is Controller_TestBase {
     /*** Constructor Tests                                                                      ***/
     /**********************************************************************************************/
 
-    function test_constructor_zeroWETH() external {
-        vm.expectRevert("WEETHFacet/zero-weth");
-        new WEETHFacet({ weth_ : address(0), weeth_ : address(0) });
-    }
-
     function test_constructor_zeroWEETH() external {
         vm.expectRevert("WEETHFacet/zero-weeth");
-        new WEETHFacet({ weth_ : makeAddr("weth"), weeth_ : address(0) });
+        new WEETHFacet(address(0), address(0));
+    }
+
+    function test_constructor_zeroWETH() external {
+        vm.expectRevert("WEETHFacet/zero-weth");
+        new WEETHFacet(makeAddr("weeth"), address(0));
     }
 
     function test_constructor() external {
-        WEETHFacet facet = new WEETHFacet({ weth_ : makeAddr("weth"), weeth_ : makeAddr("weeth") });
+        address weeth = makeAddr("weeth");
+        address weth  = makeAddr("weth");
 
-        assertEq(facet.weth(),  makeAddr("weth"));
-        assertEq(facet.weeth(), makeAddr("weeth"));
+        WEETHFacet facet = new WEETHFacet(weeth, weth);
+
+        assertEq(facet.weeth(), weeth);
+        assertEq(facet.weth(),  weth);
     }
 
 }

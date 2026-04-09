@@ -141,51 +141,26 @@ contract Controller_Tests is Test {
 
     function test_constructor_zeroAccessControls() external {
         vm.expectRevert(IController.ZeroAccessControls.selector);
-        new Controller({
-            accessControls_ : address(0),
-            factory_        : address(0),
-            proxy_          : address(0),
-            rateLimits_     : address(0)
-        });
+        new Controller(address(0), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroFactory() external {
         vm.expectRevert(IController.ZeroFactory.selector);
-        new Controller({
-            accessControls_ : accessControls,
-            factory_        : address(0),
-            proxy_          : address(0),
-            rateLimits_     : address(0)
-        });
+        new Controller(accessControls, address(0), address(0), address(0));
     }
 
     function test_constructor_zeroProxy() external {
         vm.expectRevert(IController.ZeroProxy.selector);
-        new Controller({
-            accessControls_ : accessControls,
-            factory_        : factory,
-            proxy_          : address(0),
-            rateLimits_     : address(0)
-        });
+        new Controller(accessControls, factory, address(0), address(0));
     }
 
     function test_constructor_zeroRateLimits() external {
         vm.expectRevert(IController.ZeroRateLimits.selector);
-        new Controller({
-            accessControls_ : accessControls,
-            factory_        : factory,
-            proxy_          : proxy,
-            rateLimits_     : address(0)
-        });
+        new Controller(accessControls, factory, proxy, address(0));
     }
 
     function test_constructor() external {
-        Controller controller = new Controller({
-            accessControls_ : accessControls,
-            factory_        : factory,
-            proxy_          : proxy,
-            rateLimits_     : rateLimits
-        });
+        Controller controller = new Controller(accessControls, factory, proxy, rateLimits);
 
         assertEq(controller.accessControls(), accessControls);
         assertEq(controller.factory(),        factory);

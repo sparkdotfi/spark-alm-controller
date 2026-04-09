@@ -91,41 +91,29 @@ contract Controller_UniswapV4Facet_Tests is Controller_TestBase {
 
     function test_constructor_zeroPermit2() external {
         vm.expectRevert("UniswapV4Facet/zero-permit2");
-        new UniswapV4Facet({
-            permit2_         : address(0),
-            positionManager_ : address(0),
-            router_          : address(0)
-        });
+        new UniswapV4Facet(address(0), address(0), address(0));
     }
 
     function test_constructor_zeroPositionManager() external {
         vm.expectRevert("UniswapV4Facet/zero-position-manager");
-        new UniswapV4Facet({
-            permit2_         : makeAddr("permit2"),
-            positionManager_ : address(0),
-            router_          : address(0)
-        });
+        new UniswapV4Facet(makeAddr("permit2"), address(0), address(0));
     }
 
     function test_constructor_zeroRouter() external {
         vm.expectRevert("UniswapV4Facet/zero-router");
-        new UniswapV4Facet({
-            permit2_         : makeAddr("permit2"),
-            positionManager_ : makeAddr("positionManager"),
-            router_          : address(0)
-        });
+        new UniswapV4Facet(makeAddr("permit2"), makeAddr("positionManager"), address(0));
     }
 
     function test_constructor() external {
-        UniswapV4Facet facet = new UniswapV4Facet({
-            permit2_         : makeAddr("permit2"),
-            positionManager_ : makeAddr("positionManager"),
-            router_          : makeAddr("router")
-        });
+        address permit2         = makeAddr("permit2");
+        address positionManager = makeAddr("positionManager");
+        address router          = makeAddr("router");
 
-        assertEq(facet.permit2(),         makeAddr("permit2"));
-        assertEq(facet.positionManager(), makeAddr("positionManager"));
-        assertEq(facet.router(),          makeAddr("router"));
+        UniswapV4Facet facet = new UniswapV4Facet(permit2, positionManager, router);
+
+        assertEq(facet.permit2(),         permit2);
+        assertEq(facet.positionManager(), positionManager);
+        assertEq(facet.router(),          router);
     }
 
     /**********************************************************************************************/

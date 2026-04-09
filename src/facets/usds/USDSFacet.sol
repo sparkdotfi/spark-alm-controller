@@ -40,19 +40,19 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    address public immutable override vault;
     address public immutable override usds;
+    address public immutable override vault;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor(address vault_, address usds_) {
-        require(vault_ != address(0), "USDSFacet/zero-vault");
+    constructor(address usds_, address vault_) {
         require(usds_  != address(0), "USDSFacet/zero-usds");
+        require(vault_ != address(0), "USDSFacet/zero-vault");
 
-        vault = vault_;
         usds  = usds_;
+        vault = vault_;
     }
 
     /**********************************************************************************************/

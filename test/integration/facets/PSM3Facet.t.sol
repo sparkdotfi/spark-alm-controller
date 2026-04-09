@@ -13,13 +13,15 @@ contract Controller_PSM3Facet_Tests is Controller_TestBase {
 
     function test_constructor_zeroPSM() external {
         vm.expectRevert("PSM3Facet/zero-psm");
-        new PSM3Facet({ psm_ : address(0) });
+        new PSM3Facet(address(0));
     }
 
     function test_constructor() external {
-        PSM3Facet facet = new PSM3Facet({ psm_ : makeAddr("psm") });
+        address psm = makeAddr("psm");
 
-        assertEq(facet.psm(), makeAddr("psm"));
+        PSM3Facet facet = new PSM3Facet(psm);
+
+        assertEq(facet.psm(), psm);
     }
 
 }

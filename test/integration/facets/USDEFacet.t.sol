@@ -13,56 +13,36 @@ contract Controller_USDEFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroEthenaMinter() external {
         vm.expectRevert("USDEFacet/zero-ethenaMinter");
-        new USDEFacet({
-            ethenaMinter_ : address(0),
-            susde_        : address(0),
-            usdc_         : address(0),
-            usde_         : address(0)
-        });
+        new USDEFacet(address(0), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroSusde() external {
         vm.expectRevert("USDEFacet/zero-susde");
-        new USDEFacet({
-            ethenaMinter_ : makeAddr("ethenaMinter"),
-            susde_        : address(0),
-            usdc_         : address(0),
-            usde_         : address(0)
-        });
+        new USDEFacet(makeAddr("ethenaMinter"), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroUSDC() external {
         vm.expectRevert("USDEFacet/zero-usdc");
-        new USDEFacet({
-            ethenaMinter_ : makeAddr("ethenaMinter"),
-            susde_        : makeAddr("susde"),
-            usdc_         : address(0),
-            usde_         : address(0)
-        });
+        new USDEFacet(makeAddr("ethenaMinter"), makeAddr("susde"), address(0), address(0));
     }
 
     function test_constructor_zeroUSDE() external {
         vm.expectRevert("USDEFacet/zero-usde");
-        new USDEFacet({
-            ethenaMinter_ : makeAddr("ethenaMinter"),
-            susde_        : makeAddr("susde"),
-            usdc_         : makeAddr("usdc"),
-            usde_         : address(0)
-        });
+        new USDEFacet(makeAddr("ethenaMinter"), makeAddr("susde"), makeAddr("usdc"), address(0));
     }
 
     function test_constructor() external {
-        USDEFacet facet = new USDEFacet({
-            ethenaMinter_ : makeAddr("ethenaMinter"),
-            susde_        : makeAddr("susde"),
-            usdc_         : makeAddr("usdc"),
-            usde_         : makeAddr("usde")
-        });
+        address ethenaMinter = makeAddr("ethenaMinter");
+        address susde        = makeAddr("susde");
+        address usdc         = makeAddr("usdc");
+        address usde         = makeAddr("usde");
 
-        assertEq(facet.ethenaMinter(), makeAddr("ethenaMinter"));
-        assertEq(facet.susde(),        makeAddr("susde"));
-        assertEq(facet.usdc(),         makeAddr("usdc"));
-        assertEq(facet.usde(),         makeAddr("usde"));
+        USDEFacet facet = new USDEFacet(ethenaMinter, susde, usdc, usde);
+
+        assertEq(facet.ethenaMinter(), ethenaMinter);
+        assertEq(facet.susde(),        susde);
+        assertEq(facet.usdc(),         usdc);
+        assertEq(facet.usde(),         usde);
     }
 
 }

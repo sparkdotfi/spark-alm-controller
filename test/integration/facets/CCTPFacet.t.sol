@@ -79,19 +79,22 @@ contract Controller_CCTPFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroCCTP() external {
         vm.expectRevert("CCTPFacet/zero-cctp");
-        new CCTPFacet({ cctp_ : address(0), usdc_ : address(0) });
+        new CCTPFacet(address(0), address(0));
     }
 
     function test_constructor_zeroUSDC() external {
         vm.expectRevert("CCTPFacet/zero-usdc");
-        new CCTPFacet({ cctp_ : makeAddr("cctp"), usdc_ : address(0) });
+        new CCTPFacet(makeAddr("cctp"), address(0));
     }
 
     function test_constructor() external {
-        CCTPFacet facet = new CCTPFacet({ cctp_ : makeAddr("cctp"), usdc_ : makeAddr("usdc") });
+        address cctp = makeAddr("cctp");
+        address usdc = makeAddr("usdc");
 
-        assertEq(facet.cctp(), makeAddr("cctp"));
-        assertEq(facet.usdc(), makeAddr("usdc"));
+        CCTPFacet facet = new CCTPFacet(cctp, usdc);
+
+        assertEq(facet.cctp(), cctp);
+        assertEq(facet.usdc(), usdc);
     }
 
     /**********************************************************************************************/

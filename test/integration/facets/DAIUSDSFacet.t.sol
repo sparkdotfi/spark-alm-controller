@@ -13,33 +13,29 @@ contract Controller_DAIUSDSFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroDAI() external {
         vm.expectRevert("DAIUSDSFacet/zero-dai");
-        new DAIUSDSFacet({ dai_ : address(0), daiUSDS_ : address(0), usds_ : address(0) });
+        new DAIUSDSFacet(address(0), address(0), address(0));
     }
 
     function test_constructor_zeroDAIUSDS() external {
         vm.expectRevert("DAIUSDSFacet/zero-daiUSDS");
-        new DAIUSDSFacet({ dai_ : makeAddr("dai"), daiUSDS_ : address(0), usds_ : address(0) });
+        new DAIUSDSFacet(makeAddr("dai"), address(0), address(0));
     }
 
     function test_constructor_zeroUSDS() external {
         vm.expectRevert("DAIUSDSFacet/zero-usds");
-        new DAIUSDSFacet({ 
-            dai_     : makeAddr("dai"),
-            daiUSDS_ : makeAddr("daiUSDS"),
-            usds_    : address(0)
-        });
+        new DAIUSDSFacet(makeAddr("dai"), makeAddr("daiUSDS"), address(0));
     }
 
     function test_constructor() external {
-        DAIUSDSFacet facet = new DAIUSDSFacet({
-            dai_     : makeAddr("dai"),
-            daiUSDS_ : makeAddr("daiUSDS"),
-            usds_    : makeAddr("usds")
-        });
+        address dai     = makeAddr("dai");
+        address daiUSDS = makeAddr("daiUSDS");
+        address usds    = makeAddr("usds");
 
-        assertEq(facet.dai(),     makeAddr("dai"));
-        assertEq(facet.daiUSDS(), makeAddr("daiUSDS"));
-        assertEq(facet.usds(),    makeAddr("usds"));
+        DAIUSDSFacet facet = new DAIUSDSFacet(dai, daiUSDS, usds);
+
+        assertEq(facet.dai(),     dai);
+        assertEq(facet.daiUSDS(), daiUSDS);
+        assertEq(facet.usds(),    usds);
     }
 
 }

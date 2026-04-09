@@ -13,73 +13,49 @@ contract Controller_PSMFacet_Tests is Controller_TestBase {
 
     function test_constructor_zeroDAI() external {
         vm.expectRevert("PSMFacet/zero-dai");
-        new PSMFacet({
-            dai_     : address(0),
-            daiUSDS_ : address(0),
-            psm_     : address(0),
-            usdc_    : address(0),
-            usds_    : address(0)
-        });
+        new PSMFacet(address(0), address(0), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroDAIUSDS() external {
         vm.expectRevert("PSMFacet/zero-daiUSDS");
-        new PSMFacet({
-            dai_     : makeAddr("dai"),
-            daiUSDS_ : address(0),
-            psm_     : address(0),
-            usdc_    : address(0),
-            usds_    : address(0)
-        });
+        new PSMFacet(makeAddr("dai"), address(0), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroPSM() external {
         vm.expectRevert("PSMFacet/zero-psm");
-        new PSMFacet({
-            dai_     : makeAddr("dai"),
-            daiUSDS_ : makeAddr("daiUSDS"),
-            psm_     : address(0),
-            usdc_    : address(0),
-            usds_    : address(0)
-        });
+        new PSMFacet(makeAddr("dai"), makeAddr("daiUSDS"), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroUSDC() external {
         vm.expectRevert("PSMFacet/zero-usdc");
-        new PSMFacet({
-            dai_     : makeAddr("dai"),
-            daiUSDS_ : makeAddr("daiUSDS"),
-            psm_     : makeAddr("psm"),
-            usdc_    : address(0),
-            usds_    : address(0)
-        });
+        new PSMFacet(makeAddr("dai"), makeAddr("daiUSDS"), makeAddr("psm"), address(0), address(0));
     }
 
     function test_constructor_zeroUSDS() external {
         vm.expectRevert("PSMFacet/zero-usds");
-        new PSMFacet({
-            dai_     : makeAddr("dai"),
-            daiUSDS_ : makeAddr("daiUSDS"),
-            psm_     : makeAddr("psm"),
-            usdc_    : makeAddr("usdc"),
-            usds_    : address(0)
-        });
+        new PSMFacet(
+            makeAddr("dai"),
+            makeAddr("daiUSDS"),
+            makeAddr("psm"),
+            makeAddr("usdc"),
+            address(0)
+        );
     }
 
     function test_constructor() external {
-        PSMFacet facet = new PSMFacet({
-            dai_     : makeAddr("dai"),
-            daiUSDS_ : makeAddr("daiUSDS"),
-            psm_     : makeAddr("psm"),
-            usdc_    : makeAddr("usdc"),
-            usds_    : makeAddr("usds")
-        });
+        address dai     = makeAddr("dai");
+        address daiUSDS = makeAddr("daiUSDS");
+        address psm     = makeAddr("psm");
+        address usdc    = makeAddr("usdc");
+        address usds    = makeAddr("usds");
 
-        assertEq(facet.dai(),     makeAddr("dai"));
-        assertEq(facet.daiUSDS(), makeAddr("daiUSDS"));
-        assertEq(facet.psm(),     makeAddr("psm"));
-        assertEq(facet.usdc(),    makeAddr("usdc"));
-        assertEq(facet.usds(),    makeAddr("usds"));
+        PSMFacet facet = new PSMFacet(dai, daiUSDS, psm, usdc, usds);
+
+        assertEq(facet.dai(),     dai);
+        assertEq(facet.daiUSDS(), daiUSDS);
+        assertEq(facet.psm(),     psm);
+        assertEq(facet.usdc(),    usdc);
+        assertEq(facet.usds(),    usds);
     }
 
 }

@@ -117,25 +117,22 @@ contract Controller_UniswapV3Facet_Tests is Controller_TestBase {
 
     function test_constructor_zeroPositionManager() external {
         vm.expectRevert("UniswapV3Facet/zero-position-manager");
-        new UniswapV3Facet({ positionManager_ : address(0), router_ : address(0) });
+        new UniswapV3Facet(address(0), address(0));
     }
 
     function test_constructor_zeroRouter() external {
         vm.expectRevert("UniswapV3Facet/zero-router");
-        new UniswapV3Facet({
-            positionManager_ : makeAddr("positionManager"),
-            router_          : address(0)
-        });
+        new UniswapV3Facet(makeAddr("positionManager"), address(0));
     }
 
     function test_constructor() external {
-        UniswapV3Facet facet = new UniswapV3Facet({
-            positionManager_ : makeAddr("positionManager"),
-            router_          : makeAddr("router")
-        });
+        address positionManager = makeAddr("positionManager");
+        address router          = makeAddr("router");
 
-        assertEq(facet.positionManager(), makeAddr("positionManager"));
-        assertEq(facet.router(),          makeAddr("router"));
+        UniswapV3Facet facet = new UniswapV3Facet(positionManager, router);
+
+        assertEq(facet.positionManager(), positionManager);
+        assertEq(facet.router(),          router);
     }
 
     /**********************************************************************************************/
