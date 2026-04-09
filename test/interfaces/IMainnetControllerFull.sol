@@ -26,6 +26,20 @@ abstract contract IMainnetControllerFull is IController, Controller {
         external virtual returns (uint256 amountWithdrawn);
 
     /**********************************************************************************************/
+    /*** BasinFacet actions                                                                     ***/
+    /**********************************************************************************************/
+
+    function depositBasin(address basin, address asset, uint256 amount)
+        external virtual returns (uint256 shares);
+
+    function withdrawBasin(address basin, address asset, uint256 maxAmount)
+        external virtual returns (uint256 assetsWithdrawn);
+
+    function LIMIT_BASIN_DEPOSIT() external pure virtual returns (bytes32);
+
+    function LIMIT_BASIN_WITHDRAW() external pure virtual returns (bytes32);
+
+    /**********************************************************************************************/
     /*** CCTPFacet actions                                                                      ***/
     /**********************************************************************************************/
 

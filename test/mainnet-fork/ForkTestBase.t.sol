@@ -24,6 +24,7 @@ import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwa
 import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { IAaveFacet }          from "../../src/facets/aave/IAaveFacet.sol";
+import { IBasinFacet }         from "../../src/facets/basin/IBasinFacet.sol";
 import { ICCTPFacet }          from "../../src/facets/cctp/ICCTPFacet.sol";
 import { ICentrifugeFacet }    from "../../src/facets/centrifuge/ICentrifugeFacet.sol";
 import { ICurveFacet }         from "../../src/facets/curve/ICurveFacet.sol";
@@ -49,6 +50,7 @@ import { IWrapProxyETHFacet }  from "../../src/facets/wrap-proxy-eth/IWrapProxyE
 import { IWSTETHFacet }        from "../../src/facets/wsteth/IWSTETHFacet.sol";
 
 import { AaveFacet }          from "../../src/facets/aave/AaveFacet.sol";
+import { BasinFacet }         from "../../src/facets/basin/BasinFacet.sol";
 import { CCTPFacet }          from "../../src/facets/cctp/CCTPFacet.sol";
 import { CentrifugeFacet }    from "../../src/facets/centrifuge/CentrifugeFacet.sol";
 import { CurveFacet }         from "../../src/facets/curve/CurveFacet.sol";
@@ -298,6 +300,7 @@ abstract contract ForkTestBase is DssTest {
 
         // Facet wiring
         _wireAaveFacet();
+        _wireBasinFacet();
         _wireCCTPFacet();
         _wireCentrifugeFacet();
         _wireCurveFacet();
@@ -413,6 +416,38 @@ abstract contract ForkTestBase is DssTest {
     /**********************************************************************************************/
     /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
+
+    function _wireBasinFacet() internal {
+        address basinFacet = address(new BasinFacet());
+
+        vm.label(basinFacet, "BasinFacet");
+
+        factory.setValidFacet(basinFacet, true);
+
+        IController.Wire[] memory wires = new IController.Wire[](4);
+
+        wires[0] = IController.Wire(
+            IMainnetControllerFull.depositBasin.selector,
+            IBasinFacet.deposit.selector
+        );
+
+        wires[1] = IController.Wire(
+            IMainnetControllerFull.withdrawBasin.selector,
+            IBasinFacet.withdraw.selector
+        );
+
+        wires[2] = IController.Wire(
+            IMainnetControllerFull.LIMIT_BASIN_DEPOSIT.selector,
+            IBasinFacet.LIMIT_DEPOSIT.selector
+        );
+
+        wires[3] = IController.Wire(
+            IMainnetControllerFull.LIMIT_BASIN_WITHDRAW.selector,
+            IBasinFacet.LIMIT_WITHDRAW.selector
+        );
+
+        mainnetController.addWires(basinFacet, wires);
+    }
 
     function _wireCentrifugeFacet() internal {
         // NOTE: We are NOT wiring DEPOSIT, REDEEM keys, as they already wired in _wireERC7540Facet.
