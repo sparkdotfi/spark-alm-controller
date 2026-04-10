@@ -159,7 +159,7 @@ contract MainnetController_Superstate_Subscribe_Tests is Superstate_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit ISuperstateFacet.SuperstateSubscribe({ usdcAmount: 1_000_000e6 });
+        emit ISuperstateFacet.SuperstateSubscribe(1_000_000e6);
 
         vm.prank(relayer);
         mainnetController.subscribeSuperstate(1_000_000e6);

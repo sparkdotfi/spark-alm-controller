@@ -257,10 +257,10 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
         pure
         returns (IUniswapV3Facet.TokenAmounts memory)
     {
-        return IUniswapV3Facet.TokenAmounts({
-            amount0 : amount0 * 98 / 100,
-            amount1 : amount1 * 98 / 100
-        });
+        return IUniswapV3Facet.TokenAmounts(
+            amount0 * 98 / 100,
+            amount1 * 98 / 100
+        );
     }
 
 }
@@ -409,12 +409,12 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 token1BalanceBefore = token1.balanceOf(address(almProxy));
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV3Facet.UniswapV3Swap({
-            pool          : _getPool(),
-            tokenIn       : address(token0),
-            amountInSpent : amountIn,
-            amountOut     : 249_932.354229e6
-        });
+        emit IUniswapV3Facet.UniswapV3Swap(
+            _getPool(),
+            address(token0),
+            amountIn,
+            249_932.354229e6
+        );
 
         uint256 amountOut = _swap(address(token0), amountIn, amountIn * 999/1000);
 
@@ -447,12 +447,12 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 token1BalanceBefore = token1.balanceOf(address(almProxy));
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV3Facet.UniswapV3Swap({
-            pool          : _getPool(),
-            tokenIn       : address(token1),
-            amountInSpent : amountIn,
-            amountOut     : 300_018.569643e6
-        });
+        emit IUniswapV3Facet.UniswapV3Swap(
+            _getPool(),
+            address(token1),
+            amountIn,
+            300_018.569643e6
+        );
 
         uint256 amountOut = _swap(address(token1), amountIn, amountIn * 999/1000);
 
@@ -498,12 +498,12 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 token1BalanceBefore = token1.balanceOf(address(almProxy));
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV3Facet.UniswapV3Swap({
-            pool          : _getPool(),
-            tokenIn       : address(token0),
-            amountInSpent : 2_140_038.431336e6,
-            amountOut     : 2_139_359.691608e6
-        });
+        emit IUniswapV3Facet.UniswapV3Swap(
+            _getPool(),
+            address(token0),
+            2_140_038.431336e6,
+            2_139_359.691608e6
+        );
 
         vm.startPrank(relayer);
         uint256 amountOut = mainnetController.swapUniswapV3(
@@ -1277,7 +1277,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         uint256 amount0 = 10_000 * 10 ** uint256(token0Decimals);
         uint256 amount1 = 10_000 * 10 ** uint256(IERC20(address(token1)).decimals());
 
-        return IUniswapV3Facet.TokenAmounts({ amount0: amount0, amount1: amount1 });
+        return IUniswapV3Facet.TokenAmounts(amount0, amount1);
     }
 
     function _mockSpotTick(int24 spotTick) internal {
@@ -1471,21 +1471,21 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         IUniswapV3Facet.TokenAmounts memory desired = _defaultDesiredPosition();
         _fundProxy(desired.amount0, desired.amount1);
 
-        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks({
-            lower: _toSpacedTick(initTick - 100),
-            upper: _toSpacedTick(initTick + 100)
-        });
+        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks(
+            _toSpacedTick(initTick - 100),
+            _toSpacedTick(initTick + 100)
+        );
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV3Facet.UniswapV3AddLiquidity({
-            pool      : _getPool(),
-            tokenId   : 1117588,
-            tickLower : tick.lower,
-            tickUpper : tick.upper,
-            liquidity : 1_998_625.137524e6,
-            amount0   : 9_935.368650e6,
-            amount1   : 10_000.000000e6
-        });
+        emit IUniswapV3Facet.UniswapV3AddLiquidity(
+            _getPool(),
+            1117588,
+            tick.lower,
+            tick.upper,
+            1_998_625.137524e6,
+            9_935.368650e6,
+            10_000.000000e6
+        );
 
         vm.startPrank(relayer);
         ( uint256 tokenId, uint128 liquidity, ) = mainnetController.addLiquidityUniswapV3(
@@ -1523,7 +1523,7 @@ abstract contract UniswapV3_AddLiquidity_E2ETestBase is UniswapV3_TestBase {
         (tokenId, liquidity, amount0Used, amount1Used) = _addLiquidity(
             currentTokenId,
             tick,
-            IUniswapV3Facet.TokenAmounts({ amount0: amount0, amount1: amount1 }),
+            IUniswapV3Facet.TokenAmounts(amount0, amount1),
             _minLiquidityPosition(amount0, amount1)
         );
 
@@ -1551,10 +1551,10 @@ abstract contract UniswapV3_AddLiquidity_E2ETestBase is UniswapV3_TestBase {
         deal(address(token0), address(almProxy), amount0);
         deal(address(token1), address(almProxy), amount1);
 
-        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks({
-            lower : _toSpacedTick(initTick + lowerTickDelta),
-            upper : _toSpacedTick(initTick + upperTickDelta)
-        });
+        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks(
+            _toSpacedTick(initTick + lowerTickDelta),
+            _toSpacedTick(initTick + upperTickDelta)
+        );
 
         (tokenId, liquidity, amount0Used, amount1Used) = _addLiquidityAndValidate(
             0,
@@ -1989,7 +1989,7 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
         (tokenId, totalLiquidity, amount0Added, amount1Added) = _addLiquidity(
             addAmount0,
             addAmount1,
-            IUniswapV3Facet.Ticks({lower : -100, upper : 100})
+            IUniswapV3Facet.Ticks(-100, 100)
         );
     }
 
@@ -2002,11 +2002,11 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
 
         (tokenId_, liquidity_, amount0Used, amount1Used) = _addLiquidity(
             0,
-            IUniswapV3Facet.Ticks({
-                lower : _toSpacedTick(initTick + addTickDelta.lower),
-                upper : _toSpacedTick(initTick + addTickDelta.upper)
-            }),
-            IUniswapV3Facet.TokenAmounts({ amount0: addAmount0, amount1: addAmount1 }),
+            IUniswapV3Facet.Ticks(
+                _toSpacedTick(initTick + addTickDelta.lower),
+                _toSpacedTick(initTick + addTickDelta.upper)
+            ),
+            IUniswapV3Facet.TokenAmounts(addAmount0, addAmount1),
             _minLiquidityPosition(addAmount0, addAmount1)
         );
 
@@ -2032,7 +2032,7 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
             _getPool(),
             tokenId_,
             liquidity_,
-            IUniswapV3Facet.TokenAmounts({ amount0: minAmount0, amount1: minAmount1 }),
+            IUniswapV3Facet.TokenAmounts(minAmount0, minAmount1),
             block.timestamp + 1 hours
         );
         vm.stopPrank();
@@ -2084,7 +2084,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_DAIUSDC_E2ETests is Uniswap
         (tokenId, totalLiquidity, amount0Added, amount1Added) = _addLiquidity(
             addAmount0,
             addAmount1,
-            IUniswapV3Facet.Ticks({lower : -100, upper : 100})
+            IUniswapV3Facet.Ticks(-100, 100)
         );
     }
 
@@ -2106,13 +2106,13 @@ contract MainnetController_UniswapV3_RemoveLiquidity_DAIUSDC_E2ETests is Uniswap
 
     function test_e2e_removeLiquidityUniswapV3_daiUsdc_allLiquidity() public {
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
-            pool      : _getPool(),
-            tokenId   : 1117588,
-            liquidity : 192838924760199336527,
-            amount0   : 993472.837339547954822405e18,
-            amount1   : 929999.999999e6
-        });
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity(
+            _getPool(),
+            1117588,
+            192838924760199336527,
+            993472.837339547954822405e18,
+            929999.999999e6
+        );
 
         _removeLiquidityAndValidate(
             tokenId,
@@ -2150,13 +2150,13 @@ contract MainnetController_UniswapV3_RemoveLiquidity_USDCUSDT_E2ETests is Uniswa
 
     function test_e2e_removeLiquidityUniswapV3_usdcUsdt_allLiquidity() public {
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
-            pool      : _getPool(),
-            tokenId   : 1117588,
-            liquidity : 199862513752444,
-            amount0   : 993536.864930e6,
-            amount1   : 999999.999999e6
-        });
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity(
+            _getPool(),
+            1117588,
+            199862513752444,
+            993536.864930e6,
+            999999.999999e6
+        );
 
         _removeLiquidityAndValidate(
             tokenId,

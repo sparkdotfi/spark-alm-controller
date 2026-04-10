@@ -75,7 +75,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDSFacet.USDSMint({ usdsAmount: 1e18 });
+        emit IUSDSFacet.USDSMint(1e18);
 
         vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
@@ -156,7 +156,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
     function test_burnUSDS() external {
         // Setup
         vm.expectEmit(address(mainnetController));
-        emit IUSDSFacet.USDSMint({ usdsAmount: 1e18 });
+        emit IUSDSFacet.USDSMint(1e18);
 
         vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
@@ -176,7 +176,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDSFacet.USDSBurn({ usdsAmount: 1e18 });
+        emit IUSDSFacet.USDSBurn(1e18);
 
         vm.prank(relayer);
         mainnetController.burnUSDS(1e18);

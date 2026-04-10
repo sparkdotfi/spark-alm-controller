@@ -327,12 +327,12 @@ contract ForeignController_Curve_AddLiquidity_SuccessTests is Curve_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(curveSwapKey),    1_000_000e18);
 
         vm.expectEmit(address(foreignController));
-        emit ICurveFacet.CurveAddLiquidity({
-            pool           : CURVE_POOL,
-            shares         : minLpAmount,
-            valueDeposited : (amounts[0] + amounts[1]) * 1e12,
-            depositAmounts : amounts
-        });
+        emit ICurveFacet.CurveAddLiquidity(
+            CURVE_POOL,
+            minLpAmount,
+            (amounts[0] + amounts[1]) * 1e12,
+            amounts
+        );
 
         vm.prank(relayer);
         uint256 lpTokensReceived = foreignController.addLiquidityCurve(
@@ -623,12 +623,12 @@ contract ForeignController_Curve_RemoveLiquidity_SuccessTests is Curve_TestBase 
         expectedWithdrawnAmounts[1] = 1_000_043.234104e6;
 
         vm.expectEmit(address(foreignController));
-        emit ICurveFacet.CurveRemoveLiquidity({
-            pool            : CURVE_POOL,
-            lpBurnAmount    : lpTokensReceived,
-            valueWithdrawn  : (expectedWithdrawnAmounts[0] + expectedWithdrawnAmounts[1]) * 1e12,
-            withdrawnTokens : expectedWithdrawnAmounts
-        });
+        emit ICurveFacet.CurveRemoveLiquidity(
+            CURVE_POOL,
+            lpTokensReceived,
+            (expectedWithdrawnAmounts[0] + expectedWithdrawnAmounts[1]) * 1e12,
+            expectedWithdrawnAmounts
+        );
 
         vm.prank(relayer);
         uint256[] memory assetsReceived = foreignController.removeLiquidityCurve(
@@ -803,13 +803,7 @@ contract ForeignController_Curve_Swap_SuccessTests is Curve_TestBase {
         uint256 minAmountOut = 1_000_000e6 * rates[1] * 0.999e18 / rates[0] / 1e18;
 
         vm.expectEmit(address(foreignController));
-        emit ICurveFacet.CurveSwap({
-            pool        : CURVE_POOL,
-            inputIndex  : 1,
-            outputIndex : 0,
-            amountIn    : 1_000_000e6,
-            amountOut   : expectedAmountOut
-        });
+        emit ICurveFacet.CurveSwap(CURVE_POOL, 1, 0, 1_000_000e6, expectedAmountOut);
 
         vm.prank(relayer);
         uint256 amountOut = foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, minAmountOut);

@@ -78,11 +78,7 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
         assertEq(USDC.balanceOf(buidlDeposit),      0);
 
         vm.expectEmit(address(mainnetController));
-        emit ITransferAssetFacet.TransferAssetFacetTransfer({
-            asset       : Ethereum.USDC,
-            destination : buidlDeposit,
-            amount      : 1_000_000e6
-        });
+        emit ITransferAssetFacet.TransferAssetFacetTransfer(Ethereum.USDC, buidlDeposit, 1_000_000e6);
 
         vm.prank(relayer);
         mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);

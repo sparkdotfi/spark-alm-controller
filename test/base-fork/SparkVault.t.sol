@@ -145,10 +145,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         vm.record();
 
         vm.expectEmit(address(foreignController));
-        emit ISparkVaultFacet.SparkVaultTake({
-            sparkVault  : address(sparkVault),
-            assetAmount : 1_000_000e6
-        });
+        emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), 1_000_000e6);
 
         vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), 1_000_000e6);
@@ -172,10 +169,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         _assertTestState(testState);
 
         vm.expectEmit(address(foreignController));
-        emit ISparkVaultFacet.SparkVaultTake({
-            sparkVault  : address(sparkVault),
-            assetAmount : rateLimitIncreaseInOneHour
-        });
+        emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), rateLimitIncreaseInOneHour);
 
         vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
@@ -215,10 +209,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         _assertTestState(testState);
 
         vm.expectEmit(address(foreignController));
-        emit ISparkVaultFacet.SparkVaultTake({
-            sparkVault  : address(sparkVault),
-            assetAmount : takeAmount
-        });
+        emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), takeAmount);
 
         vm.prank(relayer);
         foreignController.takeFromSparkVault(address(sparkVault), takeAmount);

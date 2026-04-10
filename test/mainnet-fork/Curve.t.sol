@@ -261,12 +261,12 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit ICurveFacet.CurveAddLiquidity({
-            pool           : CURVE_POOL,
-            shares         : minLpAmount,
-            valueDeposited : (amounts[0] + amounts[1]) * 1e12,
-            depositAmounts : amounts
-        });
+        emit ICurveFacet.CurveAddLiquidity(
+            CURVE_POOL,
+            minLpAmount,
+            (amounts[0] + amounts[1]) * 1e12,
+            amounts
+        );
 
         vm.prank(relayer);
         uint256 lpTokensReceived = mainnetController.addLiquidityCurve(
@@ -579,12 +579,12 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit ICurveFacet.CurveRemoveLiquidity({
-            pool            : CURVE_POOL,
-            lpBurnAmount    : lpTokensReceived,
-            valueWithdrawn  : (expectedWithdrawnAmounts[0] + expectedWithdrawnAmounts[1]) * 1e12,
-            withdrawnTokens : expectedWithdrawnAmounts
-        });
+        emit ICurveFacet.CurveRemoveLiquidity(
+            CURVE_POOL,
+            lpTokensReceived,
+            (expectedWithdrawnAmounts[0] + expectedWithdrawnAmounts[1]) * 1e12,
+            expectedWithdrawnAmounts
+        );
 
         vm.prank(relayer);
         uint256[] memory assetsReceived = mainnetController.removeLiquidityCurve(
@@ -761,13 +761,13 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit ICurveFacet.CurveSwap({
-            pool        : CURVE_POOL,
-            inputIndex  : 1,
-            outputIndex : 0,
-            amountIn    : 1_000_000e6,
-            amountOut   : 999_712.1851680e6
-        });
+        emit ICurveFacet.CurveSwap(
+            CURVE_POOL,
+            1,
+            0,
+            1_000_000e6,
+            999_712.1851680e6
+        );
 
         vm.prank(relayer);
         uint256 amountOut = mainnetController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 999_500e6);

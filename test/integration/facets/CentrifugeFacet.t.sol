@@ -84,10 +84,7 @@ contract Controller_CentrifugeFacet_SetRecipient_Tests is CentrifugeFacet_TestBa
         assertEq(controller.getCentrifugeRecipient(2), bytes32(0));
 
         vm.expectEmit(address(controller));
-        emit ICentrifugeFacet.CentrifugeRecipientSet({
-            centrifugeId : 1,
-            recipient    : centrifugeRecipient1
-        });
+        emit ICentrifugeFacet.CentrifugeRecipientSet(1, centrifugeRecipient1);
 
         vm.prank(admin);
         controller.setCentrifugeRecipient(1, centrifugeRecipient1);
@@ -95,10 +92,7 @@ contract Controller_CentrifugeFacet_SetRecipient_Tests is CentrifugeFacet_TestBa
         assertEq(controller.getCentrifugeRecipient(1), centrifugeRecipient1);
 
         vm.expectEmit(address(controller));
-        emit ICentrifugeFacet.CentrifugeRecipientSet({
-            centrifugeId : 2,
-            recipient    : centrifugeRecipient2
-        });
+        emit ICentrifugeFacet.CentrifugeRecipientSet(2, centrifugeRecipient2);
 
         vm.prank(admin);
         controller.setCentrifugeRecipient(2, centrifugeRecipient2);
@@ -108,10 +102,7 @@ contract Controller_CentrifugeFacet_SetRecipient_Tests is CentrifugeFacet_TestBa
         vm.record();
 
         vm.expectEmit(address(controller));
-        emit ICentrifugeFacet.CentrifugeRecipientSet({
-            centrifugeId : 1,
-            recipient    : centrifugeRecipient2
-        });
+        emit ICentrifugeFacet.CentrifugeRecipientSet(1, centrifugeRecipient2);
 
         vm.prank(admin);
         controller.setCentrifugeRecipient(1, centrifugeRecipient2);

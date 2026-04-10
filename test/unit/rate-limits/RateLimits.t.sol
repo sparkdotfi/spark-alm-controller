@@ -136,13 +136,7 @@ contract RateLimits_SetRateLimitData_Tests is RateLimits_TestBase {
 
         // Variant1
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDataSet({
-            key         : TEST_KEY1,
-            maxAmount   : 1000,
-            slope       : 10,
-            lastAmount  : 1000,
-            lastUpdated : block.timestamp
-        });
+        emit RateLimitDataSet(TEST_KEY1, 1000, 10, 1000, block.timestamp);
         rateLimits.setRateLimitData(TEST_KEY1, 1000, 10);
         _assertLimitData({
             key:         TEST_KEY1,
@@ -154,13 +148,7 @@ contract RateLimits_SetRateLimitData_Tests is RateLimits_TestBase {
 
         // Variant2
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDataSet({
-            key         : TEST_KEY1,
-            maxAmount   : 1000,
-            slope       : 10,
-            lastAmount  : 101,
-            lastUpdated : block.timestamp - 1
-        });
+        emit RateLimitDataSet(TEST_KEY1, 1000, 10, 101, block.timestamp - 1);
         rateLimits.setRateLimitData(TEST_KEY1, 1000, 10, 101, block.timestamp - 1);
         _assertLimitData({
             key:         TEST_KEY1,
@@ -172,13 +160,7 @@ contract RateLimits_SetRateLimitData_Tests is RateLimits_TestBase {
 
         // Variant3
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDataSet({
-            key         : TEST_KEY1,
-            maxAmount   : type(uint256).max,
-            slope       : 0,
-            lastAmount  : type(uint256).max,
-            lastUpdated : block.timestamp
-        });
+        emit RateLimitDataSet(TEST_KEY1, type(uint256).max, 0, type(uint256).max, block.timestamp);
         rateLimits.setUnlimitedRateLimitData(TEST_KEY1);
         _assertLimitData({
             key:         TEST_KEY1,
@@ -226,13 +208,7 @@ contract RateLimits_SetRateLimitData_Variant1_Tests is RateLimits_TestBase {
 
     function test_setRateLimitData() public {
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDataSet({
-            key         : TEST_KEY1,
-            maxAmount   : 1000,
-            slope       : 10,
-            lastAmount  : 1000,
-            lastUpdated : block.timestamp
-        });
+        emit RateLimitDataSet(TEST_KEY1, 1000, 10, 1000, block.timestamp);
         vm.prank(admin);
         rateLimits.setRateLimitData(TEST_KEY1, 1000, 10, 1000, block.timestamp);
 
@@ -262,13 +238,7 @@ contract RateLimits_SetRateLimitData_Variant2_Tests is RateLimits_TestBase {
 
     function test_setRateLimitData() public {
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDataSet({
-            key         : TEST_KEY1,
-            maxAmount   : 1000,
-            slope       : 10,
-            lastAmount  : 1000,
-            lastUpdated : block.timestamp
-        });
+        emit RateLimitDataSet(TEST_KEY1, 1000, 10, 1000, block.timestamp);
         vm.prank(admin);
         rateLimits.setRateLimitData(TEST_KEY1, 1000, 10);
 
@@ -296,13 +266,7 @@ contract RateLimits_SetUnlimitedRateLimitData_Tests is RateLimits_TestBase {
 
     function test_setUnlimitedRateLimitData() public {
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDataSet({
-            key         : TEST_KEY1,
-            maxAmount   : type(uint256).max,
-            slope       : 0,
-            lastAmount  : type(uint256).max,
-            lastUpdated : block.timestamp
-        });
+        emit RateLimitDataSet(TEST_KEY1, type(uint256).max, 0, type(uint256).max, block.timestamp);
         vm.prank(admin);
         rateLimits.setUnlimitedRateLimitData(TEST_KEY1);
         _assertLimitData({
@@ -514,12 +478,7 @@ contract RateLimits_TriggerRateLimitDecrease_Tests is RateLimits_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(TEST_KEY1), 30);
 
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDecreaseTriggered({
-            key              : TEST_KEY1,
-            amountToDecrease : 0,
-            oldRateLimit     : 30,
-            newRateLimit     : 30
-        });
+        emit RateLimitDecreaseTriggered(TEST_KEY1, 0, 30, 30);
         vm.prank(controller);
         uint256 resultingLimit = rateLimits.triggerRateLimitDecrease(TEST_KEY1, 0);
 
@@ -560,12 +519,12 @@ contract RateLimits_TriggerRateLimitDecrease_Tests is RateLimits_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(TEST_KEY1), 1_000_000e18 - dust);
 
         vm.expectEmit(address(rateLimits));
-        emit RateLimitDecreaseTriggered({
-            key              : TEST_KEY1,
-            amountToDecrease : 250_000e18,
-            oldRateLimit     : 1_000_000e18 - dust,
-            newRateLimit     : 750_000e18 - dust
-        });
+        emit RateLimitDecreaseTriggered(
+            TEST_KEY1,
+            250_000e18,
+            1_000_000e18 - dust,
+            750_000e18 - dust
+        );
         uint256 resultingLimit = rateLimits.triggerRateLimitDecrease(TEST_KEY1, 250_000e18);
 
         assertEq(resultingLimit, 750_000e18 - dust);
@@ -799,12 +758,7 @@ contract RateLimits_TriggerRateLimitIncrease_Tests is RateLimits_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(TEST_KEY1), 30);
 
         vm.expectEmit(address(rateLimits));
-        emit RateLimitIncreaseTriggered({
-            key              : TEST_KEY1,
-            amountToIncrease : 0,
-            oldRateLimit     : 30,
-            newRateLimit     : 30
-        });
+        emit RateLimitIncreaseTriggered(TEST_KEY1, 0, 30, 30);
         vm.prank(controller);
         uint256 resultingLimit = rateLimits.triggerRateLimitIncrease(TEST_KEY1, 0);
 
@@ -842,12 +796,7 @@ contract RateLimits_TriggerRateLimitIncrease_Tests is RateLimits_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(TEST_KEY1), 110);  // 100 + 10(1 second)
 
         vm.expectEmit(address(rateLimits));
-        emit RateLimitIncreaseTriggered({
-            key              : TEST_KEY1,
-            amountToIncrease : 500,
-            oldRateLimit     : 110,
-            newRateLimit     : 610
-        });
+        emit RateLimitIncreaseTriggered(TEST_KEY1, 500, 110, 610);
         uint256 resultingLimit = rateLimits.triggerRateLimitIncrease(TEST_KEY1, 500);
 
         assertEq(resultingLimit, 610);
@@ -884,12 +833,7 @@ contract RateLimits_TriggerRateLimitIncrease_Tests is RateLimits_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(TEST_KEY1), 110);  // 100 + 10(1 second)
 
         vm.expectEmit(address(rateLimits));
-        emit RateLimitIncreaseTriggered({
-            key              : TEST_KEY1,
-            amountToIncrease : 891,
-            oldRateLimit     : 110,
-            newRateLimit     : 1000
-        });
+        emit RateLimitIncreaseTriggered(TEST_KEY1, 891, 110, 1000);
         uint256 resultingLimit = rateLimits.triggerRateLimitIncrease(TEST_KEY1, 891);
 
         // 891 + 110 = 1001, which is above the maxAmount of 1000, so result is 1000

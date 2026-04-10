@@ -112,11 +112,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.record();
 
         vm.expectEmit(address(foreignController));
-        emit ITransferAssetFacet.TransferAssetFacetTransfer({
-            asset       : Base.USDC,
-            destination : receiver,
-            amount      : 1_000_000e6
-        });
+        emit ITransferAssetFacet.TransferAssetFacetTransfer(Base.USDC, receiver, 1_000_000e6);
 
         vm.prank(relayer);
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
@@ -150,11 +146,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         assertEq(token.balanceOf(address(almProxy)), 1_000_000e6);
 
         vm.expectEmit(address(foreignController));
-        emit ITransferAssetFacet.TransferAssetFacetTransfer({
-            asset       : address(token),
-            destination : receiver,
-            amount      : 1_000_000e6
-        });
+        emit ITransferAssetFacet.TransferAssetFacetTransfer(address(token), receiver, 1_000_000e6);
 
         vm.prank(relayer);
         foreignController.transferAsset(address(token), receiver, 1_000_000e6);

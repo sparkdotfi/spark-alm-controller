@@ -101,7 +101,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IFarmFacet.FarmDeposit({ farmToken: FARM, amount: 1_000_000e18 });
+        emit IFarmFacet.FarmDeposit(FARM, 1_000_000e18);
 
         vm.prank(relayer);
         mainnetController.depositToFarm(FARM, 1_000_000e18);
@@ -181,7 +181,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IFarmFacet.FarmWithdraw({ farmToken: FARM, amount: 1_000_000e18 });
+        emit IFarmFacet.FarmWithdraw(FARM, 1_000_000e18);
 
         vm.prank(relayer);
         mainnetController.withdrawFromFarm(FARM, 1_000_000e18);

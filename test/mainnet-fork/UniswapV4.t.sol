@@ -1131,15 +1131,15 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4MintPosition({
-            poolId    : _POOL_ID,
-            tokenId   : 73018,
-            tickLower : -10,
-            tickUpper : 0,
-            liquidity : 1_000_000e6,
-            amount0   : 340.756158e6,
-            amount1   : 159.209953e6
-        });
+        emit IUniswapV4Facet.UniswapV4MintPosition(
+            _POOL_ID,
+            73018,
+            -10,
+            0,
+            1_000_000e6,
+            340.756158e6,
+            159.209953e6
+        );
 
         IncreasePositionResult memory result = _mintPosition({
             poolId     : _POOL_ID,
@@ -1415,13 +1415,13 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4IncreasePosition({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e6,
-            amount0           : 340.756158e6,
-            amount1           : 159.209953e6
-        });
+        emit IUniswapV4Facet.UniswapV4IncreasePosition(
+            _POOL_ID,
+            minted.tokenId,
+            1_000_000e6,
+            340.756158e6,
+            159.209953e6
+        );
 
         IncreasePositionResult memory result = _increasePosition(
             minted.tokenId,
@@ -1587,13 +1587,13 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4DecreasePosition({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0           : 170.378078e6,
-            amount1           : 79.604976e6
-        });
+        emit IUniswapV4Facet.UniswapV4DecreasePosition(
+            _POOL_ID,
+            minted.tokenId,
+            minted.liquidityIncrease / 2,
+            170.378078e6,
+            79.604976e6
+        );
 
         DecreasePositionResult memory result = _decreasePosition(
             minted.tokenId,
@@ -1623,13 +1623,13 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4DecreasePosition({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease,
-            amount0           : 340.756157e6,
-            amount1           : 159.209952e6
-        });
+        emit IUniswapV4Facet.UniswapV4DecreasePosition(
+            _POOL_ID,
+            minted.tokenId,
+            minted.liquidityIncrease,
+            340.756157e6,
+            159.209952e6
+        );
 
         DecreasePositionResult memory result = _decreasePosition(
             minted.tokenId,
@@ -1743,13 +1743,13 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4Swap({
-            poolId    : _POOL_ID,
-            tokenIn   : Ethereum.USDC,
-            tokenOut  : Ethereum.USDT,
-            amountIn  : 1_000_000e6,
-            amountOut : 999_280.652247e6
-        });
+        emit IUniswapV4Facet.UniswapV4Swap(
+            _POOL_ID,
+            Ethereum.USDC,
+            Ethereum.USDT,
+            1_000_000e6,
+            999_280.652247e6
+        );
 
         uint256 amountOut = _swap(_POOL_ID, Ethereum.USDC, 1_000_000e6, amountOutMin);
 
@@ -1769,13 +1769,13 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4Swap({
-            poolId    : _POOL_ID,
-            tokenIn   : Ethereum.USDT,
-            tokenOut  : Ethereum.USDC,
-            amountIn  : 1_000_000e6,
-            amountOut : 1_000_646.141415e6
-        });
+        emit IUniswapV4Facet.UniswapV4Swap(
+            _POOL_ID,
+            Ethereum.USDT,
+            Ethereum.USDC,
+            1_000_000e6,
+            1_000_646.141415e6
+        );
 
         uint256 amountOut = _swap(_POOL_ID, Ethereum.USDT, 1_000_000e6, amountOutMin);
 
@@ -2947,15 +2947,15 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4MintPosition({
-            poolId    : _POOL_ID,
-            tokenId   : 73018,
-            tickLower : 276_000,
-            tickUpper : 276_600,
-            liquidity : 1_000_000e12,
-            amount0   : 12871.843781e6,
-            amount1   : 16902.069677368778256533e18
-        });
+        emit IUniswapV4Facet.UniswapV4MintPosition(
+            _POOL_ID,
+            73018,
+            276_000,
+            276_600,
+            1_000_000e12,
+            12871.843781e6,
+            16902.069677368778256533e18
+        );
 
         IncreasePositionResult memory result = _mintPosition({
             poolId     : _POOL_ID,
@@ -3261,13 +3261,13 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4IncreasePosition({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityIncrease : 1_000_000e12,
-            amount0           : 12871.843781e6,
-            amount1           : 16902.069677368778256533e18
-        });
+        emit IUniswapV4Facet.UniswapV4IncreasePosition(
+            _POOL_ID,
+            minted.tokenId,
+            1_000_000e12,
+            12871.843781e6,
+            16902.069677368778256533e18
+        );
 
         IncreasePositionResult memory result = _increasePosition(
             minted.tokenId,
@@ -3433,13 +3433,13 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4DecreasePosition({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease / 2,
-            amount0           : 6_435.921890e6,
-            amount1           : 8_451.034838684389128266e18
-        });
+        emit IUniswapV4Facet.UniswapV4DecreasePosition(
+            _POOL_ID,
+            minted.tokenId,
+            minted.liquidityIncrease / 2,
+            6_435.921890e6,
+            8_451.034838684389128266e18
+        );
 
         DecreasePositionResult memory result = _decreasePosition(
             minted.tokenId,
@@ -3469,13 +3469,13 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4DecreasePosition({
-            poolId            : _POOL_ID,
-            tokenId           : minted.tokenId,
-            liquidityDecrease : minted.liquidityIncrease,
-            amount0           : 12_871.843780e6,
-            amount1           : 16_902.069677368778256532e18
-        });
+        emit IUniswapV4Facet.UniswapV4DecreasePosition(
+            _POOL_ID,
+            minted.tokenId,
+            minted.liquidityIncrease,
+            12_871.843780e6,
+            16_902.069677368778256532e18
+        );
 
         DecreasePositionResult memory result = _decreasePosition(
             minted.tokenId,
@@ -3589,13 +3589,13 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4Swap({
-            poolId    : _POOL_ID,
-            tokenIn   : Ethereum.USDT,
-            tokenOut  : Ethereum.USDS,
-            amountIn  : 10_000e6,
-            amountOut : 9_963.585379886102636344e18
-        });
+        emit IUniswapV4Facet.UniswapV4Swap(
+            _POOL_ID,
+            Ethereum.USDT,
+            Ethereum.USDS,
+            10_000e6,
+            9_963.585379886102636344e18
+        );
 
         uint256 amountOut = _swap(_POOL_ID, Ethereum.USDT, 10_000e6, amountOutMin);
 
@@ -3615,13 +3615,13 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUniswapV4Facet.UniswapV4Swap({
-            poolId    : _POOL_ID,
-            tokenIn   : Ethereum.USDS,
-            tokenOut  : Ethereum.USDT,
-            amountIn  : 3_000e18,
-            amountOut : 2_990.034994e6
-        });
+        emit IUniswapV4Facet.UniswapV4Swap(
+            _POOL_ID,
+            Ethereum.USDS,
+            Ethereum.USDT,
+            3_000e18,
+            2_990.034994e6
+        );
 
         uint256 amountOut = _swap(_POOL_ID, Ethereum.USDS, 3_000e18, amountOutMin);
 

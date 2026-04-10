@@ -132,7 +132,7 @@ contract ForeignController_AaveV3_Deposit_Tests is AaveV3_TestBase {
         vm.record();
 
         vm.expectEmit(address(foreignController));
-        emit IAaveFacet.AaveDeposit({ aToken: ATOKEN_USDC, amount: 1_000_000e6 });
+        emit IAaveFacet.AaveDeposit(ATOKEN_USDC, 1_000_000e6);
 
         vm.prank(relayer);
         foreignController.depositAave(ATOKEN_USDC, 1_000_000e6);
@@ -239,7 +239,7 @@ contract ForeignController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
 
         // Partial withdraw
         vm.expectEmit(address(foreignController));
-        emit IAaveFacet.AaveWithdraw({ aToken: ATOKEN_USDC, amountWithdrawn: 400_000e6 });
+        emit IAaveFacet.AaveWithdraw(ATOKEN_USDC, 400_000e6);
 
         vm.prank(relayer);
         assertEq(foreignController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);

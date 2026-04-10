@@ -135,7 +135,7 @@ contract OTCBuffer_AuthorizeUpgrade_Tests is OTCBuffer_TestBase {
         address newImplementation = address(new OTCBuffer());
 
         vm.expectEmit(address(buffer));
-        emit IERC1967.Upgraded({ implementation: newImplementation });
+        emit IERC1967.Upgraded(newImplementation);
 
         vm.prank(admin);
         buffer.upgradeToAndCall(newImplementation, "");

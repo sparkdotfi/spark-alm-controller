@@ -115,12 +115,7 @@ contract MainnetController_Basin_Deposit_Tests is Basin_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IBasinFacet.BasinDeposit({
-            basin  : address(mockBasin),
-            asset  : Ethereum.USDS,
-            amount : depositAmount,
-            shares : depositAmount
-        });
+        emit IBasinFacet.BasinDeposit(address(mockBasin), Ethereum.USDS, depositAmount, depositAmount);
 
         vm.prank(relayer);
         uint256 shares = mainnetController.depositBasin(
@@ -147,12 +142,7 @@ contract MainnetController_Basin_Deposit_Tests is Basin_TestBase {
         deal(Ethereum.USDS, address(almProxy), depositAmount);
 
         vm.expectEmit(address(mainnetController));
-        emit IBasinFacet.BasinDeposit({
-            basin  : address(mockBasin),
-            asset  : Ethereum.USDS,
-            amount : depositAmount,
-            shares : customShares
-        });
+        emit IBasinFacet.BasinDeposit(address(mockBasin), Ethereum.USDS, depositAmount, customShares);
 
         vm.prank(relayer);
         uint256 shares = mainnetController.depositBasin(
@@ -262,11 +252,7 @@ contract MainnetController_Basin_Withdraw_Tests is Basin_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IBasinFacet.BasinWithdraw({
-            basin           : address(mockBasin),
-            asset           : Ethereum.USDS,
-            assetsWithdrawn : withdrawAmount
-        });
+        emit IBasinFacet.BasinWithdraw(address(mockBasin), Ethereum.USDS, withdrawAmount);
 
         vm.prank(relayer);
         uint256 assetsWithdrawn = mainnetController.withdrawBasin(
@@ -291,11 +277,7 @@ contract MainnetController_Basin_Withdraw_Tests is Basin_TestBase {
         deal(Ethereum.USDS, address(mockBasin), customAmount);
 
         vm.expectEmit(address(mainnetController));
-        emit IBasinFacet.BasinWithdraw({
-            basin           : address(mockBasin),
-            asset           : Ethereum.USDS,
-            assetsWithdrawn : customAmount
-        });
+        emit IBasinFacet.BasinWithdraw(address(mockBasin), Ethereum.USDS, customAmount);
 
         vm.prank(relayer);
         uint256 assetsWithdrawn = mainnetController.withdrawBasin(

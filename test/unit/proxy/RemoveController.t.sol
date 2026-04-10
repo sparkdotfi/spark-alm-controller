@@ -88,7 +88,7 @@ contract ALMProxy_Freezable_RemoveRelayer_SuccessTests is Freezable_RemoveRelaye
         // Freezer comes in and removes relayer.
         vm.prank(freezer);
         vm.expectEmit(address(almProxyFreezable));
-        emit RelayerRemoved({ relayer: relayer });
+        emit RelayerRemoved(relayer);
         almProxyFreezable.removeRelayer(relayer);
 
         // After no longer has relayer role

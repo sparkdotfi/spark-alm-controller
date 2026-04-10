@@ -57,7 +57,7 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DaiUsds_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IDAIUSDSFacet.DAIUSDSSwapUSDSToDAI({ usdsAmount: 1_000_000e18 });
+        emit IDAIUSDSFacet.DAIUSDSSwapUSDSToDAI(1_000_000e18);
 
         vm.prank(relayer);
         mainnetController.swapUSDSToDAI(1_000_000e18);
@@ -106,7 +106,7 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DaiUsds_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IDAIUSDSFacet.DAIUSDSSwapDAIToUSDS({ daiAmount: 1_000_000e18 });
+        emit IDAIUSDSFacet.DAIUSDSSwapDAIToUSDS(1_000_000e18);
 
         vm.prank(relayer);
         mainnetController.swapDAIToUSDS(1_000_000e18);

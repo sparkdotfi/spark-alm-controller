@@ -59,7 +59,7 @@ contract MainnetController_WrapAllProxyETH_Tests is ForkTestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IWrapProxyETHFacet.WrapProxyETHWrap({ ethAmount: 1 ether });
+        emit IWrapProxyETHFacet.WrapProxyETHWrap(1 ether);
 
         vm.prank(relayer);
         mainnetController.wrapAllProxyETH();

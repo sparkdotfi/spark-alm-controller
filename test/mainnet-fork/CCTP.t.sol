@@ -479,20 +479,14 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
         foreignController.updateIntegrations(integrationIds);
 
-        MintRecipient[] memory mintRecipients = new MintRecipient[](1);
-
-        mintRecipients[0] = MintRecipient({
-            domain        : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient : bytes32(uint256(uint160(address(almProxy))))
-        });
-
         // Governance setting up parameters.
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
-        for (uint256 i; i < mintRecipients.length; ++i) {
-            foreignController.setCCTPMintRecipient(mintRecipients[i].domain, mintRecipients[i].mintRecipient);
-        }
+        foreignController.setCCTPMintRecipient(
+            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            bytes32(uint256(uint160(address(almProxy))))
+        );
 
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
@@ -1197,11 +1191,11 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit ICCTPFacet.CCTPTransferInitiated({
-            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
-            mintRecipient     : mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
-            amount            : amount
-        });
+        emit ICCTPFacet.CCTPTransferInitiated(
+            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
+            mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            amount
+        );
     }
 
     function _expectBaseCCTPEmit(uint64 nonce, uint256 amount) internal {
@@ -1222,11 +1216,11 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         });
 
         vm.expectEmit(address(foreignController));
-        emit ICCTPFacet.CCTPTransferInitiated({
-            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient     : foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
-            amount            : amount
-        });
+        emit ICCTPFacet.CCTPTransferInitiated(
+            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
+            amount
+        );
     }
 
 }
@@ -1528,11 +1522,11 @@ contract CCTP_TransferWithFee_IntegrationTests is BaseChain_CCTP_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit ICCTPFacet.CCTPTransferInitiated({
-            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
-            mintRecipient     : mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
-            amount            : amount
-        });
+        emit ICCTPFacet.CCTPTransferInitiated(
+            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
+            mainnetController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            amount
+        );
     }
 
     function _expectBaseCCTPEmit(uint64 nonce, uint256 amount, uint256 maxFee) internal {
@@ -1553,11 +1547,11 @@ contract CCTP_TransferWithFee_IntegrationTests is BaseChain_CCTP_TestBase {
         });
 
         vm.expectEmit(address(foreignController));
-        emit ICCTPFacet.CCTPTransferInitiated({
-            destinationDomain : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient     : foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
-            amount            : amount
-        });
+        emit ICCTPFacet.CCTPTransferInitiated(
+            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
+            foreignController.getCCTPMintRecipient(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
+            amount
+        );
     }
 
 }

@@ -228,7 +228,7 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
         address newImplementation = address(new WEETHModule());
 
         vm.expectEmit(address(weethModule));
-        emit IERC1967.Upgraded({ implementation: newImplementation });
+        emit IERC1967.Upgraded(newImplementation);
 
         vm.prank(admin);
         weethModule.upgradeToAndCall(newImplementation, "");

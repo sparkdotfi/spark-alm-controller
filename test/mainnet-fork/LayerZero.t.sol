@@ -286,12 +286,7 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit ILayerZeroFacet.LayerZeroTransfer({
-            oftAddress            : USDT_OFT,
-            destinationEndpointId : DESTINATION_ENDPOINT_ID,
-            amount                : 10_000_000e6,
-            nativeFeePaid         : fee.nativeFee
-        });
+        emit ILayerZeroFacet.LayerZeroTransfer(USDT_OFT, DESTINATION_ENDPOINT_ID, 10_000_000e6, fee.nativeFee);
 
         vm.prank(relayer);
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
@@ -362,12 +357,7 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit ILayerZeroFacet.LayerZeroTransfer({
-            oftAddress            : USDT_OFT,
-            destinationEndpointId : DESTINATION_ENDPOINT_ID,
-            amount                : 10_000_000e6,
-            nativeFeePaid         : fee.nativeFee
-        });
+        emit ILayerZeroFacet.LayerZeroTransfer(USDT_OFT, DESTINATION_ENDPOINT_ID, 10_000_000e6, fee.nativeFee);
 
         // Sending more native token than required to cover the fee.
         vm.prank(relayer);
@@ -731,12 +721,7 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         });
 
         vm.expectEmit(address(foreignController));
-        emit ILayerZeroFacet.LayerZeroTransfer({
-            oftAddress            : USDT_OFT,
-            destinationEndpointId : DESTINATION_ENDPOINT_ID,
-            amount                : 10_000_000e6,
-            nativeFeePaid         : fee.nativeFee
-        });
+        emit ILayerZeroFacet.LayerZeroTransfer(USDT_OFT, DESTINATION_ENDPOINT_ID, 10_000_000e6, fee.nativeFee);
 
         vm.prank(relayer);
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
@@ -804,12 +789,7 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         });
 
         vm.expectEmit(address(foreignController));
-        emit ILayerZeroFacet.LayerZeroTransfer({
-            oftAddress            : USDT_OFT,
-            destinationEndpointId : DESTINATION_ENDPOINT_ID,
-            amount                : 10_000_000e6,
-            nativeFeePaid         : fee.nativeFee
-        });
+        emit ILayerZeroFacet.LayerZeroTransfer(USDT_OFT, DESTINATION_ENDPOINT_ID, 10_000_000e6, fee.nativeFee);
 
         // Sending more native token than required to cover the fee.
         vm.prank(relayer);

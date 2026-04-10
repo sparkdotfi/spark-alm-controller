@@ -188,11 +188,11 @@ contract MainnetController_CentrifugeV3_TransferShares_SuccessTests is Centrifug
         });
 
         vm.expectEmit(address(mainnetController));
-        emit ICentrifugeFacet.CentrifugeTransferShares({
-            token        : CENTRIFUGE_VAULT,
-            amount       : 10_000_000e6,
-            centrifugeId : DESTINATION_CENTRIFUGE_ID
-        });
+        emit ICentrifugeFacet.CentrifugeTransferShares(
+            CENTRIFUGE_VAULT,
+            10_000_000e6,
+            DESTINATION_CENTRIFUGE_ID
+        );
 
         vm.startPrank(relayer);
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(

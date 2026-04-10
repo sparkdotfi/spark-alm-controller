@@ -94,10 +94,7 @@ contract Controller_LayerZeroFacet_Admin_Tests is LayerZeroFacet_TestBase {
         bytes32 recipient = bytes32(type(uint256).max);
 
         vm.expectEmit(address(controller));
-        emit ILayerZeroFacet.LayerZeroRecipientSet({
-            destinationEndpointId : 1,
-            layerZeroRecipient    : recipient
-        });
+        emit ILayerZeroFacet.LayerZeroRecipientSet(1, recipient);
 
         vm.record();
 

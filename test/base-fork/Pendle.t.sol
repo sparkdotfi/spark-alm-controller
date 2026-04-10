@@ -195,11 +195,7 @@ contract ForeignController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         uint256 exactAmountOut = 50_000e18 * 1e18 / pyIndexCurrent;
 
         vm.expectEmit(address(foreignController));
-        emit IPendleFacet.PendleRedeem({
-            market              : address(pendleMarket),
-            pyAmountIn          : 50_000e18,
-            totalTokenOutAmount : exactAmountOut
-        });
+        emit IPendleFacet.PendleRedeem(address(pendleMarket), 50_000e18, exactAmountOut);
 
         vm.prank(relayer);
         foreignController.redeemPendlePT(address(pendleMarket), 50_000e18, exactAmountOut);
@@ -213,11 +209,7 @@ contract ForeignController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         exactAmountOut = 50_000e18 * 1e18 / pyIndexCurrent;
 
         vm.expectEmit(address(foreignController));
-        emit IPendleFacet.PendleRedeem({
-            market              : address(pendleMarket),
-            pyAmountIn          : 50_000e18,
-            totalTokenOutAmount : exactAmountOut
-        });
+        emit IPendleFacet.PendleRedeem(address(pendleMarket), 50_000e18, exactAmountOut);
 
         vm.prank(relayer);
         foreignController.redeemPendlePT(address(pendleMarket), 50_000e18, exactAmountOut);

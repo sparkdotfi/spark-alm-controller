@@ -186,11 +186,11 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IWEETHFacet.WEETHDeposit({
-            amount     : 1_000e18,
-            eethAmount : 1_000e18 - 1, // Rounding
-            shares     : 927.715236537415314851e18
-        });
+        emit IWEETHFacet.WEETHDeposit(
+            1_000e18,
+            1_000e18 - 1, // Rounding
+            927.715236537415314851e18
+        );
 
         vm.prank(relayer);
         uint256 shares = mainnetController.depositToWeETH(1_000e18, minSharesOut);
@@ -324,12 +324,12 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
         uint32 nextRequestId = withdrawRequestNFT.nextRequestId();
 
         vm.expectEmit(address(mainnetController));
-        emit IWEETHFacet.WEETHRequestWithdraw({
-            weethModule : weethModule,
-            requestId   : nextRequestId,
-            eethAmount  : expectedEETHBalance,
-            weethShares : 500e18
-        });
+        emit IWEETHFacet.WEETHRequestWithdraw(
+            weethModule,
+            nextRequestId,
+            expectedEETHBalance,
+            500e18
+        );
 
         vm.prank(relayer);
         uint256 requestId = mainnetController.requestWithdrawFromWeETH(
@@ -515,11 +515,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IWEETHFacet.WEETHClaimWithdrawal({
-            weethModule : weethModule,
-            requestId   : requestId,
-            ethReceived : eethAmount
-        });
+        emit IWEETHFacet.WEETHClaimWithdrawal(weethModule, requestId, eethAmount);
 
         vm.prank(relayer);
         uint256 wethReceived = mainnetController.claimWithdrawalFromWeETH(weethModule, requestId);

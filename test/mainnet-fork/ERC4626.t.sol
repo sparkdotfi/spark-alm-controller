@@ -166,11 +166,7 @@ contract MainnetController_ERC4626_Deposit_Tests is ERC4626_SUSDS_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IERC4626Facet.ERC4626Deposit({
-            token  : address(susds),
-            assets : 1e18,
-            shares : SUSDS_CONVERTED_SHARES
-        });
+        emit IERC4626Facet.ERC4626Deposit(address(susds), 1e18, SUSDS_CONVERTED_SHARES);
 
         vm.prank(relayer);
         uint256 shares = mainnetController.depositERC4626(
@@ -288,11 +284,7 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IERC4626Facet.ERC4626Withdraw({
-            token  : address(susds),
-            assets : 1e18 - 1,
-            shares : SUSDS_CONVERTED_SHARES
-        });
+        emit IERC4626Facet.ERC4626Withdraw(address(susds), 1e18 - 1, SUSDS_CONVERTED_SHARES);
 
         // Max available with rounding
         vm.prank(relayer);
@@ -439,11 +431,7 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IERC4626Facet.ERC4626Redeem({
-            token  : address(susds),
-            shares : SUSDS_CONVERTED_SHARES,
-            assets : 1e18 - 1
-        });
+        emit IERC4626Facet.ERC4626Redeem(address(susds), SUSDS_CONVERTED_SHARES, 1e18 - 1);
 
         vm.prank(relayer);
         uint256 assets = mainnetController.redeemERC4626(

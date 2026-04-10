@@ -37,11 +37,7 @@ contract AccessControls_Tests is UnitTestBase {
 
     function test_constructor() external {
         vm.expectEmit();
-        emit IAccessControl.RoleGranted({
-            role    : DEFAULT_ADMIN_ROLE,
-            account : admin,
-            sender  : deployer
-        });
+        emit IAccessControl.RoleGranted(DEFAULT_ADMIN_ROLE, admin, deployer);
 
         vm.prank(deployer);
         AccessControls accessControls_ = new AccessControls(admin);
@@ -87,14 +83,10 @@ contract AccessControls_Tests is UnitTestBase {
         vm.record();
 
         vm.expectEmit(address(accessControls));
-        emit IAccessControl.RoleRevoked({
-            role    : accessControls.RELAYER_ROLE(),
-            account : relayer,
-            sender  : freezer
-        });
+        emit IAccessControl.RoleRevoked(accessControls.RELAYER_ROLE(), relayer, freezer);
 
         vm.expectEmit(address(accessControls));
-        emit IAccessControls.RelayerRemoved({ relayer: relayer });
+        emit IAccessControls.RelayerRemoved(relayer);
 
         vm.prank(freezer);
         accessControls.removeRelayer(relayer);

@@ -278,10 +278,10 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
         pure
         returns (IUniswapV3Facet.TokenAmounts memory)
     {
-        return IUniswapV3Facet.TokenAmounts({
-            amount0 : amount0 * 98 / 100,
-            amount1 : amount1 * 98 / 100
-        });
+        return IUniswapV3Facet.TokenAmounts(
+            amount0 * 98 / 100,
+            amount1 * 98 / 100
+        );
     }
 
 }
@@ -832,7 +832,7 @@ contract ForeignController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         uint256 amount0 = 10_000 * 10 ** uint256(token0Decimals);
         uint256 amount1 = 10_000 * 10 ** uint256(IERC20(address(token1)).decimals());
 
-        return IUniswapV3Facet.TokenAmounts({ amount0: amount0, amount1: amount1 });
+        return IUniswapV3Facet.TokenAmounts(amount0, amount1);
     }
 
     function _mockSpotTick(int24 spotTick) internal {
@@ -1026,21 +1026,21 @@ contract ForeignController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         IUniswapV3Facet.TokenAmounts memory desired = _defaultDesiredPosition();
         _fundProxy(desired.amount0, desired.amount1);
 
-        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks({
-            lower: initTick - 100,
-            upper: initTick + 100
-        });
+        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks(
+            initTick - 100,
+            initTick + 100
+        );
 
         vm.expectEmit(address(foreignController));
-        emit IUniswapV3Facet.UniswapV3AddLiquidity({
-            pool      : _getPool(),
-            tokenId   : 4168816,
-            tickLower : tick.lower,
-            tickUpper : tick.upper,
-            liquidity : 1985819769370545184,
-            amount0   : 9_807.642265083487153562e18,
-            amount1   : desired.amount1
-        });
+        emit IUniswapV3Facet.UniswapV3AddLiquidity(
+            _getPool(),
+            4168816,
+            tick.lower,
+            tick.upper,
+            1985819769370545184,
+            9_807.642265083487153562e18,
+            desired.amount1
+        );
 
         vm.startPrank(relayer);
         ( uint256 tokenId, uint128 liquidity, ) = foreignController.addLiquidityUniswapV3(
@@ -1078,7 +1078,7 @@ abstract contract UniswapV3_AddLiquidity_E2ETestBase is UniswapV3_TestBase {
         (tokenId, liquidity, amount0Used, amount1Used) = _addLiquidity(
             currentTokenId,
             tick,
-            IUniswapV3Facet.TokenAmounts({ amount0: amount0, amount1: amount1 }),
+            IUniswapV3Facet.TokenAmounts(amount0, amount1),
             _minLiquidityPosition(amount0, amount1)
         );
 
@@ -1105,10 +1105,10 @@ abstract contract UniswapV3_AddLiquidity_E2ETestBase is UniswapV3_TestBase {
         deal(address(token0), address(almProxy), amount0);
         deal(address(token1), address(almProxy), amount1);
 
-        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks({
-            lower : initTick + lowerTickDelta,
-            upper : initTick + upperTickDelta
-        });
+        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks(
+            initTick + lowerTickDelta,
+            initTick + upperTickDelta
+        );
 
         uint256 tokenId;
         uint128 liquidity;
@@ -1537,7 +1537,7 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
         (tokenId, totalLiquidity, amount0Added, amount1Added) = _addLiquidity(
             addAmount0,
             addAmount1,
-            IUniswapV3Facet.Ticks({lower : -100, upper : 100})
+            IUniswapV3Facet.Ticks(-100, 100)
         );
     }
 
@@ -1550,11 +1550,11 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
 
         (tokenId_, liquidity_, amount0Used_, amount1Used_) = _addLiquidity(
             0,
-            IUniswapV3Facet.Ticks({
-                lower : initTick + addTickDelta.lower,
-                upper : initTick + addTickDelta.upper
-            }),
-            IUniswapV3Facet.TokenAmounts({ amount0: addAmount0, amount1: addAmount1 }),
+            IUniswapV3Facet.Ticks(
+                initTick + addTickDelta.lower,
+                initTick + addTickDelta.upper
+            ),
+            IUniswapV3Facet.TokenAmounts(addAmount0, addAmount1),
             _minLiquidityPosition(addAmount0, addAmount1)
         );
 
@@ -1577,7 +1577,7 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
             _getPool(),
             tokenId_,
             liquidity_,
-            IUniswapV3Facet.TokenAmounts({ amount0: minAmount0_, amount1: minAmount1_ }),
+            IUniswapV3Facet.TokenAmounts(minAmount0_, minAmount1_),
             block.timestamp + 1 hours
         );
         vm.stopPrank();
@@ -1635,13 +1635,13 @@ contract ForeignController_UniswapV3_RemoveLiquidity_AUSDUSDS_E2ETests is Uniswa
 
     function test_e2e_removeLiquidityUniswapV3_ausdUsds_allLiquidity() public {
         vm.expectEmit(address(foreignController));
-        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
-            pool      : _getPool(),
-            tokenId   : 4168816,
-            liquidity : 200510416479002803287822012,
-            amount0   : 999999.999999999999999999e18,
-            amount1   : 999999.999999999999999999e18
-        });
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity(
+            _getPool(),
+            4168816,
+            200510416479002803287822012,
+            999999.999999999999999999e18,
+            999999.999999999999999999e18
+        );
 
         _removeLiquidityAndValidate(
             tokenId,
@@ -1679,13 +1679,13 @@ contract ForeignController_UniswapV3_RemoveLiquidity_USDSUSDC_E2ETests is Uniswa
 
     function test_e2e_removeLiquidityUniswapV3_usdsUsdc_allLiquidity() public {
         vm.expectEmit(address(foreignController));
-        emit IUniswapV3Facet.UniswapV3RemoveLiquidity({
-            pool      : _getPool(),
-            tokenId   : 4168816,
-            liquidity : 198581976937054518427,
-            amount0   : 980764.226508348715489541e18,
-            amount1   : 999999.999999e6
-        });
+        emit IUniswapV3Facet.UniswapV3RemoveLiquidity(
+            _getPool(),
+            4168816,
+            198581976937054518427,
+            980764.226508348715489541e18,
+            999999.999999e6
+        );
 
         _removeLiquidityAndValidate(
             tokenId,
