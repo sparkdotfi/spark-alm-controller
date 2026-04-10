@@ -21,6 +21,8 @@ interface IBasinLike {
         external
         returns (uint256 assetsWithdrawn);
 
+    function shares(address user) external view returns (uint256);
+
 }
 
 contract BasinFacet is IBasinFacet, FacetBase {
@@ -38,9 +40,6 @@ contract BasinFacet is IBasinFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
-    // NOTE: !!! This function was merged without integration testing !!!
-    //       KEEP RATE LIMIT AT ZERO until Basin is live and
-    //       all functionality has been thoroughly integration tested.
     function deposit(address basin, address asset, uint256 amount)
         external
         override
@@ -67,9 +66,6 @@ contract BasinFacet is IBasinFacet, FacetBase {
         emit BasinDeposit(basin, asset, amount, shares);
     }
 
-    // NOTE: !!! This function was merged without integration testing !!!
-    //       KEEP RATE LIMIT AT ZERO until Basin is live and
-    //       all functionality has been thoroughly integration tested.
     function withdraw(address basin, address asset, uint256 maxAmount)
         external
         override
@@ -78,6 +74,8 @@ contract BasinFacet is IBasinFacet, FacetBase {
         returns (uint256 assetsWithdrawn)
     {
         address proxy = _getSharedControllerStorage().proxy;
+
+        uint256 sharesBefore = IBasinLike(basin).shares(proxy);
 
         // Withdraw up to `maxAmount` of `asset` in the Basin, decode the result to get
         // `assetsWithdrawn` (assumes the proxy has enough Basin shares).
@@ -92,7 +90,12 @@ contract BasinFacet is IBasinFacet, FacetBase {
 
         _decreaseRateLimit(LIMIT_WITHDRAW, basin, asset, assetsWithdrawn);
 
-        emit BasinWithdraw(basin, asset, assetsWithdrawn);
+        emit BasinWithdraw(
+            basin,
+            asset,
+            assetsWithdrawn,
+            sharesBefore - IBasinLike(basin).shares(proxy)
+        );
     }
 
     /**********************************************************************************************/

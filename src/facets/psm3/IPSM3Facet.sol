@@ -26,9 +26,9 @@ interface IPSM3Facet is IFacetBase {
      * @notice Emitted when an asset is withdrawn from the PSM.
      * @param  asset           Address of the withdrawn asset token.
      * @param  assetsWithdrawn Actual amount of asset withdrawn (native decimals).
-     * @param  sharesBurnt     Amount of PSM shares burned.
+     * @param  sharesBurned    Amount of PSM shares burned.
      */
-    event PSM3Withdraw(address indexed asset, uint256 assetsWithdrawn, uint256 sharesBurnt);
+    event PSM3Withdraw(address indexed asset, uint256 assetsWithdrawn, uint256 sharesBurned);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

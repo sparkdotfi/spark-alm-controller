@@ -28,8 +28,14 @@ interface IBasinFacet is IFacetBase {
      * @param  basin           The address of the basin.
      * @param  asset           The address of the asset withdrawn.
      * @param  assetsWithdrawn The amount of the asset withdrawn.
+     * @param  sharesBurned    The amount of shares burned.
      */
-    event BasinWithdraw(address indexed basin, address indexed asset, uint256 assetsWithdrawn);
+    event BasinWithdraw(
+        address indexed basin,
+        address indexed asset,
+        uint256         assetsWithdrawn,
+        uint256         sharesBurned
+    );
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

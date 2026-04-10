@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { Base as GroveBase } from "lib/grove-address-registry/src/Base.sol";
-import { Base as SparkBase } from "lib/spark-address-registry/src/Base.sol";
+import { Base as GroveBase } from "../../lib/grove-address-registry/src/Base.sol";
+import { Base as SparkBase } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { IMerklFacet } from "../../src/facets/merkl/IMerklFacet.sol";
 
