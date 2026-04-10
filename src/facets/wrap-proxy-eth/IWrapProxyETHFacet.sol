@@ -24,18 +24,14 @@ interface IWrapProxyETHFacet is IFacetBase {
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Wraps the proxy's entire native ETH balance into WETH. No-op if the proxy has no ETH.
-     */
+    /// @notice Wraps the proxy's entire native ETH balance into WETH. No-op if the proxy has no ETH.
     function wrapAll() external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Address of the WETH token contract (immutable).
-     */
+    /// @notice Address of the WETH token contract (immutable).
     function weth() external view returns (address);
 
 }

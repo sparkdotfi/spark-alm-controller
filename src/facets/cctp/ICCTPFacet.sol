@@ -77,14 +77,10 @@ interface ICCTPFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Always bytes32(0): any relayer can complete the message on the destination chain.
-     */
+    /// @notice Always bytes32(0): any relayer can complete the message on the destination chain.
     function DESTINATION_CALLER() external pure returns (bytes32);
 
-    /**
-     * @notice Rate limit key for aggregate CCTP volume across all domains.
-     */
+    /// @notice Rate limit key for aggregate CCTP volume across all domains.
     function LIMIT_TO_CCTP() external pure returns (bytes32);
 
     /**
@@ -93,9 +89,7 @@ interface ICCTPFacet is IFacetBase {
      */
     function LIMIT_TO_DOMAIN() external pure returns (bytes32);
 
-    /**
-     * @notice Always zero. Standard CCTP burns do not incur a fee, so the default max fee is zero.
-     */
+    /// @notice Always zero. Standard CCTP burns do not incur a fee, so the default max fee is zero.
     function MAX_FEE() external pure returns (uint256);
 
     /**
@@ -104,19 +98,13 @@ interface ICCTPFacet is IFacetBase {
      */
     function MAX_FINALITY_THRESHOLD() external pure returns (uint32);
 
-    /**
-     * @notice Address of the CCTP TokenMessenger contract (immutable).
-     */
+    /// @notice Address of the CCTP TokenMessenger contract (immutable).
     function cctp() external view returns (address);
 
-    /**
-     * @notice The configured max fee cap for `transferWithFee`.
-     */
+    /// @notice The configured max fee cap for `transferWithFee`.
     function maxFeeCap() external view returns (uint256);
 
-    /**
-     * @notice Address of the USDC token contract (immutable).
-     */
+    /// @notice Address of the USDC token contract (immutable).
     function usdc() external view returns (address);
 
     /**********************************************************************************************/

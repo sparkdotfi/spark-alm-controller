@@ -240,29 +240,19 @@ interface IUniswapV3Facet is IFacetBase {
      */
     function LIMIT_WITHDRAW() external pure returns (bytes32);
 
-    /**
-     * @notice Upper bound for the max tick delta admin parameter.
-     */
+    /// @notice Upper bound for the max tick delta admin parameter.
     function MAX_TICK_DELTA() external pure returns (uint24);
 
-    /**
-     * @notice Uniswap V3 minimum tick value (from TickMath).
-     */
+    /// @notice Uniswap V3 minimum tick value (from TickMath).
     function MIN_TICK() external pure returns (int24);
 
-    /**
-     * @notice Uniswap V3 maximum tick value (from TickMath).
-     */
+    /// @notice Uniswap V3 maximum tick value (from TickMath).
     function MAX_TICK() external pure returns (int24);
 
-    /**
-     * @notice Address of the Uniswap V3 NonfungiblePositionManager (immutable).
-     */
+    /// @notice Address of the Uniswap V3 NonfungiblePositionManager (immutable).
     function positionManager() external view returns (address);
 
-    /**
-     * @notice Address of the Uniswap V3 SwapRouter (immutable).
-     */
+    /// @notice Address of the Uniswap V3 SwapRouter (immutable).
     function router() external view returns (address);
 
     /**********************************************************************************************/

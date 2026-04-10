@@ -45,19 +45,13 @@ interface IDAIUSDSFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Address of the DAI token contract (immutable).
-     */
+    /// @notice Address of the DAI token contract (immutable).
     function dai() external view returns (address);
 
-    /**
-     * @notice Address of the DAI-USDS migrator contract (immutable).
-     */
+    /// @notice Address of the DAI-USDS migrator contract (immutable).
     function daiUSDS() external view returns (address);
 
-    /**
-     * @notice Address of the USDS token contract (immutable).
-     */
+    /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);
 
 }

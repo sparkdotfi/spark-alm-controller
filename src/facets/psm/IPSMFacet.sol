@@ -53,29 +53,19 @@ interface IPSMFacet is IFacetBase {
      */
     function LIMIT_USDS_TO_USDC() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the DAI token contract (immutable).
-     */
+    /// @notice Address of the DAI token contract (immutable).
     function dai() external view returns (address);
 
-    /**
-     * @notice Address of the DAI-USDS migrator contract (immutable).
-     */
+    /// @notice Address of the DAI-USDS migrator contract (immutable).
     function daiUSDS() external view returns (address);
 
-    /**
-     * @notice Address of the SKY PSM contract (immutable).
-     */
+    /// @notice Address of the SKY PSM contract (immutable).
     function psm() external view returns (address);
 
-    /**
-     * @notice Address of the USDC token contract (immutable).
-     */
+    /// @notice Address of the USDC token contract (immutable).
     function usdc() external view returns (address);
 
-    /**
-     * @notice Address of the USDS token contract (immutable).
-     */
+    /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);
 
     /**********************************************************************************************/

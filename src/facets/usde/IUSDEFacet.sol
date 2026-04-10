@@ -102,48 +102,32 @@ interface IUSDEFacet is IFacetBase {
      */
     function setDelegatedSigner(address delegatedSigner) external;
 
-    /**
-     * @notice Unstakes sUSDe after the cooldown period, receiving USDe.
-     */
+    /// @notice Unstakes sUSDe after the cooldown period, receiving USDe.
     function unstakeSUSDE() external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for USDe burn operations.
-     */
+    /// @notice Rate limit key for USDe burn operations.
     function LIMIT_USDE_BURN() external view returns (bytes32);
 
-    /**
-     * @notice Rate limit key for USDe mint operations.
-     */
+    /// @notice Rate limit key for USDe mint operations.
     function LIMIT_USDE_MINT() external view returns (bytes32);
 
-    /**
-     * @notice Rate limit key for sUSDe cooldown operations.
-     */
+    /// @notice Rate limit key for sUSDe cooldown operations.
     function LIMIT_SUSDE_COOLDOWN() external view returns (bytes32);
 
-    /**
-     * @notice Address of the Ethena minter contract (immutable).
-     */
+    /// @notice Address of the Ethena minter contract (immutable).
     function ethenaMinter() external view returns (address);
 
-    /**
-     * @notice Address of the sUSDe (staked USDe) token contract (immutable).
-     */
+    /// @notice Address of the sUSDe (staked USDe) token contract (immutable).
     function susde() external view returns (address);
 
-    /**
-     * @notice Address of the USDC token contract (immutable).
-     */
+    /// @notice Address of the USDC token contract (immutable).
     function usdc() external view returns (address);
 
-    /**
-     * @notice Address of the USDe token contract (immutable).
-     */
+    /// @notice Address of the USDe token contract (immutable).
     function usde() external view returns (address);
 
 }

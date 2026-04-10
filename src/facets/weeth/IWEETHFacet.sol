@@ -88,9 +88,7 @@ interface IWEETHFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for weETH deposit operations.
-     */
+    /// @notice Rate limit key for weETH deposit operations.
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 
     /**
@@ -99,14 +97,10 @@ interface IWEETHFacet is IFacetBase {
      */
     function LIMIT_REQUEST_WITHDRAW() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the weETH token contract (immutable).
-     */
+    /// @notice Address of the weETH token contract (immutable).
     function weeth() external view returns (address);
 
-    /**
-     * @notice Address of the WETH token contract (immutable).
-     */
+    /// @notice Address of the WETH token contract (immutable).
     function weth() external view returns (address);
 
 }

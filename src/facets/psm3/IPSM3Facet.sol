@@ -66,9 +66,7 @@ interface IPSM3Facet is IFacetBase {
      */
     function LIMIT_WITHDRAW() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the PSM3 contract (immutable).
-     */
+    /// @notice Address of the PSM3 contract (immutable).
     function psm() external view returns (address);
 
 }

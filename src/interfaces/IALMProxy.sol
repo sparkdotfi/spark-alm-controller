@@ -5,6 +5,11 @@ import {
     IAccessControl
 } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
+/**
+ * @title  IALMProxy
+ * @notice Proxy contract that executes calls, value calls, and delegate calls on behalf of the
+ *         PAU system. Only accounts with the CONTROLLER role can invoke its functions.
+ */
 interface IALMProxy is IAccessControl {
 
     /**********************************************************************************************/

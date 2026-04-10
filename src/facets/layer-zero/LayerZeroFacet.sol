@@ -60,7 +60,7 @@ interface ILayerZeroLike {
      * @param  amountLD     Amount to send in local decimals.
      * @param  minAmountLD  Minimum amount to send in local decimals.
      * @param  extraOptions Additional options supplied by the caller to be used in the LayerZero
-     *                     message.
+     *                      message.
      * @param  composeMsg   Composed message for the send() operation.
      * @param  oftCmd       OFT command to be executed, unused in default OFT implementations.
      */

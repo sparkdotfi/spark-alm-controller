@@ -34,19 +34,13 @@ interface ISuperstateFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for Superstate subscribe operations.
-     */
+    /// @notice Rate limit key for Superstate subscribe operations.
     function LIMIT_SUBSCRIBE() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the USDC token contract (immutable).
-     */
+    /// @notice Address of the USDC token contract (immutable).
     function usdc() external view returns (address);
 
-    /**
-     * @notice Address of the Superstate USTB token contract (immutable).
-     */
+    /// @notice Address of the Superstate USTB token contract (immutable).
     function ustb() external view returns (address);
 
 }

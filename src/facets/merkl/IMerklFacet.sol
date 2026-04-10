@@ -34,9 +34,7 @@ interface IMerklFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Address of the Merkl reward distributor contract (immutable).
-     */
+    /// @notice Address of the Merkl reward distributor contract (immutable).
     function distributor() external view returns (address);
 
 }

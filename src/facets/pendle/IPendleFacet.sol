@@ -45,9 +45,7 @@ interface IPendleFacet is IFacetBase {
      */
     function LIMIT_REDEEM() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the Pendle router contract (immutable).
-     */
+    /// @notice Address of the Pendle router contract (immutable).
     function router() external view returns (address);
 
 }

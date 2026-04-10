@@ -96,9 +96,7 @@ interface IERC4626Facet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Precision used for exchange rate calculations (1e36).
-     */
+    /// @notice Precision used for exchange rate calculations (1e36).
     function EXCHANGE_RATE_PRECISION() external pure returns (uint256);
 
     /**

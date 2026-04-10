@@ -3,6 +3,11 @@ pragma solidity ^0.8.34;
 
 import { IEnumerableIntegrations } from "./IEnumerableIntegrations.sol";
 
+/**
+ * @title  IController
+ * @notice Controller that manages integration lifecycle and routes incoming calls to facets via
+ *         a dispatch table synced from the Beacon.
+ */
 interface IController is IEnumerableIntegrations {
 
     /**********************************************************************************************/
@@ -37,20 +42,32 @@ interface IController is IEnumerableIntegrations {
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
+    /**
+     * @notice Syncs integration configs from the Beacon and rebuilds the local dispatch table.
+     * @param  ids Array of integration identifiers to update.
+     */
     function updateIntegrations(bytes32[] calldata ids) external;
 
+    /**
+     * @notice Removes integrations and their selector dispatches from the controller.
+     * @param  ids Array of integration identifiers to remove.
+     */
     function removeIntegrations(bytes32[] calldata ids) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
+    /// @notice Address of the AccessControls contract (immutable).
     function accessControls() external view returns (address);
 
+    /// @notice Address of the Beacon contract (immutable).
     function beacon() external view returns (address);
 
+    /// @notice Address of the ALMProxy contract (immutable).
     function proxy() external view returns (address);
 
+    /// @notice Address of the RateLimits contract (immutable).
     function rateLimits() external view returns (address);
 
 }

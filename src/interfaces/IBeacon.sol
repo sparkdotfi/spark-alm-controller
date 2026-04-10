@@ -7,6 +7,11 @@ import {
 
 import { IEnumerableIntegrations } from "./IEnumerableIntegrations.sol";
 
+/**
+ * @title  IBeacon
+ * @notice Configuration registry for the PAU system. Stores integration configs (facet
+ *         address and selector wiring) that Controllers sync from to build their dispatch tables.
+ */
 interface IBeacon is IAccessControlEnumerable, IEnumerableIntegrations {
 
     /**********************************************************************************************/
@@ -29,14 +34,28 @@ interface IBeacon is IAccessControlEnumerable, IEnumerableIntegrations {
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
+    /**
+     * @notice Registers or updates an integration with its facet address and selector wires.
+     * @param  id     Unique identifier for the integration.
+     * @param  config Facet address and array of selector wires to register.
+     */
     function setIntegration(bytes32 id, Config calldata config) external;
 
+    /**
+     * @notice Removes an integration and all of its selector dispatches.
+     * @param  id Unique identifier of the integration to remove.
+     */
     function removeIntegration(bytes32 id) external;
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+    /**
+     * @notice Returns true if the contract supports the given interface.
+     * @param  interfaceId The 4-byte interface identifier (ERC-165).
+     * @return isSupported True if the interface is supported.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool isSupported);
 
 }

@@ -61,14 +61,10 @@ interface IBasinFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Limit for deposit operations.
-     */
+    /// @notice Limit for deposit operations.
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 
-    /**
-     * @notice Limit for withdraw operations.
-     */
+    /// @notice Limit for withdraw operations.
     function LIMIT_WITHDRAW() external pure returns (bytes32);
 
 }

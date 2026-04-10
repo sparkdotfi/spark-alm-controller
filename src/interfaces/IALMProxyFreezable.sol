@@ -5,12 +5,21 @@ import {
     IAccessControl
 } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
+/**
+ * @title  IALMProxyFreezable
+ * @notice Proxy contract with freezer and relayer roles. Relayers execute calls through the proxy,
+ *         and freezers can revoke relayer access as an emergency measure.
+ */
 interface IALMProxyFreezable is IAccessControl {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    /**
+     * @notice Emitted when a freezer removes a relayer from the system.
+     * @param  relayer Address of the relayer that was removed.
+     */
     event RelayerRemoved(address indexed relayer);
 
     /**********************************************************************************************/
@@ -56,8 +65,10 @@ interface IALMProxyFreezable is IAccessControl {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
+    /// @notice Role identifier for freezer accounts that can remove relayers.
     function FREEZER() external view returns (bytes32);
 
+    /// @notice Role identifier for relayer accounts authorized to execute proxy calls.
     function RELAYER() external view returns (bytes32);
 
 }

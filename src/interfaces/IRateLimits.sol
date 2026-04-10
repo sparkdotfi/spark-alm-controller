@@ -5,6 +5,11 @@ import {
     IAccessControl
 } from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
+/**
+ * @title  IRateLimits
+ * @notice Per-key rate limiting contract for the PAU system. Tracks time-based allowances
+ *         that refill linearly and are consumed by controller operations.
+ */
 interface IRateLimits is IAccessControl {
 
     /**********************************************************************************************/

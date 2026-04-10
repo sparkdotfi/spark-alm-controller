@@ -29,9 +29,7 @@ interface IOTCBuffer is IAccessControlEnumerable {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice ALM proxy address.
-     */
+    /// @notice ALM proxy address.
     function almProxy() external view returns (address);
 
     /**********************************************************************************************/

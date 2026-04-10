@@ -67,29 +67,19 @@ interface IWSTETHFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for wstETH deposit operations.
-     */
+    /// @notice Rate limit key for wstETH deposit operations.
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 
-    /**
-     * @notice Rate limit key for wstETH withdrawal request operations.
-     */
+    /// @notice Rate limit key for wstETH withdrawal request operations.
     function LIMIT_REQUEST_WITHDRAW() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the WETH token contract (immutable).
-     */
+    /// @notice Address of the WETH token contract (immutable).
     function weth() external view returns (address);
 
-    /**
-     * @notice Address of the Lido withdrawal queue contract (immutable).
-     */
+    /// @notice Address of the Lido withdrawal queue contract (immutable).
     function withdrawQueue() external view returns (address);
 
-    /**
-     * @notice Address of the wstETH token contract (immutable).
-     */
+    /// @notice Address of the wstETH token contract (immutable).
     function wsteth() external view returns (address);
 
 }

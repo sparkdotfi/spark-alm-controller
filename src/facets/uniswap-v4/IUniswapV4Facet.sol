@@ -223,19 +223,13 @@ interface IUniswapV4Facet is IFacetBase {
      */
     function LIMIT_WITHDRAW() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the Permit2 contract used for token approvals (immutable).
-     */
+    /// @notice Address of the Permit2 contract used for token approvals (immutable).
     function permit2() external view returns (address);
 
-    /**
-     * @notice Address of the Uniswap V4 PositionManager contract (immutable).
-     */
+    /// @notice Address of the Uniswap V4 PositionManager contract (immutable).
     function positionManager() external view returns (address);
 
-    /**
-     * @notice Address of the Uniswap V4 Universal Router contract (immutable).
-     */
+    /// @notice Address of the Uniswap V4 Universal Router contract (immutable).
     function router() external view returns (address);
 
     /**********************************************************************************************/

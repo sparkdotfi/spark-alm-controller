@@ -46,19 +46,13 @@ interface IUSDSFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for USDS mint operations. Decreased on mint, increased on burn.
-     */
+    /// @notice Rate limit key for USDS mint operations. Decreased on mint, increased on burn.
     function LIMIT_MINT() external pure returns (bytes32);
 
-    /**
-     * @notice Address of the USDS token contract (immutable).
-     */
+    /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);
 
-    /**
-     * @notice Address of the Sky Allocation Vault contract (immutable).
-     */
+    /// @notice Address of the Sky Allocation Vault contract (immutable).
     function vault() external view returns (address);
 
 }
