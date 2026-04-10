@@ -146,6 +146,17 @@ This reads Foundry remappings and creates a new `wake.toml` file (which can then
 
 ---
 
+## Gate-Check Pattern
+
+Some operations verify a rate limit is configured (`maxAmount > 0`) without decreasing it. This serves as an implicit whitelist: if the rate limit key was never set by governance, the operation reverts. Examples:
+
+- `WSTETHFacet.claimWithdrawal`: checks `LIMIT_REQUEST_WITHDRAW.maxAmount > 0`
+- `WEETHFacet.claimWithdrawal`: checks `makeAddressKey(LIMIT_REQUEST_WITHDRAW, weethModule).maxAmount > 0`
+- `ERC4626Facet.withdraw`/`redeem`: calls `triggerRateLimitIncrease` on the deposit key, which requires `maxAmount > 0` for the same vault
+- `AaveFacet.withdraw`: calls `triggerRateLimitIncrease` on the deposit key, which requires `maxAmount > 0` for the same aToken
+
+---
+
 ## Rate Limit Configuration Guidelines
 
 Rate limits must take into account:

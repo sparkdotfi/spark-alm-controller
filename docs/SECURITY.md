@@ -112,6 +112,10 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
 For detailed operational requirements including seeding, configuration, and onboarding checklists, see [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md).
 
+### Beacon Governance Surface
+
+The Beacon manages all integration configurations (facet addresses and selector wiring) for every Controller that references it. Only the `DEFAULT_ADMIN_ROLE` on the Beacon can call `setIntegration` or `removeIntegration`. This is a critical security boundary: if a malicious integration were configured, the facet would gain arbitrary access to Controller storage and ALMProxy funds via `delegatecall`. The Beacon validates that facet addresses are non-zero and have deployed code, and protects hardcoded selectors from being overwritten. Auditors should verify that no path exists to bypass these validations, and that the admin-only gate on integration management cannot be circumvented.
+
 ---
 
 ## Audits
@@ -121,5 +125,6 @@ Audit reports are available in the [`audits/`](../audits/) directory. The system
 - Cantina
 - ChainSecurity
 - Certora
+- Unvariant
 
 Each version release includes corresponding audit reports from these security firms.

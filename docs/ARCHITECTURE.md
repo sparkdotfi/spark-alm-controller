@@ -18,10 +18,11 @@ The proxy contract that holds custody of all funds. This contract routes calls t
 The unified controller contract that serves as the entry point for all relayer operations. Inspired by the [EIP-2535 Diamond Proxy](https://eips.ethereum.org/EIPS/eip-2535) pattern, the Controller uses dispatch-based routing to delegate calls to specialized facets. Rather than maintaining separate controllers per domain (e.g., mainnet vs L2), a single Controller is deployed on each chain and configured with only the facets relevant to that deployment.
 
 **Key characteristics:**
-- Dispatch-based call routing: admin maps call selectors to (facet address, delegate selector) pairs via `setDispatch`
+- Dispatch-based call routing: admin syncs integration configs from the Beacon via `updateIntegrations`, which maps call selectors to (facet address, delegate selector) pairs locally
 - Each facet uses its own ERC-7201 namespaced storage domain, preventing storage collisions
 - Shared state (access controls, proxy, rate limits) is accessible to all facets via `ControllerSharedStorage`
 - Reentrancy protection across all facet calls
+- Enumerable introspection via `integrations()`, `getConfig()`, `getConfigs()`, `getDispatch()`, and `getDispatches()`
 
 **Capabilities (determined by which facets are wired):**
 - Interact with the Sky allocation system to mint and burn USDS
@@ -30,6 +31,20 @@ The unified controller contract that serves as the entry point for all relayer o
 - Interact with external protocols (Aave, ERC-4626 vaults, Curve, Uniswap, etc.)
 - Bridge USDC via CCTP and OFTs with LayerZero
 - Transfer shares via Centrifuge cross-chain
+
+### Beacon
+
+The Beacon manages all data related to integrations (facet address + wire mappings) and stores the canonical dispatch lookup. Multiple Controllers can reference the same Beacon, each syncing its local config copy via `updateIntegrations`. The Beacon admin (`DEFAULT_ADMIN_ROLE`) configures integrations, and the Beacon validates facet addresses, prevents duplicate selector wiring, and protects hardcoded Controller selectors. Controllers use this syncing pattern to opt in to upgrades from the Beacon.
+
+See [BEACON.md](./BEACON.md) for data structures, integration lifecycle, hardcoded selector protection, and versioning details.
+
+### PAUFactory
+
+Factory contract for deploying complete PAU systems. Takes a Beacon address at construction. The `deploy` function atomically creates an `ALMProxy`, `RateLimits`, `AccessControls`, and `Controller` (pointing to the shared Beacon), wires their roles, and transfers admin ownership to the caller-specified admin. Existing PAU systems that will upgrade to use the new controller do not have to deploy from the factory. This factory is to make PAU deployments more convenient for new systems.
+
+### AccessControls
+
+Wraps OpenZeppelin `AccessControlEnumerable` to define the PAU-specific roles used by facets at runtime. Declares `FREEZER_ROLE` and `RELAYER_ROLE` as constants. Provides a `removeRelayer` function gated by `FREEZER_ROLE` for emergency revocation of a compromised relayer without requiring a slower governance process. A separate contract was used here to make facet development easier (external call to a module vs. maintaining ACL storage across all facets).
 
 ### RateLimits
 
@@ -47,8 +62,8 @@ See [RATE_LIMITS.md](./RATE_LIMITS.md) for detailed rate limit documentation.
 A variant of the `ALMProxy` that is not intended to hold funds or have critical authority. It defines low-risk parameters within the PAU ecosystem.
 
 **Architectural differences from standard ALMProxy:**
-- **Controller role usage:** In the standard `ALMProxy`, the controller is the `Controller` contract that acts when approved relayers interact with it. In `ALMProxyFreezable`, the "controllers" are the relayers themselves (granted the `CONTROLLER` role directly).
-- **Additional safety mechanism:** The `FREEZER` role can remove controllers via `removeController`, providing quick revocation of access from compromised or malicious relayers without slower governance processes.
+- **Controller role usage:** In the standard `ALMProxy`, the controller is the `Controller` contract that acts when approved relayers interact with it. In `ALMProxyFreezable`, the relayers are granted the `RELAYER` role directly (there is no intermediary Controller contract), so they can call `doCall` and `doCallWithValue` without a Controller.
+- **Additional safety mechanism:** The `FREEZER` role can remove relayers via `removeRelayer`, providing quick revocation of access from compromised or malicious relayers without slower governance processes.
 
 ### OTCBuffer
 
@@ -89,28 +104,16 @@ All contracts in this repo inherit and implement the `AccessControl` contract fr
 
 ## Contract Interactions
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│     Relayer     │────▶│   Controller     │────▶│    ALMProxy     │
-│   (External)    │     │  (Dispatches to  │     │ (Funds Custody) │
-└─────────────────┘     │    Facets)       │     └─────────────────┘
-                        └──────────────────┘              │
-                                   │                      │
-                                   │                      │
-                                   ▼                      ▼
-                        ┌──────────────────┐    ┌────────────────────┐
-                        │   RateLimits     │    │ External Protocols │
-                        │   (State Store)  │    │  (Sky, PSM, etc.)  │
-                        └──────────────────┘    └────────────────────┘
-```
+![PAU Architecture](./contract_interaction.png)
 
 ## Facets
 
-The system uses a facet-based architecture where each protocol integration is encapsulated in its own facet. Each facet has its own ERC-7201 namespaced storage domain and is wired to the Controller via dispatch configuration. Which facets are active depends on the deployment (e.g., a mainnet deployment may have different facets than an L2 deployment).
+The system uses a facet-based architecture where each protocol integration is encapsulated in its own facet. All facets extend `FacetBase`, which inherits `ControllerSharedStorage` and `ReentrancyGuard`, providing the `onlyRole` modifier and shared state access (proxy, rate limits, access controls). Each facet has its own ERC-7201 namespaced storage domain and is wired to the Controller via dispatch configuration. Which facets are active depends on the deployment (e.g., a mainnet deployment may have different facets than an L2 deployment).
 
 | Facet | Purpose |
 |-------|---------|
 | `AaveFacet` | Aave protocol deposit/withdraw |
+| `BasinFacet` | Grove Basin protocol deposit/withdraw |
 | `CCTPFacet` | Circle CCTP v2 USDC bridging |
 | `CentrifugeFacet` | Centrifuge async vault (ERC-7887) interactions |
 | `CurveFacet` | Curve StableSwap pool operations |

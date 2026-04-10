@@ -9,6 +9,7 @@ PAU performs liquidity operations across multiple venues:
 | Venue | Operations | Use Case |
 |-------|------------|----------|
 | **Curve** | Add/remove liquidity, swaps | Deep stablecoin liquidity pools |
+| **Uniswap V3** | Add/remove liquidity, swaps | Stablecoin LP positions and swaps via V3 pools |
 | **Uniswap V4** | Swaps, positions | On-chain stablecoin swaps |
 | **OTC Desks** | Offchain swaps | High-volume institutional liquidity |
 
@@ -42,6 +43,36 @@ All Curve operations require `maxSlippage` to be configured (cannot be zero). Th
 ### Seeding Requirement
 
 Curve pools must be seeded with initial liquidity before use. Seeding must be done to an unrecoverable address (e.g, address(1)). This will prevent any unintended behaviours.
+
+---
+
+## Uniswap V3 Integration
+
+### Supported Operations
+
+- **Swaps:** Exchange between stablecoins via Uniswap V3 pools
+- **Add Liquidity:** Mint a new position or increase an existing one
+- **Remove Liquidity:** Decrease liquidity from an existing position and collect tokens
+
+### Rate Limiting
+
+Uniswap V3 operations use three rate limit keys per pool per token:
+- **Add liquidity rate limit:** Controls the value deposited into pools
+- **Swap rate limit:** Controls the swap value (amount spent)
+- **Remove liquidity rate limit:** Controls the value withdrawn from pools
+
+### Slippage Protection
+
+All Uniswap V3 operations require `maxSlippage` to be configured per pool (cannot be zero). The TWAP price is used to compute expected amounts and validate slippage thresholds.
+
+### Requirements
+
+- Only 1:1 stablecoin pools can be onboarded
+- Tick bounds and TWAP seconds must be configured before operations
+- The ALMProxy must own the NFT position for increase/decrease operations
+- Uses the pool's built-in TWAP oracle for price validation on swaps and liquidity additions, unlike V4 which does not rely on TWAP
+
+See [UNIV3_UNIV4_COMPARISON.md](./UNIV3_UNIV4_COMPARISON.md) for a detailed comparison with Uniswap V4.
 
 ---
 

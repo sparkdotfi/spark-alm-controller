@@ -61,6 +61,8 @@ All ERC-20 tokens used with PAU must be:
 | `withdrawERC4626` | Non-zero deposit rate limit for same vault |
 | `redeemERC4626` | Non-zero deposit rate limit for same vault |
 | `withdrawAave` | Non-zero deposit rate limit for same aToken |
+| `claimWithdrawalFromWstETH` | Non-zero request-withdraw rate limit |
+| `claimWithdrawalFromWeETH` | Non-zero request-withdraw rate limit for same weETHModule |
 
 ---
 
@@ -113,9 +115,15 @@ Only pools with 1:1 assets can be onboarded:
 | Integration | Monitor |
 |-------------|---------|
 | **All** | Rate limit utilization, transaction failures |
-| **UniswapV4** | Pool price |
-| **ERC-4626** | Exchange rate changes, share price manipulation |
-| **OTC** | Outstanding swap amounts, recharge progress |
-| **weETH** | Pending withdrawal NFTs, finalization delays |
+| **Centrifuge** | Pending async requests, cross-chain transfer status |
 | **CCTP/LayerZero** | Bridge confirmation times, stuck transfers |
+| **Curve** | Pool price, virtual price |
+| **ERC-4626** | Exchange rate changes, share price manipulation |
+| **ERC-7540** | Pending async deposit/redeem requests |
 | **Ethena** | Pending mint/burn operations, delegated signer status |
+| **Maple** | Pending redemption requests |
+| **OTC** | Outstanding swap amounts, recharge progress |
+| **UniswapV3** | Pool price, position value |
+| **UniswapV4** | Pool price, position value |
+| **weETH** | Pending withdrawal NFTs, finalization delays |
+| **wstETH** | Pending withdrawal requests, finalization delays |

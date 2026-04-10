@@ -83,7 +83,9 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 
 ### Request Withdrawal (weETH → NFT)
 
-**Function:** `Controller.requestWithdrawFromWeETH(weETHModule, shares)` (dispatched to WEETHFacet)
+**Function:** `Controller.requestWithdrawFromWeETH(weETHModule, weethShares, minEETHShares)` (dispatched to WEETHFacet)
+
+- `minEETHShares` provides slippage protection against cumulative rate slippage across both the weETH-to-eETH and eETH-to-shares conversions.
 
 **Flow:**
 1. Unwrap weETH to eETH in ALMProxy
@@ -107,7 +109,7 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 5. WEETHModule wraps ETH to WETH
 6. WEETHModule transfers WETH to ALMProxy
 
-**Rate Limit:** `LIMIT_WEETH_CLAIM_WITHDRAW` (keyed by weETHModule address)
+**Rate Limit:** None. Uses the [gate-check pattern](./RATE_LIMITS.md#gate-check-pattern) on `LIMIT_REQUEST_WITHDRAW` for the given `weethModule` address.
 
 ---
 
@@ -165,9 +167,8 @@ receive() external payable { }
 
 The `weETHModule` address is embedded in the rate limit keys for withdrawal operations:
 - `LIMIT_WEETH_REQUEST_WITHDRAW` + weETHModule address
-- `LIMIT_WEETH_CLAIM_WITHDRAW` + weETHModule address
 
-This ensures only governance-approved WEETHModule contracts can be used.
+`claimWithdrawal` uses the [gate-check pattern](./RATE_LIMITS.md#gate-check-pattern) on `LIMIT_REQUEST_WITHDRAW` for the given weETHModule address.
 
 ### EtherFi Admin Risk
 
@@ -193,7 +194,6 @@ The WEETHModule:
 3. Configure rate limit keys in the Controller:
    - `LIMIT_WEETH_DEPOSIT`
    - `makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule)`
-   - `makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weETHModule)`
 
 ### Monitoring
 
