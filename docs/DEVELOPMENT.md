@@ -20,12 +20,6 @@ DOS attack scenarios and recovery procedures are documented in `Attacks.t.sol` t
 
 ---
 
-## Rate Limit Verification
-
-See [RATE_LIMITS.md](./RATE_LIMITS.md#rate-limit-uses) for instructions on running the Wake printer to verify rate limit configurations.
-
----
-
 ## Project Structure
 
 ```
@@ -33,7 +27,6 @@ diamond-pau/
 ├── audits/           # Security audit reports
 ├── docs/             # Documentation
 ├── lib/              # Dependencies (git submodules)
-├── printers/         # Wake printer scripts
 ├── src/              # Source contracts
 │   ├── ALMProxy.sol
 │   ├── ALMProxyFreezable.sol
