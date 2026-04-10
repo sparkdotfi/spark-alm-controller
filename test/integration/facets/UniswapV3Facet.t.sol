@@ -3,20 +3,15 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IFacetBase }      from "../../../src/facets/IFacetBase.sol";
-import { IUniswapV3Facet } from "../../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
-import { UniswapV3Facet }  from "../../../src/facets/uniswap-v3/UniswapV3Facet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { IFacetBase }              from "../../../src/facets/IFacetBase.sol";
+import { IUniswapV3Facet }         from "../../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { UniswapV3Facet } from "../../../src/facets/uniswap-v3/UniswapV3Facet.sol";
+
+import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
-
-    struct Wire {
-        bytes4 callSelector;
-        bytes4 delegateSelector;
-    }
-
-    function addWires(address facet, Wire[] calldata wires) external;
 
     function setLiquidityLowerTickBound(address pool, int24 lowerTickBound) external;
 
@@ -36,9 +31,11 @@ interface IControllerLike {
 
     function getTWAPSecondsAgo(address pool) external view returns (uint32);
 
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
 }
 
-contract Controller_UniswapV3Facet_Tests is Controller_TestBase {
+contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
 
     uint24 internal constant _MAX_TICK_DELTA = 887_272;
 
@@ -50,65 +47,67 @@ contract Controller_UniswapV3Facet_Tests is Controller_TestBase {
     function setUp() external {
         controller = IControllerLike(_deploy());
 
-        vm.startPrank(facetValidator);
-
         address facet = address(new UniswapV3Facet(makeAddr("positionManager"), makeAddr("router")));
 
         vm.label(facet, "UniswapV3Facet");
 
-        factory.setValidFacet(facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](9);
 
-        vm.stopPrank();
-
-        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](9);
-
-        wires[0] = IControllerLike.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxSlippage.selector,
             IUniswapV3Facet.setMaxSlippage.selector
         );
 
-        wires[1] = IControllerLike.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxTickDelta.selector,
             IUniswapV3Facet.setMaxTickDelta.selector
         );
 
-        wires[2] = IControllerLike.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.setLiquidityLowerTickBound.selector,
             IUniswapV3Facet.setLiquidityLowerTickBound.selector
         );
 
-        wires[3] = IControllerLike.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IControllerLike.setLiquidityUpperTickBound.selector,
             IUniswapV3Facet.setLiquidityUpperTickBound.selector
         );
 
-        wires[4] = IControllerLike.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IControllerLike.setTWAPSecondsAgo.selector,
             IUniswapV3Facet.setTWAPSecondsAgo.selector
         );
 
-        wires[5] = IControllerLike.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IControllerLike.getMaxSlippage.selector,
             IUniswapV3Facet.getMaxSlippage.selector
         );
 
-        wires[6] = IControllerLike.Wire(
+        wires[6] = IEnumerableIntegrations.Wire(
             IControllerLike.getMaxTickDelta.selector,
             IUniswapV3Facet.getMaxTickDelta.selector
         );
 
-        wires[7] = IControllerLike.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IControllerLike.getLiquidityTickBounds.selector,
             IUniswapV3Facet.getLiquidityTickBounds.selector
         );
 
-        wires[8] = IControllerLike.Wire(
+        wires[8] = IEnumerableIntegrations.Wire(
             IControllerLike.getTWAPSecondsAgo.selector,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
         );
 
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("UNISWAP_V3_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "UNISWAP_V3_FACET";
+
         vm.prank(admin);
-        controller.addWires(facet, wires);
+        controller.updateIntegrations(integrationIds);
     }
 
     /**********************************************************************************************/

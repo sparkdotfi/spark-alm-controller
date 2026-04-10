@@ -3,19 +3,14 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { ICCTPFacet } from "../../../src/facets/cctp/ICCTPFacet.sol";
-import { CCTPFacet }  from "../../../src/facets/cctp/CCTPFacet.sol";
+import { ICCTPFacet }              from "../../../src/facets/cctp/ICCTPFacet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { CCTPFacet } from "../../../src/facets/cctp/CCTPFacet.sol";
+
+import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
-
-    struct Wire {
-        bytes4 callSelector;
-        bytes4 delegateSelector;
-    }
-
-    function addWires(address facet, Wire[] calldata wires) external;
 
     function setCCTPMaxFeeCap(uint256 maxFeeCap) external;
 
@@ -25,9 +20,11 @@ interface IControllerLike {
 
     function getCCTPMintRecipient(uint32 destinationDomain) external view returns (bytes32);
 
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
 }
 
-contract Controller_CCTPFacet_Tests is Controller_TestBase {
+contract Controller_CCTPFacet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
@@ -37,40 +34,42 @@ contract Controller_CCTPFacet_Tests is Controller_TestBase {
     function setUp() external {
         controller = IControllerLike(_deploy());
 
-        vm.startPrank(facetValidator);
-
         address facet = address(new CCTPFacet(makeAddr("cctp"), makeAddr("usdc")));
 
         vm.label(facet, "CCTPFacet");
 
-        factory.setValidFacet(facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
 
-        vm.stopPrank();
-
-        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](4);
-
-        wires[0] = IControllerLike.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.getCCTPMaxFeeCap.selector,
             ICCTPFacet.maxFeeCap.selector
         );
 
-        wires[1] = IControllerLike.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getCCTPMintRecipient.selector,
             ICCTPFacet.getMintRecipient.selector
         );
 
-        wires[2] = IControllerLike.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.setCCTPMaxFeeCap.selector,
             ICCTPFacet.setMaxFeeCap.selector
         );
 
-        wires[3] = IControllerLike.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IControllerLike.setCCTPMintRecipient.selector,
             ICCTPFacet.setMintRecipient.selector
         );
 
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("CCTP_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "CCTP_FACET";
+
         vm.prank(admin);
-        controller.addWires(facet, wires);
+        controller.updateIntegrations(integrationIds);
     }
 
     /**********************************************************************************************/

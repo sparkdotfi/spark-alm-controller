@@ -3,13 +3,15 @@ pragma solidity ^0.8.34;
 
 import { Test } from "../../lib/forge-std/src/Test.sol";
 
-import { AccessControls } from "../../src/AccessControls.sol";
-import { ALMProxy }       from "../../src/ALMProxy.sol";
-import { Controller }     from "../../src/Controller.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
-import { PAUFactory }     from "../../src/PAUFactory.sol";
+import { IAccessControls } from "../../src/interfaces/IAccessControls.sol";
+import { IALMProxy }       from "../../src/interfaces/IALMProxy.sol";
+import { IController }     from "../../src/interfaces/IController.sol";
+import { IPAUFactory }     from "../../src/interfaces/IPAUFactory.sol";
 
-abstract contract Controller_TestBase is Test {
+import { Beacon }     from "../../src/Beacon.sol";
+import { PAUFactory } from "../../src/PAUFactory.sol";
+
+abstract contract Integration_TestBase is Test {
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
@@ -21,13 +23,13 @@ abstract contract Controller_TestBase is Test {
     bytes32 internal constant _REENTRANCY_GUARD_NOT_ENTERED = bytes32(uint256(1));
     bytes32 internal constant _REENTRANCY_GUARD_ENTERED     = bytes32(uint256(2));
 
-    address internal admin          = makeAddr("admin");
-    address internal facetValidator = makeAddr("facetValidator");
-    address internal factoryAdmin   = makeAddr("factoryAdmin");
-    address internal freezer        = makeAddr("freezer");
-    address internal relayer        = makeAddr("relayer");
-    address internal unauthorized   = makeAddr("unauthorized");
+    address internal admin        = makeAddr("admin");
+    address internal beaconAdmin  = makeAddr("beaconAdmin");
+    address internal freezer      = makeAddr("freezer");
+    address internal relayer      = makeAddr("relayer");
+    address internal unauthorized = makeAddr("unauthorized");
 
+    Beacon     internal beacon;
     PAUFactory internal factory;
 
     /**********************************************************************************************/
@@ -35,31 +37,26 @@ abstract contract Controller_TestBase is Test {
     /**********************************************************************************************/
 
     function _deploy() internal returns (address controller) {
-        AccessControls accessControls = new AccessControls(admin);
-        ALMProxy       proxy          = new ALMProxy(admin);
-        RateLimits     rateLimits     = new RateLimits(admin);
+        beacon  = new Beacon(beaconAdmin);
+        factory = new PAUFactory(address(beacon));
 
-        factory = new PAUFactory(factoryAdmin, facetValidator);
+        controller = factory.deploy(admin);
 
-        controller = address(new Controller(
-            address(accessControls),
-            address(factory),
-            address(proxy),
-            address(rateLimits)
-        ));
+        IAccessControls accessControls = IAccessControls(IController(payable(controller)).accessControls());
 
         vm.startPrank(admin);
-        proxy.grantRole(proxy.CONTROLLER(), controller);
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
         accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
         vm.stopPrank();
 
-        vm.label(address(accessControls), "AccessControls");
-        vm.label(admin,                   "Admin");
-        vm.label(controller,              "Controller");
-        vm.label(address(proxy),          "Proxy");
-        vm.label(address(rateLimits),     "RateLimits");
-        vm.label(unauthorized,            "Unauthorized");
+        vm.label(address(beacon),                               "Beacon");
+        vm.label(address(factory),                              "Factory");
+        vm.label(address(accessControls),                       "AccessControls");
+        vm.label(admin,                                         "Admin");
+        vm.label(controller,                                    "Controller");
+        vm.label(IController(payable(controller)).proxy(),      "Proxy");
+        vm.label(IController(payable(controller)).rateLimits(), "RateLimits");
+        vm.label(unauthorized,                                  "Unauthorized");
     }
 
     /**********************************************************************************************/

@@ -3,20 +3,15 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IFacetBase }      from "../../../src/facets/IFacetBase.sol";
-import { IUniswapV4Facet } from "../../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
-import { UniswapV4Facet }  from "../../../src/facets/uniswap-v4/UniswapV4Facet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { IFacetBase }              from "../../../src/facets/IFacetBase.sol";
+import { IUniswapV4Facet }         from "../../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { UniswapV4Facet } from "../../../src/facets/uniswap-v4/UniswapV4Facet.sol";
+
+import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
-
-    struct Wire {
-        bytes4 callSelector;
-        bytes4 delegateSelector;
-    }
-
-    function addWires(address facet, Wire[] calldata wires) external;
 
     function setMaxSlippage(bytes32 poolId, uint256 maxSlippage) external;
 
@@ -34,9 +29,11 @@ interface IControllerLike {
         view
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
 }
 
-contract Controller_UniswapV4Facet_Tests is Controller_TestBase {
+contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
 
     bytes32 internal constant _POOL_ID = 0x8aa4e11cbdf30eedc92100f4c8a31ff748e201d44712cc8c90d189edaa8e4e47;
 
@@ -44,8 +41,6 @@ contract Controller_UniswapV4Facet_Tests is Controller_TestBase {
 
     function setUp() external {
         controller = IControllerLike(_deploy());
-
-        vm.startPrank(facetValidator);
 
         address facet = address(new UniswapV4Facet({
             permit2_         : makeAddr("permit2"),
@@ -55,34 +50,38 @@ contract Controller_UniswapV4Facet_Tests is Controller_TestBase {
 
         vm.label(facet, "UniswapV4Facet");
 
-        factory.setValidFacet(facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
 
-        vm.stopPrank();
-
-        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](4);
-
-        wires[0] = IControllerLike.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxSlippage.selector,
             IUniswapV4Facet.setMaxSlippage.selector
         );
 
-        wires[1] = IControllerLike.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.setTickLimits.selector,
             IUniswapV4Facet.setTickLimits.selector
         );
 
-        wires[2] = IControllerLike.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.getMaxSlippage.selector,
             IUniswapV4Facet.getMaxSlippage.selector
         );
 
-        wires[3] = IControllerLike.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IControllerLike.getTickLimits.selector,
             IUniswapV4Facet.getTickLimits.selector
         );
 
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("UNISWAP_V4_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "UNISWAP_V4_FACET";
+
         vm.prank(admin);
-        controller.addWires(facet, wires);
+        controller.updateIntegrations(integrationIds);
     }
 
     /**********************************************************************************************/

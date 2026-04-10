@@ -35,6 +35,7 @@ abstract contract WEETHModule_TestBase is UnitTestBase {
 
     function setUp() external {
         address implementation = address(new WEETHModule());
+
         weethModule = WEETHModule(payable(new ERC1967Proxy(
             implementation, abi.encodeCall(WEETHModule.initialize,(admin, almProxy))
         )));
@@ -188,6 +189,8 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
         assertEq(weethModule.supportsInterface(type(IAccessControlEnumerable).interfaceId), true);
         assertEq(weethModule.supportsInterface(type(IERC165).interfaceId),                  true);
         assertEq(weethModule.supportsInterface(type(IWEETHModule).interfaceId),             true);
+        assertEq(weethModule.supportsInterface(0x00000000),                                 false);
+        assertEq(weethModule.supportsInterface(0xffffffff),                                 false);
     }
 
     /**********************************************************************************************/

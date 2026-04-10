@@ -3,9 +3,9 @@ pragma solidity ^0.8.34;
 
 import { WSTETHFacet } from "../../../src/facets/wsteth/WSTETHFacet.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { Integration_TestBase } from "../TestBase.t.sol";
 
-contract Controller_WSTETHFacet_Tests is Controller_TestBase {
+contract Controller_WSTETHFacet_Tests is Integration_TestBase {
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/

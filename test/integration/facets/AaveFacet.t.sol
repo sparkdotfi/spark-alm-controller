@@ -3,57 +3,56 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IAaveFacet } from "../../../src/facets/aave/IAaveFacet.sol";
-import { AaveFacet }  from "../../../src/facets/aave/AaveFacet.sol";
+import { IAaveFacet }              from "../../../src/facets/aave/IAaveFacet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { AaveFacet } from "../../../src/facets/aave/AaveFacet.sol";
+
+import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
-
-    struct Wire {
-        bytes4 callSelector;
-        bytes4 delegateSelector;
-    }
-
-    function addWires(address facet, Wire[] calldata wires) external;
 
     function setAaveMaxSlippage(address aToken, uint256 maxSlippage) external;
 
     function getAaveMaxSlippage(address aToken) external view returns (uint256);
 
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
 }
 
-abstract contract AaveFacet_TestBase is Controller_TestBase {
+abstract contract AaveFacet_TestBase is Integration_TestBase {
 
     IControllerLike internal controller;
 
     function setUp() external {
         controller = IControllerLike(_deploy());
 
-        vm.startPrank(facetValidator);
-
         address facet = address(new AaveFacet());
 
         vm.label(facet, "AaveFacet");
 
-        factory.setValidFacet(facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
-        vm.stopPrank();
-
-        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](2);
-
-        wires[0] = IControllerLike.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setAaveMaxSlippage.selector,
             IAaveFacet.setMaxSlippage.selector
         );
 
-        wires[1] = IControllerLike.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getAaveMaxSlippage.selector,
             IAaveFacet.getMaxSlippage.selector
         );
 
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("AAVE_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "AAVE_FACET";
+
         vm.prank(admin);
-        controller.addWires(facet, wires);
+        controller.updateIntegrations(integrationIds);
     }
 
 }

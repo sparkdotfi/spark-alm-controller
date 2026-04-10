@@ -7,19 +7,17 @@ import { IAccessControl }           from "../../lib/openzeppelin-contracts/contr
 import { IAccessControlEnumerable } from "../../lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlEnumerable.sol";
 import { IERC165 }                  from "../../lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { IAccessControls } from "../../src/interfaces/IAccessControls.sol";
 
 import { AccessControls } from "../../src/AccessControls.sol";
 
-contract AccessControls_Tests is Test {
+import { UnitTestBase } from "./UnitTestBase.t.sol";
 
-    bytes32 internal constant DEFAULT_ADMIN_ROLE = 0x00;
+contract AccessControls_Tests is UnitTestBase {
 
-    address internal admin        = makeAddr("admin");
-    address internal deployer     = makeAddr("deployer");
-    address internal freezer      = makeAddr("freezer");
-    address internal relayer      = makeAddr("relayer");
-    address internal unauthorized = makeAddr("unauthorized");
+    address internal deployer = makeAddr("deployer");
 
     AccessControls internal accessControls;
 
@@ -58,6 +56,13 @@ contract AccessControls_Tests is Test {
     /*** removeRelayer Tests                                                                    ***/
     /**********************************************************************************************/
 
+    function test_removeRelayer_reentrancy() external {
+        vm.store(address(accessControls), _REENTRANCY_GUARD_SLOT, _REENTRANCY_GUARD_ENTERED);
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        accessControls.removeRelayer(relayer);
+    }
+
     function test_removeRelayer_notFreezer() external {
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -79,6 +84,8 @@ contract AccessControls_Tests is Test {
 
         assertEq(accessControls.hasRole(accessControls.RELAYER_ROLE(), relayer), true);
 
+        vm.record();
+
         vm.expectEmit(address(accessControls));
         emit IAccessControl.RoleRevoked({
             role    : accessControls.RELAYER_ROLE(),
@@ -92,6 +99,8 @@ contract AccessControls_Tests is Test {
         vm.prank(freezer);
         accessControls.removeRelayer(relayer);
 
+        _assertReentrancyGuardWrittenToTwice(address(accessControls));
+
         assertEq(accessControls.hasRole(accessControls.RELAYER_ROLE(), relayer), false);
     }
 
@@ -104,6 +113,8 @@ contract AccessControls_Tests is Test {
         assertEq(accessControls.supportsInterface(type(IAccessControlEnumerable).interfaceId), true);
         assertEq(accessControls.supportsInterface(type(IAccessControl).interfaceId),           true);
         assertEq(accessControls.supportsInterface(type(IERC165).interfaceId),                  true);
+        assertEq(accessControls.supportsInterface(0x00000000),                                 false);
+        assertEq(accessControls.supportsInterface(0xffffffff),                                 false);
     }
 
 }

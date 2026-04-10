@@ -38,13 +38,13 @@ import { UniswapV3Facet }     from "../../src/facets/uniswap-v3/UniswapV3Facet.s
 
 import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
-import { IController } from "../../src/interfaces/IController.sol";
+import { IAccessControls }         from "../../src/interfaces/IAccessControls.sol";
+import { IALMProxy }               from "../../src/interfaces/IALMProxy.sol";
+import { IEnumerableIntegrations } from "../../src/interfaces/IEnumerableIntegrations.sol";
+import { IRateLimits }             from "../../src/interfaces/IRateLimits.sol";
 
-import { AccessControls } from "../../src/AccessControls.sol";
-import { ALMProxy }       from "../../src/ALMProxy.sol";
-import { Controller }     from "../../src/Controller.sol";
-import { PAUFactory }     from "../../src/PAUFactory.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
+import { Beacon }     from "../../src/Beacon.sol";
+import { PAUFactory } from "../../src/PAUFactory.sol";
 
 import { IForeignControllerFull }  from "../interfaces/IForeignControllerFull.sol";
 
@@ -74,7 +74,8 @@ abstract contract ForkTestBase is Test {
     address freezer = Base.ALM_FREEZER_MULTISIG;
     address relayer = Base.ALM_RELAYER_MULTISIG;
 
-    address pocket = makeAddr("pocket");
+    address pocket   = makeAddr("pocket");
+    address skyAdmin = makeAddr("skyAdmin");
 
     /**********************************************************************************************/
     /*** Base addresses                                                                         ***/
@@ -88,10 +89,11 @@ abstract contract ForkTestBase is Test {
     /*** ALM system deployments                                                                 ***/
     /**********************************************************************************************/
 
-    AccessControls         accessControls;
-    ALMProxy               almProxy;
+    Beacon                 beacon;
+    IAccessControls        accessControls;
+    IALMProxy              almProxy;
     IForeignControllerFull foreignController;
-    RateLimits             rateLimits;
+    IRateLimits            rateLimits;
     PAUFactory             factory;
 
     /**********************************************************************************************/
@@ -133,28 +135,15 @@ abstract contract ForkTestBase is Test {
 
         /*** Step 3: Deploy ALM system ***/
 
-        almProxy   = new ALMProxy(SPARK_EXECUTOR);
-        rateLimits = new RateLimits(SPARK_EXECUTOR);
+        beacon  = new Beacon(skyAdmin);
+        factory = new PAUFactory(address(beacon));
 
-        accessControls = new AccessControls(SPARK_EXECUTOR);
+        foreignController = IForeignControllerFull(payable(factory.deploy(SPARK_EXECUTOR)));
+        accessControls    = IAccessControls(foreignController.accessControls());
+        almProxy          = IALMProxy(payable(foreignController.proxy()));
+        rateLimits        = IRateLimits(foreignController.rateLimits());
 
-        factory = new PAUFactory(SPARK_EXECUTOR, SPARK_EXECUTOR);
-
-        foreignController = IForeignControllerFull(payable(new Controller({
-            accessControls_ : address(accessControls),
-            factory_        : address(factory),
-            proxy_          : address(almProxy),
-            rateLimits_     : address(rateLimits)
-        })));
-
-        vm.startPrank(SPARK_EXECUTOR);
-
-        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
-        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
-
-        almProxy.grantRole(almProxy.CONTROLLER(), address(foreignController));
-
-        rateLimits.grantRole(rateLimits.CONTROLLER(), address(foreignController));
+        vm.startPrank(skyAdmin);
 
         // Facet wiring
         _wireAaveFacet();
@@ -169,9 +158,25 @@ abstract contract ForkTestBase is Test {
 
         vm.stopPrank();
 
-        /*** Step 4: Configure ALM system parameters through Spark governance ***/
-
         vm.startPrank(SPARK_EXECUTOR);
+
+        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
+        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+
+        bytes32[] memory integrationIds = new bytes32[](9);
+        integrationIds[0] = "AAVE_FACET";
+        integrationIds[1] = "CURVE_FACET";
+        integrationIds[2] = "ERC4626_FACET";
+        integrationIds[3] = "MERKL_FACET";
+        integrationIds[4] = "PENDLE_FACET";
+        integrationIds[5] = "PSM3_FACET";
+        integrationIds[6] = "SPARK_VAULT_FACET";
+        integrationIds[7] = "TRANSFER_ASSET_FACET";
+        integrationIds[8] = "UNISWAP_V3_FACET";
+
+        foreignController.updateIntegrations(integrationIds);
+
+        /*** Step 4: Configure ALM system parameters through Spark governance ***/
 
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
@@ -222,7 +227,7 @@ abstract contract ForkTestBase is Test {
     }
 
     /**********************************************************************************************/
-    /*** Facet wiring helpers.                                                                  ***/
+    /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
 
     function _wireCurveFacet() internal {
@@ -230,67 +235,73 @@ abstract contract ForkTestBase is Test {
 
         vm.label(curveFacet, "CurveFacet");
 
-        factory.setValidFacet(curveFacet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
 
-        IController.Wire[] memory wires = new IController.Wire[](8);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setCurveMaxSlippage.selector,
             ICurveFacet.setMaxSlippage.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getCurveMaxSlippage.selector,
             ICurveFacet.getMaxSlippage.selector
         );
 
-        wires[2] = IController.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.swapCurve.selector,
             ICurveFacet.swap.selector
         );
 
-        wires[3] = IController.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.addLiquidityCurve.selector,
             ICurveFacet.addLiquidity.selector
         );
 
-        wires[4] = IController.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.removeLiquidityCurve.selector,
             ICurveFacet.removeLiquidity.selector
         );
 
-        wires[5] = IController.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_CURVE_DEPOSIT.selector,
             ICurveFacet.LIMIT_DEPOSIT.selector
         );
 
-        wires[6] = IController.Wire(
+        wires[6] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_CURVE_SWAP.selector,
             ICurveFacet.LIMIT_SWAP.selector
         );
 
-        wires[7] = IController.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_CURVE_WITHDRAW.selector,
             ICurveFacet.LIMIT_WITHDRAW.selector
         );
 
-        foreignController.addWires(curveFacet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : curveFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("CURVE_FACET", config);
     }
 
     function _wireMerklFacet() internal {
         address merklFacet = address(new MerklFacet(GroveBase.MERKL_DISTRIBUTOR));
 
-        factory.setValidFacet(merklFacet, true);
-
         vm.label(merklFacet, "MerklFacet");
 
-        foreignController.addWire(
-            merklFacet,
-            IController.Wire(
-                IForeignControllerFull.toggleOperatorMerkl.selector,
-                IMerklFacet.toggleOperator.selector
-            )
+        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](1);
+        merklWires[0] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.toggleOperatorMerkl.selector,
+            IMerklFacet.toggleOperator.selector
         );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : merklFacet,
+            wires : merklWires
+        });
+
+        beacon.setIntegration("MERKL_FACET", config);
     }
 
     function _wirePendleFacet() internal {
@@ -298,21 +309,24 @@ abstract contract ForkTestBase is Test {
 
         vm.label(pendleFacet, "PendleFacet");
 
-        factory.setValidFacet(pendleFacet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
-        IController.Wire[] memory wires = new IController.Wire[](2);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.redeemPendlePT.selector,
             IPendleFacet.redeem.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_PENDLE_PT_REDEEM.selector,
             IPendleFacet.LIMIT_REDEEM.selector
         );
 
-        foreignController.addWires(pendleFacet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : pendleFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("PENDLE_FACET", config);
     }
 
     function _wireAaveFacet() internal {
@@ -320,41 +334,44 @@ abstract contract ForkTestBase is Test {
 
         vm.label(aaveFacet, "AaveFacet");
 
-        factory.setValidFacet(aaveFacet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
 
-        IController.Wire[] memory wires = new IController.Wire[](6);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setAaveMaxSlippage.selector,
             IAaveFacet.setMaxSlippage.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getAaveMaxSlippage.selector,
             IAaveFacet.getMaxSlippage.selector
         );
 
-        wires[2] = IController.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.depositAave.selector,
             IAaveFacet.deposit.selector
         );
 
-        wires[3] = IController.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.withdrawAave.selector,
             IAaveFacet.withdraw.selector
         );
 
-        wires[4] = IController.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_AAVE_DEPOSIT.selector,
             IAaveFacet.LIMIT_DEPOSIT.selector
         );
 
-        wires[5] = IController.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_AAVE_WITHDRAW.selector,
             IAaveFacet.LIMIT_WITHDRAW.selector
         );
 
-        foreignController.addWires(aaveFacet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : aaveFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("AAVE_FACET", config);
     }
 
     function _wireERC4626Facet() internal {
@@ -362,51 +379,54 @@ abstract contract ForkTestBase is Test {
 
         vm.label(erc4626Facet, "ERC4626Facet");
 
-        factory.setValidFacet(erc4626Facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
 
-        IController.Wire[] memory wires = new IController.Wire[](8);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setMaxExchangeRate.selector,
             IERC4626Facet.setMaxExchangeRate.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.maxExchangeRates.selector,
             IERC4626Facet.getMaxExchangeRate.selector
         );
 
-        wires[2] = IController.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.depositERC4626.selector,
             IERC4626Facet.deposit.selector
         );
 
-        wires[3] = IController.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.withdrawERC4626.selector,
             IERC4626Facet.withdraw.selector
         );
 
-        wires[4] = IController.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.redeemERC4626.selector,
             IERC4626Facet.redeem.selector
         );
 
-        wires[5] = IController.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_4626_DEPOSIT.selector,
             IERC4626Facet.LIMIT_DEPOSIT.selector
         );
 
-        wires[6] = IController.Wire(
+        wires[6] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_4626_WITHDRAW.selector,
             IERC4626Facet.LIMIT_WITHDRAW.selector
         );
 
-        wires[7] = IController.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.EXCHANGE_RATE_PRECISION.selector,
             IERC4626Facet.EXCHANGE_RATE_PRECISION.selector
         );
 
-        foreignController.addWires(erc4626Facet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : erc4626Facet,
+            wires : wires
+        });
+
+        beacon.setIntegration("ERC4626_FACET", config);
     }
 
     function _wireSparkVaultFacet() internal {
@@ -414,21 +434,24 @@ abstract contract ForkTestBase is Test {
 
         vm.label(sparkVaultFacet, "SparkVaultFacet");
 
-        factory.setValidFacet(sparkVaultFacet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
-        IController.Wire[] memory wires = new IController.Wire[](2);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.takeFromSparkVault.selector,
             ISparkVaultFacet.take.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_SPARK_VAULT_TAKE.selector,
             ISparkVaultFacet.LIMIT_TAKE.selector
         );
 
-        foreignController.addWires(sparkVaultFacet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : sparkVaultFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("SPARK_VAULT_FACET", config);
     }
 
     function _wireTransferAssetFacet() internal {
@@ -436,21 +459,24 @@ abstract contract ForkTestBase is Test {
 
         vm.label(transferAssetFacet, "TransferAssetFacet");
 
-        factory.setValidFacet(transferAssetFacet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
-        IController.Wire[] memory wires = new IController.Wire[](2);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.transferAsset.selector,
             ITransferAssetFacet.transfer.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_ASSET_TRANSFER.selector,
             ITransferAssetFacet.LIMIT_TRANSFER.selector
         );
 
-        foreignController.addWires(transferAssetFacet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : transferAssetFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("TRANSFER_ASSET_FACET", config);
     }
 
     function _wirePSM3Facet() internal {
@@ -458,31 +484,34 @@ abstract contract ForkTestBase is Test {
 
         vm.label(psm3Facet, "PSM3Facet");
 
-        factory.setValidFacet(psm3Facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
 
-        IController.Wire[] memory wires = new IController.Wire[](4);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.depositPSM.selector,
             IPSM3Facet.deposit.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.withdrawPSM.selector,
             IPSM3Facet.withdraw.selector
         );
 
-        wires[2] = IController.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_PSM_DEPOSIT.selector,
             IPSM3Facet.LIMIT_DEPOSIT.selector
         );
 
-        wires[3] = IController.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_PSM_WITHDRAW.selector,
             IPSM3Facet.LIMIT_WITHDRAW.selector
         );
 
-        foreignController.addWires(psm3Facet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : psm3Facet,
+            wires : wires
+        });
+
+        beacon.setIntegration("PSM3_FACET", config);
     }
 
     function _wireUniswapV3Facet() internal {
@@ -490,86 +519,89 @@ abstract contract ForkTestBase is Test {
 
         vm.label(uniswapV3Facet, "UniswapV3Facet");
 
-        factory.setValidFacet(uniswapV3Facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](15);
 
-        IController.Wire[] memory wires = new IController.Wire[](15);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.addLiquidityUniswapV3.selector,
             IUniswapV3Facet.addLiquidity.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.removeLiquidityUniswapV3.selector,
             IUniswapV3Facet.removeLiquidity.selector
         );
 
-        wires[2] = IController.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.swapUniswapV3.selector,
             IUniswapV3Facet.swap.selector
         );
 
-        wires[3] = IController.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3MaxSlippage.selector,
             IUniswapV3Facet.setMaxSlippage.selector
         );
 
-        wires[4] = IController.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3PoolMaxTickDelta.selector,
             IUniswapV3Facet.setMaxTickDelta.selector
         );
 
-        wires[5] = IController.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3AddLiquidityLowerTickBound.selector,
             IUniswapV3Facet.setLiquidityLowerTickBound.selector
         );
 
-        wires[6] = IController.Wire(
+        wires[6] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3AddLiquidityUpperTickBound.selector,
             IUniswapV3Facet.setLiquidityUpperTickBound.selector
         );
 
-        wires[7] = IController.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3TWAPSecondsAgo.selector,
             IUniswapV3Facet.setTWAPSecondsAgo.selector
         );
 
-        wires[8] = IController.Wire(
+        wires[8] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_UNISWAP_V3_DEPOSIT.selector,
             IUniswapV3Facet.LIMIT_DEPOSIT.selector
         );
 
-        wires[9] = IController.Wire(
+        wires[9] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_UNISWAP_V3_SWAP.selector,
             IUniswapV3Facet.LIMIT_SWAP.selector
         );
 
-        wires[10] = IController.Wire(
+        wires[10] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_UNISWAP_V3_WITHDRAW.selector,
             IUniswapV3Facet.LIMIT_WITHDRAW.selector
         );
 
-        wires[11] = IController.Wire(
+        wires[11] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3MaxSlippage.selector,
             IUniswapV3Facet.getMaxSlippage.selector
         );
 
-        wires[12] = IController.Wire(
+        wires[12] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3PoolMaxTickDelta.selector,
             IUniswapV3Facet.getMaxTickDelta.selector
         );
 
-        wires[13] = IController.Wire(
+        wires[13] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3AddLiquidityTickBounds.selector,
             IUniswapV3Facet.getLiquidityTickBounds.selector
         );
 
-        wires[14] = IController.Wire(
+        wires[14] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3TWAPSecondsAgo.selector,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
         );
 
-        foreignController.addWires(uniswapV3Facet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : uniswapV3Facet,
+            wires : wires
+        });
+
+        beacon.setIntegration("UNISWAP_V3_FACET", config);
     }
 
 }

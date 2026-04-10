@@ -3,58 +3,57 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IFacetBase }    from "../../../src/facets/IFacetBase.sol";
-import { IERC4626Facet } from "../../../src/facets/erc4626/IERC4626Facet.sol";
-import { ERC4626Facet }  from "../../../src/facets/erc4626/ERC4626Facet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { IFacetBase }              from "../../../src/facets/IFacetBase.sol";
+import { IERC4626Facet }           from "../../../src/facets/erc4626/IERC4626Facet.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { ERC4626Facet } from "../../../src/facets/erc4626/ERC4626Facet.sol";
+
+import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
-
-    struct Wire {
-        bytes4 callSelector;
-        bytes4 delegateSelector;
-    }
-
-    function addWires(address facet, Wire[] calldata wires) external;
 
     function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets) external;
 
     function getMaxExchangeRate(address token) external view returns (uint256);
 
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
 }
 
-contract ERC4626Facet_TestBase is Controller_TestBase {
+contract ERC4626Facet_TestBase is Integration_TestBase {
 
     IControllerLike internal controller;
 
     function setUp() external {
         controller = IControllerLike(_deploy());
 
-        vm.startPrank(facetValidator);
-
         address facet = address(new ERC4626Facet());
 
         vm.label(facet, "ERC4626Facet");
 
-        factory.setValidFacet(facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
-        vm.stopPrank();
-
-        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](2);
-
-        wires[0] = IControllerLike.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxExchangeRate.selector,
             IERC4626Facet.setMaxExchangeRate.selector
         );
 
-        wires[1] = IControllerLike.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getMaxExchangeRate.selector,
             IERC4626Facet.getMaxExchangeRate.selector
         );
 
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("ERC4626_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "ERC4626_FACET";
+
         vm.prank(admin);
-        controller.addWires(facet, wires);
+        controller.updateIntegrations(integrationIds);
     }
 
 }

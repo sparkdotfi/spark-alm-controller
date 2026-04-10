@@ -1,27 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IBasinFacet } from "../../../src/facets/basin/IBasinFacet.sol";
-import { BasinFacet }  from "../../../src/facets/basin/BasinFacet.sol";
+import { IBasinFacet }             from "../../../src/facets/basin/IBasinFacet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { BasinFacet } from "../../../src/facets/basin/BasinFacet.sol";
+
+import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
-
-    struct Wire {
-        bytes4 callSelector;
-        bytes4 delegateSelector;
-    }
-
-    function addWires(address facet, Wire[] calldata wires) external;
 
     function LIMIT_BASIN_DEPOSIT() external pure returns (bytes32);
 
     function LIMIT_BASIN_WITHDRAW() external pure returns (bytes32);
 
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
 }
 
-abstract contract BasinFacet_TestBase is Controller_TestBase {
+abstract contract BasinFacet_TestBase is Integration_TestBase {
 
     IControllerLike internal controller;
 
@@ -32,23 +29,28 @@ abstract contract BasinFacet_TestBase is Controller_TestBase {
 
         vm.label(facet, "BasinFacet");
 
-        vm.prank(facetValidator);
-        factory.setValidFacet(facet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
-        IControllerLike.Wire[] memory wires = new IControllerLike.Wire[](2);
-
-        wires[0] = IControllerLike.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.LIMIT_BASIN_DEPOSIT.selector,
             IBasinFacet.LIMIT_DEPOSIT.selector
         );
 
-        wires[1] = IControllerLike.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.LIMIT_BASIN_WITHDRAW.selector,
             IBasinFacet.LIMIT_WITHDRAW.selector
         );
 
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("BASIN_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "BASIN_FACET";
+
         vm.prank(admin);
-        controller.addWires(facet, wires);
+        controller.updateIntegrations(integrationIds);
     }
 
 }

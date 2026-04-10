@@ -3,9 +3,9 @@ pragma solidity ^0.8.34;
 
 import { PendleFacet } from "../../../src/facets/pendle/PendleFacet.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { Integration_TestBase } from "../TestBase.t.sol";
 
-contract Controller_PendleFacet_Tests is Controller_TestBase {
+contract Controller_PendleFacet_Tests is Integration_TestBase {
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/

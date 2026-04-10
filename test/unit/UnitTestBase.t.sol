@@ -15,12 +15,13 @@ abstract contract UnitTestBase is Test {
     bytes32 constant FREEZER_ROLE    = keccak256("FREEZER");
     bytes32 constant RELAYER_ROLE    = keccak256("RELAYER");
 
-    address admin   = makeAddr("admin");
-    address freezer = makeAddr("freezer");
-    address relayer = makeAddr("relayer");
+    address internal admin        = makeAddr("admin");
+    address internal freezer      = makeAddr("freezer");
+    address internal relayer      = makeAddr("relayer");
+    address internal unauthorized = makeAddr("unauthorized");
 
-    function _assertReentrancyGuardWrittenToTwice(address controller) internal {
-        ( , bytes32[] memory writeSlots ) = vm.accesses(controller);
+    function _assertReentrancyGuardWrittenToTwice(address instance) internal {
+        ( , bytes32[] memory writeSlots ) = vm.accesses(instance);
 
         uint256 count = 0;
 
@@ -31,7 +32,7 @@ abstract contract UnitTestBase is Test {
         }
 
         assertEq(count, 2);
-        assertEq(vm.load(controller, _REENTRANCY_GUARD_SLOT), _REENTRANCY_GUARD_NOT_ENTERED);
+        assertEq(vm.load(instance, _REENTRANCY_GUARD_SLOT), _REENTRANCY_GUARD_NOT_ENTERED);
     }
 
 }

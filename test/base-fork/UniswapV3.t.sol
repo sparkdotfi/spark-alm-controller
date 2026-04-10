@@ -1186,8 +1186,8 @@ contract ForeignController_UniswapV3_AddLiquidity_AUSDUSDS_E2ETests is UniswapV3
             0,
             50,
             100,
-            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey,
-            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey
+            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey,
+            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey
         );
     }
 
@@ -1201,8 +1201,8 @@ contract ForeignController_UniswapV3_AddLiquidity_AUSDUSDS_E2ETests is UniswapV3
             addAmount,
             -100,
             -50,
-            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey,
-            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey
+            uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey,
+            uniswapV3_AusdUsdsPool_AusdAddLiquidityKey
         );
 
     }

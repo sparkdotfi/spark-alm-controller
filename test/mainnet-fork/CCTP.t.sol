@@ -17,13 +17,13 @@ import { ICCTPFacet } from "../../src/facets/cctp/ICCTPFacet.sol";
 
 import { makeUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
 
-import { IController } from "../../src/interfaces/IController.sol";
+import { IAccessControls }         from "../../src/interfaces/IAccessControls.sol";
+import { IALMProxy }               from "../../src/interfaces/IALMProxy.sol";
+import { IEnumerableIntegrations } from "../../src/interfaces/IEnumerableIntegrations.sol";
+import { IRateLimits }             from "../../src/interfaces/IRateLimits.sol";
 
-import { AccessControls } from "../../src/AccessControls.sol";
-import { ALMProxy }       from "../../src/ALMProxy.sol";
-import { Controller }     from "../../src/Controller.sol";
-import { PAUFactory }     from "../../src/PAUFactory.sol";
-import { RateLimits }     from "../../src/RateLimits.sol";
+import { Beacon }     from "../../src/Beacon.sol";
+import { PAUFactory } from "../../src/PAUFactory.sol";
 
 import { IForeignControllerFull } from "../interfaces/IForeignControllerFull.sol";
 
@@ -418,14 +418,16 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
     uint256 internal constant CCTP_MAX_FEE_CAP = 100e6;
 
+    address internal skyAdmin = makeAddr("skyAdmin");
+
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
     /**********************************************************************************************/
 
-    ALMProxy               internal foreignAlmProxy;
+    Beacon                 internal foreignBeacon;
+    IALMProxy              internal foreignAlmProxy;
     IForeignControllerFull internal foreignController;
-    PAUFactory             internal foreignFactory;
-    RateLimits             internal foreignRateLimits;
+    IRateLimits            internal foreignRateLimits;
 
     /**********************************************************************************************/
     /*** Bridging setup                                                                         ***/
@@ -450,33 +452,32 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
         // Deploy and configure ALM system
 
-        foreignAlmProxy   = new ALMProxy(Base.SPARK_EXECUTOR);
-        foreignRateLimits = new RateLimits(Base.SPARK_EXECUTOR);
+        foreignBeacon = new Beacon(skyAdmin);
 
-        AccessControls foreignAccessControls = new AccessControls(Base.SPARK_EXECUTOR);
+        PAUFactory foreignFactory = new PAUFactory(address(foreignBeacon));
 
-        foreignFactory = new PAUFactory(Base.SPARK_EXECUTOR, Base.SPARK_EXECUTOR);
+        foreignController = IForeignControllerFull(payable(foreignFactory.deploy(Base.SPARK_EXECUTOR)));
+        foreignAlmProxy   = IALMProxy(payable(foreignController.proxy()));
+        foreignRateLimits = IRateLimits(foreignController.rateLimits());
 
-        foreignController = IForeignControllerFull(payable(new Controller({
-            accessControls_ : address(foreignAccessControls),
-            factory_        : address(foreignFactory),
-            proxy_          : address(foreignAlmProxy),
-            rateLimits_     : address(foreignRateLimits)
-        })));
+        IAccessControls foreignAccessControls = IAccessControls(foreignController.accessControls());
+
+        vm.startPrank(skyAdmin);
+
+        // Facet wiring
+        _wireForeignCCTPFacet();
+
+        vm.stopPrank();
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         foreignAccessControls.grantRole(foreignAccessControls.FREEZER_ROLE(), freezer);
         foreignAccessControls.grantRole(foreignAccessControls.RELAYER_ROLE(), relayer);
 
-        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(), address(foreignController));
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "CCTP_FACET";
 
-        foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
-
-        // Facet wiring
-        _wireForeignCCTPFacet();
-
-        vm.stopPrank();
+        foreignController.updateIntegrations(integrationIds);
 
         MintRecipient[] memory mintRecipients = new MintRecipient[](1);
 
@@ -534,51 +535,54 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
         vm.label(cctpFacet, "CCTPFacet");
 
-        foreignFactory.setValidFacet(cctpFacet, true);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
 
-        IController.Wire[] memory wires = new IController.Wire[](8);
-
-        wires[0] = IController.Wire(
+        wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setCCTPMaxFeeCap.selector,
             ICCTPFacet.setMaxFeeCap.selector
         );
 
-        wires[1] = IController.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setCCTPMintRecipient.selector,
             ICCTPFacet.setMintRecipient.selector
         );
 
-        wires[2] = IController.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getCCTPMaxFeeCap.selector,
             ICCTPFacet.maxFeeCap.selector
         );
 
-        wires[3] = IController.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getCCTPMintRecipient.selector,
             ICCTPFacet.getMintRecipient.selector
         );
 
-        wires[4] = IController.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.transferUSDCToCCTP.selector,
             ICCTPFacet.transfer.selector
         );
 
-        wires[5] = IController.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.transferUSDCToCCTPWithFee.selector,
             ICCTPFacet.transferWithFee.selector
         );
 
-        wires[6] = IController.Wire(
+        wires[6] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_USDC_TO_CCTP.selector,
             ICCTPFacet.LIMIT_TO_CCTP.selector
         );
 
-        wires[7] = IController.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.LIMIT_USDC_TO_DOMAIN.selector,
             ICCTPFacet.LIMIT_TO_DOMAIN.selector
         );
 
-        foreignController.addWires(cctpFacet, wires);
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : cctpFacet,
+            wires : wires
+        });
+
+        foreignBeacon.setIntegration("CCTP_FACET", config);
     }
 
 }

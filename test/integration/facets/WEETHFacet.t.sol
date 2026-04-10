@@ -3,9 +3,9 @@ pragma solidity ^0.8.34;
 
 import { WEETHFacet } from "../../../src/facets/weeth/WEETHFacet.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { Integration_TestBase } from "../TestBase.t.sol";
 
-contract Controller_WEETHFacet_Tests is Controller_TestBase {
+contract Controller_WEETHFacet_Tests is Integration_TestBase {
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/

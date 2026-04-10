@@ -3,9 +3,9 @@ pragma solidity ^0.8.34;
 
 import { MerklFacet } from "../../../src/facets/merkl/MerklFacet.sol";
 
-import { Controller_TestBase } from "../TestBase.t.sol";
+import { Integration_TestBase } from "../TestBase.t.sol";
 
-contract Controller_MerklFacet_Tests is Controller_TestBase {
+contract Controller_MerklFacet_Tests is Integration_TestBase {
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/
