@@ -5,8 +5,8 @@ import { IFacetBase } from "../IFacetBase.sol";
 
 /**
  * @title  ICentrifugeFacet
- * @notice PAU facet for interacting with Centrifuge V3 vaults. Supports deposit/redeem request
- *         lifecycle (submit, cancel, claim) and cross-chain share transfers via Centrifuge spokes.
+ * @notice PAU facet for interacting with Centrifuge V3 vaults. Supports cancel, claim-cancel,
+ *         and cross-chain share transfers via Centrifuge spokes.
  */
 interface ICentrifugeFacet is IFacetBase {
 

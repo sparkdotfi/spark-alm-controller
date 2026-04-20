@@ -165,7 +165,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     // https://github.com/sky-ecosystem/dss-allocator/blob/dev/src/funnels/uniV3/TickMath.sol#L15
     uint24 public constant override MAX_TICK_DELTA = 887_272;
 
-    // https://github.com/uniswap/v4-core/blob/v4.0.0/src/libraries/TickMath.sol#L18-L23
+    // https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/TickMath.sol#L8-L11
     int24 public constant override MIN_TICK = -887_272;
     int24 public constant override MAX_TICK =  887_272;
 

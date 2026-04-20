@@ -234,7 +234,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
 
         uint256 maxSlippage = $.parameters[exchange].maxSlippage;
 
-        // If maxSlippages is not set, the exchange is not onboarded.
+        // If maxSlippage is not set, the exchange is not onboarded.
         if (maxSlippage == 0) return false;
 
         return

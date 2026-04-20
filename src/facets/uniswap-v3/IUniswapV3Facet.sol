@@ -37,7 +37,7 @@ interface IUniswapV3Facet is IFacetBase {
     /**
      * @notice Emitted when liquidity is added to a Uniswap V3 position.
      * @param  pool      Address of the Uniswap V3 pool.
-     * @param  tokenId   NFT token ID of the liquidity position (0 for new mints).
+     * @param  tokenId   NFT token ID of the liquidity position.
      * @param  tickLower Lower tick of the position range.
      * @param  tickUpper Upper tick of the position range.
      * @param  liquidity Amount of liquidity added.
