@@ -23,7 +23,6 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuardUpgr
 
     /// @custom:storage-location erc7201:sky.pau.storage.Controller
     struct ControllerStorage {
-        address                  beacon;
         EnumerableSet.Bytes32Set integrationIds;
         mapping (bytes32 integrationId => Config config)     configs;
         mapping (bytes4  callSelector  => Dispatch dispatch) dispatches;
@@ -44,6 +43,12 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuardUpgr
     /**********************************************************************************************/
 
     bytes32 internal constant _DEFAULT_ADMIN_ROLE = 0x00;
+
+    /**********************************************************************************************/
+    /*** Declarations                                                                           ***/
+    /**********************************************************************************************/
+
+    address public immutable override beacon;
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/
@@ -74,7 +79,7 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuardUpgr
         $.proxy          = proxy_;
         $.rateLimits     = rateLimits_;
 
-        _getControllerStorage().beacon = beacon_;
+        beacon = beacon_;
     }
 
     /**********************************************************************************************/
@@ -84,9 +89,9 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuardUpgr
     function updateIntegrations(bytes32[] calldata ids) external override nonReentrant onlyAdmin {
         require(ids.length > 0, EmptyArray());
 
-        ControllerStorage storage $ = _getControllerStorage();
+        Config[] memory configs = IBeacon(beacon).getConfigs(ids);
 
-        Config[] memory configs = IBeacon($.beacon).getConfigs(ids);
+        ControllerStorage storage $ = _getControllerStorage();
 
         // Iterate over all integrationIds and set/overwrite each integration config
         for (uint256 i = 0; i < ids.length; ++i) {
@@ -131,10 +136,6 @@ contract Controller is IController, ControllerSharedStorage, ReentrancyGuardUpgr
 
     function accessControls() external view override returns (address) {
         return _getSharedControllerStorage().accessControls;
-    }
-
-    function beacon() external view override returns (address) {
-        return _getControllerStorage().beacon;
     }
 
     function integrations() external view override returns (Integration[] memory integrations_) {
