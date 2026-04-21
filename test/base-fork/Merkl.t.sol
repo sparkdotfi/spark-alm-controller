@@ -32,6 +32,13 @@ abstract contract Merkl_TestBase is ForkTestBase {
 
     IMerklDistributorLike merklDistributor = IMerklDistributorLike(GroveBase.MERKL_DISTRIBUTOR);
 
+    function setUp() public override {
+        super.setUp();
+
+        vm.prank(SparkBase.SPARK_EXECUTOR);
+        foreignController.setMerklDistributor(address(merklDistributor));
+    }
+
 }
 
 contract ForeignController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {

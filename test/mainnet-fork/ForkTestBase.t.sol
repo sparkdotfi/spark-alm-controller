@@ -715,14 +715,25 @@ abstract contract ForkTestBase is DssTest {
     }
 
     function _wireMerklFacet() internal {
-        address merklFacet = address(new MerklFacet(GroveEthereum.MERKL_DISTRIBUTOR));
+        address merklFacet = address(new MerklFacet());
 
         vm.label(merklFacet, "MerklFacet");
 
-        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](1);
+        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](3);
+
         merklWires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setMerklDistributor.selector,
+            IMerklFacet.setDistributor.selector
+        );
+
+        merklWires[1] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.toggleOperatorMerkl.selector,
             IMerklFacet.toggleOperator.selector
+        );
+
+        merklWires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.merklDistributor.selector,
+            IMerklFacet.distributor.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

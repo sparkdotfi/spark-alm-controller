@@ -286,14 +286,25 @@ abstract contract ForkTestBase is Test {
     }
 
     function _wireMerklFacet() internal {
-        address merklFacet = address(new MerklFacet(GroveBase.MERKL_DISTRIBUTOR));
+        address merklFacet = address(new MerklFacet());
 
         vm.label(merklFacet, "MerklFacet");
 
-        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](1);
+        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](3);
+
         merklWires[0] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.setMerklDistributor.selector,
+            IMerklFacet.setDistributor.selector
+        );
+
+        merklWires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.toggleOperatorMerkl.selector,
             IMerklFacet.toggleOperator.selector
+        );
+
+        merklWires[2] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.merklDistributor.selector,
+            IMerklFacet.distributor.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

@@ -34,6 +34,13 @@ abstract contract Merkl_TestBase is ForkTestBase {
 
     IMerklDistributorLike merklDistributor = IMerklDistributorLike(GroveEthereum.MERKL_DISTRIBUTOR);
 
+    function setUp() public override {
+        super.setUp();
+
+        vm.prank(SparkEthereum.SPARK_PROXY);
+        mainnetController.setMerklDistributor(address(merklDistributor));
+    }
+
     function _getBlock() internal pure override returns (uint256) {
         return 23827450;  // Nov 18, 2025
     }

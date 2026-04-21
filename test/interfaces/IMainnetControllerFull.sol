@@ -216,7 +216,11 @@ abstract contract IMainnetControllerFull is IController, Controller {
     /*** MerklFacet actions                                                                     ***/
     /**********************************************************************************************/
 
+    function setMerklDistributor(address distributor) external virtual;
+
     function toggleOperatorMerkl(address operator) external virtual;
+
+    function merklDistributor() external view virtual returns (address);
 
     /**********************************************************************************************/
     /*** OTCFacet actions                                                                       ***/

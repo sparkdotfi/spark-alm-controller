@@ -15,6 +15,12 @@ interface IMerklFacet is IFacetBase {
     /**********************************************************************************************/
 
     /**
+     * @notice Emitted when the address of the Merkl reward distributor contract is set.
+     * @param  distributor Address of the Merkl reward distributor contract.
+     */
+    event MerklDistributorSet(address indexed distributor);
+
+    /**
      * @notice Emitted when an operator is toggled on the Merkl distributor.
      * @param  operator Address of the operator being toggled.
      */
@@ -23,6 +29,12 @@ interface IMerklFacet is IFacetBase {
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
+
+    /**
+     * @notice Sets the address of the Merkl reward distributor contract.
+     * @param  distributor Address of the Merkl reward distributor contract.
+     */
+    function setDistributor(address distributor) external;
 
     /**
      * @notice Toggles an operator's authorization on the Merkl distributor for the proxy.
@@ -34,7 +46,7 @@ interface IMerklFacet is IFacetBase {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice Address of the Merkl reward distributor contract (immutable).
+    /// @notice Address of the Merkl reward distributor contract.
     function distributor() external view returns (address);
 
 }

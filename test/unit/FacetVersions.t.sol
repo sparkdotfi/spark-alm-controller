@@ -73,7 +73,7 @@ contract FacetVersions_Tests is Test {
         farmFacet          = new FarmFacet();
         layerZeroFacet     = new LayerZeroFacet();
         mapleFacet         = new MapleFacet();
-        merklFacet         = new MerklFacet(MOCK_ADDRESS);
+        merklFacet         = new MerklFacet();
         otcFacet           = new OTCFacet();
         pendleFacet        = new PendleFacet(MOCK_ADDRESS);
         psmFacet           = new PSMFacet(MOCK_ADDRESS, MOCK_ADDRESS, MOCK_ADDRESS, MOCK_ADDRESS, MOCK_ADDRESS);
