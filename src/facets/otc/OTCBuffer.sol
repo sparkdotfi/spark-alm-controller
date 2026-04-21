@@ -27,13 +27,14 @@ contract OTCBuffer is IOTCBuffer, AccessControlEnumerableUpgradeable, UUPSUpgrad
     /*** UUPS Storage                                                                           ***/
     /**********************************************************************************************/
 
+    /// @custom:storage-location erc7201:sky.pau.storage.OTCBuffer.v1
     struct OTCBufferStorage {
-        address almProxy;
+        address proxy;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("almController.storage.OTCBuffer")) - 1)) & ~bytes32(uint256(0xff))
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.OTCBuffer.v1")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant _OTC_BUFFER_STORAGE_LOCATION =
-        0xe0e561841bb6fa9b0b4be53b5b4f5d506ea40664f6db7ecbcf7b6f18935a4f00;
+        0xdf8a96fe84cc14b4811a66999a35db8d1aac360166b1b48140c2e05816220300;
 
     function _getOTCBufferStorage() internal pure returns (OTCBufferStorage storage $) {
         assembly {
@@ -53,16 +54,16 @@ contract OTCBuffer is IOTCBuffer, AccessControlEnumerableUpgradeable, UUPSUpgrad
     /*** Initialization                                                                         ***/
     /**********************************************************************************************/
 
-    function initialize(address admin_, address almProxy_) external override initializer {
-        require(admin_    != address(0), "OTCBuffer/invalid-admin");
-        require(almProxy_ != address(0), "OTCBuffer/invalid-alm-proxy");
+    function initialize(address admin_, address proxy_) external override initializer {
+        require(admin_ != address(0), "OTCBuffer/invalid-admin");
+        require(proxy_ != address(0), "OTCBuffer/invalid-proxy");
 
         __AccessControlEnumerable_init();
         __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
 
-        _getOTCBufferStorage().almProxy = almProxy_;
+        _getOTCBufferStorage().proxy = proxy_;
     }
 
     /**********************************************************************************************/
@@ -74,15 +75,15 @@ contract OTCBuffer is IOTCBuffer, AccessControlEnumerableUpgradeable, UUPSUpgrad
         override
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        IERC20(asset).forceApprove(_getOTCBufferStorage().almProxy, allowance);
+        IERC20(asset).forceApprove(_getOTCBufferStorage().proxy, allowance);
     }
 
     /**********************************************************************************************/
     /*** External Variable Getters                                                              ***/
     /**********************************************************************************************/
 
-    function almProxy() external view override returns (address) {
-        return _getOTCBufferStorage().almProxy;
+    function proxy() external view override returns (address) {
+        return _getOTCBufferStorage().proxy;
     }
 
     /**********************************************************************************************/

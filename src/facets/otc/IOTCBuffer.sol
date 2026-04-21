@@ -20,17 +20,17 @@ interface IOTCBuffer is IAccessControlEnumerable {
 
     /**
      * @notice Initializes the OTC buffer.
-     * @param  admin    Admin address.
-     * @param  almProxy ALM proxy address.
+     * @param  admin Admin address.
+     * @param  proxy ALMProxy address.
      */
-    function initialize(address admin, address almProxy) external;
+    function initialize(address admin, address proxy) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice ALM proxy address.
-    function almProxy() external view returns (address);
+    /// @notice Address of the ALMProxy contract.
+    function proxy() external view returns (address);
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
