@@ -58,16 +58,16 @@ interface IController is IEnumerableIntegrations {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice Address of the AccessControls contract (immutable).
+    /// @notice Address of the AccessControls contract.
     function accessControls() external view returns (address);
 
-    /// @notice Address of the Beacon contract (immutable).
+    /// @notice Address of the Beacon contract.
     function beacon() external view returns (address);
 
-    /// @notice Address of the ALMProxy contract (immutable).
+    /// @notice Address of the ALMProxy contract.
     function proxy() external view returns (address);
 
-    /// @notice Address of the RateLimits contract (immutable).
+    /// @notice Address of the RateLimits contract.
     function rateLimits() external view returns (address);
 
 }
