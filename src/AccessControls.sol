@@ -33,7 +33,8 @@ contract AccessControls is IAccessControls, ReentrancyGuard, AccessControlEnumer
     /**********************************************************************************************/
 
     function removeRelayer(address relayer) external override nonReentrant onlyRole(FREEZER_ROLE) {
-        _revokeRole(RELAYER_ROLE, relayer);
+        require(_revokeRole(RELAYER_ROLE, relayer), "AccessControls/not-live-relayer");
+
         emit RelayerRemoved(relayer);
     }
 

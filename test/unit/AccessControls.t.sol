@@ -72,6 +72,16 @@ contract AccessControls_Tests is UnitTestBase {
         accessControls.removeRelayer(relayer);
     }
 
+    function test_removeRelayer_notLiveRelayer() external {
+        vm.startPrank(admin);
+        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
+        vm.stopPrank();
+
+        vm.prank(freezer);
+        vm.expectRevert("AccessControls/not-live-relayer");
+        accessControls.removeRelayer(unauthorized);
+    }
+
     function test_removeRelayer() external {
         vm.startPrank(admin);
         accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
