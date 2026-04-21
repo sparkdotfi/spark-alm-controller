@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import { ReentrancyGuardUpgradeable } from "../../lib/oz-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
 import { IAccessControls } from "../interfaces/IAccessControls.sol";
 
@@ -9,7 +9,7 @@ import { ControllerSharedStorage } from "../ControllerSharedStorage.sol";
 
 import { IFacetBase } from "./IFacetBase.sol";
 
-abstract contract FacetBase is IFacetBase, ControllerSharedStorage, ReentrancyGuard {
+abstract contract FacetBase is IFacetBase, ControllerSharedStorage, ReentrancyGuardUpgradeable {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
