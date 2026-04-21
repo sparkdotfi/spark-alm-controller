@@ -29,6 +29,25 @@ interface IVaultLike {
 contract USDSFacet is IUSDSFacet, FacetBase {
 
     /**********************************************************************************************/
+    /*** Facet Storage Domain                                                                   ***/
+    /**********************************************************************************************/
+
+    /// @custom:storage-location erc7201:sky.pau.storage.USDSFacet.v1
+    struct FacetStorage {
+        address vault;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("sky.pau.storage.USDSFacet.v1")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 internal constant FACET_STORAGE_LOCATION =
+        0xeb14dfb2e71bee4012142363a6b9a4ac529734e72a5b7fc8a9e74774349daf00;
+
+    function _getFacetStorage() internal pure returns (FacetStorage storage $) {
+        assembly {
+            $.slot := FACET_STORAGE_LOCATION
+        }
+    }
+
+    /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
@@ -41,18 +60,25 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     /**********************************************************************************************/
 
     address public immutable override usds;
-    address public immutable override vault;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor(address usds_, address vault_) {
-        require(usds_  != address(0), "USDSFacet/zero-usds");
+    constructor(address usds_) {
+        require(usds_ != address(0), "USDSFacet/zero-usds");
+
+        usds = usds_;
+    }
+
+    /**********************************************************************************************/
+    /*** External Interactive Admin Functions                                                   ***/
+    /**********************************************************************************************/
+
+    function setVault(address vault_) external override nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
         require(vault_ != address(0), "USDSFacet/zero-vault");
 
-        usds  = usds_;
-        vault = vault_;
+        emit USDSVaultSet(_getFacetStorage().vault = vault_);
     }
 
     /**********************************************************************************************/
@@ -64,10 +90,11 @@ contract USDSFacet is IUSDSFacet, FacetBase {
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_MINT, usdsAmount);
 
-        address proxy = $.proxy;
+        address proxy  = $.proxy;
+        address vault_ = _getFacetStorage().vault;
 
         // Mint USDS into the buffer.
-        IALMProxy(proxy).doCall(vault, abi.encodeCall(IVaultLike.draw, (usdsAmount)));
+        IALMProxy(proxy).doCall(vault_, abi.encodeCall(IVaultLike.draw, (usdsAmount)));
 
         // Transfer USDS from the buffer to the proxy.
         // No need for ApproveLib as we are transferring USDS with an expected transfer function.
@@ -75,7 +102,7 @@ contract USDSFacet is IUSDSFacet, FacetBase {
             usds,
             abi.encodeCall(
                 IERC20Like.transferFrom,
-                (IVaultLike(vault).buffer(), proxy, usdsAmount)
+                (IVaultLike(vault_).buffer(), proxy, usdsAmount)
             )
         );
 
@@ -87,19 +114,29 @@ contract USDSFacet is IUSDSFacet, FacetBase {
 
         IRateLimits($.rateLimits).triggerRateLimitIncrease(LIMIT_MINT, usdsAmount);
 
-        address proxy = $.proxy;
+        address proxy  = $.proxy;
+        address vault_ = _getFacetStorage().vault;
 
         // Transfer USDS from the proxy to the buffer.
         // No need for ApproveLib as we are transferring USDS with an expected transfer function.
         IALMProxy(proxy).doCall(
             usds,
-            abi.encodeCall(IERC20Like.transfer, (IVaultLike(vault).buffer(), usdsAmount))
+            abi.encodeCall(IERC20Like.transfer, (IVaultLike(vault_).buffer(), usdsAmount))
         );
 
         // Burn USDS from the buffer.
-        IALMProxy(proxy).doCall(vault, abi.encodeCall(IVaultLike.wipe, (usdsAmount)));
+        IALMProxy(proxy).doCall(vault_, abi.encodeCall(IVaultLike.wipe, (usdsAmount)));
 
         emit USDSBurn(usdsAmount);
+    }
+
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    /// @inheritdoc IUSDSFacet
+    function vault() external view override returns (address) {
+        return _getFacetStorage().vault;
     }
 
 }

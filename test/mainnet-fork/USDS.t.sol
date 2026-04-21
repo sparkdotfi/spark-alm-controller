@@ -21,6 +21,13 @@ abstract contract USDS_TestBase is ForkTestBase {
 
     IERC20Like internal constant USDS = IERC20Like(Ethereum.USDS);
 
+    function setUp() public override {
+        super.setUp();
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setUSDSVault(vault);
+    }
+
 }
 
 contract MainnetController_USDS_Mint_Tests is USDS_TestBase {

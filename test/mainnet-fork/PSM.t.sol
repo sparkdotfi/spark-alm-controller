@@ -37,6 +37,13 @@ abstract contract PSM_TestBase is ForkTestBase {
 
     IPSMLike internal constant PSM = IPSMLike(Ethereum.PSM);
 
+    function setUp() public override {
+        super.setUp();
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setUSDSVault(vault);
+    }
+
 }
 
 contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {

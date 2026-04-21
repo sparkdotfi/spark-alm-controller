@@ -26,6 +26,12 @@ interface IUSDSFacet is IFacetBase {
      */
     event USDSMint(uint256 usdsAmount);
 
+    /**
+     * @notice Emitted when the vault contract is set.
+     * @param  vault Address of the vault contract.
+     */
+    event USDSVaultSet(address indexed vault);
+
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
@@ -42,6 +48,12 @@ interface IUSDSFacet is IFacetBase {
      */
     function mint(uint256 usdsAmount) external;
 
+    /**
+     * @notice Sets the vault contract.
+     * @param  vault Address of the vault contract.
+     */
+    function setVault(address vault) external;
+
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
@@ -52,7 +64,7 @@ interface IUSDSFacet is IFacetBase {
     /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);
 
-    /// @notice Address of the Sky Allocation Vault contract (immutable).
+    /// @notice Address of the Sky Allocation Vault contract.
     function vault() external view returns (address);
 
 }

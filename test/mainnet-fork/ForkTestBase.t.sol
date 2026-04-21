@@ -1318,11 +1318,11 @@ abstract contract ForkTestBase is DssTest {
     }
 
     function _wireUSDSFacet() internal {
-        address usdsFacet = address(new USDSFacet(address(usds), vault));
+        address usdsFacet = address(new USDSFacet(address(usds)));
 
         vm.label(usdsFacet, "USDSFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.mintUSDS.selector,
@@ -1337,6 +1337,16 @@ abstract contract ForkTestBase is DssTest {
         wires[2] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.LIMIT_USDS_MINT.selector,
             IUSDSFacet.LIMIT_MINT.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setUSDSVault.selector,
+            IUSDSFacet.setVault.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdsVault.selector,
+            IUSDSFacet.vault.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
