@@ -83,7 +83,7 @@ abstract contract WEETH_TestBase is ForkTestBase {
 
         weethModule = address(
             new ERC1967Proxy(
-                address(new WEETHModule()),
+                address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH)),
                 abi.encodeCall(
                     WEETHModule.initialize,
                     (Ethereum.SPARK_PROXY, address(almProxy))

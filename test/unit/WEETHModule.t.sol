@@ -34,7 +34,7 @@ abstract contract WEETHModule_TestBase is UnitTestBase {
     WEETHModule internal weethModule;
 
     function setUp() external {
-        address implementation = address(new WEETHModule());
+        address implementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
         weethModule = WEETHModule(payable(new ERC1967Proxy(
             implementation, abi.encodeCall(WEETHModule.initialize,(admin, almProxy))
@@ -74,11 +74,35 @@ abstract contract WEETHModule_TestBase is UnitTestBase {
 contract WEETHModule_UnitTests is WEETHModule_TestBase {
 
     /**********************************************************************************************/
+    /*** Constructor Tests                                                                      ***/
+    /**********************************************************************************************/
+
+    function test_constructor_invalidWeeth() external {
+        vm.expectRevert("WEETHModule/zero-weeth");
+        new WEETHModule(address(0), address(0));
+    }
+
+    function test_constructor_invalidWeth() external {
+        vm.expectRevert("WEETHModule/zero-weth");
+        new WEETHModule(makeAddr("weeth"), address(0));
+    }
+
+    function test_constructor() external {
+        address weeth = makeAddr("weeth");
+        address weth  = makeAddr("weth");
+
+        WEETHModule weethModule = new WEETHModule(weeth, weth);
+
+        assertEq(weethModule.weeth(), weeth);
+        assertEq(weethModule.weth(),  weth);
+    }
+
+    /**********************************************************************************************/
     /*** initialize Tests                                                                       ***/
     /**********************************************************************************************/
 
     function test_initialize_invalidAdmin() external {
-        address implementation = address(new WEETHModule());
+        address implementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
         vm.expectRevert("WEETHModule/invalid-admin");
         new ERC1967Proxy(
@@ -91,7 +115,7 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
     }
 
     function test_initialize_invalidAlmProxy() external {
-        address implementation = address(new WEETHModule());
+        address implementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
         vm.expectRevert("WEETHModule/invalid-alm-proxy");
         new ERC1967Proxy(
@@ -109,14 +133,15 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
     }
 
     function test_initialize_cannotInitializeImplementation() external {
-        WEETHModule implementation = new WEETHModule();
+        WEETHModule implementation = new WEETHModule(Ethereum.WEETH, Ethereum.WETH);
 
         vm.expectRevert("InvalidInitialization()");
         implementation.initialize(admin, almProxy);
     }
 
     function test_initialize() external {
-        address implementation = address(new WEETHModule());
+        address implementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
+
         WEETHModule weethModule_ = WEETHModule(payable(new ERC1967Proxy(
             implementation, abi.encodeCall(WEETHModule.initialize,(admin, almProxy))
         )));
@@ -214,7 +239,7 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
     /**********************************************************************************************/
 
     function test_authorizeUpgrade_notAuthorized() external {
-        address newImplementation = address(new WEETHModule());
+        address newImplementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -225,7 +250,7 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
     }
 
     function test_authorizeUpgrade() external {
-        address newImplementation = address(new WEETHModule());
+        address newImplementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
         vm.expectEmit(address(weethModule));
         emit IERC1967.Upgraded(newImplementation);

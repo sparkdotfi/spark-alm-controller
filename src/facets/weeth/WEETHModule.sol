@@ -9,8 +9,6 @@ import {
     UUPSUpgradeable
 } from "../../../lib/oz-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-import { Ethereum } from "../../../lib/spark-address-registry/src/Ethereum.sol";
-
 import { IWEETHModule } from "./IWEETHModule.sol";
 
 interface IERC20Like {
@@ -75,10 +73,23 @@ contract WEETHModule is IWEETHModule, AccessControlEnumerableUpgradeable, UUPSUp
     }
 
     /**********************************************************************************************/
+    /*** Declarations                                                                           ***/
+    /**********************************************************************************************/
+
+    address public immutable override weeth;
+    address public immutable override weth;
+
+    /**********************************************************************************************/
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor() {
+    constructor(address weeth_, address weth_) {
+        require(weeth_ != address(0), "WEETHModule/zero-weeth");
+        require(weth_  != address(0), "WEETHModule/zero-weth");
+
+        weeth = weeth_;
+        weth  = weth_;
+
         _disableInitializers();  // Avoid initializing in the context of the implementation
     }
 
@@ -105,7 +116,7 @@ contract WEETHModule is IWEETHModule, AccessControlEnumerableUpgradeable, UUPSUp
     function claimWithdrawal(uint256 requestId) external override returns (uint256 ethReceived) {
         require(msg.sender == _getWEETHModuleStorage().almProxy, "WEETHModule/invalid-sender");
 
-        address eeth               = IWEETHLike(Ethereum.WEETH).eETH();
+        address eeth               = IWEETHLike(weeth).eETH();
         address liquidityPool      = IEETHLike(eeth).liquidityPool();
         address withdrawRequestNFT = ILiquidityPoolLike(liquidityPool).withdrawRequestNFT();
 
@@ -124,10 +135,10 @@ contract WEETHModule is IWEETHModule, AccessControlEnumerableUpgradeable, UUPSUp
         ethReceived = address(this).balance;
 
         // Wrap ETH to WETH.
-        IWETHLike(Ethereum.WETH).deposit{value: ethReceived}();
+        IWETHLike(weth).deposit{value: ethReceived}();
 
         // No need for SafeERC20 as we are transferring WETH with an expected transfer function.
-        IERC20Like(Ethereum.WETH).transfer(msg.sender, ethReceived);
+        IERC20Like(weth).transfer(msg.sender, ethReceived);
     }
 
     /**********************************************************************************************/

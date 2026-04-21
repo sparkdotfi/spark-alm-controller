@@ -36,6 +36,12 @@ interface IWEETHModule is IAccessControlEnumerable {
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
+    /// @notice Address of the weETH token contract (immutable).
+    function weeth() external view returns (address);
+
+    /// @notice Address of the WETH token contract (immutable).
+    function weth() external view returns (address);
+
     /**
      * @notice Receives an ERC721 token.
      * @param  operator Operator address.
