@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
-interface IBasinFacet is IFacetBase {
+interface IBasinFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

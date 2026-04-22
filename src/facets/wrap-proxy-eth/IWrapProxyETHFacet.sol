@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IWrapProxyETHFacet
  * @notice PAU facet for wrapping all native ETH held by the proxy into WETH. Useful after
  *         operations that leave ETH on the proxy (e.g., withdrawal claims that return ETH).
  */
-interface IWrapProxyETHFacet is IFacetBase {
+interface IWrapProxyETHFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  ITransferAssetFacet
  * @notice PAU facet for transferring ERC-20 assets from the proxy to a destination address. Rate
  *         limited per asset and destination pair.
  */
-interface ITransferAssetFacet is IFacetBase {
+interface ITransferAssetFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

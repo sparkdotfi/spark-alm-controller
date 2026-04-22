@@ -4,7 +4,7 @@ pragma solidity ^0.8.34;
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
-import { IFacetBase }              from "../../../src/facets/IFacetBase.sol";
+import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { IUniswapV4Facet }         from "../../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
 
 import { UniswapV4Facet } from "../../../src/facets/uniswap-v4/UniswapV4Facet.sol";
@@ -128,7 +128,7 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
     function test_setMaxSlippage_notAdmin() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IFacetBase.AccessControlUnauthorizedAccount.selector,
+                IFacet.AccessControlUnauthorizedAccount.selector,
                 unauthorized,
                 DEFAULT_ADMIN_ROLE
             )
@@ -139,7 +139,7 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IFacetBase.AccessControlUnauthorizedAccount.selector,
+                IFacet.AccessControlUnauthorizedAccount.selector,
                 relayer,
                 DEFAULT_ADMIN_ROLE
             )
@@ -182,7 +182,7 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
     function test_setTickLimits_notAdmin() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IFacetBase.AccessControlUnauthorizedAccount.selector,
+                IFacet.AccessControlUnauthorizedAccount.selector,
                 unauthorized,
                 DEFAULT_ADMIN_ROLE
             )
@@ -193,7 +193,7 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                IFacetBase.AccessControlUnauthorizedAccount.selector,
+                IFacet.AccessControlUnauthorizedAccount.selector,
                 relayer,
                 DEFAULT_ADMIN_ROLE
             )

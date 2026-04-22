@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IMapleFacet
  * @notice PAU facet for requesting and cancelling redemptions on Maple Finance pool tokens.
  */
-interface IMapleFacet is IFacetBase {
+interface IMapleFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IPendleFacet
  * @notice PAU facet for redeeming Pendle PT+YT (PY) tokens back to the underlying yield token after
  *         market expiry.
  */
-interface IPendleFacet is IFacetBase {
+interface IPendleFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

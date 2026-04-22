@@ -2,11 +2,11 @@
 pragma solidity ^0.8.34;
 
 /**
- * @title  IFacetBase
+ * @title  IFacet
  * @notice Base interface inherited by all PAU facets. Defines shared roles, versioning,
  *         and access control errors.
  */
-interface IFacetBase {
+interface IFacet {
 
     /**********************************************************************************************/
     /*** Errors                                                                                 ***/

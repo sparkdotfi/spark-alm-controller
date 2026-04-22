@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  ILayerZeroFacet
  * @notice PAU facet for cross-chain token transfers via LayerZero V2 OFT (Omnichain Fungible Token)
  *         contracts. Requires ETH for cross-chain messaging fees (payable).
  */
-interface ILayerZeroFacet is IFacetBase {
+interface ILayerZeroFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

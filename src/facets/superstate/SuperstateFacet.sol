@@ -6,7 +6,9 @@ import { ApproveLib } from "../../libraries/ApproveLib.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { ISuperstateFacet } from "./ISuperstateFacet.sol";
 
@@ -17,21 +19,26 @@ interface IUSTBLike {
 }
 
 // NOTE: This contract is only compatible with USTB and USDC.
-contract SuperstateFacet is ISuperstateFacet, FacetBase {
+contract SuperstateFacet is ISuperstateFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ISuperstateFacet
     bytes32 public constant override LIMIT_SUBSCRIBE = keccak256("LIMIT_SUPERSTATE_SUBSCRIBE");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ISuperstateFacet
     address public immutable override usdc;
+
+    /// @inheritdoc ISuperstateFacet
     address public immutable override ustb;
 
     /**********************************************************************************************/
@@ -50,6 +57,7 @@ contract SuperstateFacet is ISuperstateFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ISuperstateFacet
     function subscribe(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IUniswapV4Facet
  * @notice PAU facet for interacting with Uniswap V4 pools. Supports minting, increasing, and
  *         decreasing concentrated liquidity positions, and exact-input token swaps.
  */
-interface IUniswapV4Facet is IFacetBase {
+interface IUniswapV4Facet is IFacet {
 
     /**********************************************************************************************/
     /*** Structs                                                                                ***/

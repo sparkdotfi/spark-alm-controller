@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IERC4626Facet
@@ -9,7 +9,7 @@ import { IFacetBase } from "../IFacetBase.sol";
  *         tokenized vaults. Enforces exchange rate caps and per-token rate limits on both deposit
  *         and withdraw flows.
  */
-interface IERC4626Facet is IFacetBase {
+interface IERC4626Facet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

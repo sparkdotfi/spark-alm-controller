@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IERC4626Facet } from "./IERC4626Facet.sol";
 
@@ -27,7 +29,7 @@ interface IERC4626Like {
 
 }
 
-contract ERC4626Facet is IERC4626Facet, FacetBase {
+contract ERC4626Facet is IERC4626Facet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -52,17 +54,23 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_4626_DEPOSIT");
+    /// @inheritdoc IERC4626Facet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_4626_DEPOSIT");
+
+    /// @inheritdoc IERC4626Facet
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_4626_WITHDRAW");
 
+    /// @inheritdoc IERC4626Facet
     uint256 public constant override EXCHANGE_RATE_PRECISION = 1e36;
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IERC4626Facet
     function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets)
         external
         override
@@ -82,6 +90,7 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IERC4626Facet
     function deposit(address token, uint256 amount, uint256 minSharesOut)
         external
         override
@@ -115,6 +124,7 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
         emit ERC4626Deposit(token, amount, shares);
     }
 
+    /// @inheritdoc IERC4626Facet
     function withdraw(address token, uint256 amount, uint256 maxSharesIn)
         external
         override
@@ -143,6 +153,7 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
         emit ERC4626Withdraw(token, amount, shares);
     }
 
+    /// @inheritdoc IERC4626Facet
     function redeem(address token, uint256 shares, uint256 minAssetsOut)
         external
         override
@@ -174,6 +185,7 @@ contract ERC4626Facet is IERC4626Facet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IERC4626Facet
     function getMaxExchangeRate(address token) external view override returns (uint256) {
         return _getFacetStorage().maxExchangeRates[token];
     }

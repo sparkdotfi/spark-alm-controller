@@ -11,7 +11,9 @@ import { makeAddressUint32Key } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { ILayerZeroFacet } from "./ILayerZeroFacet.sol";
 
@@ -99,7 +101,7 @@ interface ILayerZeroLike {
 
 }
 
-contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
+contract LayerZeroFacet is ILayerZeroFacet, Facet {
 
     using OptionsBuilder for bytes;
 
@@ -126,14 +128,17 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ILayerZeroFacet
     bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_LAYERZERO_TRANSFER");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ILayerZeroFacet
     function setRecipient(uint32 destinationEndpointId, bytes32 recipient)
         external
         override
@@ -152,6 +157,7 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     // NOTE: !!! This function was deployed without integration testing !!!
     //       KEEP RATE LIMIT AT ZERO until LayerZero dependencies are live and
     //       all functionality has been thoroughly integration tested.
+    /// @inheritdoc ILayerZeroFacet
     function transfer(address oftAddress, uint256 amount, uint32 destinationEndpointId)
         external
         payable
@@ -235,6 +241,7 @@ contract LayerZeroFacet is ILayerZeroFacet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ILayerZeroFacet
     function getRecipient(uint32 destinationEndpointId) external view override returns (bytes32) {
         return _getFacetStorage().recipients[destinationEndpointId];
     }

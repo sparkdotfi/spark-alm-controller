@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { ICurveFacet } from "./ICurveFacet.sol";
 
@@ -51,7 +53,7 @@ interface ICurvePoolLike is IERC20Like {
 
 }
 
-contract CurveFacet is ICurveFacet, FacetBase {
+contract CurveFacet is ICurveFacet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -76,16 +78,23 @@ contract CurveFacet is ICurveFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_CURVE_DEPOSIT");
-    bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_CURVE_SWAP");
+    /// @inheritdoc ICurveFacet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_CURVE_DEPOSIT");
+
+    /// @inheritdoc ICurveFacet
+    bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_CURVE_SWAP");
+
+    /// @inheritdoc ICurveFacet
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_CURVE_WITHDRAW");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICurveFacet
     function setMaxSlippage(address pool, uint256 maxSlippage)
         external
         override
@@ -101,6 +110,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICurveFacet
     function swap(
         address pool,
         uint256 inputIndex,
@@ -152,6 +162,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
         emit CurveSwap(pool, inputIndex, outputIndex, amountIn, amountOut);
     }
 
+    /// @inheritdoc ICurveFacet
     function addLiquidity(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
         external
         override
@@ -207,6 +218,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
         emit CurveAddLiquidity(pool, shares, valueDeposited, depositAmounts);
     }
 
+    /// @inheritdoc ICurveFacet
     function removeLiquidity(
         address            pool,
         uint256            lpBurnAmount,
@@ -273,6 +285,7 @@ contract CurveFacet is ICurveFacet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICurveFacet
     function getMaxSlippage(address pool) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[pool];
     }

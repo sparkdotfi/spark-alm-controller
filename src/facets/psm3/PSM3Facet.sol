@@ -4,10 +4,12 @@ pragma solidity ^0.8.34;
 import { ApproveLib }     from "../../libraries/ApproveLib.sol";
 import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
+import { IFacet } from "../IFacet.sol";
+
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { Facet } from "../Facet.sol";
 
 import { IPSM3Facet } from "./IPSM3Facet.sol";
 
@@ -25,21 +27,26 @@ interface IPSM3Like {
 
 }
 
-contract PSM3Facet is IPSM3Facet, FacetBase {
+contract PSM3Facet is IPSM3Facet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_PSM_DEPOSIT");
+    /// @inheritdoc IPSM3Facet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_PSM_DEPOSIT");
+
+    /// @inheritdoc IPSM3Facet
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_PSM_WITHDRAW");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IPSM3Facet
     address public immutable override psm;
 
     /**********************************************************************************************/
@@ -56,6 +63,7 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IPSM3Facet
     function deposit(address asset, uint256 amount)
         external
         override
@@ -82,6 +90,7 @@ contract PSM3Facet is IPSM3Facet, FacetBase {
         emit PSM3Deposit(asset, amount, shares);
     }
 
+    /// @inheritdoc IPSM3Facet
     function withdraw(address asset, uint256 maxAmount)
         external
         override

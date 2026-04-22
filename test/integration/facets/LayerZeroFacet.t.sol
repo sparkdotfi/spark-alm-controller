@@ -4,7 +4,7 @@ pragma solidity ^0.8.34;
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
-import { IFacetBase }              from "../../../src/facets/IFacetBase.sol";
+import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { ILayerZeroFacet }         from "../../../src/facets/layer-zero/ILayerZeroFacet.sol";
 
 import { LayerZeroFacet } from "../../../src/facets/layer-zero/LayerZeroFacet.sol";
@@ -72,7 +72,7 @@ contract Controller_LayerZeroFacet_Admin_Tests is LayerZeroFacet_TestBase {
 
     function test_setRecipient_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             unauthorized,
             DEFAULT_ADMIN_ROLE
         ));
@@ -81,7 +81,7 @@ contract Controller_LayerZeroFacet_Admin_Tests is LayerZeroFacet_TestBase {
         controller.setRecipient(0, bytes32(0));
 
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             relayer,
             DEFAULT_ADMIN_ROLE
         ));

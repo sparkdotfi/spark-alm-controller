@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  ICentrifugeFacet
  * @notice PAU facet for interacting with Centrifuge V3 vaults. Supports cancel, claim-cancel,
  *         and cross-chain share transfers via Centrifuge spokes.
  */
-interface ICentrifugeFacet is IFacetBase {
+interface ICentrifugeFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

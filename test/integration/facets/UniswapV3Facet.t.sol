@@ -4,7 +4,7 @@ pragma solidity ^0.8.34;
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
-import { IFacetBase }              from "../../../src/facets/IFacetBase.sol";
+import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { IUniswapV3Facet }         from "../../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
 import { UniswapV3Facet } from "../../../src/facets/uniswap-v3/UniswapV3Facet.sol";
@@ -146,7 +146,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
 
     function test_setMaxSlippage_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             unauthorized,
             DEFAULT_ADMIN_ROLE
         ));
@@ -155,7 +155,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         controller.setMaxSlippage(address(0), 0);
 
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             relayer,
             DEFAULT_ADMIN_ROLE
         ));
@@ -200,7 +200,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
 
     function test_setMaxTickDelta_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             unauthorized,
             DEFAULT_ADMIN_ROLE
         ));
@@ -209,7 +209,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         controller.setMaxTickDelta(address(0), 0);
 
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             relayer,
             DEFAULT_ADMIN_ROLE
         ));
@@ -268,7 +268,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
 
     function test_setLiquidityLowerTickBound_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             unauthorized,
             DEFAULT_ADMIN_ROLE
         ));
@@ -277,7 +277,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         controller.setLiquidityLowerTickBound(address(0), 0);
 
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             relayer,
             DEFAULT_ADMIN_ROLE
         ));
@@ -349,7 +349,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
 
     function test_setLiquidityUpperTickBound_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             unauthorized,
             DEFAULT_ADMIN_ROLE
         ));
@@ -358,7 +358,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         controller.setLiquidityUpperTickBound(address(0), 0);
 
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             relayer,
             DEFAULT_ADMIN_ROLE
         ));
@@ -421,7 +421,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
 
     function test_setTWAPSecondsAgo_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             unauthorized,
             DEFAULT_ADMIN_ROLE
         ));
@@ -430,7 +430,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         controller.setTWAPSecondsAgo(address(0), 0);
 
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             relayer,
             DEFAULT_ADMIN_ROLE
         ));

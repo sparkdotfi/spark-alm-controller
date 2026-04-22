@@ -6,7 +6,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IOTCFacet } from "./IOTCFacet.sol";
 
@@ -22,7 +24,7 @@ interface IERC20Like {
 
 }
 
-contract OTCFacet is IOTCFacet, FacetBase {
+contract OTCFacet is IOTCFacet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -48,14 +50,17 @@ contract OTCFacet is IOTCFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IOTCFacet
     bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_OTC_SWAP");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IOTCFacet
     function setMaxSlippage(address exchange, uint256 maxSlippage)
         external
         override
@@ -70,6 +75,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
         emit OTCMaxSlippageSet(exchange, maxSlippage);
     }
 
+    /// @inheritdoc IOTCFacet
     function setBuffer(address exchange, address buffer)
         external
         override
@@ -91,6 +97,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
         emit OTCBufferSet(exchange, $.parameters[exchange].buffer = buffer);
     }
 
+    /// @inheritdoc IOTCFacet
     function setRechargeRate(address exchange, uint256 normalizedRate)
         external
         override
@@ -104,6 +111,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
         emit OTCRechargeRateSet(exchange, normalizedRate);
     }
 
+    /// @inheritdoc IOTCFacet
     function setIsWhitelisted(address exchange, address asset, bool isWhitelisted)
         external
         override
@@ -126,6 +134,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IOTCFacet
     function send(address exchange, address assetToSend, uint256 amount)
         external
         override
@@ -162,6 +171,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
         emit OTCSwapSent(exchange, parameters.buffer, assetToSend, amount, normalizedSent);
     }
 
+    /// @inheritdoc IOTCFacet
     function claim(address exchange, address assetToClaim)
         external
         override
@@ -192,22 +202,27 @@ contract OTCFacet is IOTCFacet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IOTCFacet
     function getBuffer(address exchange) external view override returns (address) {
         return _getFacetStorage().parameters[exchange].buffer;
     }
 
+    /// @inheritdoc IOTCFacet
     function getMaxSlippage(address exchange) external view override returns (uint256) {
         return _getFacetStorage().parameters[exchange].maxSlippage;
     }
 
+    /// @inheritdoc IOTCFacet
     function getRechargeRate(address exchange) external view override returns (uint256) {
         return _getFacetStorage().parameters[exchange].normalizedRate;
     }
 
+    /// @inheritdoc IOTCFacet
     function getIsWhitelisted(address exchange, address asset) external view override returns (bool) {
         return _getFacetStorage().parameters[exchange].assetWhitelisted[asset];
     }
 
+    /// @inheritdoc IOTCFacet
     function getState(address exchange)
         external
         view
@@ -218,6 +233,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
         return (state.normalizedSent, state.sentTimestamp, state.normalizedClaimed);
     }
 
+    /// @inheritdoc IOTCFacet
     function getClaimWithRecharge(address exchange) public view override returns (uint256) {
         FacetStorage storage $     = _getFacetStorage();
         State        storage state = $.states[exchange];
@@ -229,6 +245,7 @@ contract OTCFacet is IOTCFacet, FacetBase {
             (block.timestamp - state.sentTimestamp) * $.parameters[exchange].normalizedRate;
     }
 
+    /// @inheritdoc IOTCFacet
     function isSwapReady(address exchange) public view override returns (bool) {
         FacetStorage storage $ = _getFacetStorage();
 

@@ -4,7 +4,9 @@ pragma solidity ^0.8.34;
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IPSMFacet } from "./IPSMFacet.sol";
 
@@ -38,24 +40,35 @@ interface IPSMLike {
 
 }
 
-contract PSMFacet is IPSMFacet, FacetBase {
+contract PSMFacet is IPSMFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IPSMFacet
     bytes32 public constant override LIMIT_USDS_TO_USDC = keccak256("LIMIT_USDS_TO_USDC");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IPSMFacet
     address public immutable override dai;
+
+    /// @inheritdoc IPSMFacet
     address public immutable override daiUSDS;
+
+    /// @inheritdoc IPSMFacet
     address public immutable override psm;
+
+    /// @inheritdoc IPSMFacet
     address public immutable override usdc;
+
+    /// @inheritdoc IPSMFacet
     address public immutable override usds;
 
     /**********************************************************************************************/
@@ -82,6 +95,7 @@ contract PSMFacet is IPSMFacet, FacetBase {
 
     // NOTE: The param `usdcAmount` is denominated in 1e6 precision to match how PSM uses
     //       USDC precision for both `buyGemNoFee` and `sellGemNoFee`
+    /// @inheritdoc IPSMFacet
     function swapUSDSToUSDC(uint256 usdcAmount)
         external
         override
@@ -114,6 +128,7 @@ contract PSMFacet is IPSMFacet, FacetBase {
         emit PSMSwapUSDSToUSDC(usdcAmount);
     }
 
+    /// @inheritdoc IPSMFacet
     function swapUSDCToUSDS(uint256 usdcAmount)
         external
         override
@@ -169,6 +184,7 @@ contract PSMFacet is IPSMFacet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IPSMFacet
     function to18ConversionFactor() public view override returns (uint256) {
         return IPSMLike(psm).to18ConversionFactor();
     }

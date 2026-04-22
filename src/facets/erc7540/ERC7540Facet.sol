@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IERC7540Facet } from "./IERC7540Facet.sol";
 
@@ -41,21 +43,26 @@ interface IERC7540Like {
 
 }
 
-contract ERC7540Facet is IERC7540Facet, FacetBase {
+contract ERC7540Facet is IERC7540Facet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IERC7540Facet
     bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public constant override LIMIT_REDEEM  = keccak256("LIMIT_7540_REDEEM");
 
+    /// @inheritdoc IERC7540Facet
+    bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_7540_REDEEM");
+
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IERC7540Facet
     function requestDeposit(address token, uint256 amount)
         external
         override
@@ -79,6 +86,7 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
         emit ERC7540RequestDeposit(token, amount);
     }
 
+    /// @inheritdoc IERC7540Facet
     function claimDeposit(address token) external override nonReentrant onlyRole(RELAYER_ROLE) {
         _rateLimitExists(makeAddressKey(LIMIT_DEPOSIT, token));
 
@@ -91,6 +99,7 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
         emit ERC7540ClaimDeposit(token, shares);
     }
 
+    /// @inheritdoc IERC7540Facet
     function requestRedeem(address token, uint256 shares)
         external
         override
@@ -109,6 +118,7 @@ contract ERC7540Facet is IERC7540Facet, FacetBase {
         emit ERC7540RequestRedeem(token, shares);
     }
 
+    /// @inheritdoc IERC7540Facet
     function claimRedeem(address token) external override nonReentrant onlyRole(RELAYER_ROLE) {
         _rateLimitExists(makeAddressKey(LIMIT_REDEEM, token));
 

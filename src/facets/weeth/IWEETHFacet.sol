@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IWEETHFacet
@@ -9,7 +9,7 @@ import { IFacetBase } from "../IFacetBase.sol";
  *         (via eETH wrapping), requesting withdrawals back to ETH, and claiming completed
  *         withdrawals.
  */
-interface IWEETHFacet is IFacetBase {
+interface IWEETHFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

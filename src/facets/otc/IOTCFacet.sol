@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IOTCFacet
@@ -11,7 +11,7 @@ import { IFacetBase } from "../IFacetBase.sol";
  *         All normalized amounts use 18-decimal precision regardless of the token's native
  *         decimals.
  */
-interface IOTCFacet is IFacetBase {
+interface IOTCFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Structs                                                                                ***/

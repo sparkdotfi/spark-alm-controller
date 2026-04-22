@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IMerklFacet
  * @notice PAU facet for toggling operators on the Merkl reward distributor. Operators can claim
  *         Merkl rewards on behalf of the proxy.
  */
-interface IMerklFacet is IFacetBase {
+interface IMerklFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

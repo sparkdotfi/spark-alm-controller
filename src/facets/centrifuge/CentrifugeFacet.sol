@@ -6,7 +6,9 @@ import { makeAddressKey, makeAddressUint16Key } from "../../libraries/RateLimitH
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { ICentrifugeFacet } from "./ICentrifugeFacet.sol";
 
@@ -51,7 +53,7 @@ interface ISpokeLike {
 
 }
 
-contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
+contract CentrifugeFacet is ICentrifugeFacet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -76,19 +78,27 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICentrifugeFacet
     bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_7540_DEPOSIT");
-    bytes32 public constant override LIMIT_REDEEM   = keccak256("LIMIT_7540_REDEEM");
+
+    /// @inheritdoc ICentrifugeFacet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_7540_DEPOSIT");
+
+    /// @inheritdoc ICentrifugeFacet
+    bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_7540_REDEEM");
 
     // Requests for Centrifuge pools are non-fungible and all have ID = 0.
+    /// @inheritdoc ICentrifugeFacet
     uint256 public constant override REQUEST_ID = 0;
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICentrifugeFacet
     function setRecipient(uint16 centrifugeId, bytes32 recipient)
         external
         override
@@ -105,6 +115,7 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICentrifugeFacet
     function cancelDepositRequest(address token)
         external
         override
@@ -124,6 +135,7 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
         emit CentrifugeCancelDepositRequest(token);
     }
 
+    /// @inheritdoc ICentrifugeFacet
     function claimCancelDepositRequest(address token)
         external
         override
@@ -145,6 +157,7 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
         emit CentrifugeClaimCancelDepositRequest(token);
     }
 
+    /// @inheritdoc ICentrifugeFacet
     function cancelRedeemRequest(address token)
         external
         override
@@ -164,6 +177,7 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
         emit CentrifugeCancelRedeemRequest(token);
     }
 
+    /// @inheritdoc ICentrifugeFacet
     function claimCancelRedeemRequest(address token)
         external
         override
@@ -185,6 +199,7 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
         emit CentrifugeClaimCancelRedeemRequest(token);
     }
 
+    /// @inheritdoc ICentrifugeFacet
     function transferShares(address token, uint128 amount, uint16 centrifugeId)
         external
         payable
@@ -230,6 +245,7 @@ contract CentrifugeFacet is ICentrifugeFacet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICentrifugeFacet
     function getRecipient(uint16 centrifugeId) external view override returns (bytes32) {
         return _getFacetStorage().recipients[centrifugeId];
     }

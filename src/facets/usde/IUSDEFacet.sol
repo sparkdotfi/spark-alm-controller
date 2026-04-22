@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IUSDEFacet
  * @notice PAU facet for interacting with Ethena's USDe ecosystem. Supports minting/burning USDe via
  *         the Ethena minter, staking/unstaking sUSDe, and managing the sUSDe cooldown process.
  */
-interface IUSDEFacet is IFacetBase {
+interface IUSDEFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

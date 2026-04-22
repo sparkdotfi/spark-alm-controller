@@ -6,7 +6,9 @@ import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { ITransferAssetFacet } from "./ITransferAssetFacet.sol";
 
@@ -16,20 +18,23 @@ interface IERC20Like {
 
 }
 
-contract TransferAssetFacet is ITransferAssetFacet, FacetBase {
+contract TransferAssetFacet is ITransferAssetFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ITransferAssetFacet
     bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_ASSET_TRANSFER");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ITransferAssetFacet
     function transfer(address asset, address destination, uint256 amount)
         external
         override

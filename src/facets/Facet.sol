@@ -1,22 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { ReentrancyGuardUpgradeable } from "../../lib/oz-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
+import {
+    ReentrancyGuardUpgradeable
+} from "../../lib/oz-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
 import { IAccessControls } from "../interfaces/IAccessControls.sol";
 
 import { ControllerSharedStorage } from "../ControllerSharedStorage.sol";
 
-import { IFacetBase } from "./IFacetBase.sol";
+import { IFacet } from "./IFacet.sol";
 
-abstract contract FacetBase is IFacetBase, ControllerSharedStorage, ReentrancyGuardUpgradeable {
+abstract contract Facet is IFacet, ControllerSharedStorage, ReentrancyGuardUpgradeable {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IFacet
     bytes32 public constant override DEFAULT_ADMIN_ROLE = 0x00;
-    bytes32 public constant override RELAYER_ROLE       = keccak256("RELAYER");
+
+    /// @inheritdoc IFacet
+    bytes32 public constant override RELAYER_ROLE = keccak256("RELAYER");
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/

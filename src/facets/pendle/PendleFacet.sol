@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IPendleFacet } from "./IPendleFacet.sol";
 
@@ -78,20 +80,23 @@ interface IYTLike {
 
 }
 
-contract PendleFacet is IPendleFacet, FacetBase {
+contract PendleFacet is IPendleFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IPendleFacet
     bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_PENDLE_PT_REDEEM");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IPendleFacet
     address public immutable override router;
 
     /**********************************************************************************************/
@@ -111,6 +116,7 @@ contract PendleFacet is IPendleFacet, FacetBase {
     // NOTE: DO NOT use for markets with non-standard SYs, without additional testing
     //       targeting each onboarded non-standard SY market.
     //       (Non-standard SYs: ePENDLE, mPENDLE, aTokens (aUSDC, aUSDT))
+    /// @inheritdoc IPendleFacet
     function redeem(address market, uint256 pyAmountIn, uint256 minAmountOut)
         external
         override

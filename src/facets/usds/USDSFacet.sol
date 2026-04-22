@@ -4,7 +4,9 @@ pragma solidity ^0.8.34;
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IUSDSFacet } from "./IUSDSFacet.sol";
 
@@ -26,7 +28,7 @@ interface IVaultLike {
 
 }
 
-contract USDSFacet is IUSDSFacet, FacetBase {
+contract USDSFacet is IUSDSFacet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -51,14 +53,17 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUSDSFacet
     bytes32 public constant override LIMIT_MINT = keccak256("LIMIT_USDS_MINT");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUSDSFacet
     address public immutable override usds;
 
     /**********************************************************************************************/
@@ -85,6 +90,7 @@ contract USDSFacet is IUSDSFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUSDSFacet
     function mint(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
@@ -109,6 +115,7 @@ contract USDSFacet is IUSDSFacet, FacetBase {
         emit USDSMint(usdsAmount);
     }
 
+    /// @inheritdoc IUSDSFacet
     function burn(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 

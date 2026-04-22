@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IWEETHFacet } from "./IWEETHFacet.sol";
 
@@ -51,22 +53,30 @@ interface IWETHLike {
 
 }
 
-contract WEETHFacet is IWEETHFacet, FacetBase {
+contract WEETHFacet is IWEETHFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
-    bytes32 public constant override LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
+    /// @inheritdoc IWEETHFacet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_WEETH_DEPOSIT");
 
+    /// @inheritdoc IWEETHFacet
+    bytes32 public constant override LIMIT_REQUEST_WITHDRAW =
+        keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
+
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IWEETHFacet
     address public immutable override weeth;
+
+    /// @inheritdoc IWEETHFacet
     address public immutable override weth;
 
     /**********************************************************************************************/
@@ -85,6 +95,7 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IWEETHFacet
     function deposit(uint256 amount, uint256 minSharesOut)
         external
         override
@@ -129,6 +140,7 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
         emit WEETHDeposit(amount, eethAmount, shares);
     }
 
+    /// @inheritdoc IWEETHFacet
     function requestWithdraw(address weethModule, uint256 weethShares, uint256 minEETHShares)
         external
         override
@@ -177,6 +189,7 @@ contract WEETHFacet is IWEETHFacet, FacetBase {
         emit WEETHRequestWithdraw(weethModule, requestId, eethAmount, weethShares);
     }
 
+    /// @inheritdoc IWEETHFacet
     function claimWithdrawal(address weethModule, uint256 requestId)
         external
         override

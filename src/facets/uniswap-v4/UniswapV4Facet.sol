@@ -18,7 +18,9 @@ import { makeBytes32Key } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IUniswapV4Facet } from "./IUniswapV4Facet.sol";
 
@@ -61,7 +63,7 @@ interface IUniversalRouterLike {
 
 }
 
-contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
+contract UniswapV4Facet is IUniswapV4Facet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -87,10 +89,16 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
-    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
-    bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V4_SWAP");
+    /// @inheritdoc IUniswapV4Facet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
 
+    /// @inheritdoc IUniswapV4Facet
+    bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_UNISWAP_V4_SWAP");
+
+    /// @inheritdoc IUniswapV4Facet
+    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
+
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     uint256 internal constant _V4_SWAP = 0x10;
@@ -99,8 +107,13 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV4Facet
     address public immutable override permit2;
+
+    /// @inheritdoc IUniswapV4Facet
     address public immutable override positionManager;
+
+    /// @inheritdoc IUniswapV4Facet
     address public immutable override router;
 
     /**********************************************************************************************/
@@ -121,6 +134,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV4Facet
     function setMaxSlippage(bytes32 poolId, uint256 maxSlippage)
         external
         override
@@ -132,6 +146,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         emit UniswapV4MaxSlippageSet(poolId, _getFacetStorage().maxSlippages[poolId] = maxSlippage);
     }
 
+    /// @inheritdoc IUniswapV4Facet
     function setTickLimits(
         bytes32 poolId,
         int24   tickLowerMin,
@@ -162,6 +177,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV4Facet
     function mintPosition(
         bytes32 poolId,
         int24   tickLower,
@@ -210,6 +226,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         );
     }
 
+    /// @inheritdoc IUniswapV4Facet
     function increasePosition(
         bytes32 poolId,
         uint256 tokenId,
@@ -258,6 +275,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         emit UniswapV4IncreasePosition(poolId, tokenId, liquidityIncrease, amount0, amount1);
     }
 
+    /// @inheritdoc IUniswapV4Facet
     function decreasePosition(
         bytes32 poolId,
         uint256 tokenId,
@@ -295,6 +313,7 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
         emit UniswapV4DecreasePosition(poolId, tokenId, liquidityDecrease, amount0, amount1);
     }
 
+    /// @inheritdoc IUniswapV4Facet
     function swap(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
         external
         override
@@ -354,10 +373,12 @@ contract UniswapV4Facet is IUniswapV4Facet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV4Facet
     function getMaxSlippage(bytes32 poolId) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[poolId];
     }
 
+    /// @inheritdoc IUniswapV4Facet
     function getTickLimits(bytes32 poolId)
         external
         view

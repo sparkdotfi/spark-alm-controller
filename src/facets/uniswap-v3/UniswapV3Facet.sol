@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { FullMath }         from "../../../lib/dss-allocator/src/funnels/uniV3/FullMath.sol";
-import { LiquidityAmounts } from "../../../lib/dss-allocator/src/funnels/uniV3/LiquidityAmounts.sol";
-import { TickMath }         from "../../../lib/dss-allocator/src/funnels/uniV3/TickMath.sol";
+import { FullMath } from "../../../lib/dss-allocator/src/funnels/uniV3/FullMath.sol";
+import { TickMath } from "../../../lib/dss-allocator/src/funnels/uniV3/TickMath.sol";
+
+import {
+    LiquidityAmounts
+} from "../../../lib/dss-allocator/src/funnels/uniV3/LiquidityAmounts.sol";
 
 import { ApproveLib }            from "../../libraries/ApproveLib.sol";
 import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
@@ -11,7 +14,9 @@ import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { UniswapV3Utils } from "./UniswapV3Utils.sol";
 
@@ -132,7 +137,7 @@ interface INonfungiblePositionManager {
 
 }
 
-contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
+contract UniswapV3Facet is IUniswapV3Facet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -158,24 +163,37 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
-    bytes32 public constant override LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V3_SWAP");
+    /// @inheritdoc IUniswapV3Facet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
+
+    /// @inheritdoc IUniswapV3Facet
+    bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_UNISWAP_V3_SWAP");
+
+    /// @inheritdoc IUniswapV3Facet
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V3_WITHDRAW");
 
-    // https://github.com/sky-ecosystem/dss-allocator/blob/dev/src/funnels/uniV3/TickMath.sol#L15
+    // https://github.com/sky-ecosystem/dss-allocator/blob/a5469884/src/funnels/uniV3/TickMath.sol#L12-L15
+
+    /// @inheritdoc IUniswapV3Facet
     uint24 public constant override MAX_TICK_DELTA = 887_272;
 
-    // https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/TickMath.sol#L8-L11
+    /// @inheritdoc IUniswapV3Facet
     int24 public constant override MIN_TICK = -887_272;
+
+    /// @inheritdoc IUniswapV3Facet
     int24 public constant override MAX_TICK =  887_272;
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV3Facet
     address public immutable override positionManager;
+
+    /// @inheritdoc IUniswapV3Facet
     address public immutable override router;
 
     /**********************************************************************************************/
@@ -194,6 +212,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV3Facet
     function setMaxSlippage(address pool, uint256 maxSlippage)
         external
         override
@@ -205,6 +224,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         emit UniswapV3MaxSlippageSet(pool, _getFacetStorage().maxSlippages[pool] = maxSlippage);
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function setMaxTickDelta(address pool, uint24 maxTickDelta)
         external
         override
@@ -221,6 +241,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         emit UniswapV3MaxTickDeltaSet(pool, maxTickDelta);
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function setLiquidityLowerTickBound(address pool, int24 lowerTickBound)
         external
         override
@@ -237,6 +258,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         emit UniswapV3LowerTickUpdated(pool, tickBounds.lower = lowerTickBound);
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function setLiquidityUpperTickBound(address pool, int24 upperTickBound)
         external
         override
@@ -253,6 +275,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         emit UniswapV3UpperTickUpdated(pool, tickBounds.upper = upperTickBound);
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function setTWAPSecondsAgo(address pool, uint32 twapSecondsAgo)
         external
         override
@@ -272,6 +295,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV3Facet
     function swap(
         address pool,
         address tokenIn,
@@ -315,6 +339,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         emit UniswapV3Swap(pool, tokenIn, amountSpent, amountOut);
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function addLiquidity(
         address               pool,
         uint256               tokenId,
@@ -378,6 +403,7 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
         );
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function removeLiquidity(
         address               pool,
         uint256               tokenId,
@@ -421,20 +447,24 @@ contract UniswapV3Facet is IUniswapV3Facet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUniswapV3Facet
     function getMaxSlippage(address pool) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[pool];
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function getMaxTickDelta(address pool) external view override returns (uint24) {
         return _getFacetStorage().poolParams[pool].swapMaxTickDelta;
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function getLiquidityTickBounds(address pool) external view override returns (int24 lower, int24 upper) {
         Ticks storage tickBounds = _getFacetStorage().poolParams[pool].liquidityTickBounds;
 
         return (tickBounds.lower, tickBounds.upper);
     }
 
+    /// @inheritdoc IUniswapV3Facet
     function getTWAPSecondsAgo(address pool) external view override returns (uint32) {
         return _getFacetStorage().poolParams[pool].twapSecondsAgo;
     }

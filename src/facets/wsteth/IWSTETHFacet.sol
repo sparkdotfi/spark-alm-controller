@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IWSTETHFacet
@@ -9,7 +9,7 @@ import { IFacetBase } from "../IFacetBase.sol";
  *         requesting stETH withdrawals via the Lido withdrawal queue, and claiming completed
  *         withdrawals.
  */
-interface IWSTETHFacet is IFacetBase {
+interface IWSTETHFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

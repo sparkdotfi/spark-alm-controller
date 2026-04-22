@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IFarmFacet } from "./IFarmFacet.sol";
 
@@ -23,21 +25,26 @@ interface IFarmLike {
 
 }
 
-contract FarmFacet is IFarmFacet, FacetBase {
+contract FarmFacet is IFarmFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_FARM_DEPOSIT");
+    /// @inheritdoc IFarmFacet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_FARM_DEPOSIT");
+
+    /// @inheritdoc IFarmFacet
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_FARM_WITHDRAW");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IFarmFacet
     function deposit(address farm, uint256 amount)
         external
         override
@@ -55,6 +62,7 @@ contract FarmFacet is IFarmFacet, FacetBase {
         emit FarmDeposit(farm, amount);
     }
 
+    /// @inheritdoc IFarmFacet
     function withdraw(address farm, uint256 amount)
         external
         override

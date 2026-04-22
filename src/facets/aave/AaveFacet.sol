@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IAaveFacet } from "./IAaveFacet.sol";
 
@@ -34,7 +36,7 @@ interface IPoolLike {
 
 }
 
-contract AaveFacet is IAaveFacet, FacetBase {
+contract AaveFacet is IAaveFacet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -59,15 +61,20 @@ contract AaveFacet is IAaveFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT  = keccak256("LIMIT_AAVE_DEPOSIT");
+    /// @inheritdoc IAaveFacet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_AAVE_DEPOSIT");
+
+    /// @inheritdoc IAaveFacet
     bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_AAVE_WITHDRAW");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IAaveFacet
     function setMaxSlippage(address aToken, uint256 maxSlippage)
         external
         override
@@ -83,6 +90,7 @@ contract AaveFacet is IAaveFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IAaveFacet
     function deposit(address aToken, uint256 amount)
         external
         override
@@ -118,6 +126,7 @@ contract AaveFacet is IAaveFacet, FacetBase {
         emit AaveDeposit(aToken, amount);
     }
 
+    /// @inheritdoc IAaveFacet
     function withdraw(address aToken, uint256 amount)
         external
         override
@@ -150,6 +159,7 @@ contract AaveFacet is IAaveFacet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IAaveFacet
     function getMaxSlippage(address aToken) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[aToken];
     }

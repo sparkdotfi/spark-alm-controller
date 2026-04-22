@@ -34,7 +34,7 @@ interface IALMProxyFreezable is IAccessControl {
     /**********************************************************************************************/
 
     /**
-     * @dev    Performs a standard call to the specified `target` with the given `data`.
+     * @notice Performs a standard call to the specified `target` with the given `data`.
      *         Reverts if the call fails.
      * @param  target The address of the target contract to call.
      * @param  data   The calldata that will be sent to the target contract.
@@ -43,7 +43,7 @@ interface IALMProxyFreezable is IAccessControl {
     function doCall(address target, bytes calldata data) external returns (bytes memory result);
 
     /**
-     * @dev    This function allows for transferring `value` (ether) along with the call to the
+     * @notice This function allows for transferring `value` (ether) along with the call to the
      *         target contract. Reverts if the call fails.
      * @param  target The address of the target contract to call.
      * @param  data   The calldata that will be sent to the target contract.
@@ -56,8 +56,8 @@ interface IALMProxyFreezable is IAccessControl {
         returns (bytes memory result);
 
     /**
-     * @dev   This function allows a freezer to remove a relayer.
-     * @param relayer The address of the relayer to be removed.
+     * @notice This function allows a freezer to remove a relayer.
+     * @param  relayer The address of the relayer to be removed.
      */
     function removeRelayer(address relayer) external;
 

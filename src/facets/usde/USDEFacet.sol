@@ -6,7 +6,9 @@ import { ApproveLib } from "../../libraries/ApproveLib.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IUSDEFacet } from "./IUSDEFacet.sol";
 
@@ -34,25 +36,38 @@ interface ISUSDELike {
 
 }
 
-contract USDEFacet is IUSDEFacet, FacetBase {
+contract USDEFacet is IUSDEFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_USDE_BURN      = keccak256("LIMIT_USDE_BURN");
-    bytes32 public constant override LIMIT_USDE_MINT      = keccak256("LIMIT_USDE_MINT");
+    /// @inheritdoc IUSDEFacet
+    bytes32 public constant override LIMIT_USDE_BURN = keccak256("LIMIT_USDE_BURN");
+
+    /// @inheritdoc IUSDEFacet
+    bytes32 public constant override LIMIT_USDE_MINT = keccak256("LIMIT_USDE_MINT");
+
+    /// @inheritdoc IUSDEFacet
     bytes32 public constant override LIMIT_SUSDE_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUSDEFacet
     address public immutable override ethenaMinter;
+
+    /// @inheritdoc IUSDEFacet
     address public immutable override susde;
+
+    /// @inheritdoc IUSDEFacet
     address public immutable override usdc;
+
+    /// @inheritdoc IUSDEFacet
     address public immutable override usde;
 
     /**********************************************************************************************/
@@ -75,6 +90,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IUSDEFacet
     function setDelegatedSigner(address delegatedSigner)
         external
         override
@@ -89,6 +105,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         emit USDESetDelegatedSigner(delegatedSigner);
     }
 
+    /// @inheritdoc IUSDEFacet
     function removeDelegatedSigner(address delegatedSigner)
         external
         override
@@ -103,6 +120,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         emit USDERemoveDelegatedSigner(delegatedSigner);
     }
 
+    /// @inheritdoc IUSDEFacet
     function prepareMint(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         _decreaseRateLimit(LIMIT_USDE_MINT, usdcAmount);
 
@@ -111,6 +129,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         emit USDEPrepareMint(usdcAmount);
     }
 
+    /// @inheritdoc IUSDEFacet
     function prepareBurn(uint256 usdeAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         _decreaseRateLimit(LIMIT_USDE_BURN, usdeAmount);
 
@@ -119,6 +138,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         emit USDEPrepareBurn(usdeAmount);
     }
 
+    /// @inheritdoc IUSDEFacet
     function cooldownAssets(uint256 usdeAmount)
         external
         override
@@ -139,6 +159,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         emit USDECooldownAssets(usdeAmount, shares);
     }
 
+    /// @inheritdoc IUSDEFacet
     function cooldownShares(uint256 susdeAmount)
         external
         override
@@ -160,6 +181,7 @@ contract USDEFacet is IUSDEFacet, FacetBase {
         emit USDECooldownShares(susdeAmount, assets);
     }
 
+    /// @inheritdoc IUSDEFacet
     function unstakeSUSDE() external override nonReentrant onlyRole(RELAYER_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 

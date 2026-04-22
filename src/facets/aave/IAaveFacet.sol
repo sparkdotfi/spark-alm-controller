@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IAaveFacet
  * @notice PAU facet for supplying and withdrawing assets via Aave V3 lending pools.
  */
-interface IAaveFacet is IFacetBase {
+interface IAaveFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

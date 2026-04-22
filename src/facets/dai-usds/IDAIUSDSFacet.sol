@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IDAIUSDSFacet
  * @notice PAU facet for 1:1 swaps between DAI and USDS using the SKY DAI-USDS migrator contract.
  */
-interface IDAIUSDSFacet is IFacetBase {
+interface IDAIUSDSFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

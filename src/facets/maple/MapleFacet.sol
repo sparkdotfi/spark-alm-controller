@@ -6,7 +6,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IMapleFacet } from "./IMapleFacet.sol";
 
@@ -20,20 +22,23 @@ interface IMapleTokenLike {
 
 }
 
-contract MapleFacet is IMapleFacet, FacetBase {
+contract MapleFacet is IMapleFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IMapleFacet
     bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_MAPLE_REDEEM");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IMapleFacet
     function requestRedemption(address mapleToken, uint256 shares)
         external
         override
@@ -57,6 +62,7 @@ contract MapleFacet is IMapleFacet, FacetBase {
         emit MapleRequestRedemption(mapleToken, shares);
     }
 
+    /// @inheritdoc IMapleFacet
     function cancelRedemption(address mapleToken, uint256 shares)
         external
         override

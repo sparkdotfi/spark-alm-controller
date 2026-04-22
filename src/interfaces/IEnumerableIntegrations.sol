@@ -13,9 +13,9 @@ interface IEnumerableIntegrations {
     /**********************************************************************************************/
 
     /**
-     * @dev   Configuration for an integration: the facet contract and its selector wires.
-     * @param facet Address of the facet contract.
-     * @param wires Array of selector mappings from call selectors to delegate selectors.
+     * @notice Configuration for an integration: the facet contract and its selector wires.
+     * @param  facet Address of the facet contract.
+     * @param  wires Array of selector mappings from call selectors to delegate selectors.
      */
     struct Config {
         address facet;
@@ -23,10 +23,10 @@ interface IEnumerableIntegrations {
     }
 
     /**
-     * @dev   Resolved dispatch entry mapping a call selector to its target facet and delegate
-     *        selector.
-     * @param facet            Address of the facet contract to delegate to.
-     * @param delegateSelector The 4-byte selector to use in the delegatecall.
+     * @notice Resolved dispatch entry mapping a call selector to its target facet and delegate
+     *         selector.
+     * @param  facet            Address of the facet contract to delegate to.
+     * @param  delegateSelector The 4-byte selector to use in the delegatecall.
      */
     struct Dispatch {
         address facet;
@@ -34,9 +34,9 @@ interface IEnumerableIntegrations {
     }
 
     /**
-     * @dev   Full integration record containing its identifier and configuration.
-     * @param id     Unique identifier for the integration.
-     * @param config The integration's facet and wiring configuration.
+     * @notice Full integration record containing its identifier and configuration.
+     * @param  id     Unique identifier for the integration.
+     * @param  config The integration's facet and wiring configuration.
      */
     struct Integration {
         bytes32 id;
@@ -44,10 +44,10 @@ interface IEnumerableIntegrations {
     }
 
     /**
-     * @dev   Selector wire mapping an external call selector to an internal delegate selector
-     *        on the facet.
-     * @param callSelector     The 4-byte selector used in external calls to the controller.
-     * @param delegateSelector The 4-byte selector forwarded to the facet via delegatecall.
+     * @notice Selector wire mapping an external call selector to an internal delegate selector
+     *         on the facet.
+     * @param  callSelector     The 4-byte selector used in external calls to the controller.
+     * @param  delegateSelector The 4-byte selector forwarded to the facet via delegatecall.
      */
     struct Wire {
         bytes4 callSelector;

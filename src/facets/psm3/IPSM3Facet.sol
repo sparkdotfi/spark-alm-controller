@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IPSM3Facet
  * @notice PAU facet for depositing into and withdrawing from the Spark PSM3 (multi-asset Peg
  *         Stability Module).
  */
-interface IPSM3Facet is IFacetBase {
+interface IPSM3Facet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

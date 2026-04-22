@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  ISuperstateFacet
  * @notice PAU facet for subscribing to Superstate USTB using USDC. Only compatible with USTB and
  *         USDC.
  */
-interface ISuperstateFacet is IFacetBase {
+interface ISuperstateFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

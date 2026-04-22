@@ -6,7 +6,9 @@ import { makeUint32Key } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { ICCTPFacet } from "./ICCTPFacet.sol";
 
@@ -39,7 +41,7 @@ interface IERC20Like {
 }
 
 // NOTE: This contract makes the assumption that the token is USDC.
-contract CCTPFacet is ICCTPFacet, FacetBase {
+contract CCTPFacet is ICCTPFacet, Facet {
 
     /**********************************************************************************************/
     /*** Facet Storage Domain                                                                   ***/
@@ -65,20 +67,32 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
+    /// @inheritdoc ICCTPFacet
+    bytes32 public constant override LIMIT_TO_CCTP = keccak256("LIMIT_USDC_TO_CCTP");
+
+    /// @inheritdoc ICCTPFacet
     bytes32 public constant override LIMIT_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
 
-    bytes32 public constant override DESTINATION_CALLER     = 0;      // 0 means anyone can relay
-    uint256 public constant override MAX_FEE                = 0;      // 0 for standard burns (no fast burn fee)
-    uint32  public constant override MAX_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
+    /// @inheritdoc ICCTPFacet
+    bytes32 public constant override DESTINATION_CALLER = 0;  // 0 means anyone can relay
 
+    /// @inheritdoc ICCTPFacet
+    uint256 public constant override MAX_FEE = 0;  // 0 for standard burns (no fast burn fee)
+
+    /// @inheritdoc ICCTPFacet
+    uint32 public constant override MAX_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
+
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICCTPFacet
     address public immutable override cctp;
+
+    /// @inheritdoc ICCTPFacet
     address public immutable override usdc;
 
     /**********************************************************************************************/
@@ -97,6 +111,7 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /*** External Interactive Admin Functions                                                   ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICCTPFacet
     function setMaxFeeCap(uint256 feeCap)
         external
         override
@@ -106,6 +121,7 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
         emit CCTPMaxFeeCapSet(_getFacetStorage().maxFeeCap = feeCap);
     }
 
+    /// @inheritdoc ICCTPFacet
     function setMintRecipient(uint32 destinationDomain, bytes32 recipient)
         external
         override
@@ -122,6 +138,7 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICCTPFacet
     function transfer(uint256 amount, uint32 destinationDomain)
         external
         override
@@ -131,6 +148,7 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
         _transfer(amount, MAX_FEE, destinationDomain);
     }
 
+    /// @inheritdoc ICCTPFacet
     function transferWithFee(uint256 amount, uint256 maxFee, uint32 destinationDomain)
         external
         override
@@ -144,6 +162,7 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /*** External Variable Getters                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICCTPFacet
     function maxFeeCap() external view override returns (uint256) {
         return _getFacetStorage().maxFeeCap;
     }
@@ -152,6 +171,7 @@ contract CCTPFacet is ICCTPFacet, FacetBase {
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ICCTPFacet
     function getMintRecipient(uint32 destinationDomain) external view override returns (bytes32) {
         return _getFacetStorage().mintRecipients[destinationDomain];
     }

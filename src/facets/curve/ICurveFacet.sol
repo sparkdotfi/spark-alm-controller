@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  ICurveFacet
@@ -9,7 +9,7 @@ import { IFacetBase } from "../IFacetBase.sol";
  *         token swaps. All value calculations use 18-decimal normalized USD amounts derived from
  *         Curve stored_rates.
  */
-interface ICurveFacet is IFacetBase {
+interface ICurveFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

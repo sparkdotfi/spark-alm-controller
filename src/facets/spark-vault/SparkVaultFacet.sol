@@ -6,7 +6,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { ISparkVaultFacet } from "./ISparkVaultFacet.sol";
 
@@ -16,20 +18,23 @@ interface ISparkVaultLike {
 
 }
 
-contract SparkVaultFacet is ISparkVaultFacet, FacetBase {
+contract SparkVaultFacet is ISparkVaultFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ISparkVaultFacet
     bytes32 public constant override LIMIT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc ISparkVaultFacet
     function take(address sparkVault, uint256 assetAmount)
         external
         override

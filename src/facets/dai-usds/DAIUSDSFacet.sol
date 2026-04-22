@@ -5,7 +5,9 @@ import { ApproveLib } from "../../libraries/ApproveLib.sol";
 
 import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IDAIUSDSFacet } from "./IDAIUSDSFacet.sol";
 
@@ -17,20 +19,26 @@ interface IDAIUSDSLike {
 
 }
 
-contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
+contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IDAIUSDSFacet
     address public immutable override dai;
+
+    /// @inheritdoc IDAIUSDSFacet
     address public immutable override daiUSDS;
+
+    /// @inheritdoc IDAIUSDSFacet
     address public immutable override usds;
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
@@ -51,6 +59,7 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IDAIUSDSFacet
     function swapUSDSToDAI(uint256 usdsAmount)
         external
         override
@@ -69,6 +78,7 @@ contract DAIUSDSFacet is IDAIUSDSFacet, FacetBase {
         emit DAIUSDSSwapUSDSToDAI(usdsAmount);
     }
 
+    /// @inheritdoc IDAIUSDSFacet
     function swapDAIToUSDS(uint256 daiAmount)
         external
         override

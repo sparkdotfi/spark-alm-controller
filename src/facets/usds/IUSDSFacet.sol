@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IUSDSFacet
  * @notice PAU facet for minting and burning USDS via the Sky Allocation Vault. Mint draws USDS from
  *         the vault's buffer to the proxy. Burn sends USDS back to the buffer and wipes the debt.
  */
-interface IUSDSFacet is IFacetBase {
+interface IUSDSFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

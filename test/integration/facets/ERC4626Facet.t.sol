@@ -4,7 +4,7 @@ pragma solidity ^0.8.34;
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
-import { IFacetBase }              from "../../../src/facets/IFacetBase.sol";
+import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { IERC4626Facet }           from "../../../src/facets/erc4626/IERC4626Facet.sol";
 
 import { ERC4626Facet } from "../../../src/facets/erc4626/ERC4626Facet.sol";
@@ -72,7 +72,7 @@ contract Controller_ERC4626Facet_Admin_Tests is ERC4626Facet_TestBase {
 
     function test_setMaxExchangeRate_notAdmin() external {
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             unauthorized,
             DEFAULT_ADMIN_ROLE
         ));
@@ -81,7 +81,7 @@ contract Controller_ERC4626Facet_Admin_Tests is ERC4626Facet_TestBase {
         controller.setMaxExchangeRate(makeAddr("token"), 1e18, 1e18);
 
         vm.expectRevert(abi.encodeWithSelector(
-            IFacetBase.AccessControlUnauthorizedAccount.selector,
+            IFacet.AccessControlUnauthorizedAccount.selector,
             relayer,
             DEFAULT_ADMIN_ROLE
         ));

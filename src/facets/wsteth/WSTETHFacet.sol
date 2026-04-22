@@ -4,7 +4,9 @@ pragma solidity ^0.8.34;
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IWSTETHFacet } from "./IWSTETHFacet.sol";
 
@@ -36,23 +38,33 @@ interface IWSTETHLike {
 
 }
 
-contract WSTETHFacet is IWSTETHFacet, FacetBase {
+contract WSTETHFacet is IWSTETHFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override LIMIT_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
-    bytes32 public constant override LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
+    /// @inheritdoc IWSTETHFacet
+    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_WSTETH_DEPOSIT");
 
+    /// @inheritdoc IWSTETHFacet
+    bytes32 public constant override LIMIT_REQUEST_WITHDRAW =
+        keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
+
+    /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IWSTETHFacet
     address public immutable override weth;
+
+    /// @inheritdoc IWSTETHFacet
     address public immutable override withdrawQueue;
+
+    /// @inheritdoc IWSTETHFacet
     address public immutable override wsteth;
 
     /**********************************************************************************************/
@@ -73,6 +85,7 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
     /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IWSTETHFacet
     function deposit(uint256 amount) external override nonReentrant onlyRole(RELAYER_ROLE) {
         _decreaseRateLimit(LIMIT_DEPOSIT, amount);
 
@@ -85,6 +98,7 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
         emit WSTETHDeposit(amount);
     }
 
+    /// @inheritdoc IWSTETHFacet
     function requestWithdraw(uint256 amountToRedeem)
         external
         override
@@ -120,6 +134,7 @@ contract WSTETHFacet is IWSTETHFacet, FacetBase {
         emit WSTETHRequestWithdraw(amountToRedeem, stethAmount, requestIds);
     }
 
+    /// @inheritdoc IWSTETHFacet
     function claimWithdrawal(uint256 requestId)
         external
         override

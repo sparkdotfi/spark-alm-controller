@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IFacetBase } from "../IFacetBase.sol";
+import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IERC7540Facet
  * @notice PAU facet for interacting with ERC-7540 asynchronous vaults. Supports the async
  *         request/claim lifecycle for both deposits and redemptions.
  */
-interface IERC7540Facet is IFacetBase {
+interface IERC7540Facet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/

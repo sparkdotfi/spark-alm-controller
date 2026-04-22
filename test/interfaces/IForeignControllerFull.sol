@@ -101,7 +101,7 @@ abstract contract IForeignControllerFull is IController, Controller {
     ) external virtual returns (uint256 amountOut);
 
     /**********************************************************************************************/
-    /*** ERC4626 actions                                                                        ***/
+    /*** ERC4626Facet actions                                                                   ***/
     /**********************************************************************************************/
 
     function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
@@ -152,7 +152,7 @@ abstract contract IForeignControllerFull is IController, Controller {
     function LIMIT_7540_REDEEM() external pure virtual returns (bytes32);
 
     /**********************************************************************************************/
-    /*** LayerZero actions                                                                      ***/
+    /*** LayerZeroFacet actions                                                                 ***/
     /**********************************************************************************************/
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient)
