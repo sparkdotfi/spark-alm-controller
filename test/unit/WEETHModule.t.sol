@@ -26,7 +26,7 @@ import {
 
 abstract contract WEETHModule_TestBase is UnitTestBase {
 
-    address internal almProxy = makeAddr("almProxy");
+    address internal proxy = makeAddr("proxy");
 
     MockWithdrawRequestNFT internal withdrawRequestNFT;
     MockWETH               internal mockWeth;
@@ -37,7 +37,7 @@ abstract contract WEETHModule_TestBase is UnitTestBase {
         address implementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
         weethModule = WEETHModule(payable(new ERC1967Proxy(
-            implementation, abi.encodeCall(WEETHModule.initialize,(admin, almProxy))
+            implementation, abi.encodeCall(WEETHModule.initialize,(admin, proxy))
         )));
 
         _mockEtherFiContracts();
@@ -109,15 +109,15 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
             implementation,
             abi.encodeCall(
                 WEETHModule.initialize,
-                (address(0), almProxy)
+                (address(0), proxy)
             )
         );
     }
 
-    function test_initialize_invalidAlmProxy() external {
+    function test_initialize_invalidProxy() external {
         address implementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
-        vm.expectRevert("WEETHModule/invalid-alm-proxy");
+        vm.expectRevert("WEETHModule/invalid-proxy");
         new ERC1967Proxy(
             implementation,
             abi.encodeCall(
@@ -129,28 +129,28 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
 
     function test_initialize_cannotInitializeAgain() external {
         vm.expectRevert("InvalidInitialization()");
-        weethModule.initialize(admin, almProxy);
+        weethModule.initialize(admin, proxy);
     }
 
     function test_initialize_cannotInitializeImplementation() external {
         WEETHModule implementation = new WEETHModule(Ethereum.WEETH, Ethereum.WETH);
 
         vm.expectRevert("InvalidInitialization()");
-        implementation.initialize(admin, almProxy);
+        implementation.initialize(admin, proxy);
     }
 
     function test_initialize() external {
         address implementation = address(new WEETHModule(Ethereum.WEETH, Ethereum.WETH));
 
         WEETHModule weethModule_ = WEETHModule(payable(new ERC1967Proxy(
-            implementation, abi.encodeCall(WEETHModule.initialize,(admin, almProxy))
+            implementation, abi.encodeCall(WEETHModule.initialize,(admin, proxy))
         )));
 
         assertEq(weethModule_.hasRole(DEFAULT_ADMIN_ROLE, admin),     true);
         assertEq(weethModule_.getRoleMemberCount(DEFAULT_ADMIN_ROLE), 1);
         assertEq(weethModule_.getRoleMember(DEFAULT_ADMIN_ROLE, 0),   admin);
 
-        assertEq(weethModule_.almProxy(), almProxy);
+        assertEq(weethModule_.proxy(), proxy);
     }
 
     /**********************************************************************************************/
@@ -165,27 +165,27 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
 
     function test_claimWithdrawal_invalidRequestId() external {
         vm.expectRevert("WEETHModule/invalid-request-id");
-        vm.prank(almProxy);
+        vm.prank(proxy);
         weethModule.claimWithdrawal(0);
     }
 
     function test_claimWithdrawal_requestNotFinalized() external {
         vm.expectRevert("WEETHModule/request-not-finalized");
-        vm.prank(almProxy);
+        vm.prank(proxy);
         weethModule.claimWithdrawal(2);
     }
 
     function test_claimWithdrawal() external {
-        assertEq(address(almProxy).balance,    0);
-        assertEq(mockWeth.balanceOf(almProxy), 0);
+        assertEq(address(proxy).balance,       0);
+        assertEq(mockWeth.balanceOf(proxy),    0);
         assertEq(address(weethModule).balance, 0);
 
-        vm.prank(almProxy);
+        vm.prank(proxy);
         uint256 ethReceived = weethModule.claimWithdrawal(1);
 
-        assertEq(address(almProxy).balance,    0);
+        assertEq(address(proxy).balance,       0);
         assertEq(ethReceived,                  1 ether);
-        assertEq(mockWeth.balanceOf(almProxy), ethReceived);
+        assertEq(mockWeth.balanceOf(proxy),    ethReceived);
         assertEq(address(weethModule).balance, 0);
     }
 
@@ -259,7 +259,7 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
         weethModule.upgradeToAndCall(newImplementation, "");
 
         // Verify the proxy still works after upgrade
-        assertEq(weethModule.almProxy(), almProxy);
+        assertEq(weethModule.proxy(), proxy);
     }
 
 }

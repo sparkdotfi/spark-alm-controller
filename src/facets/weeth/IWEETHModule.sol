@@ -20,17 +20,17 @@ interface IWEETHModule is IAccessControlEnumerable {
 
     /**
      * @notice Initializes the WEETH module.
-     * @param  admin_    Admin address.
-     * @param  almProxy_ ALM proxy address.
+     * @param  admin_ Admin address.
+     * @param  proxy_ ALM proxy address.
      */
-    function initialize(address admin_, address almProxy_) external;
+    function initialize(address admin_, address proxy_) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice ALM proxy address.
-    function almProxy() external view returns (address);
+    /// @notice Address of the ALMProxy contract.
+    function proxy() external view returns (address);
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
