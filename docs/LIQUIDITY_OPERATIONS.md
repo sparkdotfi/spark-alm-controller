@@ -6,12 +6,12 @@ This document describes the stablecoin market making, swapping, and liquidity pr
 
 PAU performs liquidity operations across multiple venues:
 
-| Venue | Operations | Use Case |
-|-------|------------|----------|
-| **Curve** | Add/remove liquidity, swaps | Deep stablecoin liquidity pools |
+| Venue          | Operations                  | Use Case                                       |
+| -------------- | --------------------------- | ---------------------------------------------- |
+| **Curve**      | Add/remove liquidity, swaps | Deep stablecoin liquidity pools                |
 | **Uniswap V3** | Add/remove liquidity, swaps | Stablecoin LP positions and swaps via V3 pools |
-| **Uniswap V4** | Swaps, positions | On-chain stablecoin swaps |
-| **OTC Desks** | Offchain swaps | High-volume institutional liquidity |
+| **Uniswap V4** | Swaps, positions            | On-chain stablecoin swaps                      |
+| **OTC Desks**  | Offchain swaps              | High-volume institutional liquidity            |
 
 **Asset Assumption:** All assets in these operations are treated as 1:1 (USD stablecoins). See [Threat Model](./THREAT_MODEL.md#core-assumption-11-asset-parity) for details.
 
@@ -28,6 +28,7 @@ PAU performs liquidity operations across multiple venues:
 ### Rate Limiting
 
 Curve operations use three rate limit keys per pool:
+
 - **Add liquidity rate limit:** Controls the value deposited into pools
 - **Swap rate limit:** Controls the implicit swap value when deposits are imbalanced
 - **Remove liquidity rate limit:** Controls the value withdrawn from pools
@@ -57,13 +58,14 @@ Curve pools must be seeded with initial liquidity before use. Seeding must be do
 ### Rate Limiting
 
 Uniswap V3 operations use three rate limit keys per pool per token:
+
 - **Add liquidity rate limit:** Controls the value deposited into pools
 - **Swap rate limit:** Controls the swap value (amount spent)
 - **Remove liquidity rate limit:** Controls the value withdrawn from pools
 
 ### Slippage Protection
 
-All Uniswap V3 operations require `maxSlippage` to be configured per pool (cannot be zero). The TWAP price is used to compute expected amounts and validate slippage thresholds.
+Uniswap V3 operations require `maxSlippage` to be configured per pool (cannot be zero). The TWAP price is used to compute expected amounts and validate slippage thresholds.
 
 ### Requirements
 
@@ -88,13 +90,14 @@ See [UNIV3_UNIV4_COMPARISON.md](./UNIV3_UNIV4_COMPARISON.md) for a detailed comp
 ### Rate Limiting
 
 Uniswap V4 operations use three rate limit keys per pool:
+
 - **Add liquidity rate limit:** Controls the value deposited into pools
 - **Swap rate limit:** Controls the implicit swap value when deposits are imbalanced
 - **Remove liquidity rate limit:** Controls the value withdrawn from pools
 
 ### Slippage Protection
 
-All Uniswap V4 operations require `maxSlippage` to be configured (cannot be zero). The slippage check uses the pool's virtual price to ensure minimum acceptable returns.
+Uniswap V4 operations require `maxSlippage` to be configured (cannot be zero).
 
 ### Requirements
 
@@ -158,9 +161,9 @@ There are two PSM integrations with different rate limit behaviors:
 
 **Operations:** USDS ↔ USDC swaps (via DAI conversion)
 
-| Operation | Rate Limit |
-|-----------|------------|
-| `swapUSDSToUSDC` | Decreases limit |
+| Operation        | Rate Limit                   |
+| ---------------- | ---------------------------- |
+| `swapUSDSToUSDC` | Decreases limit              |
 | `swapUSDCToUSDS` | **Cancels** (restores) limit |
 
 **Rationale:** Swapping USDC back to USDS returns value to the system, so rate limit is restored.
@@ -169,14 +172,15 @@ There are two PSM integrations with different rate limit behaviors:
 
 **Operations:** Deposit/withdraw assets to/from L2 PSM
 
-| Operation | Rate Limit |
-|-----------|------------|
-| `depositPSM` | Decreases limit |
+| Operation     | Rate Limit                        |
+| ------------- | --------------------------------- |
+| `depositPSM`  | Decreases limit                   |
 | `withdrawPSM` | Decreases limit (no cancellation) |
 
 **Design Decision:** No cancellation, no `minShares`.
 
 **Rationale:**
+
 - PSM3 will be deprecated soon
 - The contract is immutable, limiting attack surface
 - Prices cannot be manipulated due to 1:1 swap design

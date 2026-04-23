@@ -76,10 +76,10 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
 **Guarantee:** Any ETH left in the `ALMProxy` can always be removed.
 
-| Method            | Access                            | Description                                                  |
-| ----------------- | --------------------------------- | ------------------------------------------------------------ |
-| `doCallWithValue` | `DEFAULT_ADMIN_ROLE` (governance) | Allows arbitrary calls with ETH value attached from ALMProxy |
-| `wrapAllProxyETH` | `RELAYER`                         | Wraps all ETH in ALMProxy to WETH (via WrapProxyETHFacet)    |
+| Method            | Access       | Description                                                  |
+| ----------------- | ------------ | ------------------------------------------------------------ |
+| `doCallWithValue` | `CONTROLLER` | Allows arbitrary calls with ETH value attached from ALMProxy |
+| `wrapAll`         | `RELAYER`    | Wraps all ETH in ALMProxy to WETH (via WrapProxyETHFacet)    |
 
 **Use Cases:**
 
@@ -88,7 +88,7 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 - Convert ETH to WETH for standard token handling
 - Emergency fund extraction
 
-**Security:** The `doCallWithValue` function is governance-controlled and does not introduce attack vectors for compromised relayers. The `wrapAllProxyETH` function is relayer-accessible but only converts ETH to WETH within the ALMProxy, keeping funds in the system.
+**Security:** The `doCallWithValue` function is governance-controlled and does not introduce attack vectors for compromised relayers. The `wrapAll` function is relayer-accessible but only converts ETH to WETH within the ALMProxy, keeping funds in the system.
 
 ---
 

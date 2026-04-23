@@ -19,6 +19,7 @@ The weETH integration requires a dedicated `WEETHModule` contract due to EtherFi
 ### The Solution: WEETHModule
 
 The `WEETHModule` acts as an intermediary that:
+
 - Receives the `WithdrawRequestNFT` on behalf of the ALMProxy
 - Claims withdrawals when finalized
 - Converts received ETH to WETH
@@ -50,12 +51,12 @@ Understanding EtherFi's architecture is key to understanding why the module is n
 
 ### Core Contracts
 
-| Contract | Purpose |
-|----------|---------|
-| `weETH` | Wrapped eETH token (ERC-20), yield-bearing |
-| `eETH` | Liquid staking token representing staked ETH |
-| `LiquidityPool` | Core contract for deposits and withdrawal requests |
-| `WithdrawRequestNFT` | NFT representing pending withdrawal requests |
+| Contract             | Purpose                                            |
+| -------------------- | -------------------------------------------------- |
+| `weETH`              | Wrapped eETH token (ERC-20), yield-bearing         |
+| `eETH`               | Liquid staking token representing staked ETH       |
+| `LiquidityPool`      | Core contract for deposits and withdrawal requests |
+| `WithdrawRequestNFT` | NFT representing pending withdrawal requests       |
 
 ### Token Flow
 
@@ -70,9 +71,10 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 
 ### Deposit (WETH → weETH)
 
-**Function:** `Controller.depositToWeETH(amount, minSharesOut)` (dispatched to WEETHFacet)
+**Function:** `deposit(amount, minSharesOut)`
 
 **Flow:**
+
 1. Unwrap WETH to ETH in ALMProxy
 2. Deposit ETH to EtherFi's `LiquidityPool` (returns eETH shares)
 3. Convert eETH shares to eETH amount
@@ -83,11 +85,12 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 
 ### Request Withdrawal (weETH → NFT)
 
-**Function:** `Controller.requestWithdrawFromWeETH(weETHModule, weethShares, minEETHShares)` (dispatched to WEETHFacet)
+**Function:** `requestWithdraw(weETHModule, weethShares, minEETHShares)`
 
 - `minEETHShares` provides slippage protection against cumulative rate slippage across both the weETH-to-eETH and eETH-to-shares conversions.
 
 **Flow:**
+
 1. Unwrap weETH to eETH in ALMProxy
 2. Approve eETH to LiquidityPool
 3. Call `LiquidityPool.requestWithdraw()` with WEETHModule as receiver
@@ -99,9 +102,10 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 
 ### Claim Withdrawal (NFT → WETH)
 
-**Function:** `Controller.claimWithdrawalFromWeETH(weETHModule, requestId)` (dispatched to WEETHFacet)
+**Function:** `claimWithdrawal(weETHModule, requestId)`
 
 **Flow:**
+
 1. ALMProxy calls `WEETHModule.claimWithdrawal(requestId)`
 2. WEETHModule verifies the request is valid and finalized
 3. WEETHModule calls `WithdrawRequestNFT.claimWithdraw(requestId)`
@@ -118,6 +122,7 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 ### Purpose
 
 The `WEETHModule` is a minimal, upgradeable contract that:
+
 - Holds `WithdrawRequestNFT` tokens on behalf of the ALMProxy
 - Processes withdrawal claims
 - Converts ETH to WETH
@@ -131,10 +136,12 @@ function claimWithdrawal(uint256 requestId) external returns (uint256 ethReceive
 **Access:** Only callable by the configured `almProxy`
 
 **Checks:**
+
 - Request must be valid (not already claimed, not invalidated)
 - Request must be finalized (EtherFi has processed it)
 
 **Actions:**
+
 1. Claims the withdrawal from the NFT contract
 2. Wraps received ETH to WETH
 3. Transfers WETH to caller (ALMProxy)
@@ -166,6 +173,7 @@ receive() external payable { }
 ### Rate Limit Whitelisting
 
 The `weETHModule` address is embedded in the rate limit keys for withdrawal operations:
+
 - `LIMIT_WEETH_REQUEST_WITHDRAW` + weETHModule address
 
 `claimWithdrawal` uses the [gate-check pattern](./RATE_LIMITS.md#gate-check-pattern) on `LIMIT_REQUEST_WITHDRAW` for the given weETHModule address.
@@ -179,6 +187,7 @@ The `weETHModule` address is embedded in the rate limit keys for withdrawal oper
 ### Funds Never Stuck in Module
 
 The WEETHModule:
+
 - Only holds NFTs temporarily (between request and claim)
 - Immediately converts and transfers WETH on claim
 - Cannot accumulate ETH or WETH

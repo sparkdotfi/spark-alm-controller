@@ -100,7 +100,7 @@ Use Solidity 0.8.26+ named mapping syntax for readability, e.g., `mapping(addres
 
 #### ERC-7201 Storage Naming
 
-Each facet uses generic internal names for its storage: `FacetStorage` (struct), `FACET_STORAGE_LOCATION` (constant), `_getFacetStorage()` (accessor). The ERC-7201 namespace follows the pattern `sky.pau.storage.<FacetName>`, where `<FacetName>` must match both the contract name and the file name (e.g., `AaveFacet.sol` contains `contract AaveFacet` with namespace `sky.pau.storage.AaveFacet`).
+Each facet uses generic internal names for its storage: `FacetStorage` (struct), `FACET_STORAGE_LOCATION` (constant), `_getFacetStorage()` (accessor). The ERC-7201 namespace follows the pattern `sky.pau.storage.<FacetName>.<Version>`, where `<FacetName>` must match both the contract name and the file name (e.g., `AaveFacet.sol` contains `contract AaveFacet` with namespace `sky.pau.storage.AaveFacet.v1`).
 
 #### Reentrancy Guard and Event Ordering
 
@@ -109,4 +109,3 @@ All external facet functions must use the `nonReentrant` modifier as a standard 
 #### UUPS for Auxiliary Contracts
 
 Auxiliary contracts (OTCBuffer, WEETHModule) use the UUPS upgrade pattern. Facets themselves use immutable constructor parameters and are not upgradeable.
-
