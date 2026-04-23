@@ -16,21 +16,34 @@ interface IFarmFacet is IFacet {
 
     /**
      * @notice Emitted when staking tokens are deposited into a farm.
-     * @param  farmToken Address of the farm's staking token.
-     * @param  amount    Amount of staking tokens deposited.
+     * @param  farm   Address of the farm contract.
+     * @param  amount Amount of staking tokens deposited.
      */
-    event FarmDeposit(address indexed farmToken, uint256 amount);
+    event FarmDeposit(address indexed farm, uint256 amount);
+
+    /**
+     * @notice Emitted when rewards are claimed from a farm without unstaking.
+     * @param  farm Address of the farm contract.
+     */
+    event FarmReward(address indexed farm, uint256 amount);
 
     /**
      * @notice Emitted when staking tokens are withdrawn from a farm.
-     * @param  farmToken Address of the farm's staking token.
-     * @param  amount    Amount of staking tokens withdrawn.
+     * @param  farm   Address of the farm contract.
+     * @param  amount Amount of staking tokens withdrawn.
      */
-    event FarmWithdraw(address indexed farmToken, uint256 amount);
+    event FarmWithdraw(address indexed farm, uint256 amount);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
+
+    /**
+     * @notice Claims pending rewards from a farm without unstaking.
+     * @param  farm   Address of the farm contract.
+     * @return reward Amount of rewards claimed.
+     */
+    function claimReward(address farm) external returns (uint256 reward);
 
     /**
      * @notice Stakes tokens into a farm contract.
@@ -43,8 +56,9 @@ interface IFarmFacet is IFacet {
      * @notice Unstakes tokens from a farm and claims pending rewards.
      * @param  farm   Address of the farm contract.
      * @param  amount Amount of staking tokens to withdraw.
+     * @return reward Amount of rewards claimed.
      */
-    function withdraw(address farm, uint256 amount) external;
+    function withdraw(address farm, uint256 amount) external returns (uint256 reward);
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/

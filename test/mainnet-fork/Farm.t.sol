@@ -116,6 +116,65 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
 
 }
 
+contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
+
+    function test_claimRewardFromFarm_reentrancy() external {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.claimRewardFromFarm(FARM);
+    }
+
+    function test_claimRewardFromFarm_notRelayer() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            address(this),
+            RELAYER_ROLE
+        ));
+        mainnetController.claimRewardFromFarm(FARM);
+    }
+
+    function test_claimRewardFromFarm() external {
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+
+        assertEq(USDS.balanceOf(address(almProxy)),                     1_000_000e18);
+        assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         0);
+        assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0);
+
+        vm.prank(relayer);
+        mainnetController.depositToFarm(FARM, 1_000_000e18);
+
+        assertEq(USDS.balanceOf(address(almProxy)),                     0);
+        assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         1_000_000e18);
+        assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0);
+
+        skip(1 days);
+
+        uint256 expectedReward = 2930.857045118398e18;
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit IFarmFacet.FarmReward(FARM, expectedReward);
+
+        vm.prank(relayer);
+        assertEq(mainnetController.claimRewardFromFarm(FARM), expectedReward);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), expectedReward);
+
+        // Staked position is untouched.
+        assertEq(IERC20Like(FARM).balanceOf(address(almProxy)), 1_000_000e18);
+
+        vm.expectEmit(address(mainnetController));
+        emit IFarmFacet.FarmReward(FARM, 0);
+
+        vm.prank(relayer);
+        assertEq(mainnetController.claimRewardFromFarm(FARM), 0);
+    }
+
+}
+
 contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
     function test_withdrawFromFarm_reentrancy() external {
@@ -165,7 +224,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
         vm.expectEmit(address(mainnetController));
-        emit IFarmFacet.FarmDeposit({ farmToken: FARM, amount: 1_000_000e18 });
+        emit IFarmFacet.FarmDeposit({ farm: FARM, amount: 1_000_000e18 });
 
         vm.prank(relayer);
         mainnetController.depositToFarm(FARM, 1_000_000e18);
@@ -180,11 +239,16 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
         vm.record();
 
+        uint256 expectedReward = 2930.857045118398e18;
+
         vm.expectEmit(address(mainnetController));
         emit IFarmFacet.FarmWithdraw(FARM, 1_000_000e18);
 
+        vm.expectEmit(address(mainnetController));
+        emit IFarmFacet.FarmReward(FARM, expectedReward);
+
         vm.prank(relayer);
-        mainnetController.withdrawFromFarm(FARM, 1_000_000e18);
+        assertEq(mainnetController.withdrawFromFarm(FARM, 1_000_000e18), expectedReward);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -192,7 +256,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
         assertEq(USDS.balanceOf(address(almProxy)),                     1_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         0);
-        assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 2930.857045118398e18);
+        assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), expectedReward);
     }
 
 }

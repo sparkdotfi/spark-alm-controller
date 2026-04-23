@@ -180,9 +180,11 @@ abstract contract IMainnetControllerFull is IController, Controller {
 
     function LIMIT_FARM_WITHDRAW() external pure virtual returns (bytes32);
 
+    function claimRewardFromFarm(address farm) external virtual returns (uint256 reward);
+
     function depositToFarm(address farm, uint256 amount) external virtual;
 
-    function withdrawFromFarm(address farm, uint256 amount) external virtual;
+    function withdrawFromFarm(address farm, uint256 amount) external virtual returns (uint256 reward);
 
     /**********************************************************************************************/
     /*** LayerZeroFacet actions                                                                 ***/
