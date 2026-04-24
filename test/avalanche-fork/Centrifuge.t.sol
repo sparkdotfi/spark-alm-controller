@@ -4,7 +4,11 @@ pragma solidity ^0.8.34;
 import { ICentrifugeFacet } from "../../src/facets/centrifuge/ICentrifugeFacet.sol";
 import { IERC7540Facet }    from "../../src/facets/erc7540/IERC7540Facet.sol";
 
-import { makeAddressKey, makeAddressUint16Key } from "../../src/libraries/RateLimitHelpers.sol";
+import {
+    makeAddressAddressKey,
+    makeAddressKey,
+    makeAddressUint16Key
+} from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
     IAsyncRedeemManagerLike,
@@ -75,8 +79,9 @@ contract ForeignController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
         vm.prank(root);
         vaultTokenHook.updateMember(address(vaultToken), address(almProxy), type(uint64).max);
 
-        key = makeAddressKey(
+        key = makeAddressAddressKey(
             foreignController.LIMIT_7540_DEPOSIT(),
+            USDC_AVALANCHE,
             address(centrifugeV3Vault)
         );
 
@@ -144,14 +149,17 @@ contract ForeignController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
 
 contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_TestBase {
 
+    bytes32 key;
+
     function setUp() public override {
         super.setUp();
 
         vm.prank(root);
         vaultTokenHook.updateMember(address(vaultToken), address(almProxy), type(uint64).max);
 
-        bytes32 key = makeAddressKey(
+        key = makeAddressAddressKey(
             foreignController.LIMIT_7540_DEPOSIT(),
+            USDC_AVALANCHE,
             address(centrifugeV3Vault)
         );
 
@@ -168,10 +176,13 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         foreignController.claimDepositERC7540(address(centrifugeV3Vault));
     }
 
-    function test_claimDepositERC7540_invalidVault() external {
+    function test_claimDepositERC7540_invalidAction() external {
+        vm.prank(GROVE_EXECUTOR);
+        rateLimits.setRateLimitData(key, 0, 0);
+
         vm.expectRevert("ERC7540Facet/invalid-action");
         vm.prank(ALM_RELAYER);
-        foreignController.claimDepositERC7540(makeAddr("fake-vault"));
+        foreignController.claimDepositERC7540(address(centrifugeV3Vault));
     }
 
     function test_claimDepositERC7540_singleRequest() external {
@@ -335,14 +346,17 @@ contract ForeignController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
 
 contract ForeignController_Centrifuge_CancelDepositERC7540_Tests is Centrifuge_TestBase {
 
+    bytes32 key;
+
     function setUp() public override {
         super.setUp();
 
         vm.prank(root);
         vaultTokenHook.updateMember(address(vaultToken), address(almProxy), type(uint64).max);
 
-        bytes32 key = makeAddressKey(
+        key = makeAddressAddressKey(
             foreignController.LIMIT_7540_DEPOSIT(),
+            USDC_AVALANCHE,
             address(centrifugeV3Vault)
         );
 
@@ -359,10 +373,13 @@ contract ForeignController_Centrifuge_CancelDepositERC7540_Tests is Centrifuge_T
         foreignController.cancelCentrifugeDepositRequest(address(centrifugeV3Vault));
     }
 
-    function test_cancelCentrifugeDepositRequest_invalidVault() external {
+    function test_cancelCentrifugeDepositRequest_invalidAction() external {
+        vm.prank(GROVE_EXECUTOR);
+        rateLimits.setRateLimitData(key, 0, 0);
+
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
-        foreignController.cancelCentrifugeDepositRequest(makeAddr("fake-vault"));
+        foreignController.cancelCentrifugeDepositRequest(address(centrifugeV3Vault));
     }
 
     function test_cancelCentrifugeDepositRequest() external {
@@ -394,14 +411,17 @@ contract ForeignController_Centrifuge_CancelDepositERC7540_Tests is Centrifuge_T
 
 contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_TestBase {
 
+    bytes32 key;
+
     function setUp() public override {
         super.setUp();
 
         vm.prank(root);
         vaultTokenHook.updateMember(address(vaultToken), address(almProxy), type(uint64).max);
 
-        bytes32 key = makeAddressKey(
+        key = makeAddressAddressKey(
             foreignController.LIMIT_7540_DEPOSIT(),
+            USDC_AVALANCHE,
             address(centrifugeV3Vault)
         );
 
@@ -418,10 +438,13 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         foreignController.claimCentrifugeCancelDepositRequest(address(centrifugeV3Vault));
     }
 
-    function test_claimCentrifugeCancelDepositRequest_invalidVault() external {
+    function test_claimCentrifugeCancelDepositRequest_invalidAction() external {
+        vm.prank(GROVE_EXECUTOR);
+        rateLimits.setRateLimitData(key, 0, 0);
+
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
-        foreignController.claimCentrifugeCancelDepositRequest(makeAddr("fake-vault"));
+        foreignController.claimCentrifugeCancelDepositRequest(address(centrifugeV3Vault));
     }
 
     function test_claimCentrifugeCancelDepositRequest() external {
@@ -579,6 +602,8 @@ contract ForeignController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
 
 contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_TestBase {
 
+    bytes32 key;
+
     function setUp() public override {
         super.setUp();
 
@@ -586,7 +611,7 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         vaultTokenHook.updateMember(address(vaultToken), address(almProxy), type(uint64).max);
         vm.stopPrank();
 
-        bytes32 key = makeAddressKey(
+        key = makeAddressKey(
             foreignController.LIMIT_7540_REDEEM(),
             address(centrifugeV3Vault)
         );
@@ -604,10 +629,13 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         foreignController.claimRedeemERC7540(address(centrifugeV3Vault));
     }
 
-    function test_claimRedeemERC7540_invalidVault() external {
+    function test_claimRedeemERC7540_invalidAction() external {
+        vm.prank(GROVE_EXECUTOR);
+        rateLimits.setRateLimitData(key, 0, 0);
+
         vm.expectRevert("ERC7540Facet/invalid-action");
         vm.prank(ALM_RELAYER);
-        foreignController.claimRedeemERC7540(makeAddr("fake-vault"));
+        foreignController.claimRedeemERC7540(address(centrifugeV3Vault));
     }
 
     function test_claimRedeemERC7540_singleRequest() external {
@@ -803,6 +831,8 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
 contract ForeignController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_TestBase {
 
+    bytes32 key;
+
     function setUp() public override {
         super.setUp();
 
@@ -810,7 +840,7 @@ contract ForeignController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
         vaultTokenHook.updateMember(address(vaultToken), address(almProxy), type(uint64).max);
         vm.stopPrank();
 
-        bytes32 key = makeAddressKey(
+        key = makeAddressKey(
             foreignController.LIMIT_7540_REDEEM(),
             address(centrifugeV3Vault)
         );
@@ -828,10 +858,13 @@ contract ForeignController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
         foreignController.cancelCentrifugeRedeemRequest(address(centrifugeV3Vault));
     }
 
-    function test_cancelCentrifugeRedeemRequest_invalidVault() external {
+    function test_cancelCentrifugeRedeemRequest_invalidAction() external {
+        vm.prank(GROVE_EXECUTOR);
+        rateLimits.setRateLimitData(key, 0, 0);
+
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
-        foreignController.cancelCentrifugeRedeemRequest(makeAddr("fake-vault"));
+        foreignController.cancelCentrifugeRedeemRequest(address(centrifugeV3Vault));
     }
 
     function test_cancelCentrifugeRedeemRequest() external {
@@ -866,6 +899,8 @@ contract ForeignController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
 
 contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifuge_TestBase {
 
+    bytes32 key;
+
     function setUp() public override {
         super.setUp();
 
@@ -873,7 +908,7 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         vaultTokenHook.updateMember(address(vaultToken), address(almProxy), type(uint64).max);
         vm.stopPrank();
 
-        bytes32 key = makeAddressKey(
+        key = makeAddressKey(
             foreignController.LIMIT_7540_REDEEM(),
             address(centrifugeV3Vault)
         );
@@ -891,10 +926,13 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         foreignController.claimCentrifugeCancelRedeemRequest(address(centrifugeV3Vault));
     }
 
-    function test_claimCentrifugeCancelRedeemRequest_invalidVault() external {
+    function test_claimCentrifugeCancelRedeemRequest_invalidAction() external {
+        vm.prank(GROVE_EXECUTOR);
+        rateLimits.setRateLimitData(key, 0, 0);
+
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(ALM_RELAYER);
-        foreignController.claimCentrifugeCancelRedeemRequest(makeAddr("fake-vault"));
+        foreignController.claimCentrifugeCancelRedeemRequest(address(centrifugeV3Vault));
     }
 
     function test_claimCentrifugeCancelRedeemRequest() external {

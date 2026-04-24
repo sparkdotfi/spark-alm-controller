@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { IAaveFacet } from "../../src/facets/aave/IAaveFacet.sol";
 
@@ -33,7 +33,7 @@ abstract contract AaveV3_TestBase is ForkTestBase {
 
         // NOTE: Hit SUPPLY_CAP_EXCEEDED when using 25m
         rateLimits.setRateLimitData(
-            makeAddressKey(foreignController.LIMIT_AAVE_DEPOSIT(), ATOKEN_USDC),
+            makeAddressAddressKey(foreignController.LIMIT_AAVE_DEPOSIT(), Base.USDC, ATOKEN_USDC),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
         );
@@ -75,9 +75,17 @@ contract ForeignController_AaveV3_Deposit_Tests is AaveV3_TestBase {
     }
 
     function test_depositAave_zeroMaxAmount() external {
+        vm.startPrank(Base.SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(
+            makeAddressAddressKey(foreignController.LIMIT_AAVE_DEPOSIT(), Base.USDC, ATOKEN_USDC),
+            0,
+            0
+        );
+        vm.stopPrank();
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        foreignController.depositAave(makeAddr("fake-token"), 1e18);
+        foreignController.depositAave(ATOKEN_USDC, 1e18);
     }
 
     function test_depositAave_zeroMaxSlippage() external {
@@ -206,7 +214,8 @@ contract ForeignController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usdc() external {
-        bytes32 depositKey  = makeAddressKey(foreignController.LIMIT_AAVE_DEPOSIT(),  ATOKEN_USDC);
+        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_AAVE_DEPOSIT(), Base.USDC, ATOKEN_USDC);
+
         bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC);
 
         // NOTE: Using lower amount to not hit rate limit
@@ -275,7 +284,8 @@ contract ForeignController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usdc_unlimitedRateLimit() external {
-        bytes32 depositKey  = makeAddressKey(foreignController.LIMIT_AAVE_DEPOSIT(),  ATOKEN_USDC);
+        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_AAVE_DEPOSIT(), Base.USDC, ATOKEN_USDC);
+
         bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC);
 
         vm.prank(Base.SPARK_EXECUTOR);

@@ -100,8 +100,8 @@ interface IERC4626Facet is IFacet {
     function EXCHANGE_RATE_PRECISION() external pure returns (uint256);
 
     /**
-     * @notice Rate limit key for ERC-4626 deposit operations, combined with the vault token address
-     *         to form the per-vault keys.
+     * @notice Rate limit key for ERC-4626 deposit operations, combined with the asset address and
+     *         vault token address to form the per-market key.
      */
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 

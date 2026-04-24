@@ -19,7 +19,7 @@ import { Domain, DomainHelpers } from "../../lib/xchain-helpers/src/testing/Doma
 import { ILayerZeroFacet } from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
 import { LayerZeroFacet }  from "../../src/facets/layer-zero/LayerZeroFacet.sol";
 
-import { makeAddressUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { IAccessControls }         from "../../src/interfaces/IAccessControls.sol";
 import { IALMProxy }               from "../../src/interfaces/IALMProxy.sol";
@@ -71,6 +71,8 @@ interface ILayerZeroLike {
         view
         returns (MessagingFee memory msgFee);
 
+    function token() external view returns (address);
+
 }
 
 interface IPSM3Like {
@@ -86,6 +88,21 @@ abstract contract LayerZero_TestBase is ForkTestBase {
     uint32 internal constant DESTINATION_ENDPOINT_ID = 30110;  // Arbitrum EID
 
     IERC20Like internal constant USDT = IERC20Like(Ethereum.USDT);
+
+    bytes32 internal target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+    bytes32 internal key;
+
+    function setUp() public override {
+        super.setUp();
+
+        key = makeAddressAddressUint32Key(
+            mainnetController.LIMIT_LAYERZERO_TRANSFER(),
+            Ethereum.USDT,
+            USDT_OFT,
+            DESTINATION_ENDPOINT_ID
+        );
+    }
 
     function _getBlock() internal pure override returns (uint256) {
         return 22468758;  // May 12, 2025
@@ -113,25 +130,6 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
     }
 
     function test_transferTokenLayerZero_zeroMaxAmount() external {
-        vm.startPrank(SPARK_PROXY);
-
-        rateLimits.setRateLimitData(
-            makeAddressUint32Key(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-                USDT_OFT,
-                DESTINATION_ENDPOINT_ID
-            ),
-            0,
-            0
-        );
-
-        mainnetController.setLayerZeroRecipient(
-            DESTINATION_ENDPOINT_ID,
-            bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))))
-        );
-
-        vm.stopPrank();
-
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
         mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
@@ -140,17 +138,7 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
     function test_transferTokenLayerZero_rateLimitedBoundary() external {
         vm.startPrank(SPARK_PROXY);
 
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
-
-        rateLimits.setRateLimitData(
-            makeAddressUint32Key(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-                USDT_OFT,
-                DESTINATION_ENDPOINT_ID
-            ),
-            10_000_000e6,
-            0
-        );
+        rateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
         mainnetController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
 
@@ -192,23 +180,10 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
     function test_transferTokenLayerZero_recipientNotSet() external {
         // Set up rate limit, but forget to set recipient
-        vm.startPrank(SPARK_PROXY);
-
-        rateLimits.setRateLimitData(
-            makeAddressUint32Key(
-                mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-                USDT_OFT,
-                DESTINATION_ENDPOINT_ID
-            ),
-            10_000_000e6,
-            0
-        );
-
-        vm.stopPrank();
+        vm.prank(SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
         ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
             dstEid       : DESTINATION_ENDPOINT_ID,
@@ -235,14 +210,6 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
     function test_transferTokenLayerZero() external {
         vm.startPrank(SPARK_PROXY);
-
-        bytes32 key = makeAddressUint32Key(
-            mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-            USDT_OFT,
-            DESTINATION_ENDPOINT_ID
-        );
-
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
         rateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
@@ -305,14 +272,6 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
     function test_transferTokenLayerZero_refundExcessNativeFee() external {
         vm.startPrank(SPARK_PROXY);
-
-        bytes32 key = makeAddressUint32Key(
-            mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-            USDT_OFT,
-            DESTINATION_ENDPOINT_ID
-        );
-
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
         rateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
@@ -529,9 +488,22 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
     using DomainHelpers  for *;
     using OptionsBuilder for bytes;
 
+    bytes32 internal target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
+
+    bytes32 internal key;
+
     function setUp() public override virtual {
         super.setUp();
         destination.selectFork();
+
+        address token = ILayerZeroLike(USDT_OFT).token();
+
+        key = makeAddressAddressUint32Key(
+            foreignController.LIMIT_LAYERZERO_TRANSFER(),
+            token,
+            USDT_OFT,
+            DESTINATION_ENDPOINT_ID
+        );
     }
 
     function test_transferTokenLayerZero_reentrancy() external {
@@ -550,25 +522,6 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
     }
 
     function test_transferTokenLayerZero_zeroMaxAmount() external {
-        vm.startPrank(SPARK_EXECUTOR);
-
-        foreignRateLimits.setRateLimitData(
-            makeAddressUint32Key(
-                foreignController.LIMIT_LAYERZERO_TRANSFER(),
-                USDT_OFT,
-                DESTINATION_ENDPOINT_ID
-            ),
-            0,
-            0
-        );
-
-        foreignController.setLayerZeroRecipient(
-            DESTINATION_ENDPOINT_ID,
-            bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))))
-        );
-
-        vm.stopPrank();
-
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
         foreignController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
@@ -577,17 +530,7 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
     function test_transferTokenLayerZero_rateLimitedBoundary() external {
         vm.startPrank(SPARK_EXECUTOR);
 
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
-
-        foreignRateLimits.setRateLimitData(
-            makeAddressUint32Key(
-                foreignController.LIMIT_LAYERZERO_TRANSFER(),
-                USDT_OFT,
-                DESTINATION_ENDPOINT_ID
-            ),
-            10_000_000e6,
-            0
-        );
+        foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
         foreignController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
 
@@ -631,21 +574,11 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         // Set up rate limit, but forget to set recipient
         vm.startPrank(SPARK_EXECUTOR);
 
-        foreignRateLimits.setRateLimitData(
-            makeAddressUint32Key(
-                foreignController.LIMIT_LAYERZERO_TRANSFER(),
-                USDT_OFT,
-                DESTINATION_ENDPOINT_ID
-            ),
-            10_000_000e6,
-            0
-        );
+        foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
         vm.stopPrank();
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
         ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
             dstEid       : DESTINATION_ENDPOINT_ID,
@@ -672,14 +605,6 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
     function test_transferTokenLayerZero() external {
         vm.startPrank(SPARK_EXECUTOR);
-
-        bytes32 key = makeAddressUint32Key(
-            foreignController.LIMIT_LAYERZERO_TRANSFER(),
-            USDT_OFT,
-            DESTINATION_ENDPOINT_ID
-        );
-
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
         foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
@@ -739,14 +664,6 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
     function test_transferTokenLayerZero_refundExcessNativeFee() external {
         vm.startPrank(SPARK_EXECUTOR);
-
-        bytes32 key = makeAddressUint32Key(
-            foreignController.LIMIT_LAYERZERO_TRANSFER(),
-            USDT_OFT,
-            DESTINATION_ENDPOINT_ID
-        );
-
-        bytes32 target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
 
         foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
 

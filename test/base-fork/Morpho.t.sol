@@ -9,7 +9,7 @@ import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { IERC4626Facet } from "../../src/facets/erc4626/IERC4626Facet.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import {
     IERC20Like,
@@ -75,13 +75,13 @@ abstract contract Morpho_TestBase is ForkTestBase {
         IMetaMorphoLike(MORPHO_VAULT_USDC).setSupplyQueue(supplyQueueUSDC);
 
         rateLimits.setRateLimitData(
-            makeAddressKey(foreignController.LIMIT_4626_DEPOSIT(), MORPHO_VAULT_USDS),
+            makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS),
             25_000_000e18,
             uint256(5_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(foreignController.LIMIT_4626_DEPOSIT(), MORPHO_VAULT_USDC),
+            makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDC, MORPHO_VAULT_USDC),
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
@@ -131,9 +131,17 @@ contract ForeignController_Morpho_Deposit_FailureTests is Morpho_TestBase {
     }
 
     function test_morpho_deposit_zeroMaxAmount() external {
+        vm.startPrank(Base.SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(
+            makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS),
+            0,
+            0
+        );
+        vm.stopPrank();
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        foreignController.depositERC4626(makeAddr("fake-token"), 1e18, 0);
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1e18, 0);
     }
 
     function test_morpho_usds_deposit_rateLimitedBoundary() external {
@@ -339,7 +347,8 @@ contract ForeignController_Morpho_Withdraw_FailureTests is Morpho_TestBase {
 contract ForeignController_Morpho_Withdraw_SuccessTests is Morpho_TestBase {
 
     function test_morpho_usds_withdraw() external {
-        bytes32 depositKey  = makeAddressKey(foreignController.LIMIT_4626_DEPOSIT(),  MORPHO_VAULT_USDS);
+        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS);
+
         bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDS);
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
@@ -381,7 +390,8 @@ contract ForeignController_Morpho_Withdraw_SuccessTests is Morpho_TestBase {
     }
 
     function test_morpho_usdc_withdraw() external {
-        bytes32 depositKey  = makeAddressKey(foreignController.LIMIT_4626_DEPOSIT(),  MORPHO_VAULT_USDC);
+        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDC, MORPHO_VAULT_USDC);
+
         bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDC);
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
@@ -532,7 +542,8 @@ contract ForeignController_Morpho_Redeem_FailureTests is Morpho_TestBase {
 contract ForeignController_Morpho_Redeem_SuccessTests is Morpho_TestBase {
 
     function test_morpho_usds_redeem() external {
-        bytes32 depositKey  = makeAddressKey(foreignController.LIMIT_4626_DEPOSIT(),  MORPHO_VAULT_USDS);
+        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS);
+
         bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDS);
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
@@ -576,7 +587,8 @@ contract ForeignController_Morpho_Redeem_SuccessTests is Morpho_TestBase {
     }
 
     function test_morpho_usdc_redeem() external {
-        bytes32 depositKey  = makeAddressKey(foreignController.LIMIT_4626_DEPOSIT(),  MORPHO_VAULT_USDC);
+        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDC, MORPHO_VAULT_USDC);
+
         bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDC);
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);

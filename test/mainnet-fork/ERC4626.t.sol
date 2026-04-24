@@ -7,7 +7,7 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IERC4626Facet } from "../../src/facets/erc4626/IERC4626Facet.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -30,7 +30,8 @@ abstract contract ERC4626_SUSDS_TestBase is ForkTestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setUSDSVault(vault);
 
-        depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
+        depositKey = makeAddressAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), Ethereum.USDS, Ethereum.SUSDS);
+
         withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
@@ -77,9 +78,12 @@ contract MainnetController_ERC4626_Deposit_Tests is ERC4626_SUSDS_TestBase {
     }
 
     function test_depositERC4626_zeroMaxAmount() external {
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(depositKey, 0, 0);
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        mainnetController.depositERC4626(makeAddr("fake-token"), 1e18, 0);
+        mainnetController.depositERC4626(address(susds), 1e18, 0);
     }
 
     function test_depositERC4626_rateLimitBoundary() external {
@@ -254,9 +258,6 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
     }
 
     function test_withdrawERC4626() external {
-        bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
-
         vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
 
@@ -401,9 +402,6 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
     }
 
     function test_redeemERC4626() external {
-        bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(),  Ethereum.SUSDS);
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
-
         vm.prank(relayer);
         mainnetController.mintUSDS(1e18);
 

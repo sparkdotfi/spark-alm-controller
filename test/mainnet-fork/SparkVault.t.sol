@@ -258,7 +258,7 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
 
         transferKey = makeAddressAddressKey(LIMIT_ASSET_TRANSFER, Ethereum.USDC, address(sparkVault));
 
-        bytes32 morphoDepositKey  = makeAddressKey(LIMIT_4626_DEPOSIT,  Ethereum.MORPHO_VAULT_DAI_1);
+        bytes32 morphoDepositKey  = makeAddressAddressKey(LIMIT_4626_DEPOSIT, Ethereum.DAI, Ethereum.MORPHO_VAULT_DAI_1);
         bytes32 morphoWithdrawKey = makeAddressKey(LIMIT_4626_WITHDRAW, Ethereum.MORPHO_VAULT_DAI_1);
 
         rateLimits.setRateLimitData(takeKey,            10_000_000e6,  uint256(10_000_000e6) / 1 days);

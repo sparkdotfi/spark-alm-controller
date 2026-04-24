@@ -260,8 +260,9 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         takeKey     = makeAddressKey(LIMIT_SPARK_VAULT_TAKE, address(sparkVault));
         transferKey = makeAddressAddressKey(LIMIT_ASSET_TRANSFER, Base.USDC, address(sparkVault));
 
-        bytes32 morphoKey = makeAddressKey(
+        bytes32 morphoKey = makeAddressAddressKey(
             LIMIT_4626_DEPOSIT,
+            Base.USDC,
             Base.MORPHO_VAULT_SUSDC
         );
 

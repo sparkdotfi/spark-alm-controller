@@ -65,8 +65,8 @@ interface IFarmFacet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for farm deposit operations, combined with the farm address to form
-     *         the per-farm keys.
+     * @notice Rate limit key for farm deposit operations, combined with the staking token address
+     *         and farm address to form the per-market key.
      */
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 

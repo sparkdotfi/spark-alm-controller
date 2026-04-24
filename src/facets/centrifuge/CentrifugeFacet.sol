@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { makeAddressKey, makeAddressUint16Key } from "../../libraries/RateLimitHelpers.sol";
+import {
+    makeAddressAddressKey,
+    makeAddressKey,
+    makeAddressUint16Key
+} from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
@@ -37,6 +41,12 @@ interface ICentrifugeV3VaultLike {
     function poolId() external view returns (uint64);
 
     function scId() external view returns (bytes16);
+
+}
+
+interface IERC4626Like {
+
+    function asset() external view returns (address);
 
 }
 
@@ -122,7 +132,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(makeAddressKey(LIMIT_DEPOSIT, token));
+        _rateLimitExists(_getDepositRateLimitKey(token));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -142,7 +152,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(makeAddressKey(LIMIT_DEPOSIT, token));
+        _rateLimitExists(_getDepositRateLimitKey(token));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -164,7 +174,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(makeAddressKey(LIMIT_REDEEM, token));
+        _rateLimitExists(_getRedeemRateLimitKey(token));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -184,7 +194,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(makeAddressKey(LIMIT_REDEEM, token));
+        _rateLimitExists(_getRedeemRateLimitKey(token));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -253,6 +263,14 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
     /**********************************************************************************************/
     /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
+
+    function _getDepositRateLimitKey(address token) internal view returns (bytes32) {
+        return makeAddressAddressKey(LIMIT_DEPOSIT, IERC4626Like(token).asset(), token);
+    }
+
+    function _getRedeemRateLimitKey(address token) internal view returns (bytes32) {
+        return makeAddressKey(LIMIT_REDEEM, token);
+    }
 
     function _rateLimitExists(bytes32 key) internal view {
         require(

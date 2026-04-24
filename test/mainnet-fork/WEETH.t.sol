@@ -6,7 +6,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { IWEETHFacet }  from "../../src/facets/weeth/IWEETHFacet.sol";
 import { WEETHModule } from "../../src/facets/weeth/WEETHModule.sol";
@@ -75,7 +75,7 @@ abstract contract WEETH_TestBase is ForkTestBase {
 
     address internal weethModule;
 
-    function setUp() public override {
+    function setUp() public override virtual {
         super.setUp();
 
         eeth          = IEETHLike(WEETH.eETH());
@@ -108,6 +108,14 @@ abstract contract WEETH_TestBase is ForkTestBase {
 
 contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
 
+    bytes32 internal depositKey;
+
+    function setUp() public override {
+        super.setUp();
+
+        depositKey = makeAddressKey(mainnetController.LIMIT_WEETH_DEPOSIT(), address(eeth));
+    }
+
     function test_depositToWEETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
@@ -130,10 +138,8 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
     }
 
     function test_depositToWEETH_rateLimitsBoundary() external {
-        bytes32 key = mainnetController.LIMIT_WEETH_DEPOSIT();
-
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 1_000e18, uint256(1_000e18) / 1 days);
+        rateLimits.setRateLimitData(depositKey, 1_000e18, uint256(1_000e18) / 1 days);
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
@@ -146,10 +152,8 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
     }
 
     function test_depositToWEETH_slippageTooHighBoundary() external {
-        bytes32 key = mainnetController.LIMIT_WEETH_DEPOSIT();
-
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 1_000e18, uint256(1_000e18) / 1 days);
+        rateLimits.setRateLimitData(depositKey, 1_000e18, uint256(1_000e18) / 1 days);
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
@@ -164,14 +168,12 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
     }
 
     function test_depositToWEETH() external {
-        bytes32 key = mainnetController.LIMIT_WEETH_DEPOSIT();
-
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 1_000e18, uint256(1_000e18) / 1 days);
+        rateLimits.setRateLimitData(depositKey, 1_000e18, uint256(1_000e18) / 1 days);
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.LIMIT_WEETH_DEPOSIT()), 1_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey), 1_000e18);
 
         uint256 initialLiquidityPoolBalance = address(liquidityPool).balance;
 
@@ -197,7 +199,7 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.LIMIT_WEETH_DEPOSIT()), 0);
+        assertEq(rateLimits.getCurrentRateLimit(depositKey), 0);
 
         assertEq(eeth.allowance(address(almProxy), Ethereum.WEETH), 0);
 
@@ -215,6 +217,17 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
 }
 
 contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
+
+    bytes32 internal depositKey;
+    bytes32 internal requestWithdrawKey;
+
+    function setUp() public override {
+        super.setUp();
+
+        depositKey = makeAddressKey(mainnetController.LIMIT_WEETH_DEPOSIT(), address(eeth));
+
+        requestWithdrawKey = makeAddressAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), address(eeth), weethModule);
+    }
 
     function test_requestWithdrawFromWEETH_reentrancy() external {
         _setControllerEntered();
@@ -240,12 +253,10 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
     }
 
     function test_requestWithdrawFromWEETH_rateLimitsBoundary() external {
-        bytes32 key = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
-
         uint256 eethLimit = WEETH.getEETHByWeETH(500e18 - 1); // Rounding error
 
         vm.prank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(key, eethLimit, eethLimit / 1 days);
+        rateLimits.setRateLimitData(requestWithdrawKey, eethLimit, eethLimit / 1 days);
 
         deal(Ethereum.WEETH, address(almProxy), 500e18 + 1);
 
@@ -258,9 +269,6 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
     }
 
     function test_requestWithdrawFromWEETH_slippageTooHighBoundary() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
-        bytes32 requestWithdrawKey = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
-
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
@@ -294,9 +302,6 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
     }
 
     function test_requestWithdrawFromWEETH() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
-        bytes32 requestWithdrawKey = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
-
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
@@ -365,6 +370,17 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
 contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
 
+    bytes32 internal depositKey;
+    bytes32 internal requestWithdrawKey;
+
+    function setUp() public override {
+        super.setUp();
+
+        depositKey = makeAddressKey(mainnetController.LIMIT_WEETH_DEPOSIT(), address(eeth));
+
+        requestWithdrawKey = makeAddressAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), address(eeth), weethModule);
+    }
+
     function test_claimWithdrawalFromWEETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
@@ -387,9 +403,6 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     }
 
     function test_claimWithdrawalFromWEETH_failsOnClaimingTwice() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
-        bytes32 requestWithdrawKey = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
-
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
@@ -420,9 +433,6 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     }
 
     function test_claimWithdrawalFromWEETH_invalidRequest() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
-        bytes32 requestWithdrawKey = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
-
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
@@ -451,9 +461,6 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     }
 
     function test_claimWithdrawalFromWEETH_requestNotFinalized() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
-        bytes32 requestWithdrawKey = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
-
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
@@ -480,9 +487,6 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     }
 
     function test_claimWithdrawalFromWEETH() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WEETH_DEPOSIT();
-        bytes32 requestWithdrawKey = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
-
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);

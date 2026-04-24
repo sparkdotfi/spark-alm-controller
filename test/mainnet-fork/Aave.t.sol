@@ -8,7 +8,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 import { Ethereum }  from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { SparkLend } from "../../lib/spark-address-registry/src/SparkLend.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { IAaveFacet } from "../../src/facets/aave/IAaveFacet.sol";
 
@@ -70,13 +70,13 @@ abstract contract AaveV3_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), ATOKEN_USDS),
+            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS),
             25_000_000e18,
             uint256(5_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), ATOKEN_USDC),
+            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDC, ATOKEN_USDC),
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
@@ -128,9 +128,17 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
     }
 
     function test_depositAave_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(
+            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS),
+            0,
+            0
+        );
+        vm.stopPrank();
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        mainnetController.depositAave(makeAddr("fake-token"), 1e18);
+        mainnetController.depositAave(ATOKEN_USDS, 1e18);
     }
 
     function test_depositAave_zeroMaxSlippage() external {
@@ -324,7 +332,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usds() external {
-        bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(),  ATOKEN_USDS);
+        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS);
+
         bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDS);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
@@ -389,7 +398,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usds_unlimitedRateLimit() external {
-        bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(),  ATOKEN_USDS);
+        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS);
+
         bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDS);
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -436,7 +446,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usdc() external {
-        bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(),  ATOKEN_USDC);
+        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDC, ATOKEN_USDC);
+
         bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC);
 
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
@@ -497,7 +508,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usdc_unlimitedRateLimit() external {
-        bytes32 depositKey  = makeAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(),  ATOKEN_USDC);
+        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDC, ATOKEN_USDC);
+
         bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC);
 
         vm.prank(Ethereum.SPARK_PROXY);
@@ -558,7 +570,7 @@ abstract contract AaveV3_Attack_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), SparkLend.PYUSD_SPTOKEN),
+            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.PYUSD, SparkLend.PYUSD_SPTOKEN),
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );

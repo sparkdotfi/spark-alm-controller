@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { ApproveLib }     from "../../libraries/ApproveLib.sol";
-import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
+import { ApproveLib }                            from "../../libraries/ApproveLib.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
@@ -69,13 +69,12 @@ contract ERC7540Facet is IERC7540Facet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        // Note that whitelist is done by rate limits.
-        _decreaseRateLimit(LIMIT_DEPOSIT, token, amount);
-
         address proxy = _getSharedControllerStorage().proxy;
 
         // Approve asset to vault from the proxy (assumes the proxy has enough of the asset).
         ApproveLib.approve(IERC4626Like(token).asset(), proxy, token, amount);
+
+        _decreaseRateLimit(_getDepositRateLimitKey(token), amount);
 
         // Submit deposit request by transferring assets
         IALMProxy(proxy).doCall(
@@ -88,7 +87,7 @@ contract ERC7540Facet is IERC7540Facet, Facet {
 
     /// @inheritdoc IERC7540Facet
     function claimDeposit(address token) external override nonReentrant onlyRole(RELAYER_ROLE) {
-        _rateLimitExists(makeAddressKey(LIMIT_DEPOSIT, token));
+        _rateLimitExists(_getDepositRateLimitKey(token));
 
         address proxy  = _getSharedControllerStorage().proxy;
         uint256 shares = IERC4626Like(token).maxMint(proxy);
@@ -106,7 +105,10 @@ contract ERC7540Facet is IERC7540Facet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _decreaseRateLimit(LIMIT_REDEEM, token, IERC4626Like(token).convertToAssets(shares));
+        _decreaseRateLimit(
+            _getRedeemRateLimitKey(token),
+            IERC4626Like(token).convertToAssets(shares)
+        );
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -120,7 +122,7 @@ contract ERC7540Facet is IERC7540Facet, Facet {
 
     /// @inheritdoc IERC7540Facet
     function claimRedeem(address token) external override nonReentrant onlyRole(RELAYER_ROLE) {
-        _rateLimitExists(makeAddressKey(LIMIT_REDEEM, token));
+        _rateLimitExists(_getRedeemRateLimitKey(token));
 
         address proxy  = _getSharedControllerStorage().proxy;
         uint256 assets = IERC4626Like(token).maxWithdraw(proxy);
@@ -138,9 +140,9 @@ contract ERC7540Facet is IERC7540Facet, Facet {
     /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(bytes32 key, address token, uint256 amount) internal {
+    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
         IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
-            makeAddressKey(key, token),
+            key,
             amount
         );
     }
@@ -148,6 +150,14 @@ contract ERC7540Facet is IERC7540Facet, Facet {
     /**********************************************************************************************/
     /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
+
+    function _getDepositRateLimitKey(address token) internal view returns (bytes32) {
+        return makeAddressAddressKey(LIMIT_DEPOSIT, IERC4626Like(token).asset(), token);
+    }
+
+    function _getRedeemRateLimitKey(address token) internal view returns (bytes32) {
+        return makeAddressKey(LIMIT_REDEEM, token);
+    }
 
     function _rateLimitExists(bytes32 key) internal view {
         require(

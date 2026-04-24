@@ -79,8 +79,8 @@ interface IERC7540Facet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for deposit operations, combined with the vault token address to form
-     *         the per-vault keys.
+     * @notice Rate limit key for deposit operations, combined with the asset address and vault
+     *         token address to form the per-market key.
      */
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 

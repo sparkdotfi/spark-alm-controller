@@ -5,8 +5,8 @@ import {
     OptionsBuilder
 } from "../../../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
-import { ApproveLib }           from "../../libraries/ApproveLib.sol";
-import { makeAddressUint32Key } from "../../libraries/RateLimitHelpers.sol";
+import { ApproveLib }                  from "../../libraries/ApproveLib.sol";
+import { makeAddressAddressUint32Key } from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
@@ -165,10 +165,12 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
+        address token = ILayerZeroLike(oftAddress).token();
+
         SharedControllerStorage storage $ = _getSharedControllerStorage();
 
         IRateLimits($.rateLimits).triggerRateLimitDecrease(
-            makeAddressUint32Key(LIMIT_TRANSFER, oftAddress, destinationEndpointId),
+            makeAddressAddressUint32Key(LIMIT_TRANSFER, token, oftAddress, destinationEndpointId),
             amount
         );
 
@@ -182,12 +184,7 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
         //       approvalRequired == false. Add integration testing for this case before using in
         //       production.
         if (ILayerZeroLike(oftAddress).approvalRequired()) {
-            ApproveLib.approve(
-                ILayerZeroLike(oftAddress).token(),
-                proxy,
-                oftAddress,
-                amount
-            );
+            ApproveLib.approve(token, proxy, oftAddress, amount);
         }
 
         ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({

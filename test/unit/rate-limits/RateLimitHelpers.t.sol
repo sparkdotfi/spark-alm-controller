@@ -4,10 +4,10 @@ pragma solidity ^0.8.34;
 import { RateLimits, IRateLimits } from "../../../src/RateLimits.sol";
 
 import {
-    makeAddressKey as makeAddressKeyImplementation,
+    makeAddressAddressUint32Key as makeAddressAddressUint32KeyImplementation,
     makeAddressAddressKey as makeAddressAddressKeyImplementation,
+    makeAddressKey as makeAddressKeyImplementation,
     makeAddressUint16Key as makeAddressUint16KeyImplementation,
-    makeAddressUint32Key as makeAddressUint32KeyImplementation,
     makeBytes32Key as makeBytes32KeyImplementation,
     makeUint32Key as makeUint32KeyImplementation
 } from "../../../src/libraries/RateLimitHelpers.sol";
@@ -28,8 +28,8 @@ contract RateLimitHelpersHarness {
         return makeAddressUint16KeyImplementation(key, asset, domain);
     }
 
-    function makeAddressUint32Key(bytes32 key, address asset, uint32 domain) public pure returns (bytes32) {
-        return makeAddressUint32KeyImplementation(key, asset, domain);
+    function makeAddressAddressUint32Key(bytes32 key, address asset, address destination, uint32 domain) public pure returns (bytes32) {
+        return makeAddressAddressUint32KeyImplementation(key, asset, destination, domain);
     }
 
     function makeBytes32Key(bytes32 key, bytes32 asset) public pure returns (bytes32) {
@@ -96,10 +96,10 @@ contract RateLimitHelpers_Tests is UnitTestBase {
         );
     }
 
-    function test_makeAddressUint32Key() external {
+    function test_makeAddressAddressUint32Key() external {
         assertEq(
-            wrapper.makeAddressUint32Key(KEY, makeAddr("account"), type(uint32).max),
-            keccak256(abi.encode(KEY, makeAddr("account"), uint32(type(uint32).max)))
+            wrapper.makeAddressAddressUint32Key(KEY, makeAddr("account"), makeAddr("destination"), type(uint32).max),
+            keccak256(abi.encode(KEY, makeAddr("account"), makeAddr("destination"), uint32(type(uint32).max)))
         );
     }
 

@@ -65,8 +65,8 @@ interface IAaveFacet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for Aave deposit operations, combined with the aToken address to form
-     *         the per-market key.
+     * @notice Rate limit key for Aave deposit operations, combined with the underlying asset
+     *         address and the aToken address to form the per-market key.
      */
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 

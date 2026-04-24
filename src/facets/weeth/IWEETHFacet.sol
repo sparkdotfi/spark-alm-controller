@@ -88,12 +88,15 @@ interface IWEETHFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice Rate limit key for weETH deposit operations.
+    /**
+     * @notice Rate limit key for weETH deposit operations, combined with the eETH address to form
+     *         the key.
+     */
     function LIMIT_DEPOSIT() external pure returns (bytes32);
 
     /**
-     * @notice Rate limit key for weETH withdrawal request operations, combined with the weETH
-     *         module address to form the per-module keys.
+     * @notice Rate limit key for weETH withdrawal request operations, combined with the eETH
+     *         address and weETH module address to form the per-module key.
      */
     function LIMIT_REQUEST_WITHDRAW() external pure returns (bytes32);
 

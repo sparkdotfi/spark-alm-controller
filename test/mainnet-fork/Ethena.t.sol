@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { IUSDEFacet } from "../../src/facets/usde/IUSDEFacet.sol";
 
@@ -688,7 +688,7 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
 
         burnKey     = mainnetController.LIMIT_USDE_BURN();
         cooldownKey = mainnetController.LIMIT_SUSDE_COOLDOWN();
-        depositKey  = makeAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), address(susde));
+        depositKey  = makeAddressAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), Ethereum.USDE, address(susde));
         mintKey     = mainnetController.LIMIT_USDE_MINT();
 
         rateLimits.setRateLimitData(burnKey,     5_000_000e18, uint256(1_000_000e18) / 4 hours);

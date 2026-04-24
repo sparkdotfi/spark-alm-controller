@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { IFarmFacet } from "../../src/facets/farm/IFarmFacet.sol";
 
@@ -29,7 +29,7 @@ abstract contract Farm_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), FARM),
+            makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM),
             10_000_000e18,
             uint256(1_000_000e18) / 1 days
         );
@@ -67,13 +67,21 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
     }
 
     function test_depositToFarm_zeroMaxAmount() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(
+            makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM),
+            0,
+            0
+        );
+        vm.stopPrank();
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        mainnetController.depositToFarm(makeAddr("fake-farm"), 0);
+        mainnetController.depositToFarm(FARM, 0);
     }
 
     function test_depositToFarm_rateLimitsBoundary() external {
-        bytes32 key = makeAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), FARM);
+        bytes32 key = makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
@@ -89,7 +97,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
     }
 
     function test_depositToFarm() external {
-        bytes32 depositKey = makeAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), FARM);
+        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
