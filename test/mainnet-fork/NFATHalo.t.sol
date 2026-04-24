@@ -7,9 +7,10 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { NFATFacility } from "../../lib/nfat/src/NFATFacility.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
-import { INFATHaloFacet } from "../../src/facets/nfat/INFATHaloFacet.sol";
+import {
+    makeAddressAddressKey,
+    makeAddressKey
+} from "../../src/libraries/RateLimitHelpers.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -32,80 +33,22 @@ abstract contract NFATHalo_TestBase is ForkTestBase {
         nfatFacility.file("recipient", nfatRecipient);
         nfatFacility.kiss(address(this));  // Make test contract an operator (bud)
 
-        subscribeKey = makeAddressKey(mainnetController.LIMIT_NFAT_SUBSCRIBE(), address(nfatFacility));
-        repayKey     = makeAddressKey(mainnetController.LIMIT_NFAT_REPAY(),     address(nfatFacility));
+        subscribeKey = makeAddressKey(
+            mainnetController.LIMIT_NFAT_SUBSCRIBE(),
+            address(nfatFacility)
+        );
+        repayKey = makeAddressAddressKey(
+            mainnetController.LIMIT_NFAT_REPAY(),
+            address(nfatFacility),
+            address(almProxy)
+        );
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(subscribeKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(repayKey,     1_000_000e18, uint256(1_000_000e18) / 4 hours);
-        mainnetController.setNFATAllowedRepayRecipient(address(almProxy), true);
         vm.stopPrank();
 
         deal(Ethereum.USDS, address(almProxy), 5_000_000e18);
-    }
-
-}
-
-contract MainnetController_NFATHalo_SetAllowedRepayRecipient_Tests is NFATHalo_TestBase {
-
-    function test_setNFATAllowedRepayRecipient_reentrancy() external {
-        _setControllerEntered();
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setNFATAllowedRepayRecipient(makeAddr("recipient"), true);
-    }
-
-    function test_setNFATAllowedRepayRecipient_notAdmin() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            address(this),
-            DEFAULT_ADMIN_ROLE
-        ));
-        mainnetController.setNFATAllowedRepayRecipient(makeAddr("recipient"), true);
-    }
-
-    function test_setNFATAllowedRepayRecipient_zeroAddress() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        vm.expectRevert("NFATHaloFacet/recipient-zero-address");
-        mainnetController.setNFATAllowedRepayRecipient(address(0), true);
-    }
-
-    function test_setNFATAllowedRepayRecipient_add() external {
-        address recipient = makeAddr("newRecipient");
-
-        assertFalse(mainnetController.isNFATAllowedRepayRecipient(recipient));
-
-        vm.prank(Ethereum.SPARK_PROXY);
-        vm.expectEmit(address(mainnetController));
-        emit INFATHaloFacet.NFATAllowedRepayRecipientSet(recipient, true);
-        mainnetController.setNFATAllowedRepayRecipient(recipient, true);
-
-        assertTrue(mainnetController.isNFATAllowedRepayRecipient(recipient));
-    }
-
-    function test_setNFATAllowedRepayRecipient_remove() external {
-        assertTrue(mainnetController.isNFATAllowedRepayRecipient(address(almProxy)));
-
-        vm.prank(Ethereum.SPARK_PROXY);
-        vm.expectEmit(address(mainnetController));
-        emit INFATHaloFacet.NFATAllowedRepayRecipientSet(address(almProxy), false);
-        mainnetController.setNFATAllowedRepayRecipient(address(almProxy), false);
-
-        assertFalse(mainnetController.isNFATAllowedRepayRecipient(address(almProxy)));
-    }
-
-    function test_setNFATAllowedRepayRecipient_getAll() external {
-        address recipientA = makeAddr("recipientA");
-        address recipientB = makeAddr("recipientB");
-
-        vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setNFATAllowedRepayRecipient(recipientA, true);
-        mainnetController.setNFATAllowedRepayRecipient(recipientB, true);
-        vm.stopPrank();
-
-        address[] memory recipients = mainnetController.getNFATAllowedRepayRecipients();
-
-        // almProxy was added in setUp, plus the two new ones
-        assertEq(recipients.length, 3);
     }
 
 }
@@ -139,12 +82,15 @@ contract MainnetController_NFATHalo_Repay_Tests is NFATHalo_TestBase {
         mainnetController.repayNFAT(address(nfatFacility), TOKEN_ID, 1_000_000e18);
     }
 
-    function test_repayNFAT_recipientNotAllowed() external {
-        vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setNFATAllowedRepayRecipient(address(almProxy), false);
+    function test_repayNFAT_unauthorizedRecipient_zeroMaxAmount() external {
+        // Transfer the NFT to an address that has no (facility, recipient) rate limit configured
+        address stranger = makeAddr("stranger");
 
+        vm.prank(address(almProxy));
+        nfatFacility.transferFrom(address(almProxy), stranger, TOKEN_ID);
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
-        vm.expectRevert("NFATHaloFacet/recipient-not-allowed");
         mainnetController.repayNFAT(address(nfatFacility), TOKEN_ID, 1_000_000e18);
     }
 

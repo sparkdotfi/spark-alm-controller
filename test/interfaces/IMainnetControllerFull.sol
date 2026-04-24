@@ -557,14 +557,8 @@ abstract contract IMainnetControllerFull is IController, Controller {
     /*** NFATHaloFacet actions                                                                  ***/
     /**********************************************************************************************/
 
-    function setNFATAllowedRepayRecipient(address recipient, bool isAllowed) external virtual;
-
     function repayNFAT(address nfatFacility, uint256 tokenId, uint256 amount) external virtual;
 
     function LIMIT_NFAT_REPAY() external pure virtual returns (bytes32);
-
-    function getNFATAllowedRepayRecipients() external view virtual returns (address[] memory);
-
-    function isNFATAllowedRepayRecipient(address recipient) external view virtual returns (bool);
 
 }
