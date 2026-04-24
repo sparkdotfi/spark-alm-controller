@@ -134,20 +134,18 @@ contract AaveFacet is IAaveFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 amountWithdrawn)
     {
-        address proxy = _getSharedControllerStorage().proxy;
+        address proxy      = _getSharedControllerStorage().proxy;
+        address underlying = IATokenWithPoolLike(aToken).UNDERLYING_ASSET_ADDRESS();
 
-        // Withdraw underlying from Aave pool, decode resulting amount withdrawn.
-        // Assumes proxy has adequate aTokens.
-        amountWithdrawn = abi.decode(
-            IALMProxy(proxy).doCall(
-                IATokenWithPoolLike(aToken).POOL(),
-                abi.encodeCall(
-                    IPoolLike.withdraw,
-                    (IATokenWithPoolLike(aToken).UNDERLYING_ASSET_ADDRESS(), amount, proxy)
-                )
-            ),
-            (uint256)
+        uint256 startingBalance = IERC20Like(underlying).balanceOf(proxy);
+
+        // Withdraw underlying from Aave pool, assuming the proxy has adequate aTokens.
+        IALMProxy(proxy).doCall(
+            IATokenWithPoolLike(aToken).POOL(),
+            abi.encodeCall(IPoolLike.withdraw, (underlying, amount, proxy))
         );
+
+        amountWithdrawn = IERC20Like(underlying).balanceOf(proxy) - startingBalance;
 
         _decreaseRateLimit(LIMIT_WITHDRAW, aToken, amountWithdrawn);
         _increaseRateLimit(LIMIT_DEPOSIT,  aToken, amountWithdrawn);

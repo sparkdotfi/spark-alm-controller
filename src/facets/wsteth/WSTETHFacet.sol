@@ -120,6 +120,8 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
         uint256[] memory amountsToRedeem = new uint256[](1);
         amountsToRedeem[0] = amountToRedeem;
 
+        // NOTE: Despite the withdrawal queue contract being mutable, there is no other reliable way
+        //       to get the requestIds without decoding the return value.
         requestIds = abi.decode(
             IALMProxy(proxy).doCall(
                 withdrawQueue,

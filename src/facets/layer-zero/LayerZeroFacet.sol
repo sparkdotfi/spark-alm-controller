@@ -179,8 +179,8 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
         address proxy = $.proxy;
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
-        //       approvalRequired == false. Add integration testing for this case before
-        //       using in production.
+        //       approvalRequired == false. Add integration testing for this case before using in
+        //       production.
         if (ILayerZeroLike(oftAddress).approvalRequired()) {
             ApproveLib.approve(
                 ILayerZeroLike(oftAddress).token(),

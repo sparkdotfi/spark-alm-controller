@@ -13,6 +13,12 @@ import { Facet } from "../Facet.sol";
 
 import { IERC4626Facet } from "./IERC4626Facet.sol";
 
+interface IERC20Like {
+
+    function balanceOf(address owner) external view returns (uint256);
+
+}
+
 interface IERC4626Like {
 
     function deposit(uint256 amount, address receiver) external returns (uint256 shares);
@@ -105,14 +111,12 @@ contract ERC4626Facet is IERC4626Facet, Facet {
         // Approve asset to token from the proxy (assumes the proxy has enough of the asset).
         ApproveLib.approve(IERC4626Like(token).asset(), proxy, token, amount);
 
-        // Deposit asset into the token, proxy receives token shares, decode the resulting shares.
-        shares = abi.decode(
-            IALMProxy(proxy).doCall(
-                token,
-                abi.encodeCall(IERC4626Like.deposit, (amount, proxy))
-            ),
-            (uint256)
-        );
+        uint256 startingShares = IERC20Like(token).balanceOf(proxy);
+
+        // Deposit asset into the token, proxy receives token shares.
+        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC4626Like.deposit, (amount, proxy)));
+
+        shares = IERC20Like(token).balanceOf(proxy) - startingShares;
 
         require(shares >= minSharesOut, "ERC4626Facet/min-shares-out-not-met");
 
@@ -136,15 +140,15 @@ contract ERC4626Facet is IERC4626Facet, Facet {
 
         address proxy = _getSharedControllerStorage().proxy;
 
-        // Withdraw asset from a token, decode resulting shares.
-        // Assumes proxy has adequate token shares.
-        shares = abi.decode(
-            IALMProxy(proxy).doCall(
-                token,
-                abi.encodeCall(IERC4626Like.withdraw, (amount, proxy, proxy))
-            ),
-            (uint256)
+        uint256 startingShares = IERC20Like(token).balanceOf(proxy);
+
+        // Withdraw asset from a token, assuming the proxy has adequate token shares.
+        IALMProxy(proxy).doCall(
+            token,
+            abi.encodeCall(IERC4626Like.withdraw, (amount, proxy, proxy))
         );
+
+        shares = startingShares - IERC20Like(token).balanceOf(proxy);
 
         require(shares <= maxSharesIn, "ERC4626Facet/shares-burned-too-high");
 
@@ -162,16 +166,14 @@ contract ERC4626Facet is IERC4626Facet, Facet {
         returns (uint256 assets)
     {
         address proxy = _getSharedControllerStorage().proxy;
+        address asset = IERC4626Like(token).asset();
 
-        // Redeem shares for assets from the token, decode the resulting assets.
-        // Assumes proxy has adequate token shares.
-        assets = abi.decode(
-            IALMProxy(proxy).doCall(
-                token,
-                abi.encodeCall(IERC4626Like.redeem, (shares, proxy, proxy))
-            ),
-            (uint256)
-        );
+        uint256 startingAssets = IERC20Like(asset).balanceOf(proxy);
+
+        // Redeem shares for assets from the token, assuming the proxy has adequate token shares.
+        IALMProxy(proxy).doCall(token, abi.encodeCall(IERC4626Like.redeem, (shares, proxy, proxy)));
+
+        assets = IERC20Like(asset).balanceOf(proxy) - startingAssets;
 
         require(assets >= minAssetsOut, "ERC4626Facet/min-assets-out-not-met");
 

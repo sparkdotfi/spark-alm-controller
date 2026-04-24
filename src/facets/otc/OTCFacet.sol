@@ -218,7 +218,12 @@ contract OTCFacet is IOTCFacet, Facet {
     }
 
     /// @inheritdoc IOTCFacet
-    function getIsWhitelisted(address exchange, address asset) external view override returns (bool) {
+    function getIsWhitelisted(address exchange, address asset)
+        external
+        view
+        override
+        returns (bool)
+    {
         return _getFacetStorage().parameters[exchange].assetWhitelisted[asset];
     }
 

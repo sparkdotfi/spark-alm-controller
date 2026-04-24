@@ -17,6 +17,14 @@ interface IEETHLike {
 
     function liquidityPool() external view returns (address);
 
+    function shares(address account) external view returns (uint256);
+
+}
+
+interface IERC20Like {
+
+    function balanceOf(address account) external view returns (uint256);
+
 }
 
 interface ILiquidityPoolLike {
@@ -116,24 +124,25 @@ contract WEETHFacet is IWEETHFacet, Facet {
         address eeth          = IWEETHLike(weeth).eETH();
         address liquidityPool = IEETHLike(eeth).liquidityPool();
 
-        uint256 eethShares = abi.decode(
-            IALMProxy(proxy).doCallWithValue(
-                liquidityPool,
-                abi.encodeCall(ILiquidityPoolLike.deposit, ()),
-                amount
-            ),
-            (uint256)
+        uint256 startingEETHShares = IEETHLike(eeth).shares(proxy);
+
+        IALMProxy(proxy).doCallWithValue(
+            liquidityPool,
+            abi.encodeCall(ILiquidityPoolLike.deposit, ()),
+            amount
         );
 
+        uint256 eethShares = IEETHLike(eeth).shares(proxy) - startingEETHShares;
         uint256 eethAmount = ILiquidityPoolLike(liquidityPool).amountForShare(eethShares);
 
         // Deposit eETH to weETH.
         ApproveLib.approve(eeth, proxy, weeth, eethAmount);
 
-        shares = abi.decode(
-            IALMProxy(proxy).doCall(weeth, abi.encodeCall(IWEETHLike.wrap, (eethAmount))),
-            (uint256)
-        );
+        uint256 startingWEETHShares = IERC20Like(weeth).balanceOf(proxy);
+
+        IALMProxy(proxy).doCall(weeth, abi.encodeCall(IWEETHLike.wrap, (eethAmount)));
+
+        shares = IERC20Like(weeth).balanceOf(proxy) - startingWEETHShares;
 
         require(shares >= minSharesOut, "WEETHFacet/slippage-too-high");
 
@@ -154,14 +163,12 @@ contract WEETHFacet is IWEETHFacet, Facet {
         address eeth          = IWEETHLike(weeth).eETH();
         address liquidityPool = IEETHLike(eeth).liquidityPool();
 
-        // Withdraw from weETH (returns eETH).
-        uint256 eethAmount = abi.decode(
-            IALMProxy(proxy).doCall(
-                weeth,
-                abi.encodeCall(IWEETHLike.unwrap, (weethShares))
-            ),
-            (uint256)
-        );
+        uint256 startingEETHAmount = IERC20Like(eeth).balanceOf(proxy);
+
+        // Withdraw from weETH.
+        IALMProxy(proxy).doCall(weeth, abi.encodeCall(IWEETHLike.unwrap, (weethShares)));
+
+        uint256 eethAmount = IERC20Like(eeth).balanceOf(proxy) - startingEETHAmount;
 
         // Protect against cumulative rate slippage across both conversions.
         require(
@@ -178,6 +185,8 @@ contract WEETHFacet is IWEETHFacet, Facet {
         // Request withdrawal of ETH from eETH.
         ApproveLib.approve(eeth, proxy, liquidityPool, eethAmount);
 
+        // NOTE: Despite the liquidity pool contract being mutable, there is no other reliable way
+        //       to get the requestId without decoding the return value.
         requestId = abi.decode(
             IALMProxy(proxy).doCall(
                 liquidityPool,
@@ -207,6 +216,7 @@ contract WEETHFacet is IWEETHFacet, Facet {
             "WEETHFacet/invalid-action"
         );
 
+        // NOTE: The weethModule contract is first party, so the return value can be trusted.
         wethReceived = abi.decode(
             IALMProxy($.proxy).doCall(
                 weethModule,

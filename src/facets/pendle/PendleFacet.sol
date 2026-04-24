@@ -157,7 +157,7 @@ contract PendleFacet is IPendleFacet, Facet {
 
         ApproveLib.approve(pt, proxy, router, pyAmountIn);
 
-        uint256 tokenOutAmountBefore = IERC20Like(tokenOut).balanceOf(proxy);
+        uint256 startingTokenOutAmount = IERC20Like(tokenOut).balanceOf(proxy);
 
         IALMProxy(proxy).doCall(
             router,
@@ -171,7 +171,7 @@ contract PendleFacet is IPendleFacet, Facet {
             )
         );
 
-        totalTokenOutAmount = IERC20Like(tokenOut).balanceOf(proxy) - tokenOutAmountBefore;
+        totalTokenOutAmount = IERC20Like(tokenOut).balanceOf(proxy) - startingTokenOutAmount;
     }
 
     /**********************************************************************************************/

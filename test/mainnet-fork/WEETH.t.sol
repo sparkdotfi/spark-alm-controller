@@ -242,7 +242,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
     function test_requestWithdrawFromWEETH_rateLimitsBoundary() external {
         bytes32 key = makeAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), weethModule);
 
-        uint256 eethLimit = WEETH.getEETHByWeETH(500e18);
+        uint256 eethLimit = WEETH.getEETHByWeETH(500e18 - 1); // Rounding error
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, eethLimit, eethLimit / 1 days);
@@ -273,7 +273,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
         vm.prank(relayer);
         mainnetController.depositToWeETH(1_000e18, minSharesOut);
 
-        uint256 expectedEETHBalance = WEETH.getEETHByWeETH(500e18);
+        uint256 expectedEETHBalance = WEETH.getEETHByWeETH(500e18 - 1); // Rounding error
 
         uint256 minEETHShares = _getMinEETHShares(expectedEETHBalance);
 
@@ -313,7 +313,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         assertEq(initialWEETHBalance, 927.715236537415314851e18);
 
-        uint256 expectedEETHBalance = WEETH.getEETHByWeETH(500e18);
+        uint256 expectedEETHBalance = WEETH.getEETHByWeETH(500e18 - 1); // Rounding error
 
         uint256 minEETHShares = _getMinEETHShares(expectedEETHBalance);
 
@@ -342,7 +342,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         assertEq(WEETH.balanceOf(address(almProxy)), initialWEETHBalance - 500e18);
 
-        assertEq(expectedEETHBalance, 538.958486729386273830e18);
+        assertEq(expectedEETHBalance, 538.958486729386273829e18);
 
         assertEq(
             rateLimits.getCurrentRateLimit(requestWithdrawKey),
@@ -503,7 +503,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         vm.prank(WITHDRAW_REQUEST_NFT_ADMIN);
         IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
 
-        uint256 eethAmount = 538.958486729386273829e18;
+        uint256 eethAmount = 538.958486729386273828e18;
 
         assertEq(withdrawRequestNFT.getClaimableAmount(requestId), eethAmount);
 

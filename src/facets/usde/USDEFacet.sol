@@ -148,6 +148,7 @@ contract USDEFacet is IUSDEFacet, Facet {
     {
         _decreaseRateLimit(LIMIT_SUSDE_COOLDOWN, usdeAmount);
 
+        // NOTE: The SUSDE contract is immutable, so the return value can be trusted.
         shares = abi.decode(
             IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 susde,
@@ -167,7 +168,7 @@ contract USDEFacet is IUSDEFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 assets)
     {
-        // NOTE: Rate limited at end of function, so cannot return here.
+        // NOTE: The SUSDE contract is immutable, so the return value can be trusted.
         assets = abi.decode(
             IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 susde,
@@ -185,11 +186,11 @@ contract USDEFacet is IUSDEFacet, Facet {
     function unstakeSUSDE() external override nonReentrant onlyRole(RELAYER_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 
-        uint256 usdeBefore = IERC20Like(usde).balanceOf(proxy);
+        uint256 startingUSDE = IERC20Like(usde).balanceOf(proxy);
 
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
 
-        emit USDEUnstakeSUSDE(IERC20Like(usde).balanceOf(proxy) - usdeBefore);
+        emit USDEUnstakeSUSDE(IERC20Like(usde).balanceOf(proxy) - startingUSDE);
     }
 
     /**********************************************************************************************/

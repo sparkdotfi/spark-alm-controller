@@ -109,11 +109,11 @@ contract FarmFacet is IFarmFacet, Facet {
         address proxy       = _getSharedControllerStorage().proxy;
         address rewardsToken = IFarmLike(farm).rewardsToken();
 
-        uint256 balanceBefore = IERC20Like(rewardsToken).balanceOf(proxy);
+        uint256 startingBalance = IERC20Like(rewardsToken).balanceOf(proxy);
 
         IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.getReward, ()));
 
-        reward = IERC20Like(rewardsToken).balanceOf(proxy) - balanceBefore;
+        reward = IERC20Like(rewardsToken).balanceOf(proxy) - startingBalance;
 
         emit FarmReward(farm, reward);
     }
