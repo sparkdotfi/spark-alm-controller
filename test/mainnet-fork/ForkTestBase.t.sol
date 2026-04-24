@@ -336,7 +336,7 @@ abstract contract ForkTestBase is DssTest {
         accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
         accessControls.grantRole(accessControls.RELAYER_ROLE(), backstopRelayer);
 
-        bytes32[] memory integrationIds = new bytes32[](25);
+        bytes32[] memory integrationIds = new bytes32[](28);
         integrationIds[0]  = "AAVE_FACET";
         integrationIds[1]  = "BASIN_FACET";
         integrationIds[2]  = "CCTP_FACET";
@@ -344,24 +344,27 @@ abstract contract ForkTestBase is DssTest {
         integrationIds[4]  = "CURVE_FACET";
         integrationIds[5]  = "DAIUSDS_FACET";
         integrationIds[6]  = "ERC4626_FACET";
-        integrationIds[7]  = "ERC7540_FACET";
-        integrationIds[8]  = "FARM_FACET";
-        integrationIds[9]  = "LAYER_ZERO_FACET";
-        integrationIds[10] = "MAPLE_FACET";
-        integrationIds[11] = "MERKL_FACET";
-        integrationIds[12] = "OTC_FACET";
-        integrationIds[13] = "PENDLE_FACET";
-        integrationIds[14] = "PSM_FACET";
-        integrationIds[15] = "SPARK_VAULT_FACET";
-        integrationIds[16] = "SUPERSTATE_FACET";
-        integrationIds[17] = "TRANSFER_ASSET_FACET";
-        integrationIds[18] = "UNISWAP_V3_FACET";
-        integrationIds[19] = "UNISWAP_V4_FACET";
-        integrationIds[20] = "USDE_FACET";
-        integrationIds[21] = "USDS_FACET";
-        integrationIds[22] = "WEETH_FACET";
-        integrationIds[23] = "WRAP_PROXY_ETH_FACET";
-        integrationIds[24] = "WSTETH_FACET";
+        integrationIds[7]  = "ERC721_FACET";
+        integrationIds[8]  = "ERC7540_FACET";
+        integrationIds[9]  = "FARM_FACET";
+        integrationIds[10] = "LAYER_ZERO_FACET";
+        integrationIds[11] = "MAPLE_FACET";
+        integrationIds[12] = "MERKL_FACET";
+        integrationIds[13] = "NFAT_HALO_FACET";
+        integrationIds[14] = "NFAT_PRIME_FACET";
+        integrationIds[15] = "OTC_FACET";
+        integrationIds[16] = "PENDLE_FACET";
+        integrationIds[17] = "PSM_FACET";
+        integrationIds[18] = "SPARK_VAULT_FACET";
+        integrationIds[19] = "SUPERSTATE_FACET";
+        integrationIds[20] = "TRANSFER_ASSET_FACET";
+        integrationIds[21] = "UNISWAP_V3_FACET";
+        integrationIds[22] = "UNISWAP_V4_FACET";
+        integrationIds[23] = "USDE_FACET";
+        integrationIds[24] = "USDS_FACET";
+        integrationIds[25] = "WEETH_FACET";
+        integrationIds[26] = "WRAP_PROXY_ETH_FACET";
+        integrationIds[27] = "WSTETH_FACET";
 
         mainnetController.updateIntegrations(integrationIds);
 
@@ -759,40 +762,39 @@ abstract contract ForkTestBase is DssTest {
 
         vm.label(nfatPrimeFacet, "NFATPrimeFacet");
 
-        // "Controller.subscribeNFAT()" -> "NFATPrimeFacet.subscribe()"
-        mainnetController.setDispatch(
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
+
+        wires[0] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.subscribeNFAT.selector,
-            nfatPrimeFacet,
             INFATPrimeFacet.subscribe.selector
         );
 
-        // "Controller.withdrawNFAT()" -> "NFATPrimeFacet.withdraw()"
-        mainnetController.setDispatch(
+        wires[1] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.withdrawNFAT.selector,
-            nfatPrimeFacet,
             INFATPrimeFacet.withdraw.selector
         );
 
-        // "Controller.collectNFAT()" -> "NFATPrimeFacet.collect()"
-        mainnetController.setDispatch(
+        wires[2] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.collectNFAT.selector,
-            nfatPrimeFacet,
             INFATPrimeFacet.collect.selector
         );
 
-        // "Controller.LIMIT_NFAT_SUBSCRIBE()" -> "NFATPrimeFacet.LIMIT_SUBSCRIBE()"
-        mainnetController.setDispatch(
+        wires[3] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.LIMIT_NFAT_SUBSCRIBE.selector,
-            nfatPrimeFacet,
             INFATPrimeFacet.LIMIT_SUBSCRIBE.selector
         );
 
-        // "Controller.LIMIT_NFAT_COLLECT()" -> "NFATPrimeFacet.LIMIT_COLLECT()"
-        mainnetController.setDispatch(
+        wires[4] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.LIMIT_NFAT_COLLECT.selector,
-            nfatPrimeFacet,
             INFATPrimeFacet.LIMIT_COLLECT.selector
         );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : nfatPrimeFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("NFAT_PRIME_FACET", config);
     }
 
     function _wireNFATHaloFacet() internal {
@@ -800,19 +802,24 @@ abstract contract ForkTestBase is DssTest {
 
         vm.label(nfatHaloFacet, "NFATHaloFacet");
 
-        // "Controller.repayNFAT()" -> "NFATHaloFacet.repay()"
-        mainnetController.setDispatch(
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+
+        wires[0] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.repayNFAT.selector,
-            nfatHaloFacet,
             INFATHaloFacet.repay.selector
         );
 
-        // "Controller.LIMIT_NFAT_REPAY()" -> "NFATHaloFacet.LIMIT_REPAY()"
-        mainnetController.setDispatch(
+        wires[1] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.LIMIT_NFAT_REPAY.selector,
-            nfatHaloFacet,
             INFATHaloFacet.LIMIT_REPAY.selector
         );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : nfatHaloFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("NFAT_HALO_FACET", config);
     }
 
     function _wireERC4626Facet() internal {
@@ -875,19 +882,24 @@ abstract contract ForkTestBase is DssTest {
 
         vm.label(erc721Facet, "ERC721Facet");
 
-        // "Controller.safeTransferERC721()" -> "ERC721Facet.safeTransfer()"
-        mainnetController.setDispatch(
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+
+        wires[0] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.safeTransferERC721.selector,
-            erc721Facet,
             IERC721Facet.safeTransfer.selector
         );
 
-        // "Controller.transferERC721()" -> "ERC721Facet.transfer()"
-        mainnetController.setDispatch(
+        wires[1] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.transferERC721.selector,
-            erc721Facet,
             IERC721Facet.transfer.selector
         );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : erc721Facet,
+            wires : wires
+        });
+
+        beacon.setIntegration("ERC721_FACET", config);
     }
 
     function _wireERC7540Facet() internal {

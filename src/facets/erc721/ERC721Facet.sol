@@ -3,7 +3,9 @@ pragma solidity ^0.8.34;
 
 import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { IERC721Facet } from "./IERC721Facet.sol";
 
@@ -44,14 +46,23 @@ interface IERC721Like {
 // (no callback). Use safeTransfer when the destination is a contract that implements
 // IERC721Receiver; use transfer when sending to an EOA or a contract that does not implement
 // the receiver hook and would otherwise reject the callback.
-contract ERC721Facet is IERC721Facet, FacetBase {
+contract ERC721Facet is IERC721Facet, Facet {
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IFacet
+    string public constant override VERSION = "0.1.0";
+
+    /**********************************************************************************************/
+    /*** External Interactive Admin Functions                                                   ***/
+    /**********************************************************************************************/
+
+    /// @inheritdoc IERC721Facet
     function safeTransfer(address nft, address destination, uint256 tokenId)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -61,10 +72,14 @@ contract ERC721Facet is IERC721Facet, FacetBase {
             nft,
             abi.encodeCall(IERC721Like.safeTransferFrom, (proxy, destination, tokenId))
         );
+
+        emit ERC721SafeTransfer(nft, destination, tokenId);
     }
 
+    /// @inheritdoc IERC721Facet
     function transfer(address nft, address destination, uint256 tokenId)
         external
+        override
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -74,6 +89,8 @@ contract ERC721Facet is IERC721Facet, FacetBase {
             nft,
             abi.encodeCall(IERC721Like.transferFrom, (proxy, destination, tokenId))
         );
+
+        emit ERC721Transfer(nft, destination, tokenId);
     }
 
 }

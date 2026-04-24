@@ -7,7 +7,9 @@ import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { INFATHaloFacet } from "./INFATHaloFacet.sol";
 
@@ -21,20 +23,26 @@ interface INFATFacilityLike {
 
 }
 
-contract NFATHaloFacet is INFATHaloFacet, FacetBase {
+contract NFATHaloFacet is INFATHaloFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_REPAY = keccak256("LIMIT_NFAT_REPAY");
+    /// @inheritdoc INFATHaloFacet
+    bytes32 public constant override LIMIT_REPAY = keccak256("LIMIT_NFAT_REPAY");
+
+    /// @inheritdoc IFacet
+    string public constant override VERSION = "0.1.0";
 
     /**********************************************************************************************/
-    /*** External interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc INFATHaloFacet
     function repay(address nfatFacility, uint256 tokenId, uint256 amount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -57,6 +65,8 @@ contract NFATHaloFacet is INFATHaloFacet, FacetBase {
             nfatFacility,
             abi.encodeCall(INFATFacilityLike.repay, (tokenId, amount))
         );
+
+        emit NFATRepay(nfatFacility, tokenId, amount);
     }
 
 }

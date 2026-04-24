@@ -7,7 +7,9 @@ import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
 import { IRateLimits } from "../../interfaces/IRateLimits.sol";
 
-import { FacetBase } from "../FacetBase.sol";
+import { IFacet } from "../IFacet.sol";
+
+import { Facet } from "../Facet.sol";
 
 import { INFATPrimeFacet } from "./INFATPrimeFacet.sol";
 
@@ -23,21 +25,29 @@ interface INFATFacilityLike {
 
 }
 
-contract NFATPrimeFacet is INFATPrimeFacet, FacetBase {
+contract NFATPrimeFacet is INFATPrimeFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant LIMIT_SUBSCRIBE = keccak256("LIMIT_NFAT_SUBSCRIBE");
-    bytes32 public constant LIMIT_COLLECT   = keccak256("LIMIT_NFAT_COLLECT");
+    /// @inheritdoc INFATPrimeFacet
+    bytes32 public constant override LIMIT_SUBSCRIBE = keccak256("LIMIT_NFAT_SUBSCRIBE");
+
+    /// @inheritdoc INFATPrimeFacet
+    bytes32 public constant override LIMIT_COLLECT   = keccak256("LIMIT_NFAT_COLLECT");
+
+    /// @inheritdoc IFacet
+    string public constant override VERSION = "0.1.0";
 
     /**********************************************************************************************/
-    /*** External Interactive functions                                                         ***/
+    /*** External Interactive Relayer Functions                                                 ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc INFATPrimeFacet
     function subscribe(address nfatFacility, uint256 amount, bytes calldata data)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -56,14 +66,18 @@ contract NFATPrimeFacet is INFATPrimeFacet, FacetBase {
             nfatFacility,
             abi.encodeCall(INFATFacilityLike.subscribe, (amount, data))
         );
+
+        emit NFATSubscribe(nfatFacility, amount);
     }
 
     // NOTE: withdraw() cancels queued deposits before issuance. Since the funds have not yet been
     // deployed into an issued NFAT position, this path refills LIMIT_SUBSCRIBE on exit, mirroring
     // facets such as ERC4626 and Aave where returned capital restores deposit capacity. No separate
     // withdraw limit is used here because this action only returns unsubscribed capital.
+    /// @inheritdoc INFATPrimeFacet
     function withdraw(address nfatFacility, uint256 amount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -78,6 +92,8 @@ contract NFATPrimeFacet is INFATPrimeFacet, FacetBase {
             makeAddressKey(LIMIT_SUBSCRIBE, nfatFacility),
             amount
         );
+
+        emit NFATWithdraw(nfatFacility, amount);
     }
 
     // NOTE: collect() returns repaid funds from an issued NFAT position back to the proxy.
@@ -85,8 +101,10 @@ contract NFATPrimeFacet is INFATPrimeFacet, FacetBase {
     // the repo's broader pattern of rate-limiting return flows from external systems. Because the
     // collected funds are back on the proxy and available for redeployment, this path also refills
     // LIMIT_SUBSCRIBE.
+    /// @inheritdoc INFATPrimeFacet
     function collect(address nfatFacility, uint256 tokenId, uint256 amount)
         external
+        override
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
@@ -108,6 +126,8 @@ contract NFATPrimeFacet is INFATPrimeFacet, FacetBase {
             makeAddressKey(LIMIT_SUBSCRIBE, nfatFacility),
             amount
         );
+
+        emit NFATCollect(nfatFacility, tokenId, amount);
     }
 
 }
