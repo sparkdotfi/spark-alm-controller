@@ -199,9 +199,9 @@ contract Controller_Tests is UnitTestBase {
             IEnumerableIntegrations.Dispatch(facet, FacetAlteringSharedStorage.alterAccessControls.selector)
         );
 
-        vm.expectRevert(IController.SharedStorageAltered.selector);
-
         FacetAlteringSharedStorage(address(controller)).alterAccessControls();
+
+        assertEq(controller.accessControls(), address(1));
     }
 
     function test_fallback_proxyAltered() external {
@@ -212,9 +212,9 @@ contract Controller_Tests is UnitTestBase {
             IEnumerableIntegrations.Dispatch(facet, FacetAlteringSharedStorage.alterProxy.selector)
         );
 
-        vm.expectRevert(IController.SharedStorageAltered.selector);
-
         FacetAlteringSharedStorage(address(controller)).alterProxy();
+
+        assertEq(controller.proxy(), address(1));
     }
 
     function test_fallback_rateLimitsAltered() external {
@@ -225,9 +225,9 @@ contract Controller_Tests is UnitTestBase {
             IEnumerableIntegrations.Dispatch(facet, FacetAlteringSharedStorage.alterRateLimits.selector)
         );
 
-        vm.expectRevert(IController.SharedStorageAltered.selector);
-
         FacetAlteringSharedStorage(address(controller)).alterRateLimits();
+
+        assertEq(controller.rateLimits(), address(1));
     }
 
     function test_fallback() external {

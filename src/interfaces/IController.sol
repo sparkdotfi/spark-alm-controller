@@ -26,9 +26,6 @@ interface IController is IEnumerableIntegrations {
     /// @notice Thrown when the caller is not an admin.
     error NotAdmin(address caller);
 
-    /// @notice Thrown when the shared storage is altered in the fallback.
-    error SharedStorageAltered();
-
     /// @notice Thrown when the access controls is the zero address.
     error ZeroAccessControls();
 
