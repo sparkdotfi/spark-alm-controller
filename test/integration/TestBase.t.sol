@@ -18,6 +18,8 @@ abstract contract Integration_TestBase is Test {
     /**********************************************************************************************/
 
     bytes32 internal constant DEFAULT_ADMIN_ROLE = 0x00;
+    bytes32 internal constant FREEZER_ROLE       = keccak256("FREEZER");
+    bytes32 internal constant RELAYER_ROLE       = keccak256("RELAYER");
 
     // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.ReentrancyGuard")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 internal constant _REENTRANCY_GUARD_SLOT        = 0x9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00;
@@ -46,8 +48,9 @@ abstract contract Integration_TestBase is Test {
         IAccessControls accessControls = IAccessControls(IController(payable(controller)).accessControls());
 
         vm.startPrank(admin);
-        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
-        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
+        accessControls.grantRole(RELAYER_ROLE, relayer);
+        accessControls.grantRole(FREEZER_ROLE, freezer);
+        accessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
         vm.stopPrank();
 
         vm.label(address(beacon),                               "Beacon");

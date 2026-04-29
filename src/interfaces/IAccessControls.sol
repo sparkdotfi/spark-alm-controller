@@ -13,18 +13,23 @@ import {
 interface IAccessControls is IAccessControlEnumerable {
 
     /**********************************************************************************************/
-    /*** Events                                                                                 ***/
+    /*** Custom Errors                                                                          ***/
     /**********************************************************************************************/
 
     /**
-     * @notice Emitted when a freezer removes a relayer from the system.
-     * @param  relayer Address of the relayer that was removed.
+     * @notice Thrown when the account is not the role admin or the default admin.
+     * @param  account   The account calling the function.
+     * @param  role      The role that the account is not the admin for.
+     * @param  roleAdmin The role that is the admin for the given role.
      */
-    event RelayerRemoved(address indexed relayer);
+    error NotRoleAdminOrDefaultAdmin(address account, bytes32 role, bytes32 roleAdmin);
 
-    /**********************************************************************************************/
-    /*** Custom Errors                                                                          ***/
-    /**********************************************************************************************/
+    /**
+     * @notice Thrown when attempting to revoke a role from an account that does not have that role.
+     * @param  account The account that does not have the given role.
+     * @param  role    The role that the account does not have.
+     */
+    error RoleNotGranted(address account, bytes32 role);
 
     /// @notice Thrown when the admin is the zero address.
     error ZeroAdmin();
@@ -34,24 +39,22 @@ interface IAccessControls is IAccessControlEnumerable {
     /**********************************************************************************************/
 
     /**
-     * @notice Removes a relayer by revoking their RELAYER_ROLE. Only callable by a freezer.
-     * @param  relayer Address of the relayer to remove.
+     * @notice Sets the role that can revoke a given role.
+     * @param  role        The role to set the revoker for.
+     * @param  revokerRole The role that can revoke the given role.
      */
-    function removeRelayer(address relayer) external;
-
-    /**********************************************************************************************/
-    /*** Variables                                                                              ***/
-    /**********************************************************************************************/
-
-    /// @notice Role identifier for freezer accounts that can remove relayers.
-    function FREEZER_ROLE() external view returns (bytes32);
-
-    /// @notice Role identifier for relayer accounts authorized to execute controller functions.
-    function RELAYER_ROLE() external view returns (bytes32);
+    function setRoleRevoker(bytes32 role, bytes32 revokerRole) external;
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
+
+    /**
+     * @notice Returns the role that can revoke a given role.
+     * @param  role        The role to get the revoker for.
+     * @return revokerRole The role that can revoke the given role.
+     */
+    function getRoleRevoker(bytes32 role) external view returns (bytes32);
 
     /**
      * @notice Returns true if the contract supports the given interface.

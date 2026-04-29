@@ -29,7 +29,7 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
 
         // Frezer can remove the compromised relayer and fallback to the governance relayer
         vm.prank(freezer);
-        accessControls.removeRelayer(relayer);
+        accessControls.revokeRole(RELAYER_ROLE, relayer);
 
         skip(7 days);
 
@@ -76,7 +76,7 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
 
         // Frezer can remove the compromised relayer and fallback to the governance relayer
         vm.prank(freezer);
-        accessControls.removeRelayer(relayer);
+        accessControls.revokeRole(RELAYER_ROLE, relayer);
 
         // Compromised relayer cannot perform attack anymore
         vm.prank(relayer);

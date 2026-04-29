@@ -427,8 +427,10 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
         vm.startPrank(SPARK_EXECUTOR);
 
-        foreignAccessControls.grantRole(foreignAccessControls.FREEZER_ROLE(), freezer);
-        foreignAccessControls.grantRole(foreignAccessControls.RELAYER_ROLE(), relayer);
+        foreignAccessControls.grantRole(FREEZER_ROLE, freezer);
+        foreignAccessControls.grantRole(RELAYER_ROLE, relayer);
+
+        foreignAccessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
 
         bytes32[] memory integrationIds = new bytes32[](1);
         integrationIds[0] = "LAYER_ZERO_FACET";

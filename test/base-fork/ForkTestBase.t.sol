@@ -70,6 +70,7 @@ abstract contract ForkTestBase is Test {
     bytes32 internal constant _REENTRANCY_GUARD_ENTERED     = bytes32(uint256(2));
 
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
+    bytes32 constant FREEZER_ROLE       = keccak256("FREEZER");
     bytes32 constant RELAYER_ROLE       = keccak256("RELAYER");
 
     address freezer = Base.ALM_FREEZER_MULTISIG;
@@ -161,8 +162,10 @@ abstract contract ForkTestBase is Test {
 
         vm.startPrank(SPARK_EXECUTOR);
 
-        accessControls.grantRole(accessControls.FREEZER_ROLE(), freezer);
-        accessControls.grantRole(accessControls.RELAYER_ROLE(), relayer);
+        accessControls.grantRole(FREEZER_ROLE, freezer);
+        accessControls.grantRole(RELAYER_ROLE, relayer);
+
+        accessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
 
         bytes32[] memory integrationIds = new bytes32[](9);
         integrationIds[0] = "AAVE_FACET";

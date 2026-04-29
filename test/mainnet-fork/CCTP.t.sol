@@ -471,8 +471,10 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
-        foreignAccessControls.grantRole(foreignAccessControls.FREEZER_ROLE(), freezer);
-        foreignAccessControls.grantRole(foreignAccessControls.RELAYER_ROLE(), relayer);
+        foreignAccessControls.grantRole(FREEZER_ROLE, freezer);
+        foreignAccessControls.grantRole(RELAYER_ROLE, relayer);
+
+        foreignAccessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
 
         bytes32[] memory integrationIds = new bytes32[](1);
         integrationIds[0] = "CCTP_FACET";

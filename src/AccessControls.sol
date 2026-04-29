@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
+import { IAccessControl } from "../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import { AccessControl }  from "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
+
 import {
     AccessControlEnumerable
 } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
@@ -12,11 +15,19 @@ import { IAccessControls } from "./interfaces/IAccessControls.sol";
 contract AccessControls is IAccessControls, ReentrancyGuard, AccessControlEnumerable {
 
     /**********************************************************************************************/
-    /*** Constants                                                                              ***/
+    /*** Modifiers                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant FREEZER_ROLE = keccak256("FREEZER");
-    bytes32 public constant RELAYER_ROLE = keccak256("RELAYER");
+    modifier onlyRoleAdminOrDefaultAdmin(bytes32 role) {
+        bytes32 roleAdmin = getRoleAdmin(role);
+
+        require(
+            hasRole(roleAdmin, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            NotRoleAdminOrDefaultAdmin(msg.sender, role, roleAdmin)
+        );
+
+        _;
+    }
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -29,19 +40,46 @@ contract AccessControls is IAccessControls, ReentrancyGuard, AccessControlEnumer
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Freezer Functions                                                 ***/
+    /*** External Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    function removeRelayer(address relayer) external override nonReentrant onlyRole(FREEZER_ROLE) {
-        require(_revokeRole(RELAYER_ROLE, relayer), "AccessControls/not-live-relayer");
+    /// @inheritdoc IAccessControl
+    function grantRole(bytes32 role, address account)
+        public
+        override(IAccessControl, AccessControl)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _grantRole(role, account);
+    }
 
-        emit RelayerRemoved(relayer);
+    /// @inheritdoc IAccessControl
+    function revokeRole(bytes32 role, address account)
+        public
+        override(IAccessControl, AccessControl)
+        onlyRoleAdminOrDefaultAdmin(role)
+    {
+        require(_revokeRole(role, account), RoleNotGranted(account, role));
+    }
+
+    /// @inheritdoc IAccessControls
+    function setRoleRevoker(bytes32 role, bytes32 revokerRole)
+        public
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setRoleAdmin(role, revokerRole);
     }
 
     /**********************************************************************************************/
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
+    /// @inheritdoc IAccessControls
+    function getRoleRevoker(bytes32 role) external view override returns (bytes32) {
+        return getRoleAdmin(role);
+    }
+
+    /// @inheritdoc IAccessControls
     function supportsInterface(bytes4 interfaceId)
         public
         view
