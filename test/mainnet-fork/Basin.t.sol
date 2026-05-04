@@ -5,8 +5,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IBasinFacet } from "../../src/facets/basin/IBasinFacet.sol";
 
 import { GroveBasin }        from "../../lib/grove-basin/src/GroveBasin.sol";
@@ -56,21 +54,13 @@ abstract contract Basin_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(
-                mainnetController.LIMIT_BASIN_DEPOSIT(),
-                Ethereum.USDS,
-                address(groveBasin)
-            ),
+            mainnetController.getBasinDepositRateLimitKey(address(groveBasin), Ethereum.USDS),
             5_000_000e18,
             uint256(1_000_000e18) / 4 hours
         );
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(
-                mainnetController.LIMIT_BASIN_WITHDRAW(),
-                Ethereum.USDS,
-                address(groveBasin)
-            ),
+            mainnetController.getBasinWithdrawRateLimitKey(address(groveBasin), Ethereum.USDS),
             5_000_000e18,
             uint256(1_000_000e18) / 4 hours
         );
@@ -100,11 +90,7 @@ contract MainnetController_Basin_Deposit_Tests is Basin_TestBase {
     }
 
     function test_depositBasin_zeroMaxAmount() external {
-        bytes32 key = makeAddressAddressKey(
-            mainnetController.LIMIT_BASIN_DEPOSIT(),
-            Ethereum.USDS,
-            address(groveBasin)
-        );
+        bytes32 key = mainnetController.getBasinDepositRateLimitKey(address(groveBasin), Ethereum.USDS);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 0, 0);
@@ -193,11 +179,7 @@ contract MainnetController_Basin_Deposit_Tests is Basin_TestBase {
     }
 
     function test_depositBasin_rateLimited() external {
-        bytes32 key = makeAddressAddressKey(
-            mainnetController.LIMIT_BASIN_DEPOSIT(),
-            Ethereum.USDS,
-            address(groveBasin)
-        );
+        bytes32 key = mainnetController.getBasinDepositRateLimitKey(address(groveBasin), Ethereum.USDS);
 
         deal(Ethereum.USDS, address(almProxy), 5_000_000e18);
 
@@ -242,11 +224,7 @@ contract MainnetController_Basin_Withdraw_Tests is Basin_TestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        bytes32 depositKey = makeAddressAddressKey(
-            mainnetController.LIMIT_BASIN_DEPOSIT(),
-            Ethereum.USDS,
-            address(groveBasin)
-        );
+        bytes32 depositKey = mainnetController.getBasinDepositRateLimitKey(address(groveBasin), Ethereum.USDS);
 
         // Step 1: Set a higher rate limit for deposits to allow for withdrawals boundaries tests.
         vm.prank(Ethereum.SPARK_PROXY);
@@ -298,11 +276,7 @@ contract MainnetController_Basin_Withdraw_Tests is Basin_TestBase {
     }
 
     function test_withdrawBasin_zeroMaxAmount() external {
-        bytes32 withdrawKey = makeAddressAddressKey(
-            mainnetController.LIMIT_BASIN_WITHDRAW(),
-            Ethereum.USDS,
-            address(groveBasin)
-        );
+        bytes32 withdrawKey = mainnetController.getBasinWithdrawRateLimitKey(address(groveBasin), Ethereum.USDS);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(withdrawKey, 0, 0);
@@ -367,11 +341,7 @@ contract MainnetController_Basin_Withdraw_Tests is Basin_TestBase {
     }
 
     function test_withdrawBasin_rateLimited() external {
-        bytes32 key = makeAddressAddressKey(
-            mainnetController.LIMIT_BASIN_WITHDRAW(),
-            Ethereum.USDS,
-            address(groveBasin)
-        );
+        bytes32 key = mainnetController.getBasinWithdrawRateLimitKey(address(groveBasin), Ethereum.USDS);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e18);
 

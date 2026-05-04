@@ -10,8 +10,6 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { IOTCFacet } from "../../src/facets/otc/IOTCFacet.sol";
 import { OTCFacet }  from "../../src/facets/otc/OTCFacet.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { OTCBuffer } from "../../src/facets/otc/OTCBuffer.sol";
 
 import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
@@ -47,8 +45,6 @@ abstract contract OTC_TestBase is ForkTestBase {
     IERC20Like internal constant USDT = IERC20Like(Ethereum.USDT);
     IERC20Like internal constant USDS = IERC20Like(Ethereum.USDS);
 
-    bytes32 internal constant LIMIT_OTC_SWAP = keccak256("LIMIT_OTC_SWAP");
-
     bytes32 internal key;
 
     OTCBuffer internal otcBuffer;
@@ -75,7 +71,7 @@ abstract contract OTC_TestBase is ForkTestBase {
         otcBuffer.approve(Ethereum.USDS, type(uint256).max);
         vm.stopPrank();
 
-        key = makeAddressKey(LIMIT_OTC_SWAP, exchange);
+        key = mainnetController.getOTCSwapRateLimitKey(exchange);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 

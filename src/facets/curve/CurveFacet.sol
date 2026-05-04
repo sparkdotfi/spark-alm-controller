@@ -4,8 +4,7 @@ pragma solidity ^0.8.34;
 import { ApproveLib }     from "../../libraries/ApproveLib.sol";
 import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -78,14 +77,9 @@ contract CurveFacet is ICurveFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc ICurveFacet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_CURVE_DEPOSIT");
-
-    /// @inheritdoc ICurveFacet
-    bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_CURVE_SWAP");
-
-    /// @inheritdoc ICurveFacet
-    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_CURVE_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_CURVE_DEPOSIT");
+    bytes32 internal constant _LIMIT_SWAP     = keccak256("LIMIT_CURVE_SWAP");
+    bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_CURVE_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -143,7 +137,7 @@ contract CurveFacet is ICurveFacet, Facet {
             "CurveFacet/min-amount-not-met"
         );
 
-        _decreaseRateLimit(LIMIT_SWAP, pool, valueIn);
+        _decreaseRateLimit(getSwapRateLimitKey(pool), valueIn);
 
         _approve(ICurvePoolLike(pool).coins(inputIndex), pool, amountIn);
 
@@ -202,7 +196,7 @@ contract CurveFacet is ICurveFacet, Facet {
         );
 
         // Reduce the rate limit by the aggregated underlying asset value of the deposit (e.g. USD).
-        _decreaseRateLimit(LIMIT_DEPOSIT, pool, valueDeposited);
+        _decreaseRateLimit(getDepositRateLimitKey(pool), valueDeposited);
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -279,7 +273,7 @@ contract CurveFacet is ICurveFacet, Facet {
         }
         valueWithdrawn /= 1e18;
 
-        _decreaseRateLimit(LIMIT_WITHDRAW, pool, valueWithdrawn);
+        _decreaseRateLimit(getWithdrawRateLimitKey(pool), valueWithdrawn);
 
         emit CurveRemoveLiquidity(pool, lpBurnAmount, valueWithdrawn, withdrawnTokens);
     }
@@ -289,8 +283,23 @@ contract CurveFacet is ICurveFacet, Facet {
     /**********************************************************************************************/
 
     /// @inheritdoc ICurveFacet
+    function getDepositRateLimitKey(address pool) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_DEPOSIT, pool);
+    }
+
+    /// @inheritdoc ICurveFacet
     function getMaxSlippage(address pool) external view override returns (uint256) {
         return _getFacetStorage().maxSlippages[pool];
+    }
+
+    /// @inheritdoc ICurveFacet
+    function getSwapRateLimitKey(address pool) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_SWAP, pool);
+    }
+
+    /// @inheritdoc ICurveFacet
+    function getWithdrawRateLimitKey(address pool) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_WITHDRAW, pool);
     }
 
     /**********************************************************************************************/
@@ -320,14 +329,7 @@ contract CurveFacet is ICurveFacet, Facet {
         totalSwapped /= 1e18;
 
         // Convert the total value moved into an aggregated swap "amount in" by dividing it by 2.
-        _decreaseRateLimit(LIMIT_SWAP, pool, totalSwapped / 2);
-    }
-
-    function _decreaseRateLimit(bytes32 key, address pool, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
-            makeAddressKey(key, pool),
-            amount
-        );
+        _decreaseRateLimit(getSwapRateLimitKey(pool), totalSwapped / 2);
     }
 
     /**********************************************************************************************/

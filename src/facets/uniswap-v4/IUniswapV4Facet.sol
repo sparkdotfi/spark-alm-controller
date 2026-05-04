@@ -205,24 +205,6 @@ interface IUniswapV4Facet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for Uniswap V4 deposit (mint/increase) operations, combined with the
-     *         pool ID to form the per-pool keys.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for Uniswap V4 swap operations, combined with the pool ID to form
-     *         the per-pool keys.
-     */
-    function LIMIT_SWAP() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for Uniswap V4 withdraw (decrease) operations, combined with the pool
-     *         ID to form the per-pool keys.
-     */
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
-
     /// @notice Address of the Permit2 contract used for token approvals (immutable).
     function permit2() external view returns (address);
 
@@ -237,11 +219,25 @@ interface IUniswapV4Facet is IFacet {
     /**********************************************************************************************/
 
     /**
+     * @notice Returns the derived deposit rate limit key for a pool.
+     * @param  poolId Uniswap V4 pool identifier.
+     * @return key    Derived rate limit key.
+     */
+    function getDepositRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
+
+    /**
      * @notice Returns the configured max slippage for a Uniswap V4 pool.
      * @param  poolId      Uniswap V4 pool identifier.
      * @return maxSlippage Max slippage in 1e18 precision. Zero means not set.
      */
     function getMaxSlippage(bytes32 poolId) external view returns (uint256 maxSlippage);
+
+    /**
+     * @notice Returns the derived swap rate limit key for a pool.
+     * @param  poolId Uniswap V4 pool identifier.
+     * @return key    Derived rate limit key.
+     */
+    function getSwapRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
 
     /**
      * @notice Returns the configured tick limits for a Uniswap V4 pool.
@@ -254,5 +250,12 @@ interface IUniswapV4Facet is IFacet {
         external
         view
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a pool.
+     * @param  poolId Uniswap V4 pool identifier.
+     * @return key    Derived rate limit key.
+     */
+    function getWithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
 
 }

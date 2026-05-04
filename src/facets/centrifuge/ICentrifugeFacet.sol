@@ -105,28 +105,7 @@ interface ICentrifugeFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for deposit operations, combined with the asset address and vault
-     *         token address to form the per-market key.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for redeem operations, combined with the vault token address to form
-     *         the per-vault keys.
-     */
-    function LIMIT_REDEEM() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for cross-chain share transfers, combined with the vault token and
-     *         centrifuge ID to form the per-route keys.
-     */
-    function LIMIT_TRANSFER() external pure returns (bytes32);
-
-    /**
-     * @notice Always zero. Centrifuge V3 vault requests are non-fungible and use a fixed request ID
-     *         of 0.
-     */
+    /// @notice Centrifuge V3 vault requests are non-fungible and use a fixed request ID of 0.
     function REQUEST_ID() external pure returns (uint256);
 
     /**********************************************************************************************/
@@ -134,10 +113,40 @@ interface ICentrifugeFacet is IFacet {
     /**********************************************************************************************/
 
     /**
+     * @notice Returns the derived deposit rate limit key for a vault token and underlying asset.
+     * @param  token Address of the Centrifuge vault token.
+     * @param  asset Address of the underlying asset.
+     * @return key   Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address token, address asset)
+        external
+        pure
+        returns (bytes32 key);
+
+    /**
      * @notice Returns the configured recipient for a centrifuge chain ID.
      * @param  centrifugeId Centrifuge chain identifier.
      * @return recipient    Bytes32-encoded recipient. Zero if not set.
      */
     function getRecipient(uint16 centrifugeId) external view returns (bytes32 recipient);
+
+    /**
+     * @notice Returns the derived redeem rate limit key for a vault token.
+     * @param  token Address of the Centrifuge vault token.
+     * @return key   Derived rate limit key.
+     */
+    function getRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived cross-chain transfer rate limit key.
+     * @param  token        Address of the Centrifuge vault token.
+     * @param  centrifugeId Centrifuge chain identifier for the destination.
+     * @param  spoke        Address of the spoke contract.
+     * @return key          Derived rate limit key.
+     */
+    function getTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
+        external
+        pure
+        returns (bytes32 key);
 
 }

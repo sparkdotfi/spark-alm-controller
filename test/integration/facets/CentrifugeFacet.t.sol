@@ -6,21 +6,36 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 import { ICentrifugeFacet }        from "../../../src/facets/centrifuge/ICentrifugeFacet.sol";
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 
+import {
+    makeAddressAddressKey,
+    makeAddressKey,
+    makeAddressUint16AddressKey
+} from "../../../src/libraries/RateLimitHelpers.sol";
+
 import { CentrifugeFacet } from "../../../src/facets/centrifuge/CentrifugeFacet.sol";
 
 import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external;
+    function setRecipient(uint16 centrifugeId, bytes32 recipient) external;
 
-    function getCentrifugeRecipient(uint16 centrifugeId) external view returns (bytes32);
+    function getRecipient(uint16 centrifugeId) external view returns (bytes32);
+
+    function getDepositRateLimitKey(address token, address asset) external pure returns (bytes32);
+
+    function getRedeemRateLimitKey(address token) external pure returns (bytes32);
+
+    function getTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
+        external
+        pure
+        returns (bytes32);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
 
-abstract contract CentrifugeFacet_TestBase is Integration_TestBase {
+contract Controller_CentrifugeFacet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
@@ -34,16 +49,31 @@ abstract contract CentrifugeFacet_TestBase is Integration_TestBase {
 
         vm.label(facet, "CentrifugeFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IControllerLike.setCentrifugeRecipient.selector,
+            IControllerLike.setRecipient.selector,
             ICentrifugeFacet.setRecipient.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IControllerLike.getCentrifugeRecipient.selector,
+            IControllerLike.getRecipient.selector,
             ICentrifugeFacet.getRecipient.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.getDepositRateLimitKey.selector,
+            ICentrifugeFacet.getDepositRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.getRedeemRateLimitKey.selector,
+            ICentrifugeFacet.getRedeemRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.getTransferRateLimitKey.selector,
+            ICentrifugeFacet.getTransferRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -58,17 +88,17 @@ abstract contract CentrifugeFacet_TestBase is Integration_TestBase {
         controller.updateIntegrations(integrationIds);
     }
 
-}
+    /**********************************************************************************************/
+    /*** setRecipient Tests                                                                     ***/
+    /**********************************************************************************************/
 
-contract Controller_CentrifugeFacet_SetRecipient_Tests is CentrifugeFacet_TestBase {
-
-    function test_setCentrifugeRecipient_reentrancy() external {
+    function test_setRecipient_reentrancy() external {
         _setEntered(address(controller));
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setCentrifugeRecipient(1, centrifugeRecipient1);
+        controller.setRecipient(1, centrifugeRecipient1);
     }
 
-    function test_setCentrifugeRecipient_unauthorizedAccount() external {
+    function test_setRecipient_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             unauthorized,
@@ -76,28 +106,28 @@ contract Controller_CentrifugeFacet_SetRecipient_Tests is CentrifugeFacet_TestBa
         ));
 
         vm.prank(unauthorized);
-        controller.setCentrifugeRecipient(1, centrifugeRecipient1);
+        controller.setRecipient(1, centrifugeRecipient1);
     }
 
-    function test_setCentrifugeRecipient() external {
-        assertEq(controller.getCentrifugeRecipient(1), bytes32(0));
-        assertEq(controller.getCentrifugeRecipient(2), bytes32(0));
+    function test_setRecipient() external {
+        assertEq(controller.getRecipient(1), bytes32(0));
+        assertEq(controller.getRecipient(2), bytes32(0));
 
         vm.expectEmit(address(controller));
         emit ICentrifugeFacet.CentrifugeRecipientSet(1, centrifugeRecipient1);
 
         vm.prank(admin);
-        controller.setCentrifugeRecipient(1, centrifugeRecipient1);
+        controller.setRecipient(1, centrifugeRecipient1);
 
-        assertEq(controller.getCentrifugeRecipient(1), centrifugeRecipient1);
+        assertEq(controller.getRecipient(1), centrifugeRecipient1);
 
         vm.expectEmit(address(controller));
         emit ICentrifugeFacet.CentrifugeRecipientSet(2, centrifugeRecipient2);
 
         vm.prank(admin);
-        controller.setCentrifugeRecipient(2, centrifugeRecipient2);
+        controller.setRecipient(2, centrifugeRecipient2);
 
-        assertEq(controller.getCentrifugeRecipient(2), centrifugeRecipient2);
+        assertEq(controller.getRecipient(2), centrifugeRecipient2);
 
         vm.record();
 
@@ -105,11 +135,53 @@ contract Controller_CentrifugeFacet_SetRecipient_Tests is CentrifugeFacet_TestBa
         emit ICentrifugeFacet.CentrifugeRecipientSet(1, centrifugeRecipient2);
 
         vm.prank(admin);
-        controller.setCentrifugeRecipient(1, centrifugeRecipient2);
+        controller.setRecipient(1, centrifugeRecipient2);
 
-        assertEq(controller.getCentrifugeRecipient(1), centrifugeRecipient2);
+        assertEq(controller.getRecipient(1), centrifugeRecipient2);
 
         _assertReentrancyGuardWrittenToTwice(address(controller));
+    }
+
+    /**********************************************************************************************/
+    /*** getDepositRateLimitKey Tests                                                           ***/
+    /**********************************************************************************************/
+
+    function test_getDepositRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_7540_DEPOSIT");
+        address token     = makeAddr("token");
+        address asset     = makeAddr("asset");
+
+        assertEq(
+            controller.getDepositRateLimitKey(token, asset),
+            makeAddressAddressKey(keyPrefix, asset, token)
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** getRedeemRateLimitKey Tests                                                            ***/
+    /**********************************************************************************************/
+
+    function test_getRedeemRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_7540_REDEEM");
+        address token     = makeAddr("token");
+
+        assertEq(controller.getRedeemRateLimitKey(token), makeAddressKey(keyPrefix, token));
+    }
+
+    /**********************************************************************************************/
+    /*** getTransferRateLimitKey Tests                                                          ***/
+    /**********************************************************************************************/
+
+    function test_getTransferRateLimitKey() external {
+        bytes32 keyPrefix    = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
+        address token        = makeAddr("token");
+        uint16  centrifugeId = 2;
+        address spoke        = makeAddr("spoke");
+
+        assertEq(
+            controller.getTransferRateLimitKey(token, centrifugeId, spoke),
+            makeAddressUint16AddressKey(keyPrefix, token, centrifugeId, spoke)
+        );
     }
 
 }

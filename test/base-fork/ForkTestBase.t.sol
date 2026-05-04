@@ -36,8 +36,6 @@ import { SparkVaultFacet }    from "../../src/facets/spark-vault/SparkVaultFacet
 import { TransferAssetFacet } from "../../src/facets/transfer-asset/TransferAssetFacet.sol";
 import { UniswapV3Facet }     from "../../src/facets/uniswap-v3/UniswapV3Facet.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IAccessControls }         from "../../src/interfaces/IAccessControls.sol";
 import { IALMProxy }               from "../../src/interfaces/IALMProxy.sol";
 import { IEnumerableIntegrations } from "../../src/interfaces/IEnumerableIntegrations.sol";
@@ -187,17 +185,38 @@ abstract contract ForkTestBase is Test {
         uint256 usdsMaxAmount = 5_000_000e18;
         uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
 
-        bytes32 depositKey  = foreignController.LIMIT_PSM_DEPOSIT();
-        bytes32 withdrawKey = foreignController.LIMIT_PSM_WITHDRAW();
-
         // NOTE: Using minimal config for test base setup
-        rateLimits.setRateLimitData(makeAddressKey(depositKey,  address(usdcBase)),  usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(makeAddressKey(withdrawKey, address(usdcBase)),  usdcMaxAmount, usdcSlope);
-        rateLimits.setRateLimitData(makeAddressKey(depositKey,  address(usdsBase)),  usdsMaxAmount, usdsSlope);
-        rateLimits.setRateLimitData(makeAddressKey(depositKey,  address(susdsBase)), usdsMaxAmount, usdsSlope);
+        rateLimits.setRateLimitData(
+            foreignController.getPSMDepositRateLimitKey(address(usdcBase)),
+            usdcMaxAmount,
+            usdcSlope
+        );
 
-        rateLimits.setUnlimitedRateLimitData(makeAddressKey(withdrawKey, address(usdsBase)));
-        rateLimits.setUnlimitedRateLimitData(makeAddressKey(withdrawKey, address(susdsBase)));
+        rateLimits.setRateLimitData(
+            foreignController.getPSMWithdrawRateLimitKey(address(usdcBase)),
+            usdcMaxAmount,
+            usdcSlope
+        );
+
+        rateLimits.setRateLimitData(
+            foreignController.getPSMDepositRateLimitKey(address(usdsBase)),
+            usdsMaxAmount,
+            usdsSlope
+        );
+
+        rateLimits.setRateLimitData(
+            foreignController.getPSMDepositRateLimitKey(address(susdsBase)),
+            usdsMaxAmount,
+            usdsSlope
+        );
+
+        rateLimits.setUnlimitedRateLimitData(
+            foreignController.getPSMWithdrawRateLimitKey(address(usdsBase))
+        );
+
+        rateLimits.setUnlimitedRateLimitData(
+            foreignController.getPSMWithdrawRateLimitKey(address(susdsBase))
+        );
 
         vm.stopPrank();
     }
@@ -267,18 +286,18 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_CURVE_DEPOSIT.selector,
-            ICurveFacet.LIMIT_DEPOSIT.selector
+            IForeignControllerFull.getCurveDepositRateLimitKey.selector,
+            ICurveFacet.getDepositRateLimitKey.selector
         );
 
         wires[6] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_CURVE_SWAP.selector,
-            ICurveFacet.LIMIT_SWAP.selector
+            IForeignControllerFull.getCurveSwapRateLimitKey.selector,
+            ICurveFacet.getSwapRateLimitKey.selector
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_CURVE_WITHDRAW.selector,
-            ICurveFacet.LIMIT_WITHDRAW.selector
+            IForeignControllerFull.getCurveWithdrawRateLimitKey.selector,
+            ICurveFacet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -332,8 +351,8 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_PENDLE_PT_REDEEM.selector,
-            IPendleFacet.LIMIT_REDEEM.selector
+            IForeignControllerFull.getPendleRedeemRateLimitKey.selector,
+            IPendleFacet.getRedeemRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -372,13 +391,13 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[4] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_AAVE_DEPOSIT.selector,
-            IAaveFacet.LIMIT_DEPOSIT.selector
+            IForeignControllerFull.getAaveDepositRateLimitKey.selector,
+            IAaveFacet.getDepositRateLimitKey.selector
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_AAVE_WITHDRAW.selector,
-            IAaveFacet.LIMIT_WITHDRAW.selector
+            IForeignControllerFull.getAaveWithdrawRateLimitKey.selector,
+            IAaveFacet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -422,13 +441,13 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_4626_DEPOSIT.selector,
-            IERC4626Facet.LIMIT_DEPOSIT.selector
+            IForeignControllerFull.getERC4626DepositRateLimitKey.selector,
+            IERC4626Facet.getDepositRateLimitKey.selector
         );
 
         wires[6] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_4626_WITHDRAW.selector,
-            IERC4626Facet.LIMIT_WITHDRAW.selector
+            IForeignControllerFull.getERC4626WithdrawRateLimitKey.selector,
+            IERC4626Facet.getWithdrawRateLimitKey.selector
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
@@ -457,8 +476,8 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_SPARK_VAULT_TAKE.selector,
-            ISparkVaultFacet.LIMIT_TAKE.selector
+            IForeignControllerFull.getSparkVaultTakeRateLimitKey.selector,
+            ISparkVaultFacet.getTakeRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -482,8 +501,8 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_ASSET_TRANSFER.selector,
-            ITransferAssetFacet.LIMIT_TRANSFER.selector
+            IForeignControllerFull.getTransferAssetTransferRateLimitKey.selector,
+            ITransferAssetFacet.getTransferRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -512,13 +531,13 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_PSM_DEPOSIT.selector,
-            IPSM3Facet.LIMIT_DEPOSIT.selector
+            IForeignControllerFull.getPSMDepositRateLimitKey.selector,
+            IPSM3Facet.getDepositRateLimitKey.selector
         );
 
         wires[3] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_PSM_WITHDRAW.selector,
-            IPSM3Facet.LIMIT_WITHDRAW.selector
+            IForeignControllerFull.getPSMWithdrawRateLimitKey.selector,
+            IPSM3Facet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -577,18 +596,18 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[8] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_UNISWAP_V3_DEPOSIT.selector,
-            IUniswapV3Facet.LIMIT_DEPOSIT.selector
+            IForeignControllerFull.getUniswapV3DepositRateLimitKey.selector,
+            IUniswapV3Facet.getDepositRateLimitKey.selector
         );
 
         wires[9] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_UNISWAP_V3_SWAP.selector,
-            IUniswapV3Facet.LIMIT_SWAP.selector
+            IForeignControllerFull.getUniswapV3SwapRateLimitKey.selector,
+            IUniswapV3Facet.getSwapRateLimitKey.selector
         );
 
         wires[10] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_UNISWAP_V3_WITHDRAW.selector,
-            IUniswapV3Facet.LIMIT_WITHDRAW.selector
+            IForeignControllerFull.getUniswapV3WithdrawRateLimitKey.selector,
+            IUniswapV3Facet.getWithdrawRateLimitKey.selector
         );
 
         wires[11] = IEnumerableIntegrations.Wire(

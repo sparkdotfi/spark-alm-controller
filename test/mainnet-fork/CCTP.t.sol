@@ -15,8 +15,6 @@ import { CCTPFacet } from "../../src/facets/cctp/CCTPFacet.sol";
 
 import { ICCTPFacet } from "../../src/facets/cctp/ICCTPFacet.sol";
 
-import { makeUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IAccessControls }         from "../../src/interfaces/IAccessControls.sol";
 import { IALMProxy }               from "../../src/interfaces/IALMProxy.sol";
 import { IEnumerableIntegrations } from "../../src/interfaces/IEnumerableIntegrations.sol";
@@ -93,10 +91,7 @@ contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBas
     function test_transferUSDCToCCTP_zeroMaxAmountDomain() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE
-            ),
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
             0,
             0
         );
@@ -109,7 +104,7 @@ contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBas
 
     function test_transferUSDCToCCTP_zeroMaxAmountCCTP() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        rateLimits.setRateLimitData(mainnetController.toCCTPRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -122,14 +117,11 @@ contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBas
 
         // Set this so second modifier will be passed in success case
         rateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE
-            )
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE)
         );
 
         // Rate limit will be constant 10m (higher than setup)
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 10_000_000e6, 0);
+        rateLimits.setRateLimitData(mainnetController.toCCTPRateLimitKey(), 10_000_000e6, 0);
 
         // Set this for success case
         mainnetController.setCCTPMintRecipient(
@@ -153,14 +145,11 @@ contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBas
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         // Set this so first modifier will be passed in success case
-        rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP());
+        rateLimits.setUnlimitedRateLimitData(mainnetController.toCCTPRateLimitKey());
 
         // Rate limit will be constant 10m (higher than setup)
         rateLimits.setRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE
-            ),
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
             10_000_000e6,
             0
         );
@@ -188,13 +177,10 @@ contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBas
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE
-            )
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE)
         );
 
-        rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP());
+        rateLimits.setUnlimitedRateLimitData(mainnetController.toCCTPRateLimitKey());
 
         vm.stopPrank();
 
@@ -227,10 +213,7 @@ contract MainnetController_CCTP_TransferWithFee_Tests is MainnetController_CCTP_
     function test_transferUSDCToCCTPWithFee_zeroMaxAmountDomain() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE
-            ),
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
             0,
             0
         );
@@ -243,7 +226,7 @@ contract MainnetController_CCTP_TransferWithFee_Tests is MainnetController_CCTP_
 
     function test_transferUSDCToCCTPWithFee_zeroMaxAmountCCTP() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        rateLimits.setRateLimitData(mainnetController.toCCTPRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -256,14 +239,11 @@ contract MainnetController_CCTP_TransferWithFee_Tests is MainnetController_CCTP_
 
         // Set this so second modifier will be passed in success case
         rateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE
-            )
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE)
         );
 
         // Rate limit will be constant 10m (higher than setup)
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), 10_000_000e6, 0);
+        rateLimits.setRateLimitData(mainnetController.toCCTPRateLimitKey(), 10_000_000e6, 0);
 
         // Set this for success case
         mainnetController.setCCTPMintRecipient(
@@ -296,14 +276,11 @@ contract MainnetController_CCTP_TransferWithFee_Tests is MainnetController_CCTP_
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         // Set this so first modifier will be passed in success case
-        rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP());
+        rateLimits.setUnlimitedRateLimitData(mainnetController.toCCTPRateLimitKey());
 
         // Rate limit will be constant 10m (higher than setup)
         rateLimits.setRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE
-            ),
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
             10_000_000e6,
             0
         );
@@ -340,13 +317,10 @@ contract MainnetController_CCTP_TransferWithFee_Tests is MainnetController_CCTP_
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                mainnetController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE
-            )
+            mainnetController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE)
         );
 
-        rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP());
+        rateLimits.setUnlimitedRateLimitData(mainnetController.toCCTPRateLimitKey());
 
         vm.stopPrank();
 
@@ -493,12 +467,9 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         uint256 usdcMaxAmount = 5_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
-        bytes32 domainKeyEthereum = makeUint32Key(
-            foreignController.LIMIT_USDC_TO_DOMAIN(),
-            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-        );
+        bytes32 domainKeyEthereum = foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
 
-        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
+        foreignRateLimits.setRateLimitData(foreignController.toCCTPRateLimitKey(), usdcMaxAmount, usdcSlope);
         foreignRateLimits.setRateLimitData(domainKeyEthereum,                      usdcMaxAmount, usdcSlope);
 
         foreignController.setCCTPMaxFeeCap(CCTP_MAX_FEE_CAP);
@@ -564,13 +535,13 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         );
 
         wires[6] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_USDC_TO_CCTP.selector,
-            ICCTPFacet.LIMIT_TO_CCTP.selector
+            IForeignControllerFull.toCCTPRateLimitKey.selector,
+            ICCTPFacet.toCCTPRateLimitKey.selector
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_USDC_TO_DOMAIN.selector,
-            ICCTPFacet.LIMIT_TO_DOMAIN.selector
+            IForeignControllerFull.getCCTPToDomainRateLimitKey.selector,
+            ICCTPFacet.getToDomainRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -610,10 +581,7 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
     function test_transferUSDCToCCTP_zeroMaxAmountDomain() external {
         vm.startPrank(Base.SPARK_EXECUTOR);
         foreignRateLimits.setRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-            ),
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
             0,
             0
         );
@@ -626,7 +594,7 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
 
     function test_transferUSDCToCCTP_zeroMaxAmountCCTP() external {
         vm.startPrank(Base.SPARK_EXECUTOR);
-        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        foreignRateLimits.setRateLimitData(foreignController.toCCTPRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -639,14 +607,11 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
 
         // Set this so second modifier will be passed in success case
         foreignRateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-            )
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM)
         );
 
         // Rate limit will be constant 10m (higher than setup)
-        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), 10_000_000e6, 0);
+        foreignRateLimits.setRateLimitData(foreignController.toCCTPRateLimitKey(), 10_000_000e6, 0);
 
         // Set this for success case
         foreignController.setCCTPMintRecipient(
@@ -670,14 +635,11 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         // Set this so first modifier will be passed in success case
-        foreignRateLimits.setUnlimitedRateLimitData(foreignController.LIMIT_USDC_TO_CCTP());
+        foreignRateLimits.setUnlimitedRateLimitData(foreignController.toCCTPRateLimitKey());
 
         // Rate limit will be constant 10m (higher than setup)
         foreignRateLimits.setRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-            ),
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
             10_000_000e6,
             0
         );
@@ -705,13 +667,10 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         foreignRateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE
-            )
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE)
         );
 
-        foreignRateLimits.setUnlimitedRateLimitData(foreignController.LIMIT_USDC_TO_CCTP());
+        foreignRateLimits.setUnlimitedRateLimitData(foreignController.toCCTPRateLimitKey());
 
         vm.stopPrank();
 
@@ -761,10 +720,7 @@ contract ForeignController_CCTP_TransferWithFee_Tests is BaseChain_CCTP_TestBase
     function test_transferUSDCToCCTPWithFee_zeroMaxAmountDomain() external {
         vm.startPrank(Base.SPARK_EXECUTOR);
         foreignRateLimits.setRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-            ),
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
             0,
             0
         );
@@ -782,7 +738,7 @@ contract ForeignController_CCTP_TransferWithFee_Tests is BaseChain_CCTP_TestBase
 
     function test_transferUSDCToCCTPWithFee_zeroMaxAmountCCTP() external {
         vm.startPrank(Base.SPARK_EXECUTOR);
-        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), 0, 0);
+        foreignRateLimits.setRateLimitData(foreignController.toCCTPRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -800,14 +756,11 @@ contract ForeignController_CCTP_TransferWithFee_Tests is BaseChain_CCTP_TestBase
 
         // Set this so second modifier will be passed in success case
         foreignRateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-            )
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM)
         );
 
         // Rate limit will be constant 10m (higher than setup)
-        foreignRateLimits.setRateLimitData(foreignController.LIMIT_USDC_TO_CCTP(), 10_000_000e6, 0);
+        foreignRateLimits.setRateLimitData(foreignController.toCCTPRateLimitKey(), 10_000_000e6, 0);
 
         // Set this for success case
         foreignController.setCCTPMintRecipient(
@@ -840,14 +793,11 @@ contract ForeignController_CCTP_TransferWithFee_Tests is BaseChain_CCTP_TestBase
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         // Set this so first modifier will be passed in success case
-        foreignRateLimits.setUnlimitedRateLimitData(foreignController.LIMIT_USDC_TO_CCTP());
+        foreignRateLimits.setUnlimitedRateLimitData(foreignController.toCCTPRateLimitKey());
 
         // Rate limit will be constant 10m (higher than setup)
         foreignRateLimits.setRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM
-            ),
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ETHEREUM),
             10_000_000e6,
             0
         );
@@ -884,13 +834,10 @@ contract ForeignController_CCTP_TransferWithFee_Tests is BaseChain_CCTP_TestBase
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         foreignRateLimits.setUnlimitedRateLimitData(
-            makeUint32Key(
-                foreignController.LIMIT_USDC_TO_DOMAIN(),
-                CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE
-            )
+            foreignController.getCCTPToDomainRateLimitKey(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE)
         );
 
-        foreignRateLimits.setUnlimitedRateLimitData(foreignController.LIMIT_USDC_TO_CCTP());
+        foreignRateLimits.setUnlimitedRateLimitData(foreignController.toCCTPRateLimitKey());
 
         vm.stopPrank();
 
@@ -1027,7 +974,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     }
 
     function test_transferUSDCToCCTP_sourceToDestination_rateLimited() external {
-        bytes32 key = mainnetController.LIMIT_USDC_TO_CCTP();
+        bytes32 key = mainnetController.toCCTPRateLimitKey();
         deal(Ethereum.USDC, address(almProxy), 9_000_000e6);
 
         vm.startPrank(relayer);
@@ -1141,7 +1088,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     function test_transferUSDCToCCTP_destinationToSource_rateLimited() external {
         destination.selectFork();
 
-        bytes32 key = foreignController.LIMIT_USDC_TO_CCTP();
+        bytes32 key = foreignController.toCCTPRateLimitKey();
         deal(Base.USDC, address(foreignAlmProxy), 9_000_000e6);
 
         vm.startPrank(relayer);
@@ -1317,7 +1264,7 @@ contract CCTP_TransferWithFee_IntegrationTests is BaseChain_CCTP_TestBase {
     }
 
     function test_transferUSDCToCCTPWithFee_sourceToDestination_rateLimited() external {
-        bytes32 key = mainnetController.LIMIT_USDC_TO_CCTP();
+        bytes32 key = mainnetController.toCCTPRateLimitKey();
         deal(Ethereum.USDC, address(almProxy), 9_000_000e6);
 
         vm.startPrank(relayer);
@@ -1456,7 +1403,7 @@ contract CCTP_TransferWithFee_IntegrationTests is BaseChain_CCTP_TestBase {
     function test_transferUSDCToCCTPWithFee_destinationToSource_rateLimited() external {
         destination.selectFork();
 
-        bytes32 key = foreignController.LIMIT_USDC_TO_CCTP();
+        bytes32 key = foreignController.toCCTPRateLimitKey();
         deal(Base.USDC, address(foreignAlmProxy), 9_000_000e6);
 
         vm.startPrank(relayer);

@@ -20,11 +20,7 @@ interface ITransferAssetFacet is IFacet {
      * @param  destination Address that received the asset.
      * @param  amount      Amount of asset transferred (native token decimals).
      */
-    event TransferAssetFacetTransfer(
-        address indexed asset,
-        address indexed destination,
-        uint256         amount
-    );
+    event TransferAssetTransfer(address indexed asset, address indexed destination, uint256 amount);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
@@ -39,13 +35,18 @@ interface ITransferAssetFacet is IFacet {
     function transfer(address asset, address destination, uint256 amount) external;
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
+    /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for asset transfer operations, combined with the asset and destination
-     *         addresses to form the per-route keys.
+     * @notice Returns the derived transfer rate limit key for an asset and destination.
+     * @param  asset       Address of the asset token.
+     * @param  destination Address of the destination.
+     * @return key         Derived rate limit key.
      */
-    function LIMIT_TRANSFER() external pure returns (bytes32);
+    function getTransferRateLimitKey(address asset, address destination)
+        external
+        pure
+        returns (bytes32 key);
 
 }

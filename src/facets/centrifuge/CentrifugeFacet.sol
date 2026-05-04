@@ -4,11 +4,10 @@ pragma solidity ^0.8.34;
 import {
     makeAddressAddressKey,
     makeAddressKey,
-    makeAddressUint16Key
+    makeAddressUint16AddressKey
 } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -88,14 +87,9 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc ICentrifugeFacet
-    bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
-
-    /// @inheritdoc ICentrifugeFacet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_7540_DEPOSIT");
-
-    /// @inheritdoc ICentrifugeFacet
-    bytes32 public constant override LIMIT_REDEEM = keccak256("LIMIT_7540_REDEEM");
+    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_7540_DEPOSIT");
+    bytes32 internal constant _LIMIT_REDEEM   = keccak256("LIMIT_7540_REDEEM");
+    bytes32 internal constant _LIMIT_TRANSFER = keccak256("LIMIT_CENTRIFUGE_TRANSFER");
 
     // Requests for Centrifuge pools are non-fungible and all have ID = 0.
     /// @inheritdoc ICentrifugeFacet
@@ -132,7 +126,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(_getDepositRateLimitKey(token));
+        _requireRateLimitExists(getDepositRateLimitKey(token, IERC4626Like(token).asset()));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -152,7 +146,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(_getDepositRateLimitKey(token));
+        _requireRateLimitExists(getDepositRateLimitKey(token, IERC4626Like(token).asset()));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -174,7 +168,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(_getRedeemRateLimitKey(token));
+        _requireRateLimitExists(getRedeemRateLimitKey(token));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -194,7 +188,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _rateLimitExists(_getRedeemRateLimitKey(token));
+        _requireRateLimitExists(getRedeemRateLimitKey(token));
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -217,13 +211,6 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(
-            makeAddressUint16Key(LIMIT_TRANSFER, token, centrifugeId),
-            amount
-        );
-
         bytes32 recipient = _getFacetStorage().recipients[centrifugeId];
 
         require(recipient != 0, "CentrifugeFacet/id-not-configured");
@@ -231,8 +218,10 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         address spoke
             = IAsyncRedeemManagerLike(ICentrifugeV3VaultLike(token).baseManager()).spoke();
 
+        _decreaseRateLimit(getTransferRateLimitKey(token, centrifugeId, spoke), amount);
+
         // Initiate cross-chain transfer via the specific spoke address.
-        IALMProxy($.proxy).doCallWithValue{value: msg.value}(
+        IALMProxy(_getSharedControllerStorage().proxy).doCallWithValue{value: msg.value}(
             spoke,
             abi.encodeCall(
                 ISpokeLike.crosschainTransferShares,
@@ -256,29 +245,41 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
     /**********************************************************************************************/
 
     /// @inheritdoc ICentrifugeFacet
+    function getDepositRateLimitKey(address token, address asset)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_DEPOSIT, asset, token);
+    }
+
+    /// @inheritdoc ICentrifugeFacet
     function getRecipient(uint16 centrifugeId) external view override returns (bytes32) {
         return _getFacetStorage().recipients[centrifugeId];
+    }
+
+    /// @inheritdoc ICentrifugeFacet
+    function getRedeemRateLimitKey(address token) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_REDEEM, token);
+    }
+
+    /// @inheritdoc ICentrifugeFacet
+    function getTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressUint16AddressKey(_LIMIT_TRANSFER, token, centrifugeId, spoke);
     }
 
     /**********************************************************************************************/
     /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _getDepositRateLimitKey(address token) internal view returns (bytes32) {
-        return makeAddressAddressKey(LIMIT_DEPOSIT, IERC4626Like(token).asset(), token);
-    }
-
-    function _getRedeemRateLimitKey(address token) internal view returns (bytes32) {
-        return makeAddressKey(LIMIT_REDEEM, token);
-    }
-
-    function _rateLimitExists(bytes32 key) internal view {
-        require(
-            IRateLimits(
-                _getSharedControllerStorage().rateLimits
-            ).getRateLimitData(key).maxAmount > 0,
-            "CentrifugeFacet/invalid-action"
-        );
+    function _requireRateLimitExists(bytes32 key) internal view {
+        require(_rateLimitExists(key), "CentrifugeFacet/invalid-action");
     }
 
 }

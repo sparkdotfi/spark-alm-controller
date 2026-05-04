@@ -54,19 +54,25 @@ interface IPSM3Facet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for PSM deposit operations, combined with the asset address to form
-     *         the per-asset keys.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for PSM withdraw operations, combined with the asset address to form
-     *         the per-asset keys.
-     */
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
-
     /// @notice Address of the PSM3 contract (immutable).
     function psm() external view returns (address);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
+    /**
+     * @notice Returns the derived deposit rate limit key for a PSM3 asset.
+     * @param  asset Address of the asset.
+     * @return key   Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address asset) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a PSM3 asset.
+     * @param  asset Address of the asset.
+     * @return key   Derived rate limit key.
+     */
+    function getWithdrawRateLimitKey(address asset) external pure returns (bytes32 key);
 
 }

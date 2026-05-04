@@ -7,8 +7,6 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IERC4626Facet } from "../../src/facets/erc4626/IERC4626Facet.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IMapleFacet } from "../../src/facets/maple/IMapleFacet.sol";
 
 import {
@@ -51,8 +49,8 @@ abstract contract Maple_TestBase is ForkTestBase {
     function setUp() public override {
         super.setUp();
 
-        depositKey = makeAddressAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), Ethereum.USDC, address(SYRUP));
-        redeemKey  = makeAddressKey(mainnetController.LIMIT_MAPLE_REDEEM(), address(SYRUP));
+        depositKey = mainnetController.getERC4626DepositRateLimitKey(address(SYRUP), Ethereum.USDC);
+        redeemKey  = mainnetController.getMapleRedeemRateLimitKey(address(SYRUP));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);

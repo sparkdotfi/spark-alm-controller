@@ -1,11 +1,61 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
+import { IWSTETHFacet }            from "../../../src/facets/wsteth/IWSTETHFacet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+
 import { WSTETHFacet } from "../../../src/facets/wsteth/WSTETHFacet.sol";
 
 import { Integration_TestBase } from "../TestBase.t.sol";
 
+interface IControllerLike {
+
+    function depositRateLimitKey() external pure returns (bytes32);
+
+    function requestWithdrawRateLimitKey() external pure returns (bytes32);
+
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
+}
+
 contract Controller_WSTETHFacet_Tests is Integration_TestBase {
+
+    IControllerLike internal controller;
+
+    function setUp() external {
+        controller = IControllerLike(_deploy());
+
+        address facet = address(new WSTETHFacet(
+            makeAddr("weth"),
+            makeAddr("withdrawQueue"),
+            makeAddr("wsteth")
+        ));
+
+        vm.label(facet, "WSTETHFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IControllerLike.depositRateLimitKey.selector,
+            IWSTETHFacet.depositRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IControllerLike.requestWithdrawRateLimitKey.selector,
+            IWSTETHFacet.requestWithdrawRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("WSTETH_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "WSTETH_FACET";
+
+        vm.prank(admin);
+        controller.updateIntegrations(integrationIds);
+    }
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/
@@ -36,6 +86,25 @@ contract Controller_WSTETHFacet_Tests is Integration_TestBase {
         assertEq(facet.weth(),          weth);
         assertEq(facet.withdrawQueue(), withdrawQueue);
         assertEq(facet.wsteth(),        wsteth);
+    }
+
+    /**********************************************************************************************/
+    /*** depositRateLimitKey Tests                                                              ***/
+    /**********************************************************************************************/
+
+    function test_depositRateLimitKey() external {
+        assertEq(controller.depositRateLimitKey(), keccak256("LIMIT_WSTETH_DEPOSIT"));
+    }
+
+    /**********************************************************************************************/
+    /*** requestWithdrawRateLimitKey Tests                                                      ***/
+    /**********************************************************************************************/
+
+    function test_requestWithdrawRateLimitKey() external {
+        assertEq(
+            controller.requestWithdrawRateLimitKey(),
+            keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW")
+        );
     }
 
 }

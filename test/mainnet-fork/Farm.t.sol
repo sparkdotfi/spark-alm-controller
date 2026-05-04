@@ -5,8 +5,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IFarmFacet } from "../../src/facets/farm/IFarmFacet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -29,13 +27,13 @@ abstract contract Farm_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM),
+            mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS),
             10_000_000e18,
             uint256(1_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_FARM_WITHDRAW(), FARM),
+            mainnetController.getFarmWithdrawRateLimitKey(FARM),
             10_000_000e18,
             uint256(1_000_000e6) / 1 days
         );
@@ -69,7 +67,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
     function test_depositToFarm_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM),
+            mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS),
             0,
             0
         );
@@ -81,7 +79,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
     }
 
     function test_depositToFarm_rateLimitsBoundary() external {
-        bytes32 key = makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM);
+        bytes32 key = mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
@@ -97,7 +95,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
     }
 
     function test_depositToFarm() external {
-        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_FARM_DEPOSIT(), Ethereum.USDS, FARM);
+        bytes32 depositKey = mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
@@ -207,7 +205,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
     }
 
     function test_withdrawFromFarm_rateLimitsBoundary() external {
-        bytes32 key = makeAddressKey(mainnetController.LIMIT_FARM_WITHDRAW(), FARM);
+        bytes32 key = mainnetController.getFarmWithdrawRateLimitKey(FARM);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
@@ -227,7 +225,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
     }
 
     function test_withdrawFromFarm() external {
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_FARM_WITHDRAW(), FARM);
+        bytes32 withdrawKey = mainnetController.getFarmWithdrawRateLimitKey(FARM);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 

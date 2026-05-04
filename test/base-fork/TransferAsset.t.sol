@@ -5,8 +5,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
 
 import { MockTokenReturnFalse, MockTokenReturnNull } from "../mocks/Mocks.sol";
@@ -31,11 +29,7 @@ abstract contract TransferAsset_TestBase is ForkTestBase {
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(
-                foreignController.LIMIT_ASSET_TRANSFER(),
-                Base.USDC,
-                receiver
-            ),
+            foreignController.getTransferAssetTransferRateLimitKey(Base.USDC, receiver),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
         );
@@ -85,11 +79,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(
-                foreignController.LIMIT_ASSET_TRANSFER(),
-                address(token),
-                receiver
-            ),
+            foreignController.getTransferAssetTransferRateLimitKey(address(token), receiver),
             1_000_000e18,
             uint256(1_000_000e18) / 1 days
         );
@@ -112,7 +102,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.record();
 
         vm.expectEmit(address(foreignController));
-        emit ITransferAssetFacet.TransferAssetFacetTransfer(Base.USDC, receiver, 1_000_000e6);
+        emit ITransferAssetFacet.TransferAssetTransfer(Base.USDC, receiver, 1_000_000e6);
 
         vm.prank(relayer);
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
@@ -129,11 +119,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.startPrank(Base.SPARK_EXECUTOR);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(
-                foreignController.LIMIT_ASSET_TRANSFER(),
-                address(token),
-                receiver
-            ),
+            foreignController.getTransferAssetTransferRateLimitKey(address(token), receiver),
             1_000_000e6,
             uint256(1_000_000e6) / 1 days
         );
@@ -146,7 +132,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         assertEq(token.balanceOf(address(almProxy)), 1_000_000e6);
 
         vm.expectEmit(address(foreignController));
-        emit ITransferAssetFacet.TransferAssetFacetTransfer(address(token), receiver, 1_000_000e6);
+        emit ITransferAssetFacet.TransferAssetTransfer(address(token), receiver, 1_000_000e6);
 
         vm.prank(relayer);
         foreignController.transferAsset(address(token), receiver, 1_000_000e6);

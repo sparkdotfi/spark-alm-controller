@@ -7,8 +7,6 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IERC4626Facet } from "../../src/facets/erc4626/IERC4626Facet.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 abstract contract ERC4626_SUSDS_TestBase is ForkTestBase {
@@ -30,12 +28,11 @@ abstract contract ERC4626_SUSDS_TestBase is ForkTestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setUSDSVault(vault);
 
-        depositKey = makeAddressAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), Ethereum.USDS, Ethereum.SUSDS);
-
-        withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), Ethereum.SUSDS);
+        depositKey  = mainnetController.getERC4626DepositRateLimitKey(Ethereum.SUSDS, Ethereum.USDS);
+        withdrawKey = mainnetController.getERC4626WithdrawRateLimitKey(Ethereum.SUSDS);
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 10_000_000e18, uint256(10_000_000e18) / 4 hours);
+        rateLimits.setRateLimitData(mainnetController.usdsMintRateLimitKey(), 10_000_000e18, uint256(10_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
         mainnetController.setMaxExchangeRate(address(susds), susds.convertToShares(1e18), 1.2e18);
@@ -340,10 +337,7 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
         // Longer setup because rate limit revert is at the end of the function
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            makeAddressKey(
-                mainnetController.LIMIT_4626_WITHDRAW(),
-                Ethereum.SUSDS
-            ),
+            mainnetController.getERC4626WithdrawRateLimitKey(Ethereum.SUSDS),
             0,
             0
         );

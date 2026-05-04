@@ -32,15 +32,15 @@ interface IWEETHModule is IAccessControlEnumerable {
     /// @notice Address of the ALMProxy contract.
     function proxy() external view returns (address);
 
-    /**********************************************************************************************/
-    /*** View/Pure Functions                                                                    ***/
-    /**********************************************************************************************/
-
     /// @notice Address of the weETH token contract (immutable).
     function weeth() external view returns (address);
 
     /// @notice Address of the WETH token contract (immutable).
     function weth() external view returns (address);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     /**
      * @notice Receives an ERC721 token.

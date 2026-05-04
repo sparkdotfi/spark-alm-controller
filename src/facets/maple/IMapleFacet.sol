@@ -47,13 +47,14 @@ interface IMapleFacet is IFacet {
     function requestRedemption(address mapleToken, uint256 shares) external;
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
+    /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for Maple redeem operations, combined with the pool token address to
-     *         form the per-pool keys.
+     * @notice Returns the derived redeem rate limit key for a Maple pool token.
+     * @param  mapleToken Address of the Maple pool token.
+     * @return key        Derived rate limit key.
      */
-    function LIMIT_REDEEM() external pure returns (bytes32);
+    function getRedeemRateLimitKey(address mapleToken) external pure returns (bytes32 key);
 
 }

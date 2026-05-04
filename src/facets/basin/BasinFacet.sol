@@ -4,8 +4,7 @@ pragma solidity ^0.8.34;
 import { ApproveLib }            from "../../libraries/ApproveLib.sol";
 import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -33,11 +32,8 @@ contract BasinFacet is IBasinFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IBasinFacet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_BASIN_DEPOSIT");
-
-    /// @inheritdoc IBasinFacet
-    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_BASIN_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_BASIN_DEPOSIT");
+    bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_BASIN_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -54,7 +50,7 @@ contract BasinFacet is IBasinFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        _decreaseRateLimit(LIMIT_DEPOSIT, basin, asset, amount);
+        _decreaseRateLimit(getDepositRateLimitKey(basin, asset), amount);
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -105,32 +101,33 @@ contract BasinFacet is IBasinFacet, Facet {
             "BasinFacet/min-conversion-rate-not-met"
         );
 
-        _decreaseRateLimit(LIMIT_WITHDRAW, basin, asset, assetsWithdrawn);
+        _decreaseRateLimit(getWithdrawRateLimitKey(basin, asset), assetsWithdrawn);
 
-        emit BasinWithdraw(
-            basin,
-            asset,
-            assetsWithdrawn,
-            sharesBurned
-        );
+        emit BasinWithdraw(basin, asset, assetsWithdrawn, sharesBurned);
     }
 
     /**********************************************************************************************/
-    /*** Internal Interactive Functions                                                         ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(
-        bytes32 key,
-        address basin,
-        address asset,
-        uint256 amount
-    )
-        internal
+    /// @inheritdoc IBasinFacet
+    function getDepositRateLimitKey(address basin, address asset)
+        public
+        pure
+        override
+        returns (bytes32)
     {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
-            makeAddressAddressKey(key, asset, basin),
-            amount
-        );
+        return makeAddressAddressKey(_LIMIT_DEPOSIT, asset, basin);
+    }
+
+    /// @inheritdoc IBasinFacet
+    function getWithdrawRateLimitKey(address basin, address asset)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_WITHDRAW, asset, basin);
     }
 
 }

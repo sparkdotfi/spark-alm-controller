@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { ApproveLib }                            from "../../libraries/ApproveLib.sol";
-import { makeAddressAddressKey, makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
+import { ApproveLib } from "../../libraries/ApproveLib.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import {
+    makeAddressAddressAddressKey,
+    makeAddressAddressKey
+} from "../../libraries/RateLimitHelpers.sol";
+
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -61,11 +64,8 @@ contract AaveFacet is IAaveFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IAaveFacet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_AAVE_DEPOSIT");
-
-    /// @inheritdoc IAaveFacet
-    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_AAVE_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_AAVE_DEPOSIT");
+    bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_AAVE_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -101,16 +101,16 @@ contract AaveFacet is IAaveFacet, Facet {
 
         require(maxSlippage != 0, "AaveFacet/max-slippage-not-set");
 
-        _decreaseRateLimit(_getDepositRateLimitKey(aToken), amount);
-
         address proxy      = _getSharedControllerStorage().proxy;
         address pool       = IATokenWithPoolLike(aToken).POOL();
         address underlying = IATokenWithPoolLike(aToken).UNDERLYING_ASSET_ADDRESS();
 
+        _decreaseRateLimit(getDepositRateLimitKey(aToken, pool, underlying), amount);
+
         // Approve underlying to Aave pool from the proxy (assumes the proxy has enough underlying).
         ApproveLib.approve(underlying, proxy, pool, amount);
 
-        uint256 aTokenBalance = IERC20Like(aToken).balanceOf(proxy);
+        uint256 startingBalance = IERC20Like(aToken).balanceOf(proxy);
 
         // Deposit underlying into Aave pool, proxy receives aTokens.
         IALMProxy(proxy).doCall(
@@ -118,9 +118,9 @@ contract AaveFacet is IAaveFacet, Facet {
             abi.encodeCall(IPoolLike.supply, (underlying, amount, proxy, 0))
         );
 
-        uint256 newATokens = IERC20Like(aToken).balanceOf(proxy) - aTokenBalance;
+        uint256 amountReceived = IERC20Like(aToken).balanceOf(proxy) - startingBalance;
 
-        require(newATokens >= amount * maxSlippage / 1e18, "AaveFacet/slippage-too-high");
+        require(amountReceived >= amount * maxSlippage / 1e18, "AaveFacet/slippage-too-high");
 
         emit AaveDeposit(aToken, amount);
     }
@@ -134,20 +134,21 @@ contract AaveFacet is IAaveFacet, Facet {
         returns (uint256 amountWithdrawn)
     {
         address proxy      = _getSharedControllerStorage().proxy;
+        address pool       = IATokenWithPoolLike(aToken).POOL();
         address underlying = IATokenWithPoolLike(aToken).UNDERLYING_ASSET_ADDRESS();
 
         uint256 startingBalance = IERC20Like(underlying).balanceOf(proxy);
 
         // Withdraw underlying from Aave pool, assuming the proxy has adequate aTokens.
         IALMProxy(proxy).doCall(
-            IATokenWithPoolLike(aToken).POOL(),
+            pool,
             abi.encodeCall(IPoolLike.withdraw, (underlying, amount, proxy))
         );
 
         amountWithdrawn = IERC20Like(underlying).balanceOf(proxy) - startingBalance;
 
-        _decreaseRateLimit(_getWithdrawRateLimitKey(aToken), amountWithdrawn);
-        _increaseRateLimit(_getDepositRateLimitKey(aToken),  amountWithdrawn);
+        _decreaseRateLimit(getWithdrawRateLimitKey(aToken, pool),            amountWithdrawn);
+        _increaseRateLimit(getDepositRateLimitKey(aToken, pool, underlying), amountWithdrawn);
 
         emit AaveWithdraw(aToken, amountWithdrawn);
     }
@@ -161,32 +162,24 @@ contract AaveFacet is IAaveFacet, Facet {
         return _getFacetStorage().maxSlippages[aToken];
     }
 
-    /**********************************************************************************************/
-    /*** Internal Interactive Functions                                                         ***/
-    /**********************************************************************************************/
-
-    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
+    /// @inheritdoc IAaveFacet
+    function getDepositRateLimitKey(address aToken, address pool, address underlyingAsset)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressAddressKey(_LIMIT_DEPOSIT, underlyingAsset, pool, aToken);
     }
 
-    function _increaseRateLimit(bytes32 key, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitIncrease(key, amount);
-    }
-
-    /**********************************************************************************************/
-    /*** Internal View/Pure Functions                                                           ***/
-    /**********************************************************************************************/
-
-    function _getDepositRateLimitKey(address aToken) internal view returns (bytes32) {
-        return makeAddressAddressKey(
-            LIMIT_DEPOSIT,
-            IATokenWithPoolLike(aToken).UNDERLYING_ASSET_ADDRESS(),
-            aToken
-        );
-    }
-
-    function _getWithdrawRateLimitKey(address aToken) internal view returns (bytes32) {
-        return makeAddressKey(LIMIT_WITHDRAW, aToken);
+    /// @inheritdoc IAaveFacet
+    function getWithdrawRateLimitKey(address aToken, address pool)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_WITHDRAW, pool, aToken);
     }
 
 }

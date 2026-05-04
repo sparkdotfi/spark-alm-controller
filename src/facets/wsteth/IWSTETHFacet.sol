@@ -24,7 +24,7 @@ interface IWSTETHFacet is IFacet {
 
     /**
      * @notice Emitted when WETH is deposited to receive wstETH. Unwraps WETH to ETH and sends
-     *        to the wstETH contract.
+     *         to the wstETH contract.
      * @param  amount Amount of WETH deposited.
      */
     event WSTETHDeposit(uint256 amount);
@@ -67,11 +67,11 @@ interface IWSTETHFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice Rate limit key for wstETH deposit operations.
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
+    /// @notice The derived rate limit key for wstETH deposit operations.
+    function depositRateLimitKey() external pure returns (bytes32 key);
 
-    /// @notice Rate limit key for wstETH withdrawal request operations.
-    function LIMIT_REQUEST_WITHDRAW() external pure returns (bytes32);
+    /// @notice The derived rate limit key for wstETH withdrawal request operations.
+    function requestWithdrawRateLimitKey() external pure returns (bytes32 key);
 
     /// @notice Address of the WETH token contract (immutable).
     function weth() external view returns (address);

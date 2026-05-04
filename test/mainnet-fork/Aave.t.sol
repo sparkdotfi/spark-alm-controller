@@ -8,8 +8,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 import { Ethereum }  from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { SparkLend } from "../../lib/spark-address-registry/src/SparkLend.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IAaveFacet } from "../../src/facets/aave/IAaveFacet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -70,25 +68,25 @@ abstract contract AaveV3_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS),
+            mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDS, POOL, Ethereum.USDS),
             25_000_000e18,
             uint256(5_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDC, ATOKEN_USDC),
+            mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDC, POOL, Ethereum.USDC),
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDS),
+            mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDS, POOL),
             10_000_000e18,
             uint256(5_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC),
+            mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDC, POOL),
             10_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
@@ -130,7 +128,7 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
     function test_depositAave_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS),
+            mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDS, POOL, Ethereum.USDS),
             0,
             0
         );
@@ -285,7 +283,7 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
         // Longer setup because rate limit revert is at the end of the function
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC),
+            mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDC, POOL),
             0,
             0
         );
@@ -332,9 +330,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usds() external {
-        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS);
-
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDS);
+        bytes32 depositKey  = mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDS, POOL, Ethereum.USDS);
+        bytes32 withdrawKey = mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDS, POOL);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
@@ -398,9 +395,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usds_unlimitedRateLimit() external {
-        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDS, ATOKEN_USDS);
-
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDS);
+        bytes32 depositKey  = mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDS, POOL, Ethereum.USDS);
+        bytes32 withdrawKey = mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDS, POOL);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setUnlimitedRateLimitData(withdrawKey);
@@ -446,9 +442,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usdc() external {
-        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDC, ATOKEN_USDC);
-
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC);
+        bytes32 depositKey  = mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDC, POOL, Ethereum.USDC);
+        bytes32 withdrawKey = mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDC, POOL);
 
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
 
@@ -508,9 +503,8 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
     }
 
     function test_withdrawAave_usdc_unlimitedRateLimit() external {
-        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.USDC, ATOKEN_USDC);
-
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), ATOKEN_USDC);
+        bytes32 depositKey  = mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDC, POOL, Ethereum.USDC);
+        bytes32 withdrawKey = mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDC, POOL);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setUnlimitedRateLimitData(withdrawKey);
@@ -570,13 +564,13 @@ abstract contract AaveV3_Attack_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(mainnetController.LIMIT_AAVE_DEPOSIT(), Ethereum.PYUSD, SparkLend.PYUSD_SPTOKEN),
+            mainnetController.getAaveDepositRateLimitKey(SparkLend.PYUSD_SPTOKEN, address(POOL), Ethereum.PYUSD),
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(mainnetController.LIMIT_AAVE_WITHDRAW(), SparkLend.PYUSD_SPTOKEN),
+            mainnetController.getAaveWithdrawRateLimitKey(SparkLend.PYUSD_SPTOKEN, address(POOL)),
             10_000_000e6,
             uint256(5_000_000e6) / 1 days
         );

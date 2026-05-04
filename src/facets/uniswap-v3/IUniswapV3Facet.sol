@@ -55,6 +55,13 @@ interface IUniswapV3Facet is IFacet {
     );
 
     /**
+     * @notice Emitted when the lower tick bound for a pool is updated.
+     * @param  pool      Address of the Uniswap V3 pool.
+     * @param  lowerTick New lower tick bound for liquidity positions.
+     */
+    event UniswapV3LowerTickUpdated(address indexed pool, int24 lowerTick);
+
+    /**
      * @notice Emitted when the max slippage for a pool is updated.
      * @param  pool        Address of the Uniswap V3 pool.
      * @param  maxSlippage New max slippage in 1e18 precision (1e18 = no slippage).
@@ -97,13 +104,6 @@ interface IUniswapV3Facet is IFacet {
         uint256         amountInSpent,
         uint256         amountOut
     );
-
-    /**
-     * @notice Emitted when the lower tick bound for a pool is updated.
-     * @param  pool      Address of the Uniswap V3 pool.
-     * @param  lowerTick New lower tick bound for liquidity positions.
-     */
-    event UniswapV3LowerTickUpdated(address indexed pool, int24 lowerTick);
 
     /**
      * @notice Emitted when the TWAP lookback period for a pool is updated.
@@ -222,24 +222,6 @@ interface IUniswapV3Facet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for Uniswap V3 deposit (add liquidity) operations, combined with the
-     *         pool's token pair for the per-pair keys.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for Uniswap V3 swap operations, combined with the pool's token pair
-     *         for the per-pair keys.
-     */
-    function LIMIT_SWAP() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for Uniswap V3 withdraw (remove liquidity) operations, combined with
-     *         the pool's token pair for the per-pair keys.
-     */
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
-
     /// @notice Upper bound for the max tick delta admin parameter.
     function MAX_TICK_DELTA() external pure returns (uint24);
 
@@ -260,6 +242,25 @@ interface IUniswapV3Facet is IFacet {
     /**********************************************************************************************/
 
     /**
+     * @notice Returns the derived deposit rate limit key for a pool and token.
+     * @param  pool  Address of the Uniswap V3 pool.
+     * @param  token Address of the token being deposited.
+     * @return key   Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
+
+    /**
+     * @notice Returns the configured tick bounds for liquidity positions.
+     * @param  pool  Address of the pool.
+     * @return lower Minimum lower tick bound.
+     * @return upper Maximum upper tick bound.
+     */
+    function getLiquidityTickBounds(address pool) external view returns (int24 lower, int24 upper);
+
+    /**
      * @notice Returns the configured max slippage for a Uniswap V3 pool.
      * @param  pool        Address of the pool.
      * @return maxSlippage Max slippage in 1e18 precision. Zero means not set.
@@ -274,12 +275,12 @@ interface IUniswapV3Facet is IFacet {
     function getMaxTickDelta(address pool) external view returns (uint24 maxTickDelta);
 
     /**
-     * @notice Returns the configured tick bounds for liquidity positions.
-     * @param  pool  Address of the pool.
-     * @return lower Minimum lower tick bound.
-     * @return upper Maximum upper tick bound.
+     * @notice Returns the derived swap rate limit key for a pool and token.
+     * @param  pool  Address of the Uniswap V3 pool.
+     * @param  token Address of the token being swapped.
+     * @return key   Derived rate limit key.
      */
-    function getLiquidityTickBounds(address pool) external view returns (int24 lower, int24 upper);
+    function getSwapRateLimitKey(address pool, address token) external pure returns (bytes32 key);
 
     /**
      * @notice Returns the configured TWAP lookback period for a pool.
@@ -287,5 +288,16 @@ interface IUniswapV3Facet is IFacet {
      * @return twapSecondsAgo TWAP lookback duration in seconds. Zero means not set.
      */
     function getTWAPSecondsAgo(address pool) external view returns (uint32 twapSecondsAgo);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a pool and token.
+     * @param  pool  Address of the Uniswap V3 pool.
+     * @param  token Address of the token being withdrawn.
+     * @return key   Derived rate limit key.
+     */
+    function getWithdrawRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
 
 }

@@ -6,6 +6,7 @@ import {
 } from "../../lib/oz-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 
 import { IAccessControls } from "../interfaces/IAccessControls.sol";
+import { IRateLimits }     from "../interfaces/IRateLimits.sol";
 
 import { ControllerSharedStorage } from "../ControllerSharedStorage.sol";
 
@@ -36,6 +37,28 @@ abstract contract Facet is IFacet, ControllerSharedStorage, ReentrancyGuardUpgra
         );
 
         _;
+    }
+
+    /**********************************************************************************************/
+    /*** Internal Interactive Functions                                                         ***/
+    /**********************************************************************************************/
+
+    function _increaseRateLimit(bytes32 key, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitIncrease(key, amount);
+    }
+
+    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
+        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
+    }
+
+    /**********************************************************************************************/
+    /*** Internal View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    function _rateLimitExists(bytes32 key) internal view returns (bool) {
+        return IRateLimits(
+            _getSharedControllerStorage().rateLimits
+        ).getRateLimitData(key).maxAmount > 0;
     }
 
 }

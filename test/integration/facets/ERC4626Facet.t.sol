@@ -3,9 +3,10 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
-import { IFacet }                  from "../../../src/facets/IFacet.sol";
-import { IERC4626Facet }           from "../../../src/facets/erc4626/IERC4626Facet.sol";
+import { IEnumerableIntegrations }               from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { IFacet }                                from "../../../src/facets/IFacet.sol";
+import { IERC4626Facet }                         from "../../../src/facets/erc4626/IERC4626Facet.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { ERC4626Facet } from "../../../src/facets/erc4626/ERC4626Facet.sol";
 
@@ -17,11 +18,15 @@ interface IControllerLike {
 
     function getMaxExchangeRate(address token) external view returns (uint256);
 
+    function getDepositRateLimitKey(address token, address asset) external pure returns (bytes32);
+
+    function getWithdrawRateLimitKey(address token) external pure returns (bytes32);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
 
-contract ERC4626Facet_TestBase is Integration_TestBase {
+contract Controller_ERC4626Facet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
@@ -32,7 +37,7 @@ contract ERC4626Facet_TestBase is Integration_TestBase {
 
         vm.label(facet, "ERC4626Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxExchangeRate.selector,
@@ -42,6 +47,16 @@ contract ERC4626Facet_TestBase is Integration_TestBase {
         wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getMaxExchangeRate.selector,
             IERC4626Facet.getMaxExchangeRate.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.getDepositRateLimitKey.selector,
+            IERC4626Facet.getDepositRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.getWithdrawRateLimitKey.selector,
+            IERC4626Facet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -55,10 +70,6 @@ contract ERC4626Facet_TestBase is Integration_TestBase {
         vm.prank(admin);
         controller.updateIntegrations(integrationIds);
     }
-
-}
-
-contract Controller_ERC4626Facet_Admin_Tests is ERC4626Facet_TestBase {
 
     /**********************************************************************************************/
     /*** setMaxExchangeRate Tests                                                               ***/
@@ -128,6 +139,32 @@ contract Controller_ERC4626Facet_Admin_Tests is ERC4626Facet_TestBase {
         controller.setMaxExchangeRate(token, 1e6, 1e18);
 
         assertEq(controller.getMaxExchangeRate(token), 1e48);
+    }
+
+    /**********************************************************************************************/
+    /*** getDepositRateLimitKey Tests                                                           ***/
+    /**********************************************************************************************/
+
+    function test_getDepositRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_4626_DEPOSIT");
+        address token     = makeAddr("token");
+        address asset     = makeAddr("asset");
+
+        assertEq(
+            controller.getDepositRateLimitKey(token, asset),
+            makeAddressAddressKey(keyPrefix, asset, token)
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** getWithdrawRateLimitKey Tests                                                          ***/
+    /**********************************************************************************************/
+
+    function test_getWithdrawRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_4626_WITHDRAW");
+        address token     = makeAddr("token");
+
+        assertEq(controller.getWithdrawRateLimitKey(token), makeAddressKey(keyPrefix, token));
     }
 
 }

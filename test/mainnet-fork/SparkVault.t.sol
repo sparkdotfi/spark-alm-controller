@@ -8,8 +8,6 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { SparkVault } from "../../lib/spark-vaults-v2/src/SparkVault.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { ISparkVaultFacet } from "../../src/facets/spark-vault/ISparkVaultFacet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -34,8 +32,6 @@ abstract contract SparkVault_TestBase is ForkTestBase {
 
     IERC20Like internal constant USDC = IERC20Like(Ethereum.USDC);
 
-    bytes32 internal constant LIMIT_SPARK_VAULT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
-
     address internal user = makeAddr("user");
 
     bytes32 internal takeKey;
@@ -55,7 +51,7 @@ abstract contract SparkVault_TestBase is ForkTestBase {
             ))
         );
 
-        takeKey = makeAddressKey(LIMIT_SPARK_VAULT_TAKE, address(sparkVault));
+        takeKey = mainnetController.getSparkVaultTakeRateLimitKey(address(sparkVault));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         sparkVault.grantRole(sparkVault.TAKER_ROLE(), address(almProxy));
@@ -234,11 +230,6 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         uint256 vaultTotalSupply;
     }
 
-    bytes32 internal constant LIMIT_4626_DEPOSIT   = keccak256("LIMIT_4626_DEPOSIT");
-    bytes32 internal constant LIMIT_4626_WITHDRAW  = keccak256("LIMIT_4626_WITHDRAW");
-    bytes32 internal constant LIMIT_ASSET_TRANSFER = keccak256("LIMIT_ASSET_TRANSFER");
-    bytes32 internal constant LIMIT_USDS_TO_USDC   = keccak256("LIMIT_USDS_TO_USDC");
-
     bytes32 internal transferKey;
 
     function setUp() public override {
@@ -256,15 +247,20 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
 
         // Step 3 (spell): Set the rate limits
 
-        transferKey = makeAddressAddressKey(LIMIT_ASSET_TRANSFER, Ethereum.USDC, address(sparkVault));
+        transferKey = mainnetController.getTransferAssetTransferRateLimitKey(Ethereum.USDC, address(sparkVault));
 
-        bytes32 morphoDepositKey  = makeAddressAddressKey(LIMIT_4626_DEPOSIT, Ethereum.DAI, Ethereum.MORPHO_VAULT_DAI_1);
-        bytes32 morphoWithdrawKey = makeAddressKey(LIMIT_4626_WITHDRAW, Ethereum.MORPHO_VAULT_DAI_1);
+        bytes32 morphoDepositKey  = mainnetController.getERC4626DepositRateLimitKey(Ethereum.MORPHO_VAULT_DAI_1, Ethereum.DAI);
+        bytes32 morphoWithdrawKey = mainnetController.getERC4626WithdrawRateLimitKey(Ethereum.MORPHO_VAULT_DAI_1);
 
-        rateLimits.setRateLimitData(takeKey,            10_000_000e6,  uint256(10_000_000e6) / 1 days);
-        rateLimits.setRateLimitData(transferKey,        10_000_000e6,  uint256(10_000_000e6) / 1 days);
-        rateLimits.setRateLimitData(morphoDepositKey,   10_000_000e18, uint256(10_000_000e18) / 1 days);
-        rateLimits.setRateLimitData(LIMIT_USDS_TO_USDC, 10_000_000e6,  uint256(10_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(takeKey,          10_000_000e6,  uint256(10_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(transferKey,      10_000_000e6,  uint256(10_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(morphoDepositKey, 10_000_000e18, uint256(10_000_000e18) / 1 days);
+
+        rateLimits.setRateLimitData(
+            mainnetController.psmUSDSToUSDCSwapRateLimitKey(),
+            10_000_000e6,
+            uint256(10_000_000e6) / 1 days
+        );
 
         rateLimits.setUnlimitedRateLimitData(morphoWithdrawKey);
 

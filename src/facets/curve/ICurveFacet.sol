@@ -123,30 +123,15 @@ interface ICurveFacet is IFacet {
         returns (uint256 amountOut);
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
-    /**********************************************************************************************/
-
-    /**
-     * @notice Rate limit key for Curve deposit operations, combined with the pool address. Rate
-     *         limited by 18-decimal normalized USD value.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for Curve swap operations, combined with the pool address. Rate
-     *         limited by 18-decimal normalized USD value.
-     */
-    function LIMIT_SWAP() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for Curve withdraw operations, combined with the pool address. Rate
-     *         limited by 18-decimal normalized USD value.
-     */
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
-
-    /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
+
+    /**
+     * @notice Returns the derived deposit rate limit key for a Curve pool.
+     * @param  pool Address of the Curve pool.
+     * @return key  Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address pool) external pure returns (bytes32 key);
 
     /**
      * @notice Returns the configured max slippage for a Curve pool.
@@ -154,5 +139,19 @@ interface ICurveFacet is IFacet {
      * @return maxSlippage Max slippage in 1e18 precision. Zero means not set.
      */
     function getMaxSlippage(address pool) external view returns (uint256 maxSlippage);
+
+    /**
+     * @notice Returns the derived swap rate limit key for a Curve pool.
+     * @param  pool Address of the Curve pool.
+     * @return key  Derived rate limit key.
+     */
+    function getSwapRateLimitKey(address pool) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a Curve pool.
+     * @param  pool Address of the Curve pool.
+     * @return key  Derived rate limit key.
+     */
+    function getWithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
 
 }

@@ -23,13 +23,13 @@ interface ILayerZeroFacet is IFacet {
 
     /**
      * @notice Emitted when a cross-chain token transfer is initiated.
-     * @param  oftAddress            Address of the OFT contract on the source chain.
+     * @param  oft                   Address of the OFT contract on the source chain.
      * @param  destinationEndpointId LayerZero endpoint ID for the destination chain.
      * @param  amount                Amount of tokens transferred (local decimals).
      * @param  nativeFeePaid         Amount of native gas token paid for messaging.
      */
     event LayerZeroTransfer(
-        address indexed oftAddress,
+        address indexed oft,
         uint32  indexed destinationEndpointId,
         uint256         amount,
         uint256         nativeFeePaid
@@ -49,23 +49,13 @@ interface ILayerZeroFacet is IFacet {
     /**
      * @notice Transfers tokens cross-chain via a LayerZero OFT contract.
      * @notice Excess native fee is refunded to the caller.
-     * @param  oftAddress            Address of the OFT contract.
+     * @param  oft                   Address of the OFT contract.
      * @param  amount                Amount of tokens to transfer (local decimals).
      * @param  destinationEndpointId LayerZero endpoint ID for the destination chain.
      */
-    function transfer(address oftAddress, uint256 amount, uint32 destinationEndpointId)
+    function transfer(address oft, uint256 amount, uint32 destinationEndpointId)
         external
         payable;
-
-    /**********************************************************************************************/
-    /*** Variables                                                                              ***/
-    /**********************************************************************************************/
-
-    /**
-     * @notice Rate limit key for LayerZero transfers, combined with the OFT address and destination
-     *         endpoint ID to form the per-route keys.
-     */
-    function LIMIT_TRANSFER() external pure returns (bytes32);
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
@@ -77,5 +67,17 @@ interface ILayerZeroFacet is IFacet {
      * @return recipient             Bytes32-encoded recipient. Zero if not set.
      */
     function getRecipient(uint32 destinationEndpointId) external view returns (bytes32 recipient);
+
+    /**
+     * @notice Returns the derived transfer rate limit key for an OFT, token, and destination.
+     * @param  oft                   Address of the OFT contract.
+     * @param  destinationEndpointId LayerZero endpoint ID for the destination chain.
+     * @param  token                 Address of token transferred by OFT.
+     * @return key                   Derived rate limit key.
+     */
+    function getTransferRateLimitKey(address oft, uint32 destinationEndpointId, address token)
+        external
+        pure
+        returns (bytes32 key);
 
 }

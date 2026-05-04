@@ -39,13 +39,19 @@ interface IPendleFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for Pendle PT redeem operations, combined with the market address to
-     *         form the per-market keys.
-     */
-    function LIMIT_REDEEM() external pure returns (bytes32);
-
     /// @notice Address of the Pendle router contract (immutable).
     function router() external view returns (address);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
+    /**
+     * @notice Returns the derived redeem rate limit key for a Pendle market and PT token.
+     * @param  market Address of the Pendle market.
+     * @param  pt     Address of the Pendle PT token.
+     * @return key    Derived rate limit key.
+     */
+    function getRedeemRateLimitKey(address market, address pt) external pure returns (bytes32 key);
 
 }

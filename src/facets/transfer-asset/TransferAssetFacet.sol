@@ -3,8 +3,7 @@ pragma solidity ^0.8.34;
 
 import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -24,8 +23,7 @@ contract TransferAssetFacet is ITransferAssetFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc ITransferAssetFacet
-    bytes32 public constant override LIMIT_TRANSFER = keccak256("LIMIT_ASSET_TRANSFER");
+    bytes32 internal constant _LIMIT_TRANSFER = keccak256("LIMIT_ASSET_TRANSFER");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -41,14 +39,9 @@ contract TransferAssetFacet is ITransferAssetFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _decreaseRateLimit(getTransferRateLimitKey(asset, destination), amount);
 
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(
-            makeAddressAddressKey(LIMIT_TRANSFER, asset, destination),
-            amount
-        );
-
-        bytes memory returnData = IALMProxy($.proxy).doCall(
+        bytes memory returnData = IALMProxy(_getSharedControllerStorage().proxy).doCall(
             asset,
             abi.encodeCall(IERC20Like.transfer, (destination, amount))
         );
@@ -58,7 +51,21 @@ contract TransferAssetFacet is ITransferAssetFacet, Facet {
             "TransferAssetFacet/transfer-failed"
         );
 
-        emit TransferAssetFacetTransfer(asset, destination, amount);
+        emit TransferAssetTransfer(asset, destination, amount);
+    }
+
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    /// @inheritdoc ITransferAssetFacet
+    function getTransferRateLimitKey(address asset, address destination)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_TRANSFER, asset, destination);
     }
 
 }

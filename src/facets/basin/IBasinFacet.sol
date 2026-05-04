@@ -3,6 +3,10 @@ pragma solidity ^0.8.34;
 
 import { IFacet } from "../IFacet.sol";
 
+/**
+ * @title  IBasinFacet
+ * @notice PAU facet for depositing into and withdrawing from Basin liquidity pools.
+ */
 interface IBasinFacet is IFacet {
 
     /**********************************************************************************************/
@@ -66,13 +70,29 @@ interface IBasinFacet is IFacet {
         returns (uint256 assetsWithdrawn);
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
+    /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
-    /// @notice Limit for deposit operations.
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
+    /**
+     * @notice Returns the derived deposit rate limit key for a basin and asset.
+     * @param  basin Address of the basin contract.
+     * @param  asset Address of the asset.
+     * @return key   Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address basin, address asset)
+        external
+        pure
+        returns (bytes32 key);
 
-    /// @notice Limit for withdraw operations.
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
+    /**
+     * @notice Returns the derived withdraw rate limit key for a basin and asset.
+     * @param  basin Address of the basin contract.
+     * @param  asset Address of the asset.
+     * @return key   Derived rate limit key.
+     */
+    function getWithdrawRateLimitKey(address basin, address asset)
+        external
+        pure
+        returns (bytes32 key);
 
 }

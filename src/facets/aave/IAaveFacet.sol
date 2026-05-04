@@ -61,24 +61,21 @@ interface IAaveFacet is IFacet {
     function withdraw(address aToken, uint256 amount) external returns (uint256 amountWithdrawn);
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
-    /**********************************************************************************************/
-
-    /**
-     * @notice Rate limit key for Aave deposit operations, combined with the underlying asset
-     *         address and the aToken address to form the per-market key.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for Aave withdraw operations, combined with the aToken address to form
-     *         the per-market keys.
-     */
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
-
-    /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
+
+    /**
+     * @notice Returns the derived deposit rate limit key for a given Aave aToken, pool, and
+     *         underlying asset.
+     * @param  aToken          Address of the aToken.
+     * @param  pool            Address of the pool.
+     * @param  underlyingAsset Address of the underlying asset.
+     * @return key             Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address aToken, address pool, address underlyingAsset)
+        external
+        pure
+        returns (bytes32 key);
 
     /**
      * @notice Returns the configured max slippage for a given aToken market.
@@ -86,5 +83,16 @@ interface IAaveFacet is IFacet {
      * @return maxSlippage Max slippage in 1e18 precision. Zero means not set.
      */
     function getMaxSlippage(address aToken) external view returns (uint256 maxSlippage);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a given Aave aToken and pool.
+     * @param  aToken Address of the aToken.
+     * @param  pool   Address of the pool.
+     * @return key    Derived rate limit key.
+     */
+    function getWithdrawRateLimitKey(address aToken, address pool)
+        external
+        pure
+        returns (bytes32 key);
 
 }

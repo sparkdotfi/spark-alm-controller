@@ -19,8 +19,6 @@ import { Domain, DomainHelpers } from "../../lib/xchain-helpers/src/testing/Doma
 import { ILayerZeroFacet } from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
 import { LayerZeroFacet }  from "../../src/facets/layer-zero/LayerZeroFacet.sol";
 
-import { makeAddressAddressUint32Key } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IAccessControls }         from "../../src/interfaces/IAccessControls.sol";
 import { IALMProxy }               from "../../src/interfaces/IALMProxy.sol";
 import { IEnumerableIntegrations } from "../../src/interfaces/IEnumerableIntegrations.sol";
@@ -96,11 +94,10 @@ abstract contract LayerZero_TestBase is ForkTestBase {
     function setUp() public override {
         super.setUp();
 
-        key = makeAddressAddressUint32Key(
-            mainnetController.LIMIT_LAYERZERO_TRANSFER(),
-            Ethereum.USDT,
+        key = mainnetController.getLayerZeroTransferRateLimitKey(
             USDT_OFT,
-            DESTINATION_ENDPOINT_ID
+            DESTINATION_ENDPOINT_ID,
+            Ethereum.USDT
         );
     }
 
@@ -458,8 +455,8 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_LAYERZERO_TRANSFER.selector,
-            ILayerZeroFacet.LIMIT_TRANSFER.selector
+            IForeignControllerFull.getLayerZeroTransferRateLimitKey.selector,
+            ILayerZeroFacet.getTransferRateLimitKey.selector
         );
 
         wires[3] = IEnumerableIntegrations.Wire(
@@ -500,11 +497,10 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
         address token = ILayerZeroLike(USDT_OFT).token();
 
-        key = makeAddressAddressUint32Key(
-            foreignController.LIMIT_LAYERZERO_TRANSFER(),
-            token,
+        key = foreignController.getLayerZeroTransferRateLimitKey(
             USDT_OFT,
-            DESTINATION_ENDPOINT_ID
+            DESTINATION_ENDPOINT_ID,
+            token
         );
     }
 

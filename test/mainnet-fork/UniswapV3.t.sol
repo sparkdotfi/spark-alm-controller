@@ -15,8 +15,6 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
-import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import {
     INonfungiblePositionManager,
     ISwapRouter,
@@ -68,66 +66,65 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
 
         stranger = makeAddr("stranger");
 
-        uniswapV3_UsdcUsdtPool_UsdcSwapKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_SWAP(),
-            address(usdc), UNISWAP_V3_USDC_USDT_POOL
+        uniswapV3_UsdcUsdtPool_UsdcSwapKey = mainnetController.getUniswapV3SwapRateLimitKey(
+            UNISWAP_V3_USDC_USDT_POOL,
+            address(usdc)
         );
 
-        uniswapV3_UsdcUsdtPool_UsdtSwapKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_SWAP(),
-            address(usdt), UNISWAP_V3_USDC_USDT_POOL
+        uniswapV3_UsdcUsdtPool_UsdtSwapKey = mainnetController.getUniswapV3SwapRateLimitKey(
+            UNISWAP_V3_USDC_USDT_POOL,
+            address(usdt)
         );
 
-        uniswapV3_UsdcUsdtPool_UsdcAddLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(usdc), UNISWAP_V3_USDC_USDT_POOL
+        uniswapV3_UsdcUsdtPool_UsdcAddLiquidityKey = mainnetController.getUniswapV3DepositRateLimitKey(
+            UNISWAP_V3_USDC_USDT_POOL,
+            address(usdc)
         );
 
-        uniswapV3_UsdcUsdtPool_UsdtAddLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(usdt), UNISWAP_V3_USDC_USDT_POOL
+        uniswapV3_UsdcUsdtPool_UsdtAddLiquidityKey = mainnetController.getUniswapV3DepositRateLimitKey(
+            UNISWAP_V3_USDC_USDT_POOL,
+            address(usdt)
         );
 
-        uniswapV3_UsdcUsdtPool_UsdcRemoveLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(usdc), UNISWAP_V3_USDC_USDT_POOL
+        uniswapV3_UsdcUsdtPool_UsdcRemoveLiquidityKey = mainnetController.getUniswapV3WithdrawRateLimitKey(
+            UNISWAP_V3_USDC_USDT_POOL,
+            address(usdc)
         );
 
-        uniswapV3_UsdcUsdtPool_UsdtRemoveLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(usdt), UNISWAP_V3_USDC_USDT_POOL
+        uniswapV3_UsdcUsdtPool_UsdtRemoveLiquidityKey = mainnetController.getUniswapV3WithdrawRateLimitKey(
+            UNISWAP_V3_USDC_USDT_POOL,
+            address(usdt)
         );
 
-        uniswapV3_DaiUsdcPool_DaiSwapKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_SWAP(),
-            address(dai),  UNISWAP_V3_DAI_USDC_POOL
+        uniswapV3_DaiUsdcPool_DaiSwapKey = mainnetController.getUniswapV3SwapRateLimitKey(
+            UNISWAP_V3_DAI_USDC_POOL,
+            address(dai)
         );
 
-        uniswapV3_DaiUsdcPool_UsdcSwapKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_SWAP(),
-            address(usdc), UNISWAP_V3_DAI_USDC_POOL
+        uniswapV3_DaiUsdcPool_UsdcSwapKey = mainnetController.getUniswapV3SwapRateLimitKey(
+            UNISWAP_V3_DAI_USDC_POOL,
+            address(usdc)
         );
 
-        uniswapV3_DaiUsdcPool_DaiAddLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(dai),  UNISWAP_V3_DAI_USDC_POOL
+        uniswapV3_DaiUsdcPool_DaiAddLiquidityKey = mainnetController.getUniswapV3DepositRateLimitKey(
+            UNISWAP_V3_DAI_USDC_POOL,
+            address(dai)
         );
 
-        uniswapV3_DaiUsdcPool_UsdcAddLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(usdc), UNISWAP_V3_DAI_USDC_POOL
+        uniswapV3_DaiUsdcPool_UsdcAddLiquidityKey = mainnetController.getUniswapV3DepositRateLimitKey(
+            UNISWAP_V3_DAI_USDC_POOL,
+            address(usdc)
         );
 
-        uniswapV3_DaiUsdcPool_DaiRemoveLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(dai),  UNISWAP_V3_DAI_USDC_POOL
+        uniswapV3_DaiUsdcPool_DaiRemoveLiquidityKey = mainnetController.getUniswapV3WithdrawRateLimitKey(
+            UNISWAP_V3_DAI_USDC_POOL,
+            address(dai)
         );
 
-        uniswapV3_DaiUsdcPool_UsdcRemoveLiquidityKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(usdc), UNISWAP_V3_DAI_USDC_POOL
+        uniswapV3_DaiUsdcPool_UsdcRemoveLiquidityKey = mainnetController.getUniswapV3WithdrawRateLimitKey(
+            UNISWAP_V3_DAI_USDC_POOL,
+            address(usdc)
         );
-
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 
@@ -171,7 +168,7 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
     }
 
     function _getSwapKey(address tokenIn) internal view returns (bytes32) {
-        return makeAddressAddressKey(mainnetController.LIMIT_UNISWAP_V3_SWAP(), tokenIn, _getPool());
+        return mainnetController.getUniswapV3SwapRateLimitKey(_getPool(), tokenIn);
     }
 
     function _label() internal {
@@ -2194,11 +2191,7 @@ contract MainnetController_UniswapV3_Swap_SandwichAttackTest is UniswapV3_TestBa
         uint256 victimAmountIn = 1_000_000e6;
 
         // Configure rate limits and Uniswap params for this pool.
-        bytes32 swapKey = makeAddressAddressKey(
-            mainnetController.LIMIT_UNISWAP_V3_SWAP(),
-            address(usdc),
-            pool
-        );
+        bytes32 swapKey = mainnetController.getUniswapV3SwapRateLimitKey(pool, address(usdc));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setUnlimitedRateLimitData(swapKey);

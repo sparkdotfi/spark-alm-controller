@@ -6,6 +6,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { IUniswapV4Facet }         from "../../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
+import { makeBytes32Key }          from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { UniswapV4Facet } from "../../../src/facets/uniswap-v4/UniswapV4Facet.sol";
 
@@ -29,6 +30,12 @@ interface IControllerLike {
         view
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
+    function getDepositRateLimitKey(bytes32 poolId) external pure returns (bytes32);
+
+    function getSwapRateLimitKey(bytes32 poolId) external pure returns (bytes32);
+
+    function getWithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -50,7 +57,7 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
 
         vm.label(facet, "UniswapV4Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](7);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxSlippage.selector,
@@ -70,6 +77,21 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
         wires[3] = IEnumerableIntegrations.Wire(
             IControllerLike.getTickLimits.selector,
             IUniswapV4Facet.getTickLimits.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.getDepositRateLimitKey.selector,
+            IUniswapV4Facet.getDepositRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IControllerLike.getSwapRateLimitKey.selector,
+            IUniswapV4Facet.getSwapRateLimitKey.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IControllerLike.getWithdrawRateLimitKey.selector,
+            IUniswapV4Facet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -235,6 +257,36 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
         assertEq(tickLowerMin,   -60);
         assertEq(tickUpperMax,   60);
         assertEq(maxTickSpacing, 20);
+    }
+
+    /**********************************************************************************************/
+    /*** getDepositRateLimitKey Tests                                                           ***/
+    /**********************************************************************************************/
+
+    function test_getDepositRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
+
+        assertEq(controller.getDepositRateLimitKey(_POOL_ID), makeBytes32Key(keyPrefix, _POOL_ID));
+    }
+
+    /**********************************************************************************************/
+    /*** getSwapRateLimitKey Tests                                                              ***/
+    /**********************************************************************************************/
+
+    function test_getSwapRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V4_SWAP");
+
+        assertEq(controller.getSwapRateLimitKey(_POOL_ID), makeBytes32Key(keyPrefix, _POOL_ID));
+    }
+
+    /**********************************************************************************************/
+    /*** getWithdrawRateLimitKey Tests                                                          ***/
+    /**********************************************************************************************/
+
+    function test_getWithdrawRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V4_WITHDRAW");
+
+        assertEq(controller.getWithdrawRateLimitKey(_POOL_ID), makeBytes32Key(keyPrefix, _POOL_ID));
     }
 
 }

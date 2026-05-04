@@ -1,11 +1,69 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
+import { IUSDEFacet }              from "../../../src/facets/usde/IUSDEFacet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+
 import { USDEFacet } from "../../../src/facets/usde/USDEFacet.sol";
 
 import { Integration_TestBase } from "../TestBase.t.sol";
 
+interface IControllerLike {
+
+    function burnRateLimitKey() external pure returns (bytes32);
+
+    function cooldownRateLimitKey() external pure returns (bytes32);
+
+    function mintRateLimitKey() external pure returns (bytes32);
+
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
+}
+
 contract Controller_USDEFacet_Tests is Integration_TestBase {
+
+    IControllerLike internal controller;
+
+    function setUp() external {
+        controller = IControllerLike(_deploy());
+
+        address facet = address(new USDEFacet(
+            makeAddr("ethenaMinter"),
+            makeAddr("susde"),
+            makeAddr("usdc"),
+            makeAddr("usde")
+        ));
+
+        vm.label(facet, "USDEFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IControllerLike.burnRateLimitKey.selector,
+            IUSDEFacet.burnRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IControllerLike.cooldownRateLimitKey.selector,
+            IUSDEFacet.cooldownRateLimitKey.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.mintRateLimitKey.selector,
+            IUSDEFacet.mintRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("USDE_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "USDE_FACET";
+
+        vm.prank(admin);
+        controller.updateIntegrations(integrationIds);
+    }
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/
@@ -43,6 +101,30 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
         assertEq(facet.susde(),        susde);
         assertEq(facet.usdc(),         usdc);
         assertEq(facet.usde(),         usde);
+    }
+
+    /**********************************************************************************************/
+    /*** burnRateLimitKey Tests                                                                 ***/
+    /**********************************************************************************************/
+
+    function test_burnRateLimitKey() external {
+        assertEq(controller.burnRateLimitKey(), keccak256("LIMIT_USDE_BURN"));
+    }
+
+    /**********************************************************************************************/
+    /*** cooldownRateLimitKey Tests                                                             ***/
+    /**********************************************************************************************/
+
+    function test_cooldownRateLimitKey() external {
+        assertEq(controller.cooldownRateLimitKey(), keccak256("LIMIT_SUSDE_COOLDOWN"));
+    }
+
+    /**********************************************************************************************/
+    /*** mintRateLimitKey Tests                                                                 ***/
+    /**********************************************************************************************/
+
+    function test_mintRateLimitKey() external {
+        assertEq(controller.mintRateLimitKey(), keccak256("LIMIT_USDE_MINT"));
     }
 
 }

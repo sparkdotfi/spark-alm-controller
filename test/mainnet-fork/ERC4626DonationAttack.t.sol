@@ -5,8 +5,6 @@ import { MarketParamsLib } from "../../lib/metamorpho/lib/morpho-blue/src/librar
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IMetaMorphoLike, IMorphoLike, Id, Market, MarketParams } from "../interfaces/Morpho.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -40,9 +38,8 @@ abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
 
         morpho = MORPHO_VAULT.MORPHO();
 
-        bytes32 depositKey = makeAddressAddressKey(mainnetController.LIMIT_4626_DEPOSIT(), Ethereum.USDS, address(MORPHO_VAULT));
-
-        bytes32 withdrawKey = makeAddressKey(mainnetController.LIMIT_4626_WITHDRAW(), address(MORPHO_VAULT));
+        bytes32 depositKey  = mainnetController.getERC4626DepositRateLimitKey(address(MORPHO_VAULT), Ethereum.USDS);
+        bytes32 withdrawKey = mainnetController.getERC4626WithdrawRateLimitKey(address(MORPHO_VAULT));
 
         // Basic validation
         assertEq(keccak256(abi.encode(MORPHO_VAULT.symbol())), keccak256(abi.encode("sparkUSDS")));

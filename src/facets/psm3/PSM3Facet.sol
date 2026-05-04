@@ -4,10 +4,9 @@ pragma solidity ^0.8.34;
 import { ApproveLib }     from "../../libraries/ApproveLib.sol";
 import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IFacet } from "../IFacet.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IFacet } from "../IFacet.sol";
 
 import { Facet } from "../Facet.sol";
 
@@ -33,11 +32,8 @@ contract PSM3Facet is IPSM3Facet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IPSM3Facet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_PSM_DEPOSIT");
-
-    /// @inheritdoc IPSM3Facet
-    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_PSM_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_PSM_DEPOSIT");
+    bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_PSM_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -71,7 +67,7 @@ contract PSM3Facet is IPSM3Facet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        _decreaseRateLimit(LIMIT_DEPOSIT, asset, amount);
+        _decreaseRateLimit(getDepositRateLimitKey(asset), amount);
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -114,20 +110,23 @@ contract PSM3Facet is IPSM3Facet, Facet {
             (uint256)
         );
 
-        _decreaseRateLimit(LIMIT_WITHDRAW, asset, assetsWithdrawn);
+        _decreaseRateLimit(getWithdrawRateLimitKey(asset), assetsWithdrawn);
 
         emit PSM3Withdraw(asset, assetsWithdrawn, startingShares - IPSM3Like(psm).shares(proxy));
     }
 
     /**********************************************************************************************/
-    /*** Internal Interactive Functions                                                         ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(bytes32 key, address asset, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
-            makeAddressKey(key, asset),
-            amount
-        );
+    /// @inheritdoc IPSM3Facet
+    function getDepositRateLimitKey(address asset) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_DEPOSIT, asset);
+    }
+
+    /// @inheritdoc IPSM3Facet
+    function getWithdrawRateLimitKey(address asset) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_WITHDRAW, asset);
     }
 
 }

@@ -99,21 +99,20 @@ interface IERC4626Facet is IFacet {
     /// @notice Precision used for exchange rate calculations (1e36).
     function EXCHANGE_RATE_PRECISION() external pure returns (uint256);
 
-    /**
-     * @notice Rate limit key for ERC-4626 deposit operations, combined with the asset address and
-     *         vault token address to form the per-market key.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for ERC-4626 withdraw operations, combined with the vault token
-     *         address to form the per-vault keys.
-     */
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
-
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
+
+    /**
+     * @notice Returns the derived deposit rate limit key for a vault token and asset.
+     * @param  token Address of the ERC-4626 vault token.
+     * @param  asset Address of the asset being deposited.
+     * @return key   Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address token, address asset)
+        external
+        pure
+        returns (bytes32 key);
 
     /**
      * @notice Returns the configured max exchange rate for a vault token.
@@ -121,5 +120,12 @@ interface IERC4626Facet is IFacet {
      * @return maxExchangeRate Max exchange rate in 1e36 precision. Zero if not set.
      */
     function getMaxExchangeRate(address token) external view returns (uint256 maxExchangeRate);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a vault token.
+     * @param  token Address of the ERC-4626 vault token.
+     * @return key   Derived rate limit key.
+     */
+    function getWithdrawRateLimitKey(address token) external pure returns (bytes32 key);
 
 }

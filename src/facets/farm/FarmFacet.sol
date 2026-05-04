@@ -4,8 +4,7 @@ pragma solidity ^0.8.34;
 import { ApproveLib }                            from "../../libraries/ApproveLib.sol";
 import { makeAddressAddressKey, makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -39,11 +38,8 @@ contract FarmFacet is IFarmFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IFarmFacet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_FARM_DEPOSIT");
-
-    /// @inheritdoc IFarmFacet
-    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_FARM_DEPOSIT");
+    bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_FARM_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -59,11 +55,12 @@ contract FarmFacet is IFarmFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        _decreaseRateLimit(_getDepositRateLimitKey(farm), amount);
+        address proxy        = _getSharedControllerStorage().proxy;
+        address stakingToken = IFarmLike(farm).stakingToken();
 
-        address proxy = _getSharedControllerStorage().proxy;
+        _decreaseRateLimit(getDepositRateLimitKey(farm, stakingToken), amount);
 
-        ApproveLib.approve(IFarmLike(farm).stakingToken(), proxy, farm, amount);
+        ApproveLib.approve(stakingToken, proxy, farm, amount);
 
         IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.stake, (amount)));
 
@@ -89,7 +86,7 @@ contract FarmFacet is IFarmFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 reward)
     {
-        _decreaseRateLimit(_getWithdrawRateLimitKey(farm), amount);
+        _decreaseRateLimit(getWithdrawRateLimitKey(farm), amount);
 
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
             farm,
@@ -99,6 +96,25 @@ contract FarmFacet is IFarmFacet, Facet {
         emit FarmWithdraw(farm, amount);
 
         return _claimReward(farm);
+    }
+
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    /// @inheritdoc IFarmFacet
+    function getDepositRateLimitKey(address farm, address stakingToken)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_DEPOSIT, stakingToken, farm);
+    }
+
+    /// @inheritdoc IFarmFacet
+    function getWithdrawRateLimitKey(address farm) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_WITHDRAW, farm);
     }
 
     /**********************************************************************************************/
@@ -116,22 +132,6 @@ contract FarmFacet is IFarmFacet, Facet {
         reward = IERC20Like(rewardsToken).balanceOf(proxy) - startingBalance;
 
         emit FarmReward(farm, reward);
-    }
-
-    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
-    }
-
-    /**********************************************************************************************/
-    /*** Internal View/Pure Functions                                                           ***/
-    /**********************************************************************************************/
-
-    function _getDepositRateLimitKey(address farm) internal view returns (bytes32) {
-        return makeAddressAddressKey(LIMIT_DEPOSIT, IFarmLike(farm).stakingToken(), farm);
-    }
-
-    function _getWithdrawRateLimitKey(address farm) internal view returns (bytes32) {
-        return makeAddressKey(LIMIT_WITHDRAW, farm);
     }
 
 }

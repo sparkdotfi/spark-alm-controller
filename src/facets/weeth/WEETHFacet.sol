@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { ApproveLib }                            from "../../libraries/ApproveLib.sol";
-import { makeAddressAddressKey, makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
+import { ApproveLib } from "../../libraries/ApproveLib.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import {
+    makeAddressAddressAddressKey,
+    makeAddressAddressKey
+} from "../../libraries/RateLimitHelpers.sol";
+
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -67,12 +70,8 @@ contract WEETHFacet is IWEETHFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IWEETHFacet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_WEETH_DEPOSIT");
-
-    /// @inheritdoc IWEETHFacet
-    bytes32 public constant override LIMIT_REQUEST_WITHDRAW =
-        keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
+    bytes32 internal constant _LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -111,21 +110,18 @@ contract WEETHFacet is IWEETHFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        address proxy         = _getSharedControllerStorage().proxy;
+        address eeth          = IWEETHLike(weeth).eETH();
+        address liquidityPool = IEETHLike(eeth).liquidityPool();
 
-        _decreaseRateLimit(_getDepositRateLimitKey(), amount);
-
-        address proxy = $.proxy;
+        _decreaseRateLimit(getDepositRateLimitKey(eeth, liquidityPool), amount);
 
         // Unwrap WETH to ETH.
         IALMProxy(proxy).doCall(weth, abi.encodeCall(IWETHLike.withdraw, (amount)));
 
-        // Deposit ETH to eETH.
-        address eeth          = IWEETHLike(weeth).eETH();
-        address liquidityPool = IEETHLike(eeth).liquidityPool();
-
         uint256 startingEETHShares = IEETHLike(eeth).shares(proxy);
 
+        // Deposit ETH to eETH.
         IALMProxy(proxy).doCallWithValue(
             liquidityPool,
             abi.encodeCall(ILiquidityPoolLike.deposit, ()),
@@ -157,9 +153,7 @@ contract WEETHFacet is IWEETHFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 requestId)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
-
-        address proxy         = $.proxy;
+        address proxy         = _getSharedControllerStorage().proxy;
         address eeth          = IWEETHLike(weeth).eETH();
         address liquidityPool = IEETHLike(eeth).liquidityPool();
 
@@ -177,7 +171,10 @@ contract WEETHFacet is IWEETHFacet, Facet {
         );
 
         // NOTE: An authorized weethModule is enforced by the rate limit key.
-        _decreaseRateLimit(_getRequestWithdrawRateLimitKey(weethModule), eethAmount);
+        _decreaseRateLimit(
+            getRequestWithdrawRateLimitKey(weethModule, eeth, liquidityPool),
+            eethAmount
+        );
 
         // Request withdrawal of ETH from eETH.
         ApproveLib.approve(eeth, proxy, liquidityPool, eethAmount);
@@ -203,19 +200,19 @@ contract WEETHFacet is IWEETHFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 wethReceived)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        address eeth = IWEETHLike(weeth).eETH();
 
         // NOTE: An authorized weethModule is enforced by the rate limit key.
         require(
-            IRateLimits($.rateLimits).getRateLimitData(
-                _getRequestWithdrawRateLimitKey(weethModule)
-            ).maxAmount > 0,
+            _rateLimitExists(
+                getRequestWithdrawRateLimitKey(weethModule, eeth, IEETHLike(eeth).liquidityPool())
+            ),
             "WEETHFacet/invalid-action"
         );
 
         // NOTE: The weethModule contract is first party, so the return value can be trusted.
         wethReceived = abi.decode(
-            IALMProxy($.proxy).doCall(
+            IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 weethModule,
                 abi.encodeCall(IWEETHModuleLike.claimWithdrawal, (requestId))
             ),
@@ -226,23 +223,36 @@ contract WEETHFacet is IWEETHFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** Internal Interactive Functions                                                         ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
+    /// @inheritdoc IWEETHFacet
+    function getDepositRateLimitKey(address eeth, address liquidityPool)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_DEPOSIT, eeth, liquidityPool);
     }
 
-    /**********************************************************************************************/
-    /*** Internal View/Pure Functions                                                           ***/
-    /**********************************************************************************************/
-
-    function _getDepositRateLimitKey() internal view returns (bytes32) {
-        return makeAddressKey(LIMIT_DEPOSIT, IWEETHLike(weeth).eETH());
-    }
-
-    function _getRequestWithdrawRateLimitKey(address weethModule) internal view returns (bytes32) {
-        return makeAddressAddressKey(LIMIT_REQUEST_WITHDRAW, IWEETHLike(weeth).eETH(), weethModule);
+    /// @inheritdoc IWEETHFacet
+    function getRequestWithdrawRateLimitKey(
+        address weethModule,
+        address eeth,
+        address liquidityPool
+    )
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressAddressKey(
+            _LIMIT_REQUEST_WITHDRAW,
+            eeth,
+            liquidityPool,
+            weethModule
+        );
     }
 
 }

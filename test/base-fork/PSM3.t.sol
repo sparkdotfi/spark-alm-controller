@@ -5,8 +5,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
-import { makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IPSM3Facet } from "../../src/facets/psm3/IPSM3Facet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -42,9 +40,7 @@ abstract contract PSM3_TestBase is ForkTestBase {
         assertEq(psmBase.totalShares(),             totalShares);
         assertEq(psmBase.totalAssets(),             totalAssets);
 
-        bytes32 assetKey = makeAddressKey(rateLimitKey, token);
-
-        assertEq(rateLimits.getCurrentRateLimit(assetKey), currentRateLimit);
+        assertEq(rateLimits.getCurrentRateLimit(rateLimitKey), currentRateLimit);
 
         // Should always be 0 before and after calls
         assertEq(usdsBase.allowance(address(almProxy), address(psmBase)), 0);
@@ -109,7 +105,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
     }
 
     function test_depositPSM_depositUSDS() external {
-        bytes32 key = foreignController.LIMIT_PSM_DEPOSIT();
+        bytes32 key = foreignController.getPSMDepositRateLimitKey(address(usdsBase));
 
         deal(address(usdsBase), address(almProxy), 100e18);
 
@@ -149,7 +145,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
     }
 
     function test_depositPSM_depositUSDC() external {
-        bytes32 key = foreignController.LIMIT_PSM_DEPOSIT();
+        bytes32 key = foreignController.getPSMDepositRateLimitKey(Base.USDC);
 
         deal(Base.USDC, address(almProxy), 100e6);
 
@@ -189,7 +185,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
     }
 
     function test_depositPSM_depositSUSDS() external {
-        bytes32 key = foreignController.LIMIT_PSM_DEPOSIT();
+        bytes32 key = foreignController.getPSMDepositRateLimitKey(address(susdsBase));
 
         deal(address(susdsBase), address(almProxy), 100e18);
 
@@ -248,11 +244,10 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_usdcZeroMaxAmount() external {
-        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
-        bytes32 withdrawAssetKey = makeAddressKey(withdrawKey, Base.USDC);
+        bytes32 withdrawKey = foreignController.getPSMWithdrawRateLimitKey(Base.USDC);
 
         vm.prank(SPARK_EXECUTOR);
-        rateLimits.setRateLimitData(withdrawAssetKey, 0, 0);
+        rateLimits.setRateLimitData(withdrawKey, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
@@ -260,11 +255,10 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_usdsZeroMaxAmount() external {
-        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
-        bytes32 withdrawAssetKey = makeAddressKey(withdrawKey, address(usdsBase));
+        bytes32 withdrawKey = foreignController.getPSMWithdrawRateLimitKey(address(usdsBase));
 
         vm.prank(SPARK_EXECUTOR);
-        rateLimits.setRateLimitData(withdrawAssetKey, 0, 0);
+        rateLimits.setRateLimitData(withdrawKey, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
@@ -272,11 +266,10 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_susdsZeroMaxAmount() external {
-        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
-        bytes32 withdrawAssetKey = makeAddressKey(withdrawKey, address(susdsBase));
+        bytes32 withdrawKey = foreignController.getPSMWithdrawRateLimitKey(address(susdsBase));
 
         vm.prank(SPARK_EXECUTOR);
-        rateLimits.setRateLimitData(withdrawAssetKey, 0, 0);
+        rateLimits.setRateLimitData(withdrawKey, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
@@ -284,11 +277,10 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_usdcRateLimitedBoundary() external {
-        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
-        bytes32 withdrawAssetKey = makeAddressKey(withdrawKey, Base.USDC);
+        bytes32 withdrawKey = foreignController.getPSMWithdrawRateLimitKey(Base.USDC);
 
         vm.prank(SPARK_EXECUTOR);
-        rateLimits.setRateLimitData(withdrawAssetKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
+        rateLimits.setRateLimitData(withdrawKey, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
         deal(Base.USDC, address(almProxy), 1_000_000e6 + 1);
 
@@ -305,11 +297,10 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_usdsRateLimitedBoundary() external {
-        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
-        bytes32 withdrawAssetKey = makeAddressKey(withdrawKey, address(usdsBase));
+        bytes32 withdrawKey = foreignController.getPSMWithdrawRateLimitKey(address(usdsBase));
 
         vm.prank(SPARK_EXECUTOR);
-        rateLimits.setRateLimitData(withdrawAssetKey, 1_000_000e18, uint256(1_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(withdrawKey, 1_000_000e18, uint256(1_000_000e18) / 1 days);
 
         deal(address(usdsBase), address(almProxy), 1_000_000e18 + 1);
 
@@ -326,11 +317,10 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_susdsRateLimitedBoundary() external {
-        bytes32 withdrawKey      = foreignController.LIMIT_PSM_WITHDRAW();
-        bytes32 withdrawAssetKey = makeAddressKey(withdrawKey, address(susdsBase));
+        bytes32 withdrawKey = foreignController.getPSMWithdrawRateLimitKey(address(susdsBase));
 
         vm.prank(SPARK_EXECUTOR);
-        rateLimits.setRateLimitData(withdrawAssetKey, 1_000_000e18, uint256(1_000_000e18) / 1 days);
+        rateLimits.setRateLimitData(withdrawKey, 1_000_000e18, uint256(1_000_000e18) / 1 days);
 
         // NOTE: Need an extra wei because of rounding on conversion
         deal(address(susdsBase), address(almProxy), 1_000_000e18 + 2);
@@ -350,7 +340,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_withdrawUSDS() external {
-        bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 key = foreignController.getPSMWithdrawRateLimitKey(address(usdsBase));
 
         deal(address(usdsBase), address(almProxy), 100e18);
 
@@ -396,7 +386,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_withdrawUSDC() external {
-        bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 key = foreignController.getPSMWithdrawRateLimitKey(Base.USDC);
 
         deal(Base.USDC, address(almProxy), 100e6);
 
@@ -442,7 +432,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     }
 
     function test_withdrawPSM_withdrawSUSDS() external {
-        bytes32 key = foreignController.LIMIT_PSM_WITHDRAW();
+        bytes32 key = foreignController.getPSMWithdrawRateLimitKey(address(susdsBase));
 
         deal(address(susdsBase), address(almProxy), 100e18);
 

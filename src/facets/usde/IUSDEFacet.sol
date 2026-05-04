@@ -56,7 +56,7 @@ interface IUSDEFacet is IFacet {
      * @notice Emitted when sUSDe is unstaked after the cooldown period.
      * @param  assets Amount of USDe assets received from unstaking.
      */
-    event USDEUnstakeSUSDE(uint256 assets);
+    event USDEUnstake(uint256 assets);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
@@ -103,23 +103,23 @@ interface IUSDEFacet is IFacet {
     function setDelegatedSigner(address delegatedSigner) external;
 
     /// @notice Unstakes sUSDe after the cooldown period, receiving USDe.
-    function unstakeSUSDE() external;
+    function unstake() external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice Rate limit key for USDe burn operations.
-    function LIMIT_USDE_BURN() external view returns (bytes32);
+    /// @notice The derived rate limit key for USDe burn operations.
+    function burnRateLimitKey() external pure returns (bytes32 key);
 
-    /// @notice Rate limit key for USDe mint operations.
-    function LIMIT_USDE_MINT() external view returns (bytes32);
-
-    /// @notice Rate limit key for sUSDe cooldown operations.
-    function LIMIT_SUSDE_COOLDOWN() external view returns (bytes32);
+    /// @notice The derived rate limit key for sUSDe cooldown operations.
+    function cooldownRateLimitKey() external pure returns (bytes32 key);
 
     /// @notice Address of the Ethena minter contract (immutable).
     function ethenaMinter() external view returns (address);
+
+    /// @notice The derived rate limit key for USDe mint operations.
+    function mintRateLimitKey() external pure returns (bytes32 key);
 
     /// @notice Address of the sUSDe (staked USDe) token contract (immutable).
     function susde() external view returns (address);

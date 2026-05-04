@@ -6,6 +6,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { IUniswapV3Facet }         from "../../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
+import { makeAddressAddressKey }   from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { UniswapV3Facet } from "../../../src/facets/uniswap-v3/UniswapV3Facet.sol";
 
@@ -31,6 +32,12 @@ interface IControllerLike {
 
     function getTWAPSecondsAgo(address pool) external view returns (uint32);
 
+    function getDepositRateLimitKey(address pool, address token) external pure returns (bytes32);
+
+    function getSwapRateLimitKey(address pool, address token) external pure returns (bytes32);
+
+    function getWithdrawRateLimitKey(address pool, address token) external pure returns (bytes32);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -51,7 +58,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
 
         vm.label(facet, "UniswapV3Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](9);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](12);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxSlippage.selector,
@@ -96,6 +103,21 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         wires[8] = IEnumerableIntegrations.Wire(
             IControllerLike.getTWAPSecondsAgo.selector,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
+        );
+
+        wires[9] = IEnumerableIntegrations.Wire(
+            IControllerLike.getDepositRateLimitKey.selector,
+            IUniswapV3Facet.getDepositRateLimitKey.selector
+        );
+
+        wires[10] = IEnumerableIntegrations.Wire(
+            IControllerLike.getSwapRateLimitKey.selector,
+            IUniswapV3Facet.getSwapRateLimitKey.selector
+        );
+
+        wires[11] = IEnumerableIntegrations.Wire(
+            IControllerLike.getWithdrawRateLimitKey.selector,
+            IUniswapV3Facet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -466,6 +488,51 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         _assertReentrancyGuardWrittenToTwice(address(controller));
 
         assertEq(controller.getTWAPSecondsAgo(pool), 300);
+    }
+
+    /**********************************************************************************************/
+    /*** getDepositRateLimitKey Tests                                                           ***/
+    /**********************************************************************************************/
+
+    function test_getDepositRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
+        address pool      = makeAddr("pool");
+        address token     = makeAddr("token");
+
+        assertEq(
+            controller.getDepositRateLimitKey(pool, token),
+            makeAddressAddressKey(keyPrefix, token, pool)
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** getSwapRateLimitKey Tests                                                              ***/
+    /**********************************************************************************************/
+
+    function test_getSwapRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V3_SWAP");
+        address pool      = makeAddr("pool");
+        address token     = makeAddr("token");
+
+        assertEq(
+            controller.getSwapRateLimitKey(pool, token),
+            makeAddressAddressKey(keyPrefix, token, pool)
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** getWithdrawRateLimitKey Tests                                                          ***/
+    /**********************************************************************************************/
+
+    function test_getWithdrawRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V3_WITHDRAW");
+        address pool      = makeAddr("pool");
+        address token     = makeAddr("token");
+
+        assertEq(
+            controller.getWithdrawRateLimitKey(pool, token),
+            makeAddressAddressKey(keyPrefix, token, pool)
+        );
     }
 
 }

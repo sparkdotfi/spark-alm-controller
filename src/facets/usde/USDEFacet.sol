@@ -3,8 +3,7 @@ pragma solidity ^0.8.34;
 
 import { ApproveLib } from "../../libraries/ApproveLib.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -42,14 +41,9 @@ contract USDEFacet is IUSDEFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IUSDEFacet
-    bytes32 public constant override LIMIT_USDE_BURN = keccak256("LIMIT_USDE_BURN");
-
-    /// @inheritdoc IUSDEFacet
-    bytes32 public constant override LIMIT_USDE_MINT = keccak256("LIMIT_USDE_MINT");
-
-    /// @inheritdoc IUSDEFacet
-    bytes32 public constant override LIMIT_SUSDE_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 internal constant _LIMIT_BURN     = keccak256("LIMIT_USDE_BURN");
+    bytes32 internal constant _LIMIT_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
+    bytes32 internal constant _LIMIT_MINT     = keccak256("LIMIT_USDE_MINT");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -122,7 +116,7 @@ contract USDEFacet is IUSDEFacet, Facet {
 
     /// @inheritdoc IUSDEFacet
     function prepareMint(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
-        _decreaseRateLimit(LIMIT_USDE_MINT, usdcAmount);
+        _decreaseRateLimit(mintRateLimitKey(), usdcAmount);
 
         ApproveLib.approve(usdc, _getSharedControllerStorage().proxy, ethenaMinter, usdcAmount);
 
@@ -131,7 +125,7 @@ contract USDEFacet is IUSDEFacet, Facet {
 
     /// @inheritdoc IUSDEFacet
     function prepareBurn(uint256 usdeAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
-        _decreaseRateLimit(LIMIT_USDE_BURN, usdeAmount);
+        _decreaseRateLimit(burnRateLimitKey(), usdeAmount);
 
         ApproveLib.approve(usde, _getSharedControllerStorage().proxy, ethenaMinter, usdeAmount);
 
@@ -146,7 +140,7 @@ contract USDEFacet is IUSDEFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 shares)
     {
-        _decreaseRateLimit(LIMIT_SUSDE_COOLDOWN, usdeAmount);
+        _decreaseRateLimit(cooldownRateLimitKey(), usdeAmount);
 
         // NOTE: The SUSDE contract is immutable, so the return value can be trusted.
         shares = abi.decode(
@@ -177,28 +171,39 @@ contract USDEFacet is IUSDEFacet, Facet {
             (uint256)
         );
 
-        _decreaseRateLimit(LIMIT_SUSDE_COOLDOWN, assets);
+        _decreaseRateLimit(cooldownRateLimitKey(), assets);
 
         emit USDECooldownShares(susdeAmount, assets);
     }
 
     /// @inheritdoc IUSDEFacet
-    function unstakeSUSDE() external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function unstake() external override nonReentrant onlyRole(RELAYER_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 startingUSDE = IERC20Like(usde).balanceOf(proxy);
 
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
 
-        emit USDEUnstakeSUSDE(IERC20Like(usde).balanceOf(proxy) - startingUSDE);
+        emit USDEUnstake(IERC20Like(usde).balanceOf(proxy) - startingUSDE);
     }
 
     /**********************************************************************************************/
-    /*** Internal Interactive Functions                                                         ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
+    /// @inheritdoc IUSDEFacet
+    function burnRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_BURN;
+    }
+
+    /// @inheritdoc IUSDEFacet
+    function cooldownRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_COOLDOWN;
+    }
+
+    /// @inheritdoc IUSDEFacet
+    function mintRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_MINT;
     }
 
 }

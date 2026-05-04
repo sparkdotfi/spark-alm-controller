@@ -3,9 +3,10 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
-import { IFacet }                  from "../../../src/facets/IFacet.sol";
-import { ILayerZeroFacet }         from "../../../src/facets/layer-zero/ILayerZeroFacet.sol";
+import { IEnumerableIntegrations }     from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { IFacet }                      from "../../../src/facets/IFacet.sol";
+import { ILayerZeroFacet }             from "../../../src/facets/layer-zero/ILayerZeroFacet.sol";
+import { makeAddressAddressUint32Key } from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { LayerZeroFacet } from "../../../src/facets/layer-zero/LayerZeroFacet.sol";
 
@@ -17,11 +18,16 @@ interface IControllerLike {
 
     function getRecipient(uint32 destinationEndpointId) external view returns (bytes32);
 
+    function getTransferRateLimitKey(address oft, uint32 destinationEndpointId, address token)
+        external
+        pure
+        returns (bytes32);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
 
-abstract contract LayerZeroFacet_TestBase is Integration_TestBase {
+contract Controller_LayerZeroFacet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
@@ -32,7 +38,7 @@ abstract contract LayerZeroFacet_TestBase is Integration_TestBase {
 
         vm.label(facet, "LayerZeroFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setRecipient.selector,
@@ -42,6 +48,11 @@ abstract contract LayerZeroFacet_TestBase is Integration_TestBase {
         wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getRecipient.selector,
             ILayerZeroFacet.getRecipient.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.getTransferRateLimitKey.selector,
+            ILayerZeroFacet.getTransferRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -55,10 +66,6 @@ abstract contract LayerZeroFacet_TestBase is Integration_TestBase {
         vm.prank(admin);
         controller.updateIntegrations(integrationIds);
     }
-
-}
-
-contract Controller_LayerZeroFacet_Admin_Tests is LayerZeroFacet_TestBase {
 
     /**********************************************************************************************/
     /*** setRecipient Tests                                                                     ***/
@@ -104,6 +111,22 @@ contract Controller_LayerZeroFacet_Admin_Tests is LayerZeroFacet_TestBase {
         _assertReentrancyGuardWrittenToTwice(address(controller));
 
         assertEq(controller.getRecipient(1), recipient);
+    }
+
+    /**********************************************************************************************/
+    /*** getTransferRateLimitKey Tests                                                          ***/
+    /**********************************************************************************************/
+
+    function test_getTransferRateLimitKey() external {
+        bytes32 keyPrefix             = keccak256("LIMIT_LAYERZERO_TRANSFER");
+        address oft                   = makeAddr("oft");
+        uint32  destinationEndpointId = 30101;
+        address token                 = makeAddr("token");
+
+        assertEq(
+            controller.getTransferRateLimitKey(oft, destinationEndpointId, token),
+            makeAddressAddressUint32Key(keyPrefix, token, oft, destinationEndpointId)
+        );
     }
 
 }

@@ -3,8 +3,7 @@ pragma solidity ^0.8.34;
 
 import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -50,8 +49,7 @@ contract OTCFacet is IOTCFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IOTCFacet
-    bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_OTC_SWAP");
+    bytes32 internal constant _LIMIT_SWAP = keccak256("LIMIT_OTC_SWAP");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -90,7 +88,7 @@ contract OTCFacet is IOTCFacet, Facet {
 
         // Prevent rotating buffer while a swap is pending and not ready.
         require(
-            $.states[exchange].sentTimestamp == 0 || isSwapReady(exchange),
+            $.states[exchange].sentTimestamp == 0 || getIsSwapReady(exchange),
             "OTCFacet/swap-in-progress"
         );
 
@@ -153,12 +151,9 @@ contract OTCFacet is IOTCFacet, Facet {
         // NOTE: This will lose precision for tokens with >18 decimals.
         uint256 normalizedSent = _toNormalizedAmount(assetToSend, amount);
 
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
-            makeAddressKey(LIMIT_SWAP, exchange),
-            normalizedSent
-        );
+        _decreaseRateLimit(getSwapRateLimitKey(exchange), normalizedSent);
 
-        require(isSwapReady(exchange), "OTCFacet/last-swap-not-returned");
+        require(getIsSwapReady(exchange), "OTCFacet/last-swap-not-returned");
 
         State storage state = $.states[exchange];
 
@@ -251,7 +246,7 @@ contract OTCFacet is IOTCFacet, Facet {
     }
 
     /// @inheritdoc IOTCFacet
-    function isSwapReady(address exchange) public view override returns (bool) {
+    function getIsSwapReady(address exchange) public view override returns (bool) {
         FacetStorage storage $ = _getFacetStorage();
 
         uint256 maxSlippage = $.parameters[exchange].maxSlippage;
@@ -262,6 +257,11 @@ contract OTCFacet is IOTCFacet, Facet {
         return
             getClaimWithRecharge(exchange) >=
             $.states[exchange].normalizedSent * maxSlippage / 1e18;
+    }
+
+    /// @inheritdoc IOTCFacet
+    function getSwapRateLimitKey(address exchange) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_SWAP, exchange);
     }
 
     /**********************************************************************************************/

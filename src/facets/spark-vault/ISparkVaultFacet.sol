@@ -32,13 +32,14 @@ interface ISparkVaultFacet is IFacet {
     function take(address sparkVault, uint256 assetAmount) external;
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
+    /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for Spark vault take operations, combined with the vault address to
-     *         form the per-vault keys.
+     * @notice Returns the derived take rate limit key for a Spark vault.
+     * @param  sparkVault Address of the Spark vault.
+     * @return key        Derived rate limit key.
      */
-    function LIMIT_TAKE() external pure returns (bytes32);
+    function getTakeRateLimitKey(address sparkVault) external pure returns (bytes32 key);
 
 }

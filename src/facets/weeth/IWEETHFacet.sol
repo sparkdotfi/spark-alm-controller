@@ -88,22 +88,42 @@ interface IWEETHFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for weETH deposit operations, combined with the eETH address to form
-     *         the key.
-     */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for weETH withdrawal request operations, combined with the eETH
-     *         address and weETH module address to form the per-module key.
-     */
-    function LIMIT_REQUEST_WITHDRAW() external pure returns (bytes32);
-
     /// @notice Address of the weETH token contract (immutable).
     function weeth() external view returns (address);
 
     /// @notice Address of the WETH token contract (immutable).
     function weth() external view returns (address);
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
+
+    /**
+     * @notice Returns the derived deposit rate limit key for an eETH token and liquidity pool.
+     * @param  eeth          Address of the eETH token.
+     * @param  liquidityPool Address of the liquidity pool.
+     * @return key           Derived rate limit key.
+     */
+    function getDepositRateLimitKey(address eeth, address liquidityPool)
+        external
+        pure
+        returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived request-withdraw rate limit key for a weETH module, eETH, and
+     *         liquidity pool.
+     * @param  weethModule   Address of the weETH withdrawal module.
+     * @param  eeth          Address of the eETH token.
+     * @param  liquidityPool Address of the liquidity pool.
+     * @return key           Derived rate limit key.
+     */
+    function getRequestWithdrawRateLimitKey(
+        address weethModule,
+        address eeth,
+        address liquidityPool
+    )
+        external
+        pure
+        returns (bytes32 key);
 
 }

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -44,12 +43,8 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IWSTETHFacet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_WSTETH_DEPOSIT");
-
-    /// @inheritdoc IWSTETHFacet
-    bytes32 public constant override LIMIT_REQUEST_WITHDRAW =
-        keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
+    bytes32 internal constant _LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -87,7 +82,7 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
 
     /// @inheritdoc IWSTETHFacet
     function deposit(uint256 amount) external override nonReentrant onlyRole(RELAYER_ROLE) {
-        _decreaseRateLimit(LIMIT_DEPOSIT, amount);
+        _decreaseRateLimit(depositRateLimitKey(), amount);
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -108,7 +103,7 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
     {
         uint256 stethAmount = IWSTETHLike(wsteth).getStETHByWstETH(amountToRedeem);
 
-        _decreaseRateLimit(LIMIT_REQUEST_WITHDRAW, stethAmount);
+        _decreaseRateLimit(requestWithdrawRateLimitKey(), stethAmount);
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -143,15 +138,11 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        address proxy = _getSharedControllerStorage().proxy;
 
-        address proxy             = $.proxy;
         uint256 initialETHBalance = proxy.balance;
 
-        require(
-            IRateLimits($.rateLimits).getRateLimitData(LIMIT_REQUEST_WITHDRAW).maxAmount > 0,
-            "WSTETHFacet/invalid-action"
-        );
+        require(_rateLimitExists(requestWithdrawRateLimitKey()), "WSTETHFacet/invalid-action");
 
         IALMProxy(proxy).doCall(
             withdrawQueue,
@@ -166,11 +157,17 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** Internal Interactive Functions                                                         ***/
+    /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
+    /// @inheritdoc IWSTETHFacet
+    function depositRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_DEPOSIT;
+    }
+
+    /// @inheritdoc IWSTETHFacet
+    function requestWithdrawRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_REQUEST_WITHDRAW;
     }
 
 }

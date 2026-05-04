@@ -149,16 +149,6 @@ interface IOTCFacet is IFacet {
     function setRechargeRate(address exchange, uint256 normalizedRate) external;
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
-    /**********************************************************************************************/
-
-    /**
-     * @notice Rate limit key for OTC swap operations, combined with the exchange address to form
-     *         the per-exchange keys. Rate limited by 18-decimal normalized value.
-     */
-    function LIMIT_SWAP() external pure returns (bytes32);
-
-    /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
@@ -192,6 +182,14 @@ interface IOTCFacet is IFacet {
         returns (bool isWhitelisted);
 
     /**
+     * @notice Returns whether the exchange is ready for a new swap (i.e.
+     *         `claim + recharge >= normalizedSent * maxSlippage / 1e18`).
+     * @param  exchange Address of the OTC exchange.
+     * @return isReady  True if ready for a new swap.
+     */
+    function getIsSwapReady(address exchange) external view returns (bool isReady);
+
+    /**
      * @notice Returns the max slippage for an exchange.
      * @param  exchange    Address of the OTC exchange.
      * @return maxSlippage Max slippage in 1e18 precision. Zero means not set.
@@ -218,11 +216,10 @@ interface IOTCFacet is IFacet {
         returns (uint256 normalizedSent, uint256 sentTimestamp, uint256 normalizedClaimed);
 
     /**
-     * @notice Returns whether the exchange is ready for a new swap (i.e.
-     *         `claim + recharge >= normalizedSent * maxSlippage / 1e18`).
+     * @notice Returns the derived OTC swap rate limit key for an exchange.
      * @param  exchange Address of the OTC exchange.
-     * @return isReady  True if ready for a new swap.
+     * @return key      Derived rate limit key.
      */
-    function isSwapReady(address exchange) external view returns (bool isReady);
+    function getSwapRateLimitKey(address exchange) external pure returns (bytes32 key);
 
 }

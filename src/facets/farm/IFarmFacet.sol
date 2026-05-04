@@ -61,19 +61,25 @@ interface IFarmFacet is IFacet {
     function withdraw(address farm, uint256 amount) external returns (uint256 reward);
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
+    /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for farm deposit operations, combined with the staking token address
-     *         and farm address to form the per-market key.
+     * @notice Returns the derived deposit rate limit key for a farm and staking token.
+     * @param  farm         Address of the farm contract.
+     * @param  stakingToken Address of the staking token for the farm.
+     * @return key          Derived rate limit key.
      */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
+    function getDepositRateLimitKey(address farm, address stakingToken)
+        external
+        pure
+        returns (bytes32 key);
 
     /**
-     * @notice Rate limit key for farm withdraw operations, combined with the farm address to form
-     *         the per-farm keys.
+     * @notice Returns the derived withdraw rate limit key for a farm.
+     * @param  farm Address of the farm contract.
+     * @return key  Derived rate limit key.
      */
-    function LIMIT_WITHDRAW() external pure returns (bytes32);
+    function getWithdrawRateLimitKey(address farm) external pure returns (bytes32 key);
 
 }

@@ -5,6 +5,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 
 import { ICurveFacet }             from "../../../src/facets/curve/ICurveFacet.sol";
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { makeAddressKey }          from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { CurveFacet } from "../../../src/facets/curve/CurveFacet.sol";
 
@@ -12,15 +13,21 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setCurveMaxSlippage(address pool, uint256 maxSlippage) external;
+    function setMaxSlippage(address pool, uint256 maxSlippage) external;
 
-    function getCurveMaxSlippage(address pool) external view returns (uint256);
+    function getMaxSlippage(address pool) external view returns (uint256);
+
+    function getDepositRateLimitKey(address pool) external pure returns (bytes32);
+
+    function getSwapRateLimitKey(address pool) external pure returns (bytes32);
+
+    function getWithdrawRateLimitKey(address pool) external pure returns (bytes32);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
 
-abstract contract CurveFacet_TestBase is Integration_TestBase {
+contract Controller_CurveFacet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
@@ -31,16 +38,31 @@ abstract contract CurveFacet_TestBase is Integration_TestBase {
 
         vm.label(facet, "CurveFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IControllerLike.setCurveMaxSlippage.selector,
+            IControllerLike.setMaxSlippage.selector,
             ICurveFacet.setMaxSlippage.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IControllerLike.getCurveMaxSlippage.selector,
+            IControllerLike.getMaxSlippage.selector,
             ICurveFacet.getMaxSlippage.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.getDepositRateLimitKey.selector,
+            ICurveFacet.getDepositRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.getSwapRateLimitKey.selector,
+            ICurveFacet.getSwapRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.getWithdrawRateLimitKey.selector,
+            ICurveFacet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -55,35 +77,35 @@ abstract contract CurveFacet_TestBase is Integration_TestBase {
         controller.updateIntegrations(integrationIds);
     }
 
-}
+    /**********************************************************************************************/
+    /*** setMaxSlippage Tests                                                                   ***/
+    /**********************************************************************************************/
 
-contract Controller_CurveFacet_Admin_Tests is CurveFacet_TestBase {
-
-    function test_setCurveMaxSlippage_reentrancy() external {
+    function test_setMaxSlippage_reentrancy() external {
         _setEntered(address(controller));
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setCurveMaxSlippage(makeAddr("pool"), 0.98e18);
+        controller.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
-    function test_setCurveMaxSlippage_unauthorizedAccount() external {
+    function test_setMaxSlippage_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        controller.setCurveMaxSlippage(makeAddr("pool"), 0.98e18);
+        controller.setMaxSlippage(makeAddr("pool"), 0.98e18);
     }
 
-    function test_setCurveMaxSlippage_poolZeroAddress() external {
+    function test_setMaxSlippage_poolZeroAddress() external {
         vm.expectRevert("CurveFacet/pool-zero-address");
         vm.prank(admin);
-        controller.setCurveMaxSlippage(address(0), 0.98e18);
+        controller.setMaxSlippage(address(0), 0.98e18);
     }
 
-    function test_setCurveMaxSlippage() external {
+    function test_setMaxSlippage() external {
         address pool = makeAddr("pool");
 
-        assertEq(controller.getCurveMaxSlippage(pool), 0);
+        assertEq(controller.getMaxSlippage(pool), 0);
 
         vm.record();
 
@@ -91,19 +113,52 @@ contract Controller_CurveFacet_Admin_Tests is CurveFacet_TestBase {
         emit ICurveFacet.CurveMaxSlippageSet(pool, 0.98e18);
 
         vm.prank(admin);
-        controller.setCurveMaxSlippage(pool, 0.98e18);
+        controller.setMaxSlippage(pool, 0.98e18);
 
         _assertReentrancyGuardWrittenToTwice(address(controller));
 
-        assertEq(controller.getCurveMaxSlippage(pool), 0.98e18);
+        assertEq(controller.getMaxSlippage(pool), 0.98e18);
 
         vm.expectEmit(address(controller));
         emit ICurveFacet.CurveMaxSlippageSet(pool, 0.99e18);
 
         vm.prank(admin);
-        controller.setCurveMaxSlippage(pool, 0.99e18);
+        controller.setMaxSlippage(pool, 0.99e18);
 
-        assertEq(controller.getCurveMaxSlippage(pool), 0.99e18);
+        assertEq(controller.getMaxSlippage(pool), 0.99e18);
+    }
+
+    /**********************************************************************************************/
+    /*** getDepositRateLimitKey Tests                                                           ***/
+    /**********************************************************************************************/
+
+    function test_getDepositRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_CURVE_DEPOSIT");
+        address pool      = makeAddr("pool");
+
+        assertEq(controller.getDepositRateLimitKey(pool), makeAddressKey(keyPrefix, pool));
+    }
+
+    /**********************************************************************************************/
+    /*** getSwapRateLimitKey Tests                                                              ***/
+    /**********************************************************************************************/
+
+    function test_getSwapRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_CURVE_SWAP");
+        address pool      = makeAddr("pool");
+
+        assertEq(controller.getSwapRateLimitKey(pool), makeAddressKey(keyPrefix, pool));
+    }
+
+    /**********************************************************************************************/
+    /*** getWithdrawRateLimitKey Tests                                                          ***/
+    /**********************************************************************************************/
+
+    function test_getWithdrawRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_CURVE_WITHDRAW");
+        address pool      = makeAddr("pool");
+
+        assertEq(controller.getWithdrawRateLimitKey(pool), makeAddressKey(keyPrefix, pool));
     }
 
 }

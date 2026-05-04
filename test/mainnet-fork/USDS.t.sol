@@ -49,7 +49,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
 
     function test_mintUSDS_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
+        rateLimits.setRateLimitData(mainnetController.usdsMintRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -103,7 +103,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
     }
 
     function test_mintUSDS_rateLimited() external {
-        bytes32 key = mainnetController.LIMIT_USDS_MINT();
+        bytes32 key = mainnetController.usdsMintRateLimitKey();
 
         vm.startPrank(relayer);
 
@@ -152,7 +152,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
 
     function test_burnUSDS_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_MINT(), 0, 0);
+        rateLimits.setRateLimitData(mainnetController.usdsMintRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -204,7 +204,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
     }
 
     function test_burnUSDS_rateLimited() external {
-        bytes32 key = mainnetController.LIMIT_USDS_MINT();
+        bytes32 key = mainnetController.usdsMintRateLimitKey();
 
         vm.startPrank(relayer);
 

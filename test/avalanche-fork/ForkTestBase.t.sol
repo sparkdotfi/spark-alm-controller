@@ -201,8 +201,8 @@ contract ForkTestBase is Test {
         );
 
         wires[6] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_CENTRIFUGE_TRANSFER.selector,
-            ICentrifugeFacet.LIMIT_TRANSFER.selector
+            IForeignControllerFull.getCentrifugeTransferRateLimitKey.selector,
+            ICentrifugeFacet.getTransferRateLimitKey.selector
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
@@ -246,13 +246,13 @@ contract ForkTestBase is Test {
         );
 
         wires[4] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_7540_DEPOSIT.selector,
-            IERC7540Facet.LIMIT_DEPOSIT.selector
+            IForeignControllerFull.getERC7540DepositRateLimitKey.selector,
+            IERC7540Facet.getDepositRateLimitKey.selector
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.LIMIT_7540_REDEEM.selector,
-            IERC7540Facet.LIMIT_REDEEM.selector
+            IForeignControllerFull.getERC7540RedeemRateLimitKey.selector,
+            IERC7540Facet.getRedeemRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

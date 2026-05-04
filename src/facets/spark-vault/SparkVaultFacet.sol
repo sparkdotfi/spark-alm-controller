@@ -3,8 +3,7 @@ pragma solidity ^0.8.34;
 
 import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -24,8 +23,7 @@ contract SparkVaultFacet is ISparkVaultFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc ISparkVaultFacet
-    bytes32 public constant override LIMIT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
+    bytes32 internal constant _LIMIT_TAKE = keccak256("LIMIT_SPARK_VAULT_TAKE");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -41,16 +39,23 @@ contract SparkVaultFacet is ISparkVaultFacet, Facet {
         nonReentrant
         onlyRole(RELAYER_ROLE)
     {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _decreaseRateLimit(getTakeRateLimitKey(sparkVault), assetAmount);
 
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(
-            makeAddressKey(LIMIT_TAKE, sparkVault),
-            assetAmount
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(
+            sparkVault,
+            abi.encodeCall(ISparkVaultLike.take, (assetAmount))
         );
 
-        IALMProxy($.proxy).doCall(sparkVault, abi.encodeCall(ISparkVaultLike.take, (assetAmount)));
-
         emit SparkVaultTake(sparkVault, assetAmount);
+    }
+
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    /// @inheritdoc ISparkVaultFacet
+    function getTakeRateLimitKey(address sparkVault) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_TAKE, sparkVault);
     }
 
 }

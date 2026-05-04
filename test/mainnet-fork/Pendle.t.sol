@@ -6,8 +6,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 import { Ethereum as SparkEthereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 import { Ethereum as GroveEthereum } from "../../lib/grove-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IPendleFacet } from "../../src/facets/pendle/IPendleFacet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -54,11 +52,7 @@ abstract contract Pendle_TestBase is ForkTestBase {
 
         ( , address pt, ) = pendleMarket.readTokens();
 
-        redeemKey = makeAddressAddressKey(
-            mainnetController.LIMIT_PENDLE_PT_REDEEM(),
-            pt,
-            address(pendleMarket)
-        );
+        redeemKey = mainnetController.getPendleRedeemRateLimitKey(address(pendleMarket), pt);
 
         vm.prank(SparkEthereum.SPARK_PROXY);
         rateLimits.setRateLimitData(redeemKey, 10_000_000e18, uint256(10_000_000e18) / 1 days);
@@ -226,11 +220,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         ( address sy, address pt, address yt ) = pendleMarket.readTokens();
 
-        redeemKey = makeAddressAddressKey(
-            mainnetController.LIMIT_PENDLE_PT_REDEEM(),
-            pt,
-            address(pendleMarket)
-        );
+        redeemKey = mainnetController.getPendleRedeemRateLimitKey(address(pendleMarket), pt);
 
         vm.prank(SparkEthereum.SPARK_PROXY);
         rateLimits.setRateLimitData(redeemKey, 10_000_000e18, uint256(10_000_000e18) / 1 days);
@@ -282,11 +272,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         ( address sy, address pt, address yt ) = pendleMarket.readTokens();
 
-        redeemKey = makeAddressAddressKey(
-            mainnetController.LIMIT_PENDLE_PT_REDEEM(),
-            pt,
-            address(pendleMarket)
-        );
+        redeemKey = mainnetController.getPendleRedeemRateLimitKey(address(pendleMarket), pt);
 
         vm.prank(SparkEthereum.SPARK_PROXY);
         rateLimits.setRateLimitData(redeemKey, 10e18, uint256(10e18) / 1 days);

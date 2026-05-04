@@ -6,6 +6,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { IOTCFacet }               from "../../../src/facets/otc/IOTCFacet.sol";
+import { makeAddressKey }          from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { OTCFacet } from "../../../src/facets/otc/OTCFacet.sol";
 
@@ -29,11 +30,13 @@ interface IControllerLike {
 
     function getRechargeRate(address exchange) external view returns (uint256);
 
+    function getSwapRateLimitKey(address exchange) external pure returns (bytes32);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
 
-abstract contract OTCFacet_TestBase is Integration_TestBase {
+contract Controller_OTCFacet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
@@ -44,7 +47,7 @@ abstract contract OTCFacet_TestBase is Integration_TestBase {
 
         vm.label(facet, "OTCFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](9);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setBuffer.selector,
@@ -86,6 +89,11 @@ abstract contract OTCFacet_TestBase is Integration_TestBase {
             IOTCFacet.getIsWhitelisted.selector
         );
 
+        wires[8] = IEnumerableIntegrations.Wire(
+            IControllerLike.getSwapRateLimitKey.selector,
+            IOTCFacet.getSwapRateLimitKey.selector
+        );
+
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
 
         vm.prank(beaconAdmin);
@@ -97,10 +105,6 @@ abstract contract OTCFacet_TestBase is Integration_TestBase {
         vm.prank(admin);
         controller.updateIntegrations(integrationIds);
     }
-
-}
-
-contract Controller_OTCFacet_Admin_Tests is OTCFacet_TestBase {
 
     /**********************************************************************************************/
     /*** setBuffer Tests                                                                        ***/
@@ -378,6 +382,17 @@ contract Controller_OTCFacet_Admin_Tests is OTCFacet_TestBase {
         controller.setIsWhitelisted(exchange, asset, false);
 
         assertEq(controller.getIsWhitelisted(exchange, asset), false);
+    }
+
+    /**********************************************************************************************/
+    /*** getSwapRateLimitKey Tests                                                              ***/
+    /**********************************************************************************************/
+
+    function test_getSwapRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_OTC_SWAP");
+        address exchange  = makeAddr("exchange");
+
+        assertEq(controller.getSwapRateLimitKey(exchange), makeAddressKey(keyPrefix, exchange));
     }
 
 }

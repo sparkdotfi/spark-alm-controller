@@ -80,15 +80,6 @@ interface ICCTPFacet is IFacet {
     /// @notice Always bytes32(0): any relayer can complete the message on the destination chain.
     function DESTINATION_CALLER() external pure returns (bytes32);
 
-    /// @notice Rate limit key for aggregate CCTP volume across all domains.
-    function LIMIT_TO_CCTP() external pure returns (bytes32);
-
-    /**
-     * @notice Rate limit key for per-domain CCTP volume, combined with the destination domain to
-     *         form per-domain keys.
-     */
-    function LIMIT_TO_DOMAIN() external pure returns (bytes32);
-
     /// @notice Always zero. Standard CCTP burns do not incur a fee, so the default max fee is zero.
     function MAX_FEE() external pure returns (uint256);
 
@@ -104,12 +95,22 @@ interface ICCTPFacet is IFacet {
     /// @notice The configured max fee cap for `transferWithFee`.
     function maxFeeCap() external view returns (uint256);
 
+    /// @notice The derived rate limit key for aggregate CCTP volume across all domains.
+    function toCCTPRateLimitKey() external pure returns (bytes32 key);
+
     /// @notice Address of the USDC token contract (immutable).
     function usdc() external view returns (address);
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
+
+    /**
+     * @notice Returns the derived per-domain rate limit key for CCTP transfers.
+     * @param  destinationDomain CCTP domain identifier for the target chain.
+     * @return key               Derived rate limit key.
+     */
+    function getToDomainRateLimitKey(uint32 destinationDomain) external pure returns (bytes32 key);
 
     /**
      * @notice Returns the configured mint recipient for a destination domain.

@@ -79,7 +79,7 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
     }
 
     function test_depositToWSTETH_rateLimitsBoundary() external {
-        bytes32 key = mainnetController.LIMIT_WSTETH_DEPOSIT();
+        bytes32 key = mainnetController.wstethDepositRateLimitKey();
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000e18, uint256(1_000e18) / 1 days);
@@ -98,14 +98,14 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
     }
 
     function test_depositToWSTETH() external {
-        bytes32 key = mainnetController.LIMIT_WSTETH_DEPOSIT();
+        bytes32 key = mainnetController.wstethDepositRateLimitKey();
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000e18, uint256(1_000e18) / 1 days);
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.LIMIT_WSTETH_DEPOSIT()), 1_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(key), 1_000e18);
 
         assertEq(WETH.balanceOf(address(almProxy)),   1_000e18);
         assertEq(WSTETH.balanceOf(address(almProxy)), 0);
@@ -120,7 +120,7 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.LIMIT_WSTETH_DEPOSIT()), 0);
+        assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
         assertEq(WETH.balanceOf(address(almProxy)),   0);
         assertEq(WSTETH.balanceOf(address(almProxy)), 823.029395390731625220e18);
@@ -154,7 +154,7 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
     }
 
     function test_requestWithdrawFromWSTETH_rateLimitsBoundary() external {
-        bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
+        bytes32 requestWithdrawKey = mainnetController.wstethRequestWithdrawRateLimitKey();
 
         uint256 stethLimit = WSTETH.getStETHByWstETH(500e18);
 
@@ -172,8 +172,8 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
     }
 
     function test_requestWithdrawFromWSTETH() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
-        bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
+        bytes32 depositKey         = mainnetController.wstethDepositRateLimitKey();
+        bytes32 requestWithdrawKey = mainnetController.wstethRequestWithdrawRateLimitKey();
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
@@ -267,8 +267,8 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
     }
 
     function test_claimWithdrawalFromWSTETH() external {
-        bytes32 depositKey         = mainnetController.LIMIT_WSTETH_DEPOSIT();
-        bytes32 requestWithdrawKey = mainnetController.LIMIT_WSTETH_REQUEST_WITHDRAW();
+        bytes32 depositKey         = mainnetController.wstethDepositRateLimitKey();
+        bytes32 requestWithdrawKey = mainnetController.wstethRequestWithdrawRateLimitKey();
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);

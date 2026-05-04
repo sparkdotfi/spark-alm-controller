@@ -5,6 +5,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 
 import { ICCTPFacet }              from "../../../src/facets/cctp/ICCTPFacet.sol";
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { makeUint32Key }           from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { CCTPFacet } from "../../../src/facets/cctp/CCTPFacet.sol";
 
@@ -12,13 +13,17 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setCCTPMaxFeeCap(uint256 maxFeeCap) external;
+    function setMaxFeeCap(uint256 maxFeeCap) external;
 
-    function setCCTPMintRecipient(uint32 destinationDomain, bytes32 recipient) external;
+    function setMintRecipient(uint32 destinationDomain, bytes32 recipient) external;
 
-    function getCCTPMaxFeeCap() external view returns (uint256);
+    function getMaxFeeCap() external view returns (uint256);
 
-    function getCCTPMintRecipient(uint32 destinationDomain) external view returns (bytes32);
+    function getMintRecipient(uint32 destinationDomain) external view returns (bytes32);
+
+    function getToDomainRateLimitKey(uint32 destinationDomain) external pure returns (bytes32);
+
+    function toCCTPRateLimitKey() external pure returns (bytes32);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
@@ -38,26 +43,36 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "CCTPFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IControllerLike.getCCTPMaxFeeCap.selector,
+            IControllerLike.getMaxFeeCap.selector,
             ICCTPFacet.maxFeeCap.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IControllerLike.getCCTPMintRecipient.selector,
+            IControllerLike.getMintRecipient.selector,
             ICCTPFacet.getMintRecipient.selector
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
-            IControllerLike.setCCTPMaxFeeCap.selector,
+            IControllerLike.setMaxFeeCap.selector,
             ICCTPFacet.setMaxFeeCap.selector
         );
 
         wires[3] = IEnumerableIntegrations.Wire(
-            IControllerLike.setCCTPMintRecipient.selector,
+            IControllerLike.setMintRecipient.selector,
             ICCTPFacet.setMintRecipient.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.toCCTPRateLimitKey.selector,
+            ICCTPFacet.toCCTPRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IControllerLike.getToDomainRateLimitKey.selector,
+            ICCTPFacet.getToDomainRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -97,16 +112,16 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** setCCTPMaxFeeCap Tests                                                                  ***/
+    /*** setMaxFeeCap Tests                                                                     ***/
     /**********************************************************************************************/
 
-    function test_setCCTPMaxFeeCap_reentrancy() external {
+    function test_setMaxFeeCap_reentrancy() external {
         _setEntered(address(controller));
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setCCTPMaxFeeCap(1e18);
+        controller.setMaxFeeCap(1e18);
     }
 
-    function test_setCCTPMaxFeeCap_unauthorizedAccount() external {
+    function test_setMaxFeeCap_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             unauthorized,
@@ -114,11 +129,11 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
         ));
 
         vm.prank(unauthorized);
-        controller.setCCTPMaxFeeCap(1e18);
+        controller.setMaxFeeCap(1e18);
     }
 
-    function test_setCCTPMaxFeeCap() external {
-        assertEq(controller.getCCTPMaxFeeCap(), 0);
+    function test_setMaxFeeCap() external {
+        assertEq(controller.getMaxFeeCap(), 0);
 
         vm.record();
 
@@ -126,51 +141,51 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
         emit ICCTPFacet.CCTPMaxFeeCapSet(1e18);
 
         vm.prank(admin);
-        controller.setCCTPMaxFeeCap(1e18);
+        controller.setMaxFeeCap(1e18);
 
         _assertReentrancyGuardWrittenToTwice(address(controller));
 
-        assertEq(controller.getCCTPMaxFeeCap(), 1e18);
+        assertEq(controller.getMaxFeeCap(), 1e18);
     }
 
     /**********************************************************************************************/
-    /*** setCCTPMintRecipient Tests                                                              ***/
+    /*** setMintRecipient Tests                                                                 ***/
     /**********************************************************************************************/
 
-    function test_setCCTPMintRecipient_reentrancy() external {
+    function test_setMintRecipient_reentrancy() external {
         _setEntered(address(controller));
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setCCTPMintRecipient(1, mintRecipient1);
+        controller.setMintRecipient(1, mintRecipient1);
     }
 
-    function test_setCCTPMintRecipient_unauthorizedAccount() external {
+    function test_setMintRecipient_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        controller.setCCTPMintRecipient(1, mintRecipient1);
+        controller.setMintRecipient(1, mintRecipient1);
     }
 
-    function test_setCCTPMintRecipient() external {
-        assertEq(controller.getCCTPMintRecipient(1), bytes32(0));
-        assertEq(controller.getCCTPMintRecipient(2), bytes32(0));
+    function test_setMintRecipient() external {
+        assertEq(controller.getMintRecipient(1), bytes32(0));
+        assertEq(controller.getMintRecipient(2), bytes32(0));
 
         vm.expectEmit(address(controller));
         emit ICCTPFacet.CCTPMintRecipientSet(1, mintRecipient1);
 
         vm.prank(admin);
-        controller.setCCTPMintRecipient(1, mintRecipient1);
+        controller.setMintRecipient(1, mintRecipient1);
 
-        assertEq(controller.getCCTPMintRecipient(1), mintRecipient1);
+        assertEq(controller.getMintRecipient(1), mintRecipient1);
 
         vm.expectEmit(address(controller));
         emit ICCTPFacet.CCTPMintRecipientSet(2, mintRecipient2);
 
         vm.prank(admin);
-        controller.setCCTPMintRecipient(2, mintRecipient2);
+        controller.setMintRecipient(2, mintRecipient2);
 
-        assertEq(controller.getCCTPMintRecipient(2), mintRecipient2);
+        assertEq(controller.getMintRecipient(2), mintRecipient2);
 
         vm.record();
 
@@ -178,11 +193,33 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
         emit ICCTPFacet.CCTPMintRecipientSet(1, mintRecipient2);
 
         vm.prank(admin);
-        controller.setCCTPMintRecipient(1, mintRecipient2);
+        controller.setMintRecipient(1, mintRecipient2);
 
-        assertEq(controller.getCCTPMintRecipient(1), mintRecipient2);
+        assertEq(controller.getMintRecipient(1), mintRecipient2);
 
         _assertReentrancyGuardWrittenToTwice(address(controller));
+    }
+
+    /**********************************************************************************************/
+    /*** toCCTPRateLimitKey Tests                                                               ***/
+    /**********************************************************************************************/
+
+    function test_toCCTPRateLimitKey() external {
+        assertEq(controller.toCCTPRateLimitKey(), keccak256("LIMIT_USDC_TO_CCTP"));
+    }
+
+    /**********************************************************************************************/
+    /*** getToDomainRateLimitKey Tests                                                          ***/
+    /**********************************************************************************************/
+
+    function test_getToDomainRateLimitKey() external {
+        bytes32 keyPrefix         = keccak256("LIMIT_USDC_TO_DOMAIN");
+        uint32  destinationDomain = 42;
+
+        assertEq(
+            controller.getToDomainRateLimitKey(destinationDomain),
+            makeUint32Key(keyPrefix, destinationDomain)
+        );
     }
 
 }

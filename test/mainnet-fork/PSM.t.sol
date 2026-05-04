@@ -65,7 +65,7 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
 
     function test_swapUSDSToUSDC_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), 0, 0);
+        rateLimits.setRateLimitData(mainnetController.psmUSDSToUSDCSwapRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -133,10 +133,10 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
 
     function test_swapUSDSToUSDC_rateLimited() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setUnlimitedRateLimitData(mainnetController.LIMIT_USDS_MINT());
+        rateLimits.setUnlimitedRateLimitData(mainnetController.usdsMintRateLimitKey());
         vm.stopPrank();
 
-        bytes32 key = mainnetController.LIMIT_USDS_TO_USDC();
+        bytes32 key = mainnetController.psmUSDSToUSDCSwapRateLimitKey();
 
         vm.startPrank(relayer);
 
@@ -195,7 +195,7 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
 
     function test_swapUSDCToUSDS_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), 0, 0);
+        rateLimits.setRateLimitData(mainnetController.psmUSDSToUSDCSwapRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -520,7 +520,7 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
     }
 
     function test_swapUSDCToUSDS_rateLimited() external {
-        bytes32 key = mainnetController.LIMIT_USDS_TO_USDC();
+        bytes32 key = mainnetController.psmUSDSToUSDCSwapRateLimitKey();
 
         vm.startPrank(relayer);
 

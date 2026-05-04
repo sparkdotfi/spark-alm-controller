@@ -1,11 +1,56 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
+import { IPSMFacet }               from "../../../src/facets/psm/IPSMFacet.sol";
+import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
+
 import { PSMFacet } from "../../../src/facets/psm/PSMFacet.sol";
 
 import { Integration_TestBase } from "../TestBase.t.sol";
 
+interface IControllerLike {
+
+    function usdsToUSDCSwapRateLimitKey() external pure returns (bytes32);
+
+    function updateIntegrations(bytes32[] memory integrationIds) external;
+
+}
+
 contract Controller_PSMFacet_Tests is Integration_TestBase {
+
+    IControllerLike internal controller;
+
+    function setUp() external {
+        controller = IControllerLike(_deploy());
+
+        address facet = address(new PSMFacet(
+            makeAddr("dai"),
+            makeAddr("daiUSDS"),
+            makeAddr("psm"),
+            makeAddr("usdc"),
+            makeAddr("usds")
+        ));
+
+        vm.label(facet, "PSMFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](1);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IControllerLike.usdsToUSDCSwapRateLimitKey.selector,
+            IPSMFacet.usdsToUSDCSwapRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
+
+        vm.prank(beaconAdmin);
+        beacon.setIntegration("PSM_FACET", config);
+
+        bytes32[] memory integrationIds = new bytes32[](1);
+        integrationIds[0] = "PSM_FACET";
+
+        vm.prank(admin);
+        controller.updateIntegrations(integrationIds);
+    }
 
     /**********************************************************************************************/
     /*** Constructor Tests                                                                      ***/
@@ -56,6 +101,14 @@ contract Controller_PSMFacet_Tests is Integration_TestBase {
         assertEq(facet.psm(),     psm);
         assertEq(facet.usdc(),    usdc);
         assertEq(facet.usds(),    usds);
+    }
+
+    /**********************************************************************************************/
+    /*** usdsToUSDCSwapRateLimitKey Tests                                                       ***/
+    /**********************************************************************************************/
+
+    function test_usdsToUSDCSwapRateLimitKey() external {
+        assertEq(controller.usdsToUSDCSwapRateLimitKey(), keccak256("LIMIT_USDS_TO_USDC"));
     }
 
 }

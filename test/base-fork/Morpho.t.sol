@@ -9,8 +9,6 @@ import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { IERC4626Facet } from "../../src/facets/erc4626/IERC4626Facet.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import {
     IERC20Like,
     IERC4626Like,
@@ -75,25 +73,25 @@ abstract contract Morpho_TestBase is ForkTestBase {
         IMetaMorphoLike(MORPHO_VAULT_USDC).setSupplyQueue(supplyQueueUSDC);
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS),
+            foreignController.getERC4626DepositRateLimitKey(MORPHO_VAULT_USDS, Base.USDS),
             25_000_000e18,
             uint256(5_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDC, MORPHO_VAULT_USDC),
+            foreignController.getERC4626DepositRateLimitKey(MORPHO_VAULT_USDC, Base.USDC),
             25_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDS),
+            foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDS),
             10_000_000e18,
             uint256(5_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDC),
+            foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDC),
             10_000_000e6,
             uint256(5_000_000e6) / 1 days
         );
@@ -133,7 +131,7 @@ contract ForeignController_Morpho_Deposit_FailureTests is Morpho_TestBase {
     function test_morpho_deposit_zeroMaxAmount() external {
         vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(
-            makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS),
+            foreignController.getERC4626DepositRateLimitKey(MORPHO_VAULT_USDS, Base.USDS),
             0,
             0
         );
@@ -347,9 +345,8 @@ contract ForeignController_Morpho_Withdraw_FailureTests is Morpho_TestBase {
 contract ForeignController_Morpho_Withdraw_SuccessTests is Morpho_TestBase {
 
     function test_morpho_usds_withdraw() external {
-        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS);
-
-        bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDS);
+        bytes32 depositKey  = foreignController.getERC4626DepositRateLimitKey(MORPHO_VAULT_USDS, Base.USDS);
+        bytes32 withdrawKey = foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDS);
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
 
@@ -390,9 +387,8 @@ contract ForeignController_Morpho_Withdraw_SuccessTests is Morpho_TestBase {
     }
 
     function test_morpho_usdc_withdraw() external {
-        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDC, MORPHO_VAULT_USDC);
-
-        bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDC);
+        bytes32 depositKey  = foreignController.getERC4626DepositRateLimitKey(MORPHO_VAULT_USDC, Base.USDC);
+        bytes32 withdrawKey = foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDC);
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
 
@@ -459,7 +455,7 @@ contract ForeignController_Morpho_Redeem_FailureTests is Morpho_TestBase {
         // Longer setup because rate limit revert is at the end of the function
         vm.startPrank(Base.SPARK_EXECUTOR);
         rateLimits.setRateLimitData(
-            makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDS),
+            foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDS),
             0,
             0
         );
@@ -542,9 +538,8 @@ contract ForeignController_Morpho_Redeem_FailureTests is Morpho_TestBase {
 contract ForeignController_Morpho_Redeem_SuccessTests is Morpho_TestBase {
 
     function test_morpho_usds_redeem() external {
-        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDS, MORPHO_VAULT_USDS);
-
-        bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDS);
+        bytes32 depositKey  = foreignController.getERC4626DepositRateLimitKey(MORPHO_VAULT_USDS, Base.USDS);
+        bytes32 withdrawKey = foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDS);
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
 
@@ -587,9 +582,8 @@ contract ForeignController_Morpho_Redeem_SuccessTests is Morpho_TestBase {
     }
 
     function test_morpho_usdc_redeem() external {
-        bytes32 depositKey = makeAddressAddressKey(foreignController.LIMIT_4626_DEPOSIT(), Base.USDC, MORPHO_VAULT_USDC);
-
-        bytes32 withdrawKey = makeAddressKey(foreignController.LIMIT_4626_WITHDRAW(), MORPHO_VAULT_USDC);
+        bytes32 depositKey  = foreignController.getERC4626DepositRateLimitKey(MORPHO_VAULT_USDC, Base.USDC);
+        bytes32 withdrawKey = foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDC);
 
         deal(Base.USDC, address(almProxy), 1_000_000e6);
 

@@ -11,8 +11,7 @@ import {
 import { ApproveLib }            from "../../libraries/ApproveLib.sol";
 import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -163,14 +162,9 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IUniswapV3Facet
-    bytes32 public constant override LIMIT_DEPOSIT = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
-
-    /// @inheritdoc IUniswapV3Facet
-    bytes32 public constant override LIMIT_SWAP = keccak256("LIMIT_UNISWAP_V3_SWAP");
-
-    /// @inheritdoc IUniswapV3Facet
-    bytes32 public constant override LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V3_WITHDRAW");
+    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_UNISWAP_V3_DEPOSIT");
+    bytes32 internal constant _LIMIT_SWAP     = keccak256("LIMIT_UNISWAP_V3_SWAP");
+    bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_UNISWAP_V3_WITHDRAW");
 
     // https://github.com/sky-ecosystem/dss-allocator/blob/a5469884/src/funnels/uniV3/TickMath.sol#L12-L15
 
@@ -317,7 +311,8 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
 
         _approve(tokenIn, router, amountIn);
 
-        address proxy           = _getSharedControllerStorage().proxy;
+        address proxy = _getSharedControllerStorage().proxy;
+
         uint256 startingBalance = IERC20Like(tokenIn).balanceOf(proxy);
 
         amountOut = _swap({
@@ -334,7 +329,7 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         _approve(tokenIn, router, 0);
 
         // Rate limit decreased by value of tokenIn (the amount actually spent).
-        _decreaseRateLimit(LIMIT_SWAP, tokenIn, pool, amountSpent);
+        _decreaseRateLimit(getSwapRateLimitKey(pool, tokenIn), amountSpent);
 
         emit UniswapV3Swap(pool, tokenIn, amountSpent, amountOut);
     }
@@ -389,8 +384,8 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         _approve(token0, positionManager, 0);
         _approve(token1, positionManager, 0);
 
-        _decreaseRateLimit(LIMIT_DEPOSIT, token0, pool, amounts.amount0);
-        _decreaseRateLimit(LIMIT_DEPOSIT, token1, pool, amounts.amount1);
+        _decreaseRateLimit(getDepositRateLimitKey(pool, token0), amounts.amount0);
+        _decreaseRateLimit(getDepositRateLimitKey(pool, token1), amounts.amount1);
 
         emit UniswapV3AddLiquidity(
             pool,
@@ -437,8 +432,8 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         _checkSlippage(amounts.amount0, min.amount0, maxSlippage);
         _checkSlippage(amounts.amount1, min.amount1, maxSlippage);
 
-        _decreaseRateLimit(LIMIT_WITHDRAW, token0, pool, amounts.amount0);
-        _decreaseRateLimit(LIMIT_WITHDRAW, token1, pool, amounts.amount1);
+        _decreaseRateLimit(getWithdrawRateLimitKey(pool, token0), amounts.amount0);
+        _decreaseRateLimit(getWithdrawRateLimitKey(pool, token1), amounts.amount1);
 
         emit UniswapV3RemoveLiquidity(pool, tokenId, liquidity, amounts.amount0, amounts.amount1);
     }
@@ -446,6 +441,28 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
     /**********************************************************************************************/
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
+
+    /// @inheritdoc IUniswapV3Facet
+    function getDepositRateLimitKey(address pool, address token)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_DEPOSIT, token, pool);
+    }
+
+    /// @inheritdoc IUniswapV3Facet
+    function getLiquidityTickBounds(address pool)
+        external
+        view
+        override
+        returns (int24 lower, int24 upper)
+    {
+        Ticks storage tickBounds = _getFacetStorage().poolParams[pool].liquidityTickBounds;
+
+        return (tickBounds.lower, tickBounds.upper);
+    }
 
     /// @inheritdoc IUniswapV3Facet
     function getMaxSlippage(address pool) external view override returns (uint256) {
@@ -458,15 +475,28 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
     }
 
     /// @inheritdoc IUniswapV3Facet
-    function getLiquidityTickBounds(address pool) external view override returns (int24 lower, int24 upper) {
-        Ticks storage tickBounds = _getFacetStorage().poolParams[pool].liquidityTickBounds;
-
-        return (tickBounds.lower, tickBounds.upper);
+    function getSwapRateLimitKey(address pool, address token)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_SWAP, token, pool);
     }
 
     /// @inheritdoc IUniswapV3Facet
     function getTWAPSecondsAgo(address pool) external view override returns (uint32) {
         return _getFacetStorage().poolParams[pool].twapSecondsAgo;
+    }
+
+    /// @inheritdoc IUniswapV3Facet
+    function getWithdrawRateLimitKey(address pool, address token)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_WITHDRAW, token, pool);
     }
 
     /**********************************************************************************************/
@@ -932,13 +962,6 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             tickLower := signextend(2, tickLower)
             tickUpper := signextend(2, tickUpper)
         }
-    }
-
-    function _decreaseRateLimit(bytes32 key, address token, address pool, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(
-            makeAddressAddressKey(key, token, pool),
-            amount
-        );
     }
 
     function _validateTokenOwnership(uint256 tokenId) internal view {

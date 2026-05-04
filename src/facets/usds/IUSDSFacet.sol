@@ -58,8 +58,11 @@ interface IUSDSFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice Rate limit key for USDS mint operations. Decreased on mint, increased on burn.
-    function LIMIT_MINT() external pure returns (bytes32);
+    /**
+     * @notice The derived rate limit key for USDS mint operations (decreased on mint, increased
+     *         on burn).
+     */
+    function mintRateLimitKey() external pure returns (bytes32 key);
 
     /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);

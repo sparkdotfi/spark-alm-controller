@@ -47,12 +47,6 @@ interface IPSMFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Rate limit key for USDS-to-USDC swaps. Decreased on `swapUSDSToUSDC`, increased on
-     *         `swapUSDCToUSDS`.
-     */
-    function LIMIT_USDS_TO_USDC() external pure returns (bytes32);
-
     /// @notice Address of the DAI token contract (immutable).
     function dai() external view returns (address);
 
@@ -62,20 +56,19 @@ interface IPSMFacet is IFacet {
     /// @notice Address of the SKY PSM contract (immutable).
     function psm() external view returns (address);
 
+    /**
+     * @notice Returns the conversion factor to scale 6-decimal USDC amounts to 18-decimal DAI/USDS
+     *         amounts (i.e. `1e12`).
+     */
+    function to18ConversionFactor() external view returns (uint256);
+
     /// @notice Address of the USDC token contract (immutable).
     function usdc() external view returns (address);
 
     /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);
 
-    /**********************************************************************************************/
-    /*** View/Pure Functions                                                                    ***/
-    /**********************************************************************************************/
-
-    /**
-     * @notice Returns the conversion factor to scale 6-decimal USDC amounts to 18-decimal DAI/USDS
-     *         amounts (i.e. `1e12`).
-     */
-    function to18ConversionFactor() external view returns (uint256);
+    /// @notice The derived rate limit key for USDS-to-USDC swap operations.
+    function usdsToUSDCSwapRateLimitKey() external pure returns (bytes32 key);
 
 }

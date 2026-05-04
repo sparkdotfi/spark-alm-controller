@@ -83,77 +83,29 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
 
         vm.warp(block.timestamp + 2 hours); // Advance sufficient time for twap
 
-        uniswapV3_UsdsUsdcPool_UsdsSwapKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_SWAP(),
-            address(usdsBase),
-            usdsUsdcPool
-        );
+        uniswapV3_UsdsUsdcPool_UsdsSwapKey = foreignController.getUniswapV3SwapRateLimitKey(usdsUsdcPool, address(usdsBase));
 
-        uniswapV3_UsdsUsdcPool_UsdcSwapKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_SWAP(),
-            address(usdcBase),
-            usdsUsdcPool
-        );
+        uniswapV3_UsdsUsdcPool_UsdcSwapKey = foreignController.getUniswapV3SwapRateLimitKey(usdsUsdcPool, address(usdcBase));
 
-        uniswapV3_UsdsUsdcPool_UsdsAddLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(usdsBase),
-            usdsUsdcPool
-        );
+        uniswapV3_UsdsUsdcPool_UsdsAddLiquidityKey = foreignController.getUniswapV3DepositRateLimitKey(usdsUsdcPool, address(usdsBase));
 
-        uniswapV3_UsdsUsdcPool_UsdcAddLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(usdcBase),
-            usdsUsdcPool
-        );
+        uniswapV3_UsdsUsdcPool_UsdcAddLiquidityKey = foreignController.getUniswapV3DepositRateLimitKey(usdsUsdcPool, address(usdcBase));
 
-        uniswapV3_UsdsUsdcPool_UsdsRemoveLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(usdsBase),
-            usdsUsdcPool
-        );
+        uniswapV3_UsdsUsdcPool_UsdsRemoveLiquidityKey = foreignController.getUniswapV3WithdrawRateLimitKey(usdsUsdcPool, address(usdsBase));
 
-        uniswapV3_UsdsUsdcPool_UsdcRemoveLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(usdcBase),
-            usdsUsdcPool
-        );
+        uniswapV3_UsdsUsdcPool_UsdcRemoveLiquidityKey = foreignController.getUniswapV3WithdrawRateLimitKey(usdsUsdcPool, address(usdcBase));
 
-        uniswapV3_AusdUsdsPool_AusdSwapKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_SWAP(),
-            address(ausdBase),
-            usdsAusdPool
-        );
+        uniswapV3_AusdUsdsPool_AusdSwapKey = foreignController.getUniswapV3SwapRateLimitKey(usdsAusdPool, address(ausdBase));
 
-        uniswapV3_AusdUsdsPool_UsdsSwapKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_SWAP(),
-            address(usdsBase),
-            usdsAusdPool
-        );
+        uniswapV3_AusdUsdsPool_UsdsSwapKey = foreignController.getUniswapV3SwapRateLimitKey(usdsAusdPool, address(usdsBase));
 
-        uniswapV3_AusdUsdsPool_AusdAddLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(ausdBase),
-            usdsAusdPool
-        );
+        uniswapV3_AusdUsdsPool_AusdAddLiquidityKey = foreignController.getUniswapV3DepositRateLimitKey(usdsAusdPool, address(ausdBase));
 
-        uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_DEPOSIT(),
-            address(usdsBase),
-            usdsAusdPool
-        );
+        uniswapV3_AusdUsdsPool_UsdsAddLiquidityKey = foreignController.getUniswapV3DepositRateLimitKey(usdsAusdPool, address(usdsBase));
 
-        uniswapV3_AusdUsdsPool_AusdRemoveLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(ausdBase),
-            usdsAusdPool
-        );
+        uniswapV3_AusdUsdsPool_AusdRemoveLiquidityKey = foreignController.getUniswapV3WithdrawRateLimitKey(usdsAusdPool, address(ausdBase));
 
-        uniswapV3_AusdUsdsPool_UsdsRemoveLiquidityKey = makeAddressAddressKey(
-            foreignController.LIMIT_UNISWAP_V3_WITHDRAW(),
-            address(usdsBase),
-            usdsAusdPool
-        );
+        uniswapV3_AusdUsdsPool_UsdsRemoveLiquidityKey = foreignController.getUniswapV3WithdrawRateLimitKey(usdsAusdPool, address(usdsBase));
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
@@ -217,11 +169,6 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
 
         uint160 sqrtPriceX96 = _getInitialSqrtPriceX96(_tokenA, _tokenB);
         IUniswapV3PoolLike(poolAddress).initialize(sqrtPriceX96);
-    }
-
-
-    function _getSwapKey(address tokenIn) internal view returns (bytes32) {
-        return makeAddressAddressKey(foreignController.LIMIT_UNISWAP_V3_SWAP(), tokenIn, _getPool());
     }
 
     function _label() internal {

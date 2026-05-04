@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -53,8 +52,7 @@ contract USDSFacet is IUSDSFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IUSDSFacet
-    bytes32 public constant override LIMIT_MINT = keccak256("LIMIT_USDS_MINT");
+    bytes32 internal constant _LIMIT_MINT = keccak256("LIMIT_USDS_MINT");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -92,11 +90,9 @@ contract USDSFacet is IUSDSFacet, Facet {
 
     /// @inheritdoc IUSDSFacet
     function mint(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _decreaseRateLimit(mintRateLimitKey(), usdsAmount);
 
-        IRateLimits($.rateLimits).triggerRateLimitDecrease(LIMIT_MINT, usdsAmount);
-
-        address proxy  = $.proxy;
+        address proxy  = _getSharedControllerStorage().proxy;
         address vault_ = _getFacetStorage().vault;
 
         // Mint USDS into the buffer.
@@ -117,11 +113,9 @@ contract USDSFacet is IUSDSFacet, Facet {
 
     /// @inheritdoc IUSDSFacet
     function burn(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
-        SharedControllerStorage storage $ = _getSharedControllerStorage();
+        _increaseRateLimit(mintRateLimitKey(), usdsAmount);
 
-        IRateLimits($.rateLimits).triggerRateLimitIncrease(LIMIT_MINT, usdsAmount);
-
-        address proxy  = $.proxy;
+        address proxy  = _getSharedControllerStorage().proxy;
         address vault_ = _getFacetStorage().vault;
 
         // Transfer USDS from the proxy to the buffer.
@@ -144,6 +138,11 @@ contract USDSFacet is IUSDSFacet, Facet {
     /// @inheritdoc IUSDSFacet
     function vault() external view override returns (address) {
         return _getFacetStorage().vault;
+    }
+
+    /// @inheritdoc IUSDSFacet
+    function mintRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_MINT;
     }
 
 }

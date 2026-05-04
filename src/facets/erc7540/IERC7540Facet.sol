@@ -75,19 +75,25 @@ interface IERC7540Facet is IFacet {
     function requestRedeem(address token, uint256 shares) external;
 
     /**********************************************************************************************/
-    /*** Variables                                                                              ***/
+    /*** View/Pure Functions                                                                    ***/
     /**********************************************************************************************/
 
     /**
-     * @notice Rate limit key for deposit operations, combined with the asset address and vault
-     *         token address to form the per-market key.
+     * @notice Returns the derived deposit rate limit key for a vault token and asset.
+     * @param  token Address of the ERC-7540 vault token.
+     * @param  asset Address of the asset being deposited.
+     * @return key   Derived rate limit key.
      */
-    function LIMIT_DEPOSIT() external pure returns (bytes32);
+    function getDepositRateLimitKey(address token, address asset)
+        external
+        pure
+        returns (bytes32 key);
 
     /**
-     * @notice Rate limit key for redeem operations, combined with the vault token address to form
-     *         the per-vault keys.
+     * @notice Returns the derived redeem rate limit key for a vault token.
+     * @param  token Address of the ERC-7540 vault token.
+     * @return key   Derived rate limit key.
      */
-    function LIMIT_REDEEM() external pure returns (bytes32);
+    function getRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
 }

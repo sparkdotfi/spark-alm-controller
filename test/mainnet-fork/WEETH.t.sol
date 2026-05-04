@@ -6,8 +6,6 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { IWEETHFacet }  from "../../src/facets/weeth/IWEETHFacet.sol";
 import { WEETHModule } from "../../src/facets/weeth/WEETHModule.sol";
 
@@ -113,7 +111,7 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
     function setUp() public override {
         super.setUp();
 
-        depositKey = makeAddressKey(mainnetController.LIMIT_WEETH_DEPOSIT(), address(eeth));
+        depositKey = mainnetController.getWEETHDepositRateLimitKey(address(eeth), address(liquidityPool));
     }
 
     function test_depositToWEETH_reentrancy() external {
@@ -224,9 +222,9 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
     function setUp() public override {
         super.setUp();
 
-        depositKey = makeAddressKey(mainnetController.LIMIT_WEETH_DEPOSIT(), address(eeth));
+        depositKey = mainnetController.getWEETHDepositRateLimitKey(address(eeth), address(liquidityPool));
 
-        requestWithdrawKey = makeAddressAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), address(eeth), weethModule);
+        requestWithdrawKey = mainnetController.getWEETHRequestWithdrawRateLimitKey(weethModule, address(eeth), address(liquidityPool));
     }
 
     function test_requestWithdrawFromWEETH_reentrancy() external {
@@ -376,9 +374,9 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     function setUp() public override {
         super.setUp();
 
-        depositKey = makeAddressKey(mainnetController.LIMIT_WEETH_DEPOSIT(), address(eeth));
+        depositKey = mainnetController.getWEETHDepositRateLimitKey(address(eeth), address(liquidityPool));
 
-        requestWithdrawKey = makeAddressAddressKey(mainnetController.LIMIT_WEETH_REQUEST_WITHDRAW(), address(eeth), weethModule);
+        requestWithdrawKey = mainnetController.getWEETHRequestWithdrawRateLimitKey(weethModule, address(eeth), address(liquidityPool));
     }
 
     function test_claimWithdrawalFromWEETH_reentrancy() external {

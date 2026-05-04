@@ -14,9 +14,11 @@ interface IControllerLike {
 
     function setVault(address vault) external;
 
-    function updateIntegrations(bytes32[] memory integrationIds) external;
-
     function vault() external view returns (address);
+
+    function mintRateLimitKey() external pure returns (bytes32);
+
+    function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
 
@@ -31,7 +33,7 @@ contract Controller_USDSFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "USDSFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setVault.selector,
@@ -41,6 +43,11 @@ contract Controller_USDSFacet_Tests is Integration_TestBase {
         wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.vault.selector,
             IUSDSFacet.vault.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.mintRateLimitKey.selector,
+            IUSDSFacet.mintRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -115,6 +122,14 @@ contract Controller_USDSFacet_Tests is Integration_TestBase {
         assertEq(controller.vault(), vault);
 
         _assertReentrancyGuardWrittenToTwice(address(controller));
+    }
+
+    /**********************************************************************************************/
+    /*** mintRateLimitKey Tests                                                                 ***/
+    /**********************************************************************************************/
+
+    function test_mintRateLimitKey() external {
+        assertEq(controller.mintRateLimitKey(), keccak256("LIMIT_USDS_MINT"));
     }
 
 }

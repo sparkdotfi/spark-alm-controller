@@ -3,8 +3,7 @@ pragma solidity ^0.8.34;
 
 import { makeUint32Key } from "../../libraries/RateLimitHelpers.sol";
 
-import { IALMProxy }   from "../../interfaces/IALMProxy.sol";
-import { IRateLimits } from "../../interfaces/IRateLimits.sol";
+import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
 
@@ -67,11 +66,8 @@ contract CCTPFacet is ICCTPFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc ICCTPFacet
-    bytes32 public constant override LIMIT_TO_CCTP = keccak256("LIMIT_USDC_TO_CCTP");
-
-    /// @inheritdoc ICCTPFacet
-    bytes32 public constant override LIMIT_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 internal constant _LIMIT_TO_CCTP   = keccak256("LIMIT_USDC_TO_CCTP");
+    bytes32 internal constant _LIMIT_TO_DOMAIN = keccak256("LIMIT_USDC_TO_DOMAIN");
 
     /// @inheritdoc ICCTPFacet
     bytes32 public constant override DESTINATION_CALLER = 0;  // 0 means anyone can relay
@@ -167,6 +163,11 @@ contract CCTPFacet is ICCTPFacet, Facet {
         return _getFacetStorage().maxFeeCap;
     }
 
+    /// @inheritdoc ICCTPFacet
+    function toCCTPRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_TO_CCTP;
+    }
+
     /**********************************************************************************************/
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
@@ -176,13 +177,23 @@ contract CCTPFacet is ICCTPFacet, Facet {
         return _getFacetStorage().mintRecipients[destinationDomain];
     }
 
+    /// @inheritdoc ICCTPFacet
+    function getToDomainRateLimitKey(uint32 destinationDomain)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeUint32Key(_LIMIT_TO_DOMAIN, destinationDomain);
+    }
+
     /**********************************************************************************************/
     /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
     function _transfer(uint256 amount, uint256 maxFee, uint32 destinationDomain) internal {
-        _decreaseRateLimit(LIMIT_TO_CCTP,                                     amount);
-        _decreaseRateLimit(makeUint32Key(LIMIT_TO_DOMAIN, destinationDomain), amount);
+        _decreaseRateLimit(toCCTPRateLimitKey(),                       amount);
+        _decreaseRateLimit(getToDomainRateLimitKey(destinationDomain), amount);
 
         FacetStorage storage $ = _getFacetStorage();
 
@@ -244,10 +255,6 @@ contract CCTPFacet is ICCTPFacet, Facet {
         );
 
         emit CCTPTransferInitiated(destinationDomain, mintRecipient, amount);
-    }
-
-    function _decreaseRateLimit(bytes32 key, uint256 amount) internal {
-        IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
     }
 
 }

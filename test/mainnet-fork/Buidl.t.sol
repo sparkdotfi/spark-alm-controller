@@ -3,8 +3,6 @@ pragma solidity ^0.8.34;
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { makeAddressAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
-
 import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
@@ -41,11 +39,7 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
     }
 
     function test_transferAsset_rateLimitsBoundary() external {
-        bytes32 key = makeAddressAddressKey(
-            mainnetController.LIMIT_ASSET_TRANSFER(),
-            Ethereum.USDC,
-            buidlDeposit
-        );
+        bytes32 key = mainnetController.getTransferAssetTransferRateLimitKey(Ethereum.USDC, buidlDeposit);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
@@ -61,11 +55,7 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
     }
 
     function test_transferAsset() external {
-        bytes32 key = makeAddressAddressKey(
-            mainnetController.LIMIT_ASSET_TRANSFER(),
-            Ethereum.USDC,
-            buidlDeposit
-        );
+        bytes32 key = mainnetController.getTransferAssetTransferRateLimitKey(Ethereum.USDC, buidlDeposit);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
@@ -78,7 +68,7 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
         assertEq(USDC.balanceOf(buidlDeposit),      0);
 
         vm.expectEmit(address(mainnetController));
-        emit ITransferAssetFacet.TransferAssetFacetTransfer(Ethereum.USDC, buidlDeposit, 1_000_000e6);
+        emit ITransferAssetFacet.TransferAssetTransfer(Ethereum.USDC, buidlDeposit, 1_000_000e6);
 
         vm.prank(relayer);
         mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
