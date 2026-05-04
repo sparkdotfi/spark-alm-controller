@@ -435,7 +435,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         assertEq(jTreasuryVault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
 
         vm.expectEmit(address(mainnetController));
-        emit ICentrifugeFacet.CentrifugeClaimCancelDepositRequest(address(jTreasuryVault));
+        emit ICentrifugeFacet.CentrifugeClaimCancelDepositRequest(address(jTreasuryVault), 1_000_000e6);
 
         vm.prank(relayer);
         mainnetController.claimCentrifugeCancelDepositRequest(address(jTreasuryVault));
@@ -869,7 +869,7 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         assertEq(jTreasuryVault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), shares);
 
         vm.expectEmit(address(mainnetController));
-        emit ICentrifugeFacet.CentrifugeClaimCancelRedeemRequest(address(jTreasuryVault));
+        emit ICentrifugeFacet.CentrifugeClaimCancelRedeemRequest(address(jTreasuryVault), shares);
 
         vm.prank(relayer);
         mainnetController.claimCentrifugeCancelRedeemRequest(address(jTreasuryVault));

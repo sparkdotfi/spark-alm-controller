@@ -476,7 +476,7 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
 
         vm.expectEmit(address(foreignController));
-        emit ICentrifugeFacet.CentrifugeClaimCancelDepositRequest(address(centrifugeV3Vault));
+        emit ICentrifugeFacet.CentrifugeClaimCancelDepositRequest(address(centrifugeV3Vault), 1_000_000e6);
 
         vm.prank(ALM_RELAYER);
         foreignController.claimCentrifugeCancelDepositRequest(address(centrifugeV3Vault));
@@ -955,7 +955,7 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         assertEq(centrifugeV3Vault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), shares);
 
         vm.expectEmit(address(foreignController));
-        emit ICentrifugeFacet.CentrifugeClaimCancelRedeemRequest(address(centrifugeV3Vault));
+        emit ICentrifugeFacet.CentrifugeClaimCancelRedeemRequest(address(centrifugeV3Vault), shares);
 
         vm.prank(ALM_RELAYER);
         foreignController.claimCentrifugeCancelRedeemRequest(address(centrifugeV3Vault));

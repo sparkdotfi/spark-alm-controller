@@ -28,15 +28,17 @@ interface ICentrifugeFacet is IFacet {
 
     /**
      * @notice Emitted when assets from a cancelled deposit request are claimed.
-     * @param  token Address of the Centrifuge vault token.
+     * @param  token  Address of the Centrifuge vault token.
+     * @param  assets Amount of assets claimed.
      */
-    event CentrifugeClaimCancelDepositRequest(address indexed token);
+    event CentrifugeClaimCancelDepositRequest(address indexed token, uint256 assets);
 
     /**
      * @notice Emitted when shares from a cancelled redeem request are claimed.
-     * @param  token Address of the Centrifuge vault token.
+     * @param  token  Address of the Centrifuge vault token.
+     * @param  shares Amount of shares claimed.
      */
-    event CentrifugeClaimCancelRedeemRequest(address indexed token);
+    event CentrifugeClaimCancelRedeemRequest(address indexed token, uint256 shares);
 
     /**
      * @notice Emitted when a cross-chain recipient is configured for a centrifuge ID.
