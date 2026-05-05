@@ -12,6 +12,12 @@ import { Facet } from "../Facet.sol";
 
 import { IPSM3Facet } from "./IPSM3Facet.sol";
 
+interface IERC20Like {
+
+    function balanceOf(address account) external view returns (uint256);
+
+}
+
 interface IPSM3Like {
 
     function deposit(address asset, address receiver, uint256 assetsToDeposit)
@@ -74,15 +80,12 @@ contract PSM3Facet is IPSM3Facet, Facet {
         // Approve `asset` to PSM from the proxy (assumes the proxy has enough `asset`).
         ApproveLib.approve(asset, proxy, psm, amount);
 
-        // Deposit `amount` of `asset` in the PSM, decode the result to get `shares`.
-        // NOTE: The PSM3 contract is immutable, so the return value can be trusted.
-        shares = abi.decode(
-            IALMProxy(proxy).doCall(
-                psm,
-                abi.encodeCall(IPSM3Like.deposit, (asset, proxy, amount))
-            ),
-            (uint256)
-        );
+        uint256 startingShares = IPSM3Like(psm).shares(proxy);
+
+        // Deposit `amount` of `asset` in the PSM.
+        IALMProxy(proxy).doCall(psm, abi.encodeCall(IPSM3Like.deposit, (asset, proxy, amount)));
+
+        shares = IPSM3Like(psm).shares(proxy) - startingShares;
 
         emit PSM3Deposit(asset, amount, shares);
     }
@@ -98,17 +101,12 @@ contract PSM3Facet is IPSM3Facet, Facet {
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 startingShares = IPSM3Like(psm).shares(proxy);
+        uint256 startingAssets = IERC20Like(asset).balanceOf(proxy);
 
-        // Withdraw up to `maxAmount` of `asset` in the PSM, decode the result to get
-        // `assetsWithdrawn` (assumes the proxy has enough PSM shares).
-        // NOTE: The PSM3 contract is immutable, so the return value can be trusted.
-        assetsWithdrawn = abi.decode(
-            IALMProxy(proxy).doCall(
-                psm,
-                abi.encodeCall(IPSM3Like.withdraw, (asset, proxy, maxAmount))
-            ),
-            (uint256)
-        );
+        // Withdraw up to `maxAmount` of `asset` in the PSM.
+        IALMProxy(proxy).doCall(psm, abi.encodeCall(IPSM3Like.withdraw, (asset, proxy, maxAmount)));
+
+        assetsWithdrawn = IERC20Like(asset).balanceOf(proxy) - startingAssets;
 
         _decreaseRateLimit(getWithdrawRateLimitKey(asset), assetsWithdrawn);
 

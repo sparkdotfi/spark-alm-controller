@@ -438,9 +438,15 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             liquidity : liquidity
         });
 
-        amounts = _callDecreaseLiquidity(tokenId, liquidity, min, deadline);
+        uint256 startingToken0Balance = _getProxyBalance(token0);
+        uint256 startingToken1Balance = _getProxyBalance(token1);
+
+        _callDecreaseLiquidity(tokenId, liquidity, min, deadline);
 
         _callCollect(tokenId);
+
+        amounts.amount0 = _getProxyBalance(token0) - startingToken0Balance;
+        amounts.amount1 = _getProxyBalance(token1) - startingToken1Balance;
 
         uint256 maxSlippage = _getFacetStorage().maxSlippages[pool];
 
@@ -551,10 +557,13 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             sqrtPriceLimitX96 : sqrtPriceLimitX96
         });
 
-        return abi.decode(
-            IALMProxy(_getSharedControllerStorage().proxy).doCall(router, callData),
-            (uint256)
-        );
+        address proxy = _getSharedControllerStorage().proxy;
+
+        uint256 startingBalance = IERC20Like(tokenOut).balanceOf(proxy);
+
+        IALMProxy(proxy).doCall(router, callData);
+
+        return IERC20Like(tokenOut).balanceOf(proxy) - startingBalance;
     }
 
     function _getSwapCallData(
@@ -745,12 +754,14 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         internal
         returns (uint256 tokenId, uint128 liquidity, TokenAmounts memory amounts)
     {
-        address proxy = _getSharedControllerStorage().proxy;
+        address proxy  = _getSharedControllerStorage().proxy;
+        address token0 = IUniswapV3PoolLike(pool).token0();
+        address token1 = IUniswapV3PoolLike(pool).token1();
 
         INonfungiblePositionManager.MintParams memory mintParams
             = INonfungiblePositionManager.MintParams({
-                token0         : IUniswapV3PoolLike(pool).token0(),
-                token1         : IUniswapV3PoolLike(pool).token1(),
+                token0         : token0,
+                token1         : token1,
                 fee            : IUniswapV3PoolLike(pool).fee(),
                 tickLower      : ticks.lower,
                 tickUpper      : ticks.upper,
@@ -762,17 +773,18 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
                 deadline       : deadline
             });
 
+        uint256 startingToken0Balance = _getProxyBalance(token0);
+        uint256 startingToken1Balance = _getProxyBalance(token1);
+
         bytes memory result = IALMProxy(proxy).doCall(
             positionManager,
             abi.encodeCall(INonfungiblePositionManager.mint, mintParams)
         );
 
-        (
-            tokenId,
-            liquidity,
-            amounts.amount0,
-            amounts.amount1
-        ) = abi.decode(result, (uint256, uint128, uint256, uint256));
+        ( tokenId, liquidity, , ) = abi.decode(result, (uint256, uint128, uint256, uint256));
+
+        amounts.amount0 = startingToken0Balance - _getProxyBalance(token0);
+        amounts.amount1 = startingToken1Balance - _getProxyBalance(token1);
     }
 
     function _increaseLiquidity(
@@ -807,7 +819,13 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         require(tickLower == ticks.lower, "UniswapV3Facet/lower-tick-does-not-match-position");
         require(tickUpper == ticks.upper, "UniswapV3Facet/upper-tick-does-not-match-position");
 
-        return _callIncreaseLiquidity(tokenId, target, min, deadline);
+        uint256 startingToken0Balance = _getProxyBalance(token0);
+        uint256 startingToken1Balance = _getProxyBalance(token1);
+
+        liquidity = _callIncreaseLiquidity(tokenId, target, min, deadline);
+
+        amounts.amount0 = startingToken0Balance - _getProxyBalance(token0);
+        amounts.amount1 = startingToken1Balance - _getProxyBalance(token1);
     }
 
     function _callIncreaseLiquidity(
@@ -817,7 +835,7 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         uint256               deadline
     )
         internal
-        returns (uint128 liquidity, TokenAmounts memory amounts)
+        returns (uint128 liquidity)
     {
         INonfungiblePositionManager.IncreaseLiquidityParams memory increaseLiquidityParams
             = INonfungiblePositionManager.IncreaseLiquidityParams({
@@ -837,11 +855,7 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             )
         );
 
-        (
-            liquidity,
-            amounts.amount0,
-            amounts.amount1
-        ) = abi.decode(result, (uint128, uint256, uint256));
+        ( liquidity, , ) = abi.decode(result, (uint128, uint256, uint256));
     }
 
     /**********************************************************************************************/
@@ -888,9 +902,8 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         uint256               deadline
     )
         internal
-        returns (TokenAmounts memory amounts)
     {
-        bytes memory result = IALMProxy(_getSharedControllerStorage().proxy).doCall(
+        IALMProxy(_getSharedControllerStorage().proxy).doCall(
             positionManager,
             abi.encodeCall(
                 INonfungiblePositionManager.decreaseLiquidity,
@@ -903,14 +916,12 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
                 })
             )
         );
-
-        ( amounts.amount0, amounts.amount1 ) = abi.decode(result, (uint256, uint256));
     }
 
-    function _callCollect(uint256 tokenId) internal returns (TokenAmounts memory amounts) {
+    function _callCollect(uint256 tokenId) internal {
         address proxy = _getSharedControllerStorage().proxy;
 
-        bytes memory result = IALMProxy(proxy).doCall(
+        IALMProxy(proxy).doCall(
             positionManager,
             abi.encodeCall(
                 INonfungiblePositionManager.collect,
@@ -922,8 +933,6 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
                 })
             )
         );
-
-        ( amounts.amount0, amounts.amount1 ) = abi.decode(result, (uint256, uint256));
     }
 
     function _checkSlippage(uint256 amount, uint256 minAmount, uint256 maxSlippage) internal pure {
@@ -985,6 +994,10 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             tickLower := signextend(2, tickLower)
             tickUpper := signextend(2, tickUpper)
         }
+    }
+
+    function _getProxyBalance(address token) internal view returns (uint256) {
+        return IERC20Like(token).balanceOf(_getSharedControllerStorage().proxy);
     }
 
     function _toNormalizedAmount(address token, uint256 amount) internal view returns (uint256) {

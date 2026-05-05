@@ -142,7 +142,8 @@ contract USDEFacet is IUSDEFacet, Facet {
     {
         _decreaseRateLimit(cooldownRateLimitKey(), usdeAmount);
 
-        // NOTE: The SUSDE contract is immutable, so the return value can be trusted.
+        // NOTE: The SUSDE contract is immutable, so the return value can be trusted, but also the
+        //       shares are siloed which is still a process that must be trusted anyway.
         shares = abi.decode(
             IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 susde,
@@ -162,7 +163,8 @@ contract USDEFacet is IUSDEFacet, Facet {
         onlyRole(RELAYER_ROLE)
         returns (uint256 assets)
     {
-        // NOTE: The SUSDE contract is immutable, so the return value can be trusted.
+        // NOTE: The SUSDE contract is immutable, so the return value can be trusted, but also the
+        //       assets are siloed which is still a process that must be trusted anyway.
         assets = abi.decode(
             IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 susde,

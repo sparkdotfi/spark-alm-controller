@@ -210,14 +210,16 @@ contract WEETHFacet is IWEETHFacet, Facet {
             "WEETHFacet/invalid-action"
         );
 
-        // NOTE: The weethModule contract is first party, so the return value can be trusted.
-        wethReceived = abi.decode(
-            IALMProxy(_getSharedControllerStorage().proxy).doCall(
-                weethModule,
-                abi.encodeCall(IWEETHModuleLike.claimWithdrawal, (requestId))
-            ),
-            (uint256)
+        address proxy = _getSharedControllerStorage().proxy;
+
+        uint256 startingWETH = IERC20Like(weth).balanceOf(proxy);
+
+        IALMProxy(proxy).doCall(
+            weethModule,
+            abi.encodeCall(IWEETHModuleLike.claimWithdrawal, (requestId))
         );
+
+        wethReceived = IERC20Like(weth).balanceOf(proxy) - startingWETH;
 
         emit WEETHClaimWithdrawal(weethModule, requestId, wethReceived);
     }
