@@ -8,8 +8,8 @@ import {
     LiquidityAmounts
 } from "../../../lib/dss-allocator/src/funnels/uniV3/LiquidityAmounts.sol";
 
-import { ApproveLib }            from "../../libraries/ApproveLib.sol";
-import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
+import { ApproveLib }                            from "../../libraries/ApproveLib.sol";
+import { makeAddressAddressKey, makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
@@ -24,6 +24,8 @@ import { IUniswapV3Facet } from "./IUniswapV3Facet.sol";
 interface IERC20Like {
 
     function balanceOf(address account) external view returns (uint256);
+
+    function decimals() external view returns (uint8);
 
 }
 
@@ -392,8 +394,13 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         _approve(token0, positionManager, 0);
         _approve(token1, positionManager, 0);
 
-        _decreaseRateLimit(getDepositRateLimitKey(pool, token0), amounts.amount0);
-        _decreaseRateLimit(getDepositRateLimitKey(pool, token1), amounts.amount1);
+        uint256 aggregateAmount =
+            _toNormalizedAmount(token0, amounts.amount0) +
+            _toNormalizedAmount(token1, amounts.amount1);
+
+        _decreaseRateLimit(getAggregateDepositRateLimitKey(pool),     aggregateAmount);
+        _decreaseRateLimit(getAssetDepositRateLimitKey(pool, token0), amounts.amount0);
+        _decreaseRateLimit(getAssetDepositRateLimitKey(pool, token1), amounts.amount1);
 
         emit UniswapV3AddLiquidity(
             pool,
@@ -440,8 +447,11 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         _checkSlippage(amounts.amount0, min.amount0, maxSlippage);
         _checkSlippage(amounts.amount1, min.amount1, maxSlippage);
 
-        _decreaseRateLimit(getWithdrawRateLimitKey(pool, token0), amounts.amount0);
-        _decreaseRateLimit(getWithdrawRateLimitKey(pool, token1), amounts.amount1);
+        uint256 valueWithdrawn =
+            _toNormalizedAmount(token0, amounts.amount0) +
+            _toNormalizedAmount(token1, amounts.amount1);
+
+        _decreaseRateLimit(getWithdrawRateLimitKey(pool), valueWithdrawn);
 
         emit UniswapV3RemoveLiquidity(pool, tokenId, liquidity, amounts.amount0, amounts.amount1);
     }
@@ -451,7 +461,12 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
     /**********************************************************************************************/
 
     /// @inheritdoc IUniswapV3Facet
-    function getDepositRateLimitKey(address pool, address token)
+    function getAggregateDepositRateLimitKey(address pool) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_DEPOSIT, pool);
+    }
+
+    /// @inheritdoc IUniswapV3Facet
+    function getAssetDepositRateLimitKey(address pool, address token)
         public
         pure
         override
@@ -498,13 +513,13 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
     }
 
     /// @inheritdoc IUniswapV3Facet
-    function getWithdrawRateLimitKey(address pool, address token)
+    function getWithdrawRateLimitKey(address pool)
         public
         pure
         override
         returns (bytes32)
     {
-        return makeAddressAddressKey(_LIMIT_WITHDRAW, token, pool);
+        return makeAddressKey(_LIMIT_WITHDRAW, pool);
     }
 
     /**********************************************************************************************/
@@ -970,6 +985,10 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             tickLower := signextend(2, tickLower)
             tickUpper := signextend(2, tickUpper)
         }
+    }
+
+    function _toNormalizedAmount(address token, uint256 amount) internal view returns (uint256) {
+        return amount * 1e18 / (10 ** IERC20Like(token).decimals());
     }
 
     function _validateTokenOwnership(uint256 tokenId) internal view {

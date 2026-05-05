@@ -3,10 +3,10 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
-import { IFacet }                  from "../../../src/facets/IFacet.sol";
-import { IUniswapV4Facet }         from "../../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
-import { makeBytes32Key }          from "../../../src/libraries/RateLimitHelpers.sol";
+import { IEnumerableIntegrations }               from "../../../src/interfaces/IEnumerableIntegrations.sol";
+import { IFacet }                                from "../../../src/facets/IFacet.sol";
+import { IUniswapV4Facet }                       from "../../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
+import { makeAddressBytes32Key, makeBytes32Key } from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { UniswapV4Facet } from "../../../src/facets/uniswap-v4/UniswapV4Facet.sol";
 
@@ -30,9 +30,11 @@ interface IControllerLike {
         view
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
-    function getDepositRateLimitKey(bytes32 poolId) external pure returns (bytes32);
+    function getAggregateDepositRateLimitKey(bytes32 poolId) external pure returns (bytes32);
 
-    function getSwapRateLimitKey(bytes32 poolId) external pure returns (bytes32);
+    function getAssetDepositRateLimitKey(bytes32 poolId, address token) external pure returns (bytes32);
+
+    function getSwapRateLimitKey(bytes32 poolId, address token) external pure returns (bytes32);
 
     function getWithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32);
 
@@ -57,7 +59,7 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
 
         vm.label(facet, "UniswapV4Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](7);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxSlippage.selector,
@@ -80,16 +82,21 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
         );
 
         wires[4] = IEnumerableIntegrations.Wire(
-            IControllerLike.getDepositRateLimitKey.selector,
-            IUniswapV4Facet.getDepositRateLimitKey.selector
+            IControllerLike.getAggregateDepositRateLimitKey.selector,
+            IUniswapV4Facet.getAggregateDepositRateLimitKey.selector
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
+            IControllerLike.getAssetDepositRateLimitKey.selector,
+            IUniswapV4Facet.getAssetDepositRateLimitKey.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
             IControllerLike.getSwapRateLimitKey.selector,
             IUniswapV4Facet.getSwapRateLimitKey.selector
         );
 
-        wires[6] = IEnumerableIntegrations.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IControllerLike.getWithdrawRateLimitKey.selector,
             IUniswapV4Facet.getWithdrawRateLimitKey.selector
         );
@@ -266,13 +273,27 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** getDepositRateLimitKey Tests                                                           ***/
+    /*** getAggregateDepositRateLimitKey Tests                                                  ***/
     /**********************************************************************************************/
 
-    function test_getDepositRateLimitKey() external {
+    function test_getAggregateDepositRateLimitKey() external {
         bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
 
-        assertEq(controller.getDepositRateLimitKey(_POOL_ID), makeBytes32Key(keyPrefix, _POOL_ID));
+        assertEq(controller.getAggregateDepositRateLimitKey(_POOL_ID), makeBytes32Key(keyPrefix, _POOL_ID));
+    }
+
+    /**********************************************************************************************/
+    /*** getAssetDepositRateLimitKey Tests                                                      ***/
+    /**********************************************************************************************/
+
+    function test_getAssetDepositRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V4_DEPOSIT");
+        address token     = makeAddr("token");
+
+        assertEq(
+            controller.getAssetDepositRateLimitKey(_POOL_ID, token),
+            makeAddressBytes32Key(keyPrefix, token, _POOL_ID)
+        );
     }
 
     /**********************************************************************************************/
@@ -281,8 +302,12 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
 
     function test_getSwapRateLimitKey() external {
         bytes32 keyPrefix = keccak256("LIMIT_UNISWAP_V4_SWAP");
+        address token     = makeAddr("token");
 
-        assertEq(controller.getSwapRateLimitKey(_POOL_ID), makeBytes32Key(keyPrefix, _POOL_ID));
+        assertEq(
+            controller.getSwapRateLimitKey(_POOL_ID, token),
+            makeAddressBytes32Key(keyPrefix, token, _POOL_ID)
+        );
     }
 
     /**********************************************************************************************/

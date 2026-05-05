@@ -133,9 +133,17 @@ interface IMainnetControllerFull is IController {
 
     function getCurveMaxSlippage(address pool) external view returns (uint256);
 
-    function getCurveDepositRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getCurveAggregateDepositRateLimitKey(address pool) external pure returns (bytes32 key);
 
-    function getCurveSwapRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getCurveAssetDepositRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getCurveSwapRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
 
     function getCurveWithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
 
@@ -398,7 +406,12 @@ interface IMainnetControllerFull is IController {
 
     function getUniswapV3TWAPSecondsAgo(address pool) external view returns (uint32);
 
-    function getUniswapV3DepositRateLimitKey(address pool, address token)
+    function getUniswapV3AggregateDepositRateLimitKey(address pool)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getUniswapV3AssetDepositRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
@@ -408,10 +421,7 @@ interface IMainnetControllerFull is IController {
         pure
         returns (bytes32 key);
 
-    function getUniswapV3WithdrawRateLimitKey(address pool, address token)
-        external
-        pure
-        returns (bytes32 key);
+    function getUniswapV3WithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** UniswapV4Facet actions                                                                 ***/
@@ -465,9 +475,20 @@ interface IMainnetControllerFull is IController {
         view
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
-    function getUniswapV4DepositRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
+    function getUniswapV4AggregateDepositRateLimitKey(bytes32 poolId)
+        external
+        pure
+        returns (bytes32 key);
 
-    function getUniswapV4SwapRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
+    function getUniswapV4AssetDepositRateLimitKey(bytes32 poolId, address token)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getUniswapV4SwapRateLimitKey(bytes32 poolId, address token)
+        external
+        pure
+        returns (bytes32 key);
 
     function getUniswapV4WithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
 

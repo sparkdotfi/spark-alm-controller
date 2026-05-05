@@ -258,7 +258,7 @@ abstract contract ForkTestBase is Test {
 
         vm.label(curveFacet, "CurveFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](9);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setCurveMaxSlippage.selector,
@@ -286,16 +286,21 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getCurveDepositRateLimitKey.selector,
-            ICurveFacet.getDepositRateLimitKey.selector
+            IForeignControllerFull.getCurveAggregateDepositRateLimitKey.selector,
+            ICurveFacet.getAggregateDepositRateLimitKey.selector
         );
 
         wires[6] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getCurveAssetDepositRateLimitKey.selector,
+            ICurveFacet.getAssetDepositRateLimitKey.selector
+        );
+
+        wires[7] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getCurveSwapRateLimitKey.selector,
             ICurveFacet.getSwapRateLimitKey.selector
         );
 
-        wires[7] = IEnumerableIntegrations.Wire(
+        wires[8] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getCurveWithdrawRateLimitKey.selector,
             ICurveFacet.getWithdrawRateLimitKey.selector
         );
@@ -553,7 +558,7 @@ abstract contract ForkTestBase is Test {
 
         vm.label(uniswapV3Facet, "UniswapV3Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](15);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](16);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.addLiquidityUniswapV3.selector,
@@ -596,36 +601,41 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[8] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getUniswapV3DepositRateLimitKey.selector,
-            IUniswapV3Facet.getDepositRateLimitKey.selector
+            IForeignControllerFull.getUniswapV3AggregateDepositRateLimitKey.selector,
+            IUniswapV3Facet.getAggregateDepositRateLimitKey.selector
         );
 
         wires[9] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getUniswapV3AssetDepositRateLimitKey.selector,
+            IUniswapV3Facet.getAssetDepositRateLimitKey.selector
+        );
+
+        wires[10] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3SwapRateLimitKey.selector,
             IUniswapV3Facet.getSwapRateLimitKey.selector
         );
 
-        wires[10] = IEnumerableIntegrations.Wire(
+        wires[11] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3WithdrawRateLimitKey.selector,
             IUniswapV3Facet.getWithdrawRateLimitKey.selector
         );
 
-        wires[11] = IEnumerableIntegrations.Wire(
+        wires[12] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3MaxSlippage.selector,
             IUniswapV3Facet.getMaxSlippage.selector
         );
 
-        wires[12] = IEnumerableIntegrations.Wire(
+        wires[13] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3PoolMaxTickDelta.selector,
             IUniswapV3Facet.getMaxTickDelta.selector
         );
 
-        wires[13] = IEnumerableIntegrations.Wire(
+        wires[14] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3AddLiquidityTickBounds.selector,
             IUniswapV3Facet.getLiquidityTickBounds.selector
         );
 
-        wires[14] = IEnumerableIntegrations.Wire(
+        wires[15] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3TWAPSecondsAgo.selector,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
         );

@@ -109,9 +109,17 @@ interface IForeignControllerFull is IController {
 
     function getCurveMaxSlippage(address pool) external view returns (uint256);
 
-    function getCurveDepositRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getCurveAggregateDepositRateLimitKey(address pool) external pure returns (bytes32 key);
 
-    function getCurveSwapRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getCurveAssetDepositRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getCurveSwapRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
 
     function getCurveWithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
 
@@ -295,7 +303,12 @@ interface IForeignControllerFull is IController {
 
     function getUniswapV3TWAPSecondsAgo(address pool) external view returns (uint32);
 
-    function getUniswapV3DepositRateLimitKey(address pool, address token)
+    function getUniswapV3AggregateDepositRateLimitKey(address pool)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getUniswapV3AssetDepositRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
@@ -305,9 +318,6 @@ interface IForeignControllerFull is IController {
         pure
         returns (bytes32 key);
 
-    function getUniswapV3WithdrawRateLimitKey(address pool, address token)
-        external
-        pure
-        returns (bytes32 key);
+    function getUniswapV3WithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
 
 }
