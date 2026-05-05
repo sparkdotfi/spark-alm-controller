@@ -45,7 +45,7 @@ contract FarmFacet is IFarmFacet, Facet {
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IFarmFacet
@@ -53,7 +53,7 @@ contract FarmFacet is IFarmFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         address proxy        = _getSharedControllerStorage().proxy;
         address stakingToken = IFarmLike(farm).stakingToken();
@@ -72,7 +72,7 @@ contract FarmFacet is IFarmFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 reward)
     {
         return _claimReward(farm);
@@ -83,7 +83,7 @@ contract FarmFacet is IFarmFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 reward)
     {
         _decreaseRateLimit(getWithdrawRateLimitKey(farm), amount);

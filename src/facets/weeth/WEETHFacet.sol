@@ -99,7 +99,7 @@ contract WEETHFacet is IWEETHFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IWEETHFacet
@@ -107,7 +107,7 @@ contract WEETHFacet is IWEETHFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 shares)
     {
         address proxy         = _getSharedControllerStorage().proxy;
@@ -150,7 +150,7 @@ contract WEETHFacet is IWEETHFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 requestId)
     {
         address proxy         = _getSharedControllerStorage().proxy;
@@ -197,7 +197,7 @@ contract WEETHFacet is IWEETHFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 wethReceived)
     {
         address eeth = IWEETHLike(weeth).eETH();

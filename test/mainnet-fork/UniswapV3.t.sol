@@ -199,7 +199,7 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
         internal
         returns (uint256 amountOut)
     {
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         amountOut = mainnetController.swapUniswapV3(
             _getPool(),
             tokenIn,
@@ -230,7 +230,7 @@ abstract contract UniswapV3_TestBase is ForkTestBase {
     {
         IUniswapV3Facet.TokenAmounts memory amountsUsed;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         ( tokenId, liquidity, amountsUsed ) = mainnetController.addLiquidityUniswapV3(
             _getPool(),
             tokenId_,
@@ -273,11 +273,11 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         );
     }
 
-    function test_swapUniswapV3_notRelayer() public {
+    function test_swapUniswapV3_notAllocator() public {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.swapUniswapV3(
             _getPool(),
@@ -292,7 +292,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 amountIn = 100_000e6;
         _fundProxy(amountIn, 0);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/invalid-max-tick-delta");
         mainnetController.swapUniswapV3(
             _getPool(),
@@ -312,7 +312,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         mainnetController.setUniswapV3TWAPSecondsAgo(_getPool(), 0);
         vm.stopPrank();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/zero-twap-seconds");
         mainnetController.swapUniswapV3(
             _getPool(),
@@ -328,7 +328,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 amountIn = 100_000e6;
         _fundProxy(amountIn, 0);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-not-set");
         mainnetController.swapUniswapV3(
             _getPool(),
@@ -344,7 +344,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 amountIn = 100_000e6;
         deal(address(dai), address(almProxy), amountIn);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/invalid-token-pair");
         mainnetController.swapUniswapV3(
             _getPool(),
@@ -360,7 +360,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         uint256 amountIn = 150_000e6;
         _fundProxy(amountIn, 0);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("Too little received");
         mainnetController.swapUniswapV3(
             _getPool(),
@@ -380,7 +380,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         rateLimits.setRateLimitData(_getSwapKey(address(token0)), 2_000_000e18, uint256(2_000_000e18) / 1 days);
         vm.stopPrank();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("Too little received");
         mainnetController.swapUniswapV3(
             _getPool(),
@@ -498,7 +498,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
             2_139_359.691608e6
         );
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         uint256 amountOut = mainnetController.swapUniswapV3(
             _getPool(),
             address(token0),
@@ -562,7 +562,7 @@ abstract contract UniswapV3_E2ETestBase is UniswapV3_TestBase {
 
         uint256 swapRateLimitBefore = rateLimits.getCurrentRateLimit(swapKey);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         uint256 amountOut = mainnetController.swapUniswapV3(
             _getPool(),
             address(tokenIn),
@@ -798,7 +798,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         );
     }
 
-    function test_addLiquidityUniswapV3_notRelayer() public {
+    function test_addLiquidityUniswapV3_notAllocator() public {
         (
             IUniswapV3Facet.Ticks        memory tick,
             IUniswapV3Facet.TokenAmounts memory desired,
@@ -809,7 +809,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             abi.encodeWithSignature(
                 "AccessControlUnauthorizedAccount(address,bytes32)",
                 address(this),
-                RELAYER_ROLE
+                ALLOCATOR_ROLE
             )
         );
         mainnetController.addLiquidityUniswapV3(
@@ -836,7 +836,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             abi.encode(uint256(1), uint128(0), uint256(0), uint256(0))
         );
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/no-liquidity-increased");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -857,7 +857,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             amount1: 0
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/zero-amount");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -880,7 +880,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setUniswapV3MaxSlippage(_getPool(), 0);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/max-slippage-not-set");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -902,7 +902,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         tick.lower = initTick - 2000;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/lower-tick-outside-bounds");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -924,7 +924,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         tick.upper = initTick + 2000;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/upper-tick-outside-bounds");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -945,7 +945,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             amount1: desired.amount1 * 98 / 100
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -966,7 +966,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             amount1: 0
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -990,7 +990,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             IUniswapV3Facet.TokenAmounts memory min
         ) = _prepareDefaultAddLiquidity();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/proxy-does-not-own-token-id");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1012,7 +1012,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         _fundProxy(amount0, amount1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1043,7 +1043,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         _fundProxy(amount0, amount1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1074,7 +1074,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         _fundProxy(amount0, amount1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1107,7 +1107,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         _fundProxy(amount0, amount1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1135,7 +1135,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         _fundProxy(amount0, amount1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1163,7 +1163,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         _fundProxy(amount0, amount1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1194,7 +1194,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         mainnetController.setUniswapV3AddLiquidityUpperTickBound(UNISWAP_V3_DAI_USDC_POOL, 100000);
         vm.stopPrank();
 
-        // Mint a USDC-USDT position and transfer it to the relayer
+        // Mint a USDC-USDT position and transfer it to the allocator
         uint256 usdcUsdtTokenId = _mintExternalPosition();
 
         vm.prank(stranger);
@@ -1202,7 +1202,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
 
         vm.warp(block.timestamp + 1 hours);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/invalid-pool");
         mainnetController.addLiquidityUniswapV3(
             UNISWAP_V3_DAI_USDC_POOL,
@@ -1232,7 +1232,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             IUniswapV3Facet.TokenAmounts memory min
         ) = _prepareDefaultAddLiquidity();
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         ( uint256 tokenId, , ) = mainnetController.addLiquidityUniswapV3(
             _getPool(),
             0,
@@ -1247,7 +1247,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         mainnetController.setUniswapV3AddLiquidityLowerTickBound(_getPool(), _toSpacedTick(tick.lower + 10));
 
         // Adding liquidity with the same tick bounds before the change should fail
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/lower-tick-outside-bounds");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1268,7 +1268,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
             IUniswapV3Facet.TokenAmounts memory min
         ) = _prepareDefaultAddLiquidity();
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         ( uint256 tokenId, , ) = mainnetController.addLiquidityUniswapV3(
             _getPool(),
             0,
@@ -1283,7 +1283,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         mainnetController.setUniswapV3AddLiquidityUpperTickBound(_getPool(), _toSpacedTick(tick.upper - 10));
 
         // Adding liquidity with the same tick bounds before the change should fail
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/upper-tick-outside-bounds");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1304,7 +1304,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         mainnetController.setUniswapV3AddLiquidityUpperTickBound(UNISWAP_V3_DAI_USDC_POOL, 100000);
         vm.stopPrank();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/invalid-lower-tick");
         mainnetController.addLiquidityUniswapV3(
             UNISWAP_V3_DAI_USDC_POOL,
@@ -1334,7 +1334,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         mainnetController.setUniswapV3AddLiquidityUpperTickBound(UNISWAP_V3_DAI_USDC_POOL, 100000);
         vm.stopPrank();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/invalid-upper-tick");
         mainnetController.addLiquidityUniswapV3(
             UNISWAP_V3_DAI_USDC_POOL,
@@ -1366,7 +1366,7 @@ contract MainnetController_UniswapV3_AddLiquidity_FailureTests is UniswapV3_Test
         mainnetController.setUniswapV3TWAPSecondsAgo(_getPool(), 0);
         vm.stopPrank();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/zero-twap-seconds");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1434,7 +1434,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             amount1: desired.amount1 * 98 / 100
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("Price slippage check");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1462,7 +1462,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         mainnetController.setUniswapV3AddLiquidityUpperTickBound(_getPool(), initTick - 100);
         vm.stopPrank();
 
-        // Relayer uses ticks within governance bounds
+        // Allocator uses ticks within governance bounds
         IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks({
             lower: _toSpacedTick(initTick - 200),
             upper: _toSpacedTick(initTick - 100)
@@ -1474,7 +1474,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             amount1: desired.amount1 * 98 / 100
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1500,7 +1500,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         mainnetController.setUniswapV3AddLiquidityUpperTickBound(_getPool(), initTick + 300);
         vm.stopPrank();
 
-        // Relayer uses ticks within governance bounds
+        // Allocator uses ticks within governance bounds
         IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks({
             lower: _toSpacedTick(initTick + 100),
             upper: _toSpacedTick(initTick + 200)
@@ -1512,7 +1512,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             amount1: 1 // Should be 0 when twapTick <= tick.lower
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1542,7 +1542,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             amount1: desired.amount1 * 98 / 100  // Acceptable
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1572,7 +1572,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             amount1: desired.amount1 * 50 / 100  // Too low
         });
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.addLiquidityUniswapV3(
             _getPool(),
@@ -1606,7 +1606,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
             10_000.000000e6
         );
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         ( uint256 tokenId, uint128 liquidity, ) = mainnetController.addLiquidityUniswapV3(
             _getPool(),
             0,
@@ -1940,7 +1940,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
     function test_removeLiquidityUniswapV3_reentrancy() public {
         _setControllerEntered();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
 
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
         mainnetController.removeLiquidityUniswapV3(
@@ -1954,12 +1954,12 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
         vm.stopPrank();
     }
 
-    function test_removeLiquidityUniswapV3_notRelayer() public {
+    function test_removeLiquidityUniswapV3_notAllocator() public {
         vm.expectRevert(
             abi.encodeWithSignature(
                 "AccessControlUnauthorizedAccount(address,bytes32)",
                 address(this),
-                RELAYER_ROLE
+                ALLOCATOR_ROLE
             )
         );
 
@@ -1978,7 +1978,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setUniswapV3MaxSlippage(_getPool(), 0);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/max-slippage-not-set");
         mainnetController.removeLiquidityUniswapV3(
             _getPool(),
@@ -1994,7 +1994,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
         (uint256 externalTokenId, uint128 externalLiquidity,,) = _mintExternalPosition();
 
         vm.warp(block.timestamp + 1 hours);
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/proxy-does-not-own-token-id");
         mainnetController.removeLiquidityUniswapV3(
             _getPool(),
@@ -2007,7 +2007,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
     }
 
     function test_removeLiquidityUniswapV3_zeroLiquidity() public {
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/liquidity-oob");
         mainnetController.removeLiquidityUniswapV3(
             _getPool(),
@@ -2020,7 +2020,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
     }
 
     function test_removeLiquidityUniswapV3_liquidityTooHigh() public {
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/liquidity-oob");
         mainnetController.removeLiquidityUniswapV3(
             _getPool(),
@@ -2036,7 +2036,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
         vm.prank(Ethereum.SPARK_PROXY);
         mainnetController.setUniswapV3MaxSlippage(UNISWAP_V3_DAI_USDC_POOL, 1_000_000e18);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/invalid-pool");
         mainnetController.removeLiquidityUniswapV3(
             UNISWAP_V3_DAI_USDC_POOL,
@@ -2053,7 +2053,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
         rateLimits.setRateLimitData(uniswapV3_UsdcUsdtPool_RemoveLiquidityKey, 1, 0);
         vm.stopPrank();
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.removeLiquidityUniswapV3(
             _getPool(),
@@ -2066,7 +2066,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
     }
 
     function test_removeLiquidityUniswapV3_minAmount0BelowBound() public {
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.removeLiquidityUniswapV3(
             _getPool(),
@@ -2079,7 +2079,7 @@ contract MainnetController_UniswapV3_RemoveLiquidity_FailureTests is UniswapV3_T
     }
 
     function test_removeLiquidityUniswapV3_minAmount1BelowBound() public {
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
         mainnetController.removeLiquidityUniswapV3(
             _getPool(),
@@ -2151,7 +2151,7 @@ abstract contract UniswapV3_RemoveLiquidity_E2ETestBase is UniswapV3_TestBase {
     {
         uint256 rateLimitBefore = rateLimits.getCurrentRateLimit(rateLimitKey);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         IUniswapV3Facet.TokenAmounts memory amountsUsed = mainnetController.removeLiquidityUniswapV3(
             _getPool(),
             tokenId_,
@@ -2352,7 +2352,7 @@ contract MainnetController_UniswapV3_Swap_SandwichAttackTest is UniswapV3_TestBa
 
         uint256 victimDaiBalanceBefore = dai.balanceOf(address(almProxy));
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         uint256[] memory minAmountOut = new uint256[](8);
 
         minAmountOut[0] = 5.2e13;

@@ -63,18 +63,18 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
         mainnetController.depositToWstETH(1e18);
     }
 
-    function test_depositToWSTETH_notRelayer() external {
+    function test_depositToWSTETH_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.depositToWstETH(1e18);
     }
 
     function test_depositToWSTETH_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.depositToWstETH(1e18);
     }
 
@@ -87,13 +87,13 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
         deal(Ethereum.WETH, address(almProxy), 1_000e18);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.depositToWstETH(1_000e18 + 1);
 
         vm.expectEmit(address(mainnetController));
         emit IWSTETHFacet.WSTETHDeposit(1_000e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.depositToWstETH(1_000e18);
     }
 
@@ -115,7 +115,7 @@ contract MainnetController_WSTETH_Deposit_Tests is WSTETH_TestBase {
         vm.expectEmit(address(mainnetController));
         emit IWSTETHFacet.WSTETHDeposit(1_000e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.depositToWstETH(1_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -138,18 +138,18 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
         mainnetController.requestWithdrawFromWstETH(1e18);
     }
 
-    function test_requestWithdrawFromWSTETH_notRelayer() external {
+    function test_requestWithdrawFromWSTETH_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.requestWithdrawFromWstETH(1e18);
     }
 
     function test_requestWithdrawFromWSTETH_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.requestWithdrawFromWstETH(1e18);
     }
 
@@ -164,10 +164,10 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
         deal(Ethereum.WSTETH, address(almProxy), 500e18);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.requestWithdrawFromWstETH(500e18 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.requestWithdrawFromWstETH(500e18);
     }
 
@@ -190,7 +190,7 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
         vm.expectEmit(address(mainnetController));
         emit IWSTETHFacet.WSTETHDeposit(1_000e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.depositToWstETH(1_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),         0);
@@ -214,7 +214,7 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
         vm.expectEmit(address(mainnetController));
         emit IWSTETHFacet.WSTETHRequestWithdraw(500e18, expectedStETHWithdrawal, expectedRequestIds);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(500e18);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -251,18 +251,18 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         mainnetController.claimWithdrawalFromWstETH(1);
     }
 
-    function test_claimWithdrawalFromWSTETH_notRelayer() external {
+    function test_claimWithdrawalFromWSTETH_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.claimWithdrawalFromWstETH(1);
     }
 
     function test_claimWithdrawalFromWSTETH_failsWhenRequestRateLimitDoesNotExist() external {
         vm.expectRevert("WSTETHFacet/invalid-action");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.claimWithdrawalFromWstETH(1);
     }
 
@@ -285,7 +285,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         vm.expectEmit(address(mainnetController));
         emit IWSTETHFacet.WSTETHDeposit(1_000e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.depositToWstETH(1_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey),         0);
@@ -308,7 +308,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         emit IWSTETHFacet.WSTETHRequestWithdraw(5e18, expectedStETHWithdrawal, expectedRequestIds);
 
         // NOTE: Requesting for a small withdrawal so that it can be finalized.
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256[] memory requestIds = mainnetController.requestWithdrawFromWstETH(5e18);
 
         assertEq(WSTETH.balanceOf(address(almProxy)), 818.02939539073162522e18);
@@ -343,7 +343,7 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         vm.expectEmit(address(mainnetController));
         emit IWSTETHFacet.WSTETHClaimWithdrawal(requestIds[0], expectedStETHWithdrawal);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.claimWithdrawalFromWstETH(requestIds[0]);
 
         _assertReentrancyGuardWrittenToTwice();

@@ -296,7 +296,7 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IUniswapV3Facet
@@ -310,7 +310,7 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 amountOut)
     {
         PoolParams storage poolParams = _getFacetStorage().poolParams[pool];
@@ -356,7 +356,7 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 resultingTokenId, uint128 liquidity, TokenAmounts memory amounts)
     {
         _validateAddLiquidityParameters(pool, ticks, target, min);
@@ -424,7 +424,7 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (TokenAmounts memory amounts)
     {
         address token0 = IUniswapV3PoolLike(pool).token0();

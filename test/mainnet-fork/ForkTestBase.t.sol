@@ -146,9 +146,9 @@ abstract contract ForkTestBase is DssTest {
 
     bytes32 constant ilk = "ILK-A";
 
+    bytes32 constant ALLOCATOR_ROLE     = keccak256("ALLOCATOR_ROLE");
     bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
-    bytes32 constant FREEZER_ROLE       = keccak256("FREEZER");
-    bytes32 constant RELAYER_ROLE       = keccak256("RELAYER");
+    bytes32 constant FREEZER_ROLE       = keccak256("FREEZER_ROLE");
 
     bytes32 constant PSM_ILK = 0x4c4954452d50534d2d555344432d410000000000000000000000000000000000;
 
@@ -161,10 +161,10 @@ abstract contract ForkTestBase is DssTest {
     address internal constant _UNISWAP_V4_POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
     address internal constant _UNISWAP_V4_ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
 
-    address freezer = Ethereum.ALM_FREEZER_MULTISIG;
-    address relayer = Ethereum.ALM_RELAYER_MULTISIG;
+    address freezer   = Ethereum.ALM_FREEZER_MULTISIG;
+    address allocator = Ethereum.ALM_RELAYER_MULTISIG;
 
-    address backstopRelayer = makeAddr("backstopRelayer");  // TODO: Replace with real backstop
+    address backstopAllocator = makeAddr("backstopAllocator");  // TODO: Replace with real backstop
 
     /**********************************************************************************************/
     /*** Mainnet addresses/constants                                                            ***/
@@ -322,11 +322,11 @@ abstract contract ForkTestBase is DssTest {
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 
-        accessControls.grantRole(FREEZER_ROLE, freezer);
-        accessControls.grantRole(RELAYER_ROLE, relayer);
-        accessControls.grantRole(RELAYER_ROLE, backstopRelayer);
+        accessControls.grantRole(FREEZER_ROLE,   freezer);
+        accessControls.grantRole(ALLOCATOR_ROLE, allocator);
+        accessControls.grantRole(ALLOCATOR_ROLE, backstopAllocator);
 
-        accessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
 
         bytes32[] memory integrationIds = new bytes32[](25);
         integrationIds[0]  = "AAVE_FACET";

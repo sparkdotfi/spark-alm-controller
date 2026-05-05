@@ -19,13 +19,13 @@ contract PAUFactory_IntegrationTests is Test {
     /**********************************************************************************************/
 
     bytes32 internal constant DEFAULT_ADMIN_ROLE = 0x00;
-    bytes32 internal constant FREEZER_ROLE       = keccak256("FREEZER");
-    bytes32 internal constant RELAYER_ROLE       = keccak256("RELAYER");
+    bytes32 internal constant FREEZER_ROLE       = keccak256("FREEZER_ROLE");
+    bytes32 internal constant ALLOCATOR_ROLE     = keccak256("ALLOCATOR_ROLE");
 
     address internal admin        = makeAddr("admin");
+    address internal allocator    = makeAddr("allocator");
     address internal beacon       = makeAddr("beacon");
     address internal freezer      = makeAddr("freezer");
-    address internal relayer      = makeAddr("relayer");
     address internal unauthorized = makeAddr("unauthorized");
 
     PAUFactory internal factory;
@@ -112,15 +112,15 @@ contract PAUFactory_IntegrationTests is Test {
 
         vm.startPrank(admin);
 
-        accessControls.grantRole(FREEZER_ROLE, freezer);
-        accessControls.grantRole(RELAYER_ROLE, relayer);
+        accessControls.grantRole(FREEZER_ROLE,   freezer);
+        accessControls.grantRole(ALLOCATOR_ROLE, allocator);
 
-        accessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
 
-        assertEq(accessControls.hasRole(FREEZER_ROLE, freezer), true);
-        assertEq(accessControls.hasRole(RELAYER_ROLE, relayer), true);
+        assertEq(accessControls.hasRole(FREEZER_ROLE,   freezer),   true);
+        assertEq(accessControls.hasRole(ALLOCATOR_ROLE, allocator), true);
 
-        assertEq(accessControls.getRoleRevoker(RELAYER_ROLE), FREEZER_ROLE);
+        assertEq(accessControls.getRoleRevoker(ALLOCATOR_ROLE), FREEZER_ROLE);
 
         // Admin can grant CONTROLLER role on ALMProxy and RateLimits.
 

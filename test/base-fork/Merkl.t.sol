@@ -43,11 +43,11 @@ abstract contract Merkl_TestBase is ForkTestBase {
 
 contract ForeignController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
 
-    function test_toggleOperatorMerkl_notRelayer() external {
+    function test_toggleOperatorMerkl_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         foreignController.toggleOperatorMerkl(operator1);
     }
@@ -69,7 +69,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.expectEmit(address(foreignController));
         emit IMerklFacet.MerklToggleOperator(operator1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
@@ -84,7 +84,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.expectEmit(address(foreignController));
         emit IMerklFacet.MerklToggleOperator(operator1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
@@ -99,7 +99,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.expectEmit(address(foreignController));
         emit IMerklFacet.MerklToggleOperator(operator1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
@@ -112,7 +112,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.expectEmit(address(foreignController));
         emit IMerklFacet.MerklToggleOperator(operator1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
@@ -121,7 +121,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.expectEmit(address(foreignController));
         emit IMerklFacet.MerklToggleOperator(operator1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
@@ -130,7 +130,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.expectEmit(address(foreignController));
         emit IMerklFacet.MerklToggleOperator(operator1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
@@ -139,7 +139,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.expectEmit(address(foreignController));
         emit IMerklFacet.MerklToggleOperator(operator2);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator2);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
@@ -162,7 +162,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         vm.prank(operator1);
         merklDistributor.claim(users, tokens, amounts, proofs);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.toggleOperatorMerkl(operator1);
 
         // Hitting the InvalidProof() error proves that we are whitelisted as operator1

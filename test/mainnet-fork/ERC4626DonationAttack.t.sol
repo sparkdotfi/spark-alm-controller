@@ -25,13 +25,12 @@ abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
 
     Id internal marketId = MarketParamsLib.id(marketParams);
 
-    address internal curator       = makeAddr("curator");
-    address internal guardian      = makeAddr("guardian");
-    address internal feeRecipient  = makeAddr("feeRecipient");
-    address internal allocator     = makeAddr("allocator");
-    address internal skimRecipient = makeAddr("skimRecipient");
-
-    address internal attacker = makeAddr("attacker");
+    address internal attacker        = makeAddr("attacker");
+    address internal curator         = makeAddr("curator");
+    address internal feeRecipient    = makeAddr("feeRecipient");
+    address internal guardian        = makeAddr("guardian");
+    address internal morphoAllocator = makeAddr("morphoAllocator");
+    address internal skimRecipient   = makeAddr("skimRecipient");
 
     function setUp() public override {
         super.setUp();
@@ -52,7 +51,7 @@ abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
         MORPHO_VAULT.setCurator(curator);
         MORPHO_VAULT.submitGuardian(guardian);
         MORPHO_VAULT.setFeeRecipient(feeRecipient);
-        MORPHO_VAULT.setIsAllocator(allocator, true);
+        MORPHO_VAULT.setIsAllocator(morphoAllocator, true);
         MORPHO_VAULT.setSkimRecipient(skimRecipient);
 
         MORPHO_VAULT.submitCap(marketParams, 10_000_000e18);
@@ -70,7 +69,7 @@ abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
         assertEq(MORPHO_VAULT.guardian(),     guardian);
         assertEq(MORPHO_VAULT.feeRecipient(), feeRecipient);
 
-        assertTrue(MORPHO_VAULT.isAllocator(allocator));
+        assertTrue(MORPHO_VAULT.isAllocator(morphoAllocator));
 
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
@@ -93,7 +92,7 @@ contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626_DonationAttac
 
         _doAttack();
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("ERC4626Facet/exchange-rate-too-high");
         mainnetController.depositERC4626(address(MORPHO_VAULT), 2_000_000e18, 0);
     }
@@ -106,7 +105,7 @@ contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626_DonationAttac
 
         _doAttack();
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 shares = mainnetController.depositERC4626(address(MORPHO_VAULT), 2_000_000e18, 0);
 
         // One can compute:

@@ -56,7 +56,7 @@ See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding)
 
 **Location:** `src/facets/cctp/CCTPFacet.sol` - `transferWithFee` function
 
-The current CCTPFacet targets CCTPv2, which will enable a non-zero `maxFee` in the future. To handle this, `transferWithFee` allows the relayer to fetch the CCTPv2 fee off-chain and submit it as a parameter. The original `transfer` function (which hardcodes `maxFee = 0`) is kept for backward compatibility. These two functions may be unified into one after CCTPv2 fees are fully enabled.
+The current CCTPFacet targets CCTPv2, which will enable a non-zero `maxFee` in the future. To handle this, `transferWithFee` allows the allocator to fetch the CCTPv2 fee off-chain and submit it as a parameter. The original `transfer` function (which hardcodes `maxFee = 0`) is kept for backward compatibility. These two functions may be unified into one after CCTPv2 fees are fully enabled.
 
 ---
 
@@ -128,7 +128,7 @@ require(maxSlippage != 0, "AaveFacet/max-slippage-not-set");
 require(maxSlippage != 0, "UniswapV4Facet/max-slippage-not-set");
 ```
 
-**Rationale:** Zero slippage would disable protection, allowing arbitrarily bad trades by compromised relayers.
+**Rationale:** Zero slippage would disable protection, allowing arbitrarily bad trades by compromised allocators.
 
 ---
 
@@ -144,14 +144,14 @@ Rate limit keys combine a function identifier with contextual data via `keccak25
 
 `RateLimitHelpers.sol` provides multiple helpers for different key patterns:
 
-| Helper                         | Parameters                                  | Used By                                                                                             |
-| ------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `makeAddressKey`               | `(bytes32 limit, address)`                  | Most facets (ERC4626, Aave, Curve, etc.)                                                            |
-| `makeBytes32Key`               | `(bytes32 limit, bytes32)`                  | UniswapV4Facet (pool ID)                                                                            |
-| `makeUint32Key`                | `(bytes32 limit, uint32)`                   | CCTPFacet (destination domain)                                                                      |
-| `makeAddressAddressUint32Key`  | `(bytes32 limit, address, address, uint32)` | LayerZeroFacet (token + OFT + endpoint)                                                             |
-| `makeAddressUint16Key`         | `(bytes32 limit, address, uint16)`          | CentrifugeFacet (vault + region ID)                                                                 |
-| `makeAddressAddressKey`        | `(bytes32 limit, address, address)`         | TransferAssetFacet (asset + destination), UniswapV3Facet (token + pool), BasinFacet (asset + basin) |
+| Helper                        | Parameters                                  | Used By                                                                                             |
+| ----------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `makeAddressKey`              | `(bytes32 limit, address)`                  | Most facets (ERC4626, Aave, Curve, etc.)                                                            |
+| `makeBytes32Key`              | `(bytes32 limit, bytes32)`                  | UniswapV4Facet (pool ID)                                                                            |
+| `makeUint32Key`               | `(bytes32 limit, uint32)`                   | CCTPFacet (destination domain)                                                                      |
+| `makeAddressAddressUint32Key` | `(bytes32 limit, address, address, uint32)` | LayerZeroFacet (token + OFT + endpoint)                                                             |
+| `makeAddressUint16Key`        | `(bytes32 limit, address, uint16)`          | CentrifugeFacet (vault + region ID)                                                                 |
+| `makeAddressAddressKey`       | `(bytes32 limit, address, address)`         | TransferAssetFacet (asset + destination), UniswapV3Facet (token + pool), BasinFacet (asset + basin) |
 
 See [Rate Limits](./RATE_LIMITS.md#whitelisting-via-rate-limit-keys) for design rationale.
 

@@ -45,7 +45,7 @@ contract BasinFacet is IBasinFacet, Facet {
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IBasinFacet
@@ -53,7 +53,7 @@ contract BasinFacet is IBasinFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 shares)
     {
         _decreaseRateLimit(getDepositRateLimitKey(basin, asset), amount);
@@ -80,7 +80,7 @@ contract BasinFacet is IBasinFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 assetsWithdrawn)
     {
         address proxy = _getSharedControllerStorage().proxy;

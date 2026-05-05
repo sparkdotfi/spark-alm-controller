@@ -36,11 +36,11 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IWrapProxyETHFacet
-    function wrapAll() external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function wrapAll() external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 ethAmount = proxy.balance;

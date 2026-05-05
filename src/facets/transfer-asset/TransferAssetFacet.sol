@@ -29,7 +29,7 @@ contract TransferAssetFacet is ITransferAssetFacet, Facet {
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc ITransferAssetFacet
@@ -37,7 +37,7 @@ contract TransferAssetFacet is ITransferAssetFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         _decreaseRateLimit(getTransferRateLimitKey(asset, destination), amount);
 

@@ -77,7 +77,7 @@ interface ICCTPFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
-    /// @notice Always bytes32(0): any relayer can complete the message on the destination chain.
+    /// @notice Always bytes32(0): any allocator can complete the message on the destination chain.
     function DESTINATION_CALLER() external pure returns (bytes32);
 
     /// @notice Always zero. Standard CCTP burns do not incur a fee, so the default max fee is zero.

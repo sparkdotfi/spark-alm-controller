@@ -12,15 +12,16 @@ Certain protocols require initialization before PAU can safely interact with the
 
 **Requirement:** All ERC-4626 vaults **MUST** have initial burned shares.
 
-| Aspect | Details |
-|--------|---------|
-| **Purpose** | Prevents rounding-based frontrunning attacks |
+| Aspect             | Details                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| **Purpose**        | Prevents rounding-based frontrunning attacks                         |
 | **Implementation** | Initial shares must be minted and burned (sent to zero/dead address) |
-| **Permanence** | Burned shares must be unrecoverable |
+| **Permanence**     | Burned shares must be unrecoverable                                  |
 
 **Additional Protection:** Donation attacks are protected against with the `maxExchangeRate` mechanism.
 
 **Attack Prevented:** Without burned shares, an attacker could:
+
 1. Deposit minimal amount to get shares
 2. Donate assets directly to vault to inflate share price
 3. Exploit rounding when victim deposits to steal funds
@@ -33,17 +34,16 @@ Certain protocols require initialization before PAU can safely interact with the
 
 **Requirement:** Uniswap V4 pools must be seeded with initial liquidity before use. Seeding must be done to an unrecoverable address (e.g, address(1)). This will prevent any unintended behaviours.
 
-
 ---
 
 ## Token Requirements
 
 All ERC-20 tokens used with PAU must be:
 
-| Requirement | Rationale |
-|-------------|-----------|
-| **Non-rebasing** | Rebasing tokens cause accounting inconsistencies |
-| **≥6 decimals** | Prevents precision loss in rate limit calculations |
+| Requirement         | Rationale                                                  |
+| ------------------- | ---------------------------------------------------------- |
+| **Non-rebasing**    | Rebasing tokens cause accounting inconsistencies           |
+| **≥6 decimals**     | Prevents precision loss in rate limit calculations         |
 | **Standard ERC-20** | Non-standard implementations may cause unexpected behavior |
 
 ---
@@ -56,13 +56,13 @@ All ERC-20 tokens used with PAU must be:
 
 ### Withdrawal Dependencies
 
-| Withdrawal Function | Required |
-|--------------------|----------|
-| `withdrawERC4626` | Non-zero deposit rate limit for same vault |
-| `redeemERC4626` | Non-zero deposit rate limit for same vault |
-| `withdrawAave` | Non-zero deposit rate limit for same aToken |
-| `claimWithdrawalFromWstETH` | Non-zero request-withdraw rate limit |
-| `claimWithdrawalFromWeETH` | Non-zero request-withdraw rate limit for same weETHModule |
+| Withdrawal Function         | Required                                                  |
+| --------------------------- | --------------------------------------------------------- |
+| `withdrawERC4626`           | Non-zero deposit rate limit for same vault                |
+| `redeemERC4626`             | Non-zero deposit rate limit for same vault                |
+| `withdrawAave`              | Non-zero deposit rate limit for same aToken               |
+| `claimWithdrawalFromWstETH` | Non-zero request-withdraw rate limit                      |
+| `claimWithdrawalFromWeETH`  | Non-zero request-withdraw rate limit for same weETHModule |
 
 ---
 
@@ -84,6 +84,7 @@ When deploying a new OTC buffer:
 ### Asset Restrictions
 
 Only pools with 1:1 assets can be onboarded:
+
 - USDC/USDT ✓
 - USDC/DAI ✓
 - USDC/USDS ✓
@@ -112,18 +113,18 @@ Only pools with 1:1 assets can be onboarded:
 
 ## Monitoring Recommendations
 
-| Integration | Monitor |
-|-------------|---------|
-| **All** | Rate limit utilization, transaction failures |
-| **Centrifuge** | Pending async requests, cross-chain transfer status |
-| **CCTP/LayerZero** | Bridge confirmation times, stuck transfers |
-| **Curve** | Pool price, virtual price |
-| **ERC-4626** | Exchange rate changes, share price manipulation |
-| **ERC-7540** | Pending async deposit/redeem requests |
-| **Ethena** | Pending mint/burn operations, delegated signer status |
-| **Maple** | Pending redemption requests |
-| **OTC** | Outstanding swap amounts, recharge progress |
-| **UniswapV3** | Pool price, position value |
-| **UniswapV4** | Pool price, position value |
-| **weETH** | Pending withdrawal NFTs, finalization delays |
-| **wstETH** | Pending withdrawal requests, finalization delays |
+| Integration        | Monitor                                               |
+| ------------------ | ----------------------------------------------------- |
+| **All**            | Rate limit utilization, transaction failures          |
+| **Centrifuge**     | Pending async requests, cross-chain transfer status   |
+| **CCTP/LayerZero** | Bridge confirmation times, stuck transfers            |
+| **Curve**          | Pool price, virtual price                             |
+| **ERC-4626**       | Exchange rate changes, share price manipulation       |
+| **ERC-7540**       | Pending async deposit/redeem requests                 |
+| **Ethena**         | Pending mint/burn operations, delegated signer status |
+| **Maple**          | Pending redemption requests                           |
+| **OTC**            | Outstanding swap amounts, recharge progress           |
+| **UniswapV3**      | Pool price, position value                            |
+| **UniswapV4**      | Pool price, position value                            |
+| **weETH**          | Pending withdrawal NFTs, finalization delays          |
+| **wstETH**         | Pending withdrawal requests, finalization delays      |

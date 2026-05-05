@@ -201,8 +201,8 @@ The WEETHModule:
 1. Deploy `WEETHModule` proxy with implementation
 2. Initialize with admin and ALMProxy address
 3. Configure rate limit keys in the Controller:
-   - `LIMIT_WEETH_DEPOSIT`
-   - `makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule)`
+    - `LIMIT_WEETH_DEPOSIT`
+    - `makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule)`
 
 ### Monitoring
 

@@ -131,12 +131,12 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IFacet.AccessControlUnauthorizedAccount.selector,
-                relayer,
+                allocator,
                 DEFAULT_ADMIN_ROLE
             )
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setBuffer(address(0), address(0));
     }
 
@@ -204,12 +204,12 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IFacet.AccessControlUnauthorizedAccount.selector,
-                relayer,
+                allocator,
                 DEFAULT_ADMIN_ROLE
             )
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setMaxSlippage(address(0), 0);
     }
 
@@ -268,12 +268,12 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IFacet.AccessControlUnauthorizedAccount.selector,
-                relayer,
+                allocator,
                 DEFAULT_ADMIN_ROLE
             )
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setRechargeRate(address(0), 0);
     }
 
@@ -326,12 +326,12 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IFacet.AccessControlUnauthorizedAccount.selector,
-                relayer,
+                allocator,
                 DEFAULT_ADMIN_ROLE
             )
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setIsWhitelisted(address(0), address(0), false);
     }
 

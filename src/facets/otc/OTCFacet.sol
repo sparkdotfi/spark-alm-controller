@@ -129,7 +129,7 @@ contract OTCFacet is IOTCFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IOTCFacet
@@ -137,7 +137,7 @@ contract OTCFacet is IOTCFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         require(assetToSend != address(0), "OTCFacet/asset-to-send-zero");
         require(amount > 0,                "OTCFacet/amount-to-send-zero");
@@ -171,7 +171,7 @@ contract OTCFacet is IOTCFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         require(assetToClaim != address(0), "OTCFacet/asset-to-claim-zero");
 

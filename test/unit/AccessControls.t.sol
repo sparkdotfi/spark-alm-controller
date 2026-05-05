@@ -70,7 +70,7 @@ contract AccessControls_Tests is UnitTestBase {
             DEFAULT_ADMIN_ROLE
         ));
         vm.prank(deployer);
-        accessControls.grantRole(RELAYER_ROLE, relayer);
+        accessControls.grantRole(ALLOCATOR_ROLE, allocator);
 
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -78,12 +78,12 @@ contract AccessControls_Tests is UnitTestBase {
             DEFAULT_ADMIN_ROLE
         ));
         vm.prank(unauthorized);
-        accessControls.grantRole(RELAYER_ROLE, relayer);
+        accessControls.grantRole(ALLOCATOR_ROLE, allocator);
     }
 
     function test_grantRole_notRoleAdmin() external {
-        accessControls.__grantRole(FREEZER_ROLE, freezer);
-        accessControls.__setRoleAdmin(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.__grantRole(FREEZER_ROLE,      freezer);
+        accessControls.__setRoleAdmin(ALLOCATOR_ROLE, FREEZER_ROLE);
 
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -91,17 +91,17 @@ contract AccessControls_Tests is UnitTestBase {
             DEFAULT_ADMIN_ROLE
         ));
         vm.prank(freezer);
-        accessControls.grantRole(RELAYER_ROLE, relayer);
+        accessControls.grantRole(ALLOCATOR_ROLE, allocator);
     }
 
     function test_grantRole() external {
         vm.expectEmit();
-        emit IAccessControl.RoleGranted(RELAYER_ROLE, relayer, admin);
+        emit IAccessControl.RoleGranted(ALLOCATOR_ROLE, allocator, admin);
 
         vm.prank(admin);
-        accessControls.grantRole(RELAYER_ROLE, relayer);
+        accessControls.grantRole(ALLOCATOR_ROLE, allocator);
 
-        assertEq(accessControls.hasRole(RELAYER_ROLE, relayer), true);
+        assertEq(accessControls.hasRole(ALLOCATOR_ROLE, allocator), true);
     }
 
     /**********************************************************************************************/
@@ -109,61 +109,61 @@ contract AccessControls_Tests is UnitTestBase {
     /**********************************************************************************************/
 
     function test_revokeRole_notRoleAdminOrDefaultAdmin() external {
-        accessControls.__setRoleAdmin(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.__setRoleAdmin(ALLOCATOR_ROLE, FREEZER_ROLE);
 
         vm.expectRevert(abi.encodeWithSelector(
             IAccessControls.NotRoleAdminOrDefaultAdmin.selector,
             deployer,
-            RELAYER_ROLE,
+            ALLOCATOR_ROLE,
             FREEZER_ROLE
         ));
         vm.prank(deployer);
-        accessControls.revokeRole(RELAYER_ROLE, relayer);
+        accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
 
         vm.expectRevert(abi.encodeWithSelector(
             IAccessControls.NotRoleAdminOrDefaultAdmin.selector,
             unauthorized,
-            RELAYER_ROLE,
+            ALLOCATOR_ROLE,
             FREEZER_ROLE
         ));
         vm.prank(unauthorized);
-        accessControls.revokeRole(RELAYER_ROLE, relayer);
+        accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
     }
 
     function test_revokeRole_roleNotGranted() external {
         vm.expectRevert(abi.encodeWithSelector(
             IAccessControls.RoleNotGranted.selector,
-            relayer,
-            RELAYER_ROLE
+            allocator,
+            ALLOCATOR_ROLE
         ));
         vm.prank(admin);
-        accessControls.revokeRole(RELAYER_ROLE, relayer);
+        accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
     }
 
     function test_revokeRole_byDefaultAdmin() external {
-        accessControls.__grantRole(RELAYER_ROLE, relayer);
+        accessControls.__grantRole(ALLOCATOR_ROLE, allocator);
 
         vm.expectEmit();
-        emit IAccessControl.RoleRevoked(RELAYER_ROLE, relayer, admin);
+        emit IAccessControl.RoleRevoked(ALLOCATOR_ROLE, allocator, admin);
 
         vm.prank(admin);
-        accessControls.revokeRole(RELAYER_ROLE, relayer);
+        accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
 
-        assertEq(accessControls.hasRole(RELAYER_ROLE, relayer), false);
+        assertEq(accessControls.hasRole(ALLOCATOR_ROLE, allocator), false);
     }
 
     function test_revokeRole_byRoleAdmin() external {
-        accessControls.__grantRole(RELAYER_ROLE, relayer);
-        accessControls.__grantRole(FREEZER_ROLE, freezer);
-        accessControls.__setRoleAdmin(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.__grantRole(ALLOCATOR_ROLE,    allocator);
+        accessControls.__grantRole(FREEZER_ROLE,      freezer);
+        accessControls.__setRoleAdmin(ALLOCATOR_ROLE, FREEZER_ROLE);
 
         vm.expectEmit();
-        emit IAccessControl.RoleRevoked(RELAYER_ROLE, relayer, freezer);
+        emit IAccessControl.RoleRevoked(ALLOCATOR_ROLE, allocator, freezer);
 
         vm.prank(freezer);
-        accessControls.revokeRole(RELAYER_ROLE, relayer);
+        accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
 
-        assertEq(accessControls.hasRole(RELAYER_ROLE, relayer), false);
+        assertEq(accessControls.hasRole(ALLOCATOR_ROLE, allocator), false);
     }
 
     /**********************************************************************************************/
@@ -177,7 +177,7 @@ contract AccessControls_Tests is UnitTestBase {
             DEFAULT_ADMIN_ROLE
         ));
         vm.prank(deployer);
-        accessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
 
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
@@ -185,27 +185,27 @@ contract AccessControls_Tests is UnitTestBase {
             DEFAULT_ADMIN_ROLE
         ));
         vm.prank(unauthorized);
-        accessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
     }
 
     function test_setRoleRevoker() external {
         vm.expectEmit();
-        emit IAccessControl.RoleAdminChanged(RELAYER_ROLE, DEFAULT_ADMIN_ROLE, FREEZER_ROLE);
+        emit IAccessControl.RoleAdminChanged(ALLOCATOR_ROLE, DEFAULT_ADMIN_ROLE, FREEZER_ROLE);
 
         vm.prank(admin);
-        accessControls.setRoleRevoker(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
 
-        assertEq(accessControls.getRoleAdmin(RELAYER_ROLE),   FREEZER_ROLE);
-        assertEq(accessControls.getRoleRevoker(RELAYER_ROLE), FREEZER_ROLE);
+        assertEq(accessControls.getRoleAdmin(ALLOCATOR_ROLE),   FREEZER_ROLE);
+        assertEq(accessControls.getRoleRevoker(ALLOCATOR_ROLE), FREEZER_ROLE);
 
         vm.expectEmit();
-        emit IAccessControl.RoleAdminChanged(RELAYER_ROLE, FREEZER_ROLE, DEFAULT_ADMIN_ROLE);
+        emit IAccessControl.RoleAdminChanged(ALLOCATOR_ROLE, FREEZER_ROLE, DEFAULT_ADMIN_ROLE);
 
         vm.prank(admin);
-        accessControls.setRoleRevoker(RELAYER_ROLE, DEFAULT_ADMIN_ROLE);
+        accessControls.setRoleRevoker(ALLOCATOR_ROLE, DEFAULT_ADMIN_ROLE);
 
-        assertEq(accessControls.getRoleAdmin(RELAYER_ROLE),   DEFAULT_ADMIN_ROLE);
-        assertEq(accessControls.getRoleRevoker(RELAYER_ROLE), DEFAULT_ADMIN_ROLE);
+        assertEq(accessControls.getRoleAdmin(ALLOCATOR_ROLE),   DEFAULT_ADMIN_ROLE);
+        assertEq(accessControls.getRoleRevoker(ALLOCATOR_ROLE), DEFAULT_ADMIN_ROLE);
     }
 
     /**********************************************************************************************/
@@ -213,15 +213,15 @@ contract AccessControls_Tests is UnitTestBase {
     /**********************************************************************************************/
 
     function test_getRoleRevoker() external {
-        assertEq(accessControls.getRoleRevoker(RELAYER_ROLE), DEFAULT_ADMIN_ROLE);
+        assertEq(accessControls.getRoleRevoker(ALLOCATOR_ROLE), DEFAULT_ADMIN_ROLE);
 
-        accessControls.__setRoleAdmin(RELAYER_ROLE, FREEZER_ROLE);
+        accessControls.__setRoleAdmin(ALLOCATOR_ROLE, FREEZER_ROLE);
 
-        assertEq(accessControls.getRoleRevoker(RELAYER_ROLE), FREEZER_ROLE);
+        assertEq(accessControls.getRoleRevoker(ALLOCATOR_ROLE), FREEZER_ROLE);
 
-        accessControls.__setRoleAdmin(RELAYER_ROLE, DEFAULT_ADMIN_ROLE);
+        accessControls.__setRoleAdmin(ALLOCATOR_ROLE, DEFAULT_ADMIN_ROLE);
 
-        assertEq(accessControls.getRoleRevoker(RELAYER_ROLE), DEFAULT_ADMIN_ROLE);
+        assertEq(accessControls.getRoleRevoker(ALLOCATOR_ROLE), DEFAULT_ADMIN_ROLE);
     }
 
     /**********************************************************************************************/

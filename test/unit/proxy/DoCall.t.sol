@@ -227,7 +227,7 @@ abstract contract ALMProxyFreezable_Call_TestBase is UnitTestBase {
         almProxyFreezable = new ALMProxyFreezable(admin);
 
         vm.prank(admin);
-        almProxyFreezable.grantRole(RELAYER_ROLE, relayer);
+        almProxyFreezable.grantRole(ALLOCATOR_ROLE, allocator);
 
         target = address(new MockTarget());
     }
@@ -240,7 +240,7 @@ contract ALMProxyFreezable_DoCall_FailureTests is ALMProxyFreezable_Call_TestBas
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         almProxyFreezable.doCall(target, data);
 
@@ -248,7 +248,7 @@ contract ALMProxyFreezable_DoCall_FailureTests is ALMProxyFreezable_Call_TestBas
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             admin,
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         almProxyFreezable.doCall(target, data);
     }
@@ -267,7 +267,7 @@ contract ALMProxyFreezable_DoCall_SuccessTests is ALMProxyFreezable_Call_TestBas
             caller         : address(almProxyFreezable),
             value          : 0
         });
-        vm.prank(relayer);
+        vm.prank(allocator);
         bytes memory returnData = almProxyFreezable.doCall(target, data);
 
         assertEq(abi.decode(returnData, (uint256)), 84);
@@ -281,7 +281,7 @@ contract ALMProxyFreezable_DoCallWithValue_FailureTests is ALMProxyFreezable_Cal
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         almProxyFreezable.doCallWithValue(target, data, 1e18);
 
@@ -289,7 +289,7 @@ contract ALMProxyFreezable_DoCallWithValue_FailureTests is ALMProxyFreezable_Cal
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             admin,
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         almProxyFreezable.doCallWithValue(target, data, 1e18);
     }
@@ -297,7 +297,7 @@ contract ALMProxyFreezable_DoCallWithValue_FailureTests is ALMProxyFreezable_Cal
     function test_doCallWithValue_notEnoughBalanceBoundary() public {
         vm.deal(address(almProxyFreezable), 1e18 - 1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
 
         vm.expectRevert(abi.encodeWithSignature(
             "AddressInsufficientBalance(address)",
@@ -326,14 +326,14 @@ contract ALMProxyFreezable_DoCallWithValue_SuccessTests is ALMProxyFreezable_Cal
             caller         : address(almProxyFreezable),
             value          : 1e18
         });
-        vm.prank(relayer);
+        vm.prank(allocator);
         bytes memory returnData = almProxyFreezable.doCallWithValue(target, data, 1e18);
 
         assertEq(abi.decode(returnData, (uint256)), 84);
     }
 
     function test_doCallWithValue_msgValue() public {
-        vm.deal(relayer, 1e18);
+        vm.deal(allocator, 1e18);
 
         // ALM Proxy is msg.sender, target emits the event, msg.value sent to proxy then target
         vm.expectEmit(target);
@@ -344,7 +344,7 @@ contract ALMProxyFreezable_DoCallWithValue_SuccessTests is ALMProxyFreezable_Cal
             caller         : address(almProxyFreezable),
             value          : 1e18
         });
-        vm.prank(relayer);
+        vm.prank(allocator);
         bytes memory returnData = almProxyFreezable.doCallWithValue{value: 1e18}(target, data, 1e18);
 
         assertEq(abi.decode(returnData, (uint256)), 84);

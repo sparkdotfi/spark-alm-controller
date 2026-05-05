@@ -169,12 +169,12 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IFacet.AccessControlUnauthorizedAccount.selector,
-                relayer,
+                allocator,
                 DEFAULT_ADMIN_ROLE
             )
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setMaxSlippage(bytes32(0), 0);
     }
 
@@ -223,12 +223,12 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 IFacet.AccessControlUnauthorizedAccount.selector,
-                relayer,
+                allocator,
                 DEFAULT_ADMIN_ROLE
             )
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setTickLimits(bytes32(0), 0, 0, 0);
     }
 

@@ -72,7 +72,7 @@ Contracts use block comment headers to organize code into sections:
 /**********************************************************************************************/
 ```
 
-Standard sections in order (varies by contract type): Constants, Facet Storage Domain (or Controller Storage Domain), Constructor, External Interactive Admin Functions, External Interactive Relayer Functions, External Variable Getters, External View/Pure Functions, Internal Interactive Functions, Internal View/Pure Functions. Some contracts also include Modifiers and Fallback Functions sections.
+Standard sections in order (varies by contract type): Constants, Facet Storage Domain (or Controller Storage Domain), Constructor, External Interactive Admin Functions, External Interactive Allocator Functions, External Variable Getters, External View/Pure Functions, Internal Interactive Functions, Internal View/Pure Functions. Some contracts also include Modifiers and Fallback Functions sections.
 
 #### Event Naming
 

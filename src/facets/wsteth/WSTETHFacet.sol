@@ -77,11 +77,11 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IWSTETHFacet
-    function deposit(uint256 amount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function deposit(uint256 amount) external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         _decreaseRateLimit(depositRateLimitKey(), amount);
 
         address proxy = _getSharedControllerStorage().proxy;
@@ -98,7 +98,7 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256[] memory requestIds)
     {
         uint256 stethAmount = IWSTETHLike(wsteth).getStETHByWstETH(amountToRedeem);
@@ -136,7 +136,7 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         address proxy = _getSharedControllerStorage().proxy;
 

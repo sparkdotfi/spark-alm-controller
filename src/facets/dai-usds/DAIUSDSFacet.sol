@@ -56,7 +56,7 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IDAIUSDSFacet
@@ -64,7 +64,7 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -83,7 +83,7 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         address proxy = _getSharedControllerStorage().proxy;
 

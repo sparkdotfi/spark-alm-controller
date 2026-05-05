@@ -56,18 +56,18 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         foreignController.depositPSM(address(usdsBase), 1_000_000e18);
     }
 
-    function test_depositPSM_notRelayer() external {
+    function test_depositPSM_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         foreignController.depositPSM(address(usdsBase), 1_000_000e18);
     }
 
     function test_depositPSM_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(makeAddr("fake-token"), 1_000_000e18);
     }
 
@@ -75,10 +75,10 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         deal(Base.USDC, address(almProxy), 5_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(Base.USDC, 5_000_000e6 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(Base.USDC, 5_000_000e6);
     }
 
@@ -86,10 +86,10 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         deal(address(usdsBase), address(almProxy), 5_000_000e18 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(address(usdsBase), 5_000_000e18 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(address(usdsBase), 5_000_000e18);
     }
 
@@ -97,10 +97,10 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         deal(address(susdsBase), address(almProxy), 5_000_000e18 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(address(susdsBase), 5_000_000e18 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(address(susdsBase), 5_000_000e18);
     }
 
@@ -125,7 +125,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit(address(usdsBase), 100e18, 100e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 shares = foreignController.depositPSM(address(usdsBase), 100e18);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -165,7 +165,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit(Base.USDC, 100e6, 100e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 shares = foreignController.depositPSM(Base.USDC, 100e6);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -205,7 +205,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit(address(susdsBase), 100e18, 100.343092065533568746e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -234,11 +234,11 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         foreignController.withdrawPSM(address(usdsBase), 100e18);
     }
 
-    function test_withdrawPSM_notRelayer() external {
+    function test_withdrawPSM_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         foreignController.withdrawPSM(address(usdsBase), 100e18);
     }
@@ -250,7 +250,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         rateLimits.setRateLimitData(withdrawKey, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.withdrawPSM(Base.USDC, 100e18);
     }
 
@@ -261,7 +261,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         rateLimits.setRateLimitData(withdrawKey, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.withdrawPSM(address(usdsBase), 100e18);
     }
 
@@ -272,7 +272,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         rateLimits.setRateLimitData(withdrawKey, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.withdrawPSM(address(susdsBase), 100e18);
     }
 
@@ -284,7 +284,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         deal(Base.USDC, address(almProxy), 1_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
 
         foreignController.depositPSM(Base.USDC, 1_000_000e6 + 1);
 
@@ -304,7 +304,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         deal(address(usdsBase), address(almProxy), 1_000_000e18 + 1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
 
         foreignController.depositPSM(address(usdsBase), 1_000_000e18 + 1);
 
@@ -325,7 +325,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         // NOTE: Need an extra wei because of rounding on conversion
         deal(address(susdsBase), address(almProxy), 1_000_000e18 + 2);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
 
         foreignController.depositPSM(address(susdsBase), 1_000_000e18 + 2);
 
@@ -347,7 +347,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit({ asset: address(usdsBase), amount: 100e18, shares: 100e18 });
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(address(usdsBase), 100e18);
 
         _assertState({
@@ -366,7 +366,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Withdraw(address(usdsBase), 100e18, 100e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(usdsBase), 100e18);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -393,7 +393,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit({ asset: Base.USDC, amount: 100e6, shares: 100e18 });
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.depositPSM(Base.USDC, 100e6);
 
         _assertState({
@@ -412,7 +412,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Withdraw(Base.USDC, 100e6, 100e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 amountWithdrawn = foreignController.withdrawPSM(Base.USDC, 100e6);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -443,7 +443,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
             shares : 100.343092065533568746e18
         });
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 shares = foreignController.depositPSM(address(susdsBase), 100e18);
 
         assertEq(shares, 100.343092065533568746e18);  // Sanity check conversion at fork block
@@ -464,7 +464,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Withdraw(address(susdsBase), 100e18 - 1, shares);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 amountWithdrawn = foreignController.withdrawPSM(address(susdsBase), 100e18);
 
         _assertReentrancyGuardWrittenToTwice();

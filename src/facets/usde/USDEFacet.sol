@@ -81,7 +81,7 @@ contract USDEFacet is IUSDEFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IUSDEFacet
@@ -89,7 +89,7 @@ contract USDEFacet is IUSDEFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
             ethenaMinter,
@@ -104,7 +104,7 @@ contract USDEFacet is IUSDEFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
             ethenaMinter,
@@ -115,7 +115,12 @@ contract USDEFacet is IUSDEFacet, Facet {
     }
 
     /// @inheritdoc IUSDEFacet
-    function prepareMint(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function prepareMint(uint256 usdcAmount)
+        external
+        override
+        nonReentrant
+        onlyRole(ALLOCATOR_ROLE)
+    {
         _decreaseRateLimit(mintRateLimitKey(), usdcAmount);
 
         ApproveLib.approve(usdc, _getSharedControllerStorage().proxy, ethenaMinter, usdcAmount);
@@ -124,7 +129,12 @@ contract USDEFacet is IUSDEFacet, Facet {
     }
 
     /// @inheritdoc IUSDEFacet
-    function prepareBurn(uint256 usdeAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function prepareBurn(uint256 usdeAmount)
+        external
+        override
+        nonReentrant
+        onlyRole(ALLOCATOR_ROLE)
+    {
         _decreaseRateLimit(burnRateLimitKey(), usdeAmount);
 
         ApproveLib.approve(usde, _getSharedControllerStorage().proxy, ethenaMinter, usdeAmount);
@@ -137,7 +147,7 @@ contract USDEFacet is IUSDEFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 shares)
     {
         _decreaseRateLimit(cooldownRateLimitKey(), usdeAmount);
@@ -160,7 +170,7 @@ contract USDEFacet is IUSDEFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 assets)
     {
         // NOTE: The SUSDE contract is immutable, so the return value can be trusted, but also the
@@ -179,7 +189,7 @@ contract USDEFacet is IUSDEFacet, Facet {
     }
 
     /// @inheritdoc IUSDEFacet
-    function unstake() external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function unstake() external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 startingUSDE = IERC20Like(usde).balanceOf(proxy);

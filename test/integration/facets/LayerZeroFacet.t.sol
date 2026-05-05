@@ -89,11 +89,11 @@ contract Controller_LayerZeroFacet_Tests is Integration_TestBase {
 
         vm.expectRevert(abi.encodeWithSelector(
             IFacet.AccessControlUnauthorizedAccount.selector,
-            relayer,
+            allocator,
             DEFAULT_ADMIN_ROLE
         ));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setRecipient(0, bytes32(0));
     }
 

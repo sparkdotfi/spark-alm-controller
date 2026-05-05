@@ -47,18 +47,18 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
         mainnetController.transferAsset(Ethereum.USDC, receiver, 1_000_000e6);
     }
 
-    function test_transferAsset_notRelayer() external {
+    function test_transferAsset_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.transferAsset(Ethereum.USDC, receiver, 1_000_000e6);
     }
 
     function test_transferAsset_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferAsset(makeAddr("fake-token"), receiver, 1e18);
     }
 
@@ -66,10 +66,10 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
         deal(Ethereum.USDC, address(almProxy), 1_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferAsset(Ethereum.USDC, receiver, 1_000_000e6 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferAsset(Ethereum.USDC, receiver, 1_000_000e6);
     }
 
@@ -89,7 +89,7 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
         deal(address(token), address(almProxy), 1_000_000e18);
 
         vm.expectRevert("TransferAssetFacet/transfer-failed");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferAsset(address(token), receiver, 1_000_000e18);
     }
 
@@ -104,7 +104,7 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.expectEmit(address(mainnetController));
         emit ITransferAssetFacet.TransferAssetTransfer(Ethereum.USDC, receiver, 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferAsset(Ethereum.USDC, receiver, 1_000_000e6);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -132,7 +132,7 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.expectEmit(address(mainnetController));
         emit ITransferAssetFacet.TransferAssetTransfer(Ethereum.USDT, receiver, 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferAsset(Ethereum.USDT, receiver, 1_000_000e6);
 
         assertEq(USDT.balanceOf(receiver),          1_000_000e6);

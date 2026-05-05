@@ -6,48 +6,48 @@ import { Maple_TestBase }                    from "./Maple.t.sol";
 
 contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETests {
 
-    function test_attack_compromisedRelayer_lockingFundsInEthenaSilo() external {
+    function test_attack_compromisedAllocator_lockingFundsInEthenaSilo() external {
         deal(address(susde), address(almProxy), 1_000_000e18);
 
         address silo = susde.silo();
 
         uint256 startingSiloBalance = usde.balanceOf(silo);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.cooldownAssetsSUSDe(1_000_000e18);
 
         skip(7 days);
 
-        // Relayer is now compromised and wants to lock funds in the silo
-        vm.prank(relayer);
+        // Allocator is now compromised and wants to lock funds in the silo
+        vm.prank(allocator);
         mainnetController.cooldownAssetsSUSDe(1);
 
-        // Real relayer cannot withdraw when they want to
+        // Real allocator cannot withdraw when they want to
         vm.expectRevert(abi.encodeWithSignature("InvalidCooldown()"));
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.unstakeSUSDe();
 
-        // Frezer can remove the compromised relayer and fallback to the governance relayer
+        // Frezer can remove the compromised allocator and fallback to the governance allocator
         vm.prank(freezer);
-        accessControls.revokeRole(RELAYER_ROLE, relayer);
+        accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
 
         skip(7 days);
 
-        // Compromised relayer cannot perform attack anymore
+        // Compromised allocator cannot perform attack anymore
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
-            relayer,
-            RELAYER_ROLE
+            allocator,
+            ALLOCATOR_ROLE
         ));
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.cooldownAssetsSUSDe(1);
 
         // Funds have been locked in the silo this whole time
         assertEq(usde.balanceOf(address(almProxy)), 0);
         assertEq(usde.balanceOf(silo),              startingSiloBalance + 1_000_000e18 + 1);  // 1 wei deposit as well
 
-        // Backstop relayer can unstake the funds
-        vm.prank(backstopRelayer);
+        // Backstop allocator can unstake the funds
+        vm.prank(backstopAllocator);
         mainnetController.unstakeSUSDe();
 
         assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 + 1);
@@ -58,37 +58,37 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
 
 contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
 
-    function test_attack_compromisedRelayer_delayRequestMapleRedemption() external {
+    function test_attack_compromisedAllocator_delayRequestMapleRedemption() external {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, 0);
 
-        // Malicious relayer delays the request for redemption for 1m
+        // Malicious allocator delays the request for redemption for 1m
         // because new requests can't be fulfilled until the previous is fulfilled or cancelled
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.requestMapleRedemption(address(SYRUP), 1);
 
         // Cannot process request
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("WM:AS:IN_QUEUE");
         mainnetController.requestMapleRedemption(address(SYRUP), 500_000e6);
 
-        // Frezer can remove the compromised relayer and fallback to the governance relayer
+        // Frezer can remove the compromised allocator and fallback to the governance allocator
         vm.prank(freezer);
-        accessControls.revokeRole(RELAYER_ROLE, relayer);
+        accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
 
-        // Compromised relayer cannot perform attack anymore
-        vm.prank(relayer);
+        // Compromised allocator cannot perform attack anymore
+        vm.prank(allocator);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
-            relayer,
-            RELAYER_ROLE
+            allocator,
+            ALLOCATOR_ROLE
         ));
         mainnetController.requestMapleRedemption(address(SYRUP), 1);
 
-        // Governance relayer can cancel and submit the real request
-        vm.startPrank(backstopRelayer);
+        // Governance allocator can cancel and submit the real request
+        vm.startPrank(backstopAllocator);
         mainnetController.cancelMapleRedemption(address(SYRUP), 1);
         mainnetController.requestMapleRedemption(address(SYRUP), 500_000e6);
         vm.stopPrank();

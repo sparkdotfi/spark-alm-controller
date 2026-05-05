@@ -31,8 +31,8 @@ interface ILayerZeroLike {
 
     /**
      * @notice Struct representing OFT fee details.
-     * @notice Future proof mechanism to provide a standardized way to communicate fees to things like
-     *      a UI.
+     * @notice Future proof mechanism to provide a standardized way to communicate fees to things
+     *         like a UI.
      */
     struct OFTFeeDetail {
         int256 feeAmountLD; // Amount of the fee in local decimals.
@@ -50,7 +50,7 @@ interface ILayerZeroLike {
 
     struct OFTReceipt {
         uint256 amountSentLD; // Actual amount of tokens debited from the sender in local decimals.
-        /// @notice In non-default implementations, the amountReceivedLD COULD differ from this value.
+        /// @notice In non-default implementations, the amountReceivedLD COULD differ from this.
         uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
     }
 
@@ -151,7 +151,7 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     // NOTE: !!! This function was deployed without integration testing !!!
@@ -163,7 +163,7 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
         payable
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         address proxy = _getSharedControllerStorage().proxy;
         address token = ILayerZeroLike(oft).token();

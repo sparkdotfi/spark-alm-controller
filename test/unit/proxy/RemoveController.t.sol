@@ -7,7 +7,7 @@ import { MockTarget } from "../mocks/MockTarget.sol";
 
 import { UnitTestBase } from "../UnitTestBase.t.sol";
 
-abstract contract Freezable_RemoveRelayer_TestBase is UnitTestBase {
+abstract contract Freezable_RemoveAllocator_TestBase is UnitTestBase {
 
     event ExampleEvent(
         address indexed exampleAddress,
@@ -17,7 +17,7 @@ abstract contract Freezable_RemoveRelayer_TestBase is UnitTestBase {
         uint256 value
     );
 
-    event RelayerRemoved(address indexed relayer);
+    event AllocatorRemoved(address indexed allocator);
 
     ALMProxyFreezable almProxyFreezable;
 
@@ -35,8 +35,8 @@ abstract contract Freezable_RemoveRelayer_TestBase is UnitTestBase {
         almProxyFreezable = new ALMProxyFreezable(admin);
 
         vm.startPrank(admin);
-        almProxyFreezable.grantRole(FREEZER_ROLE, freezer);
-        almProxyFreezable.grantRole(RELAYER_ROLE, relayer);
+        almProxyFreezable.grantRole(FREEZER_ROLE,   freezer);
+        almProxyFreezable.grantRole(ALLOCATOR_ROLE, allocator);
         vm.stopPrank();
 
         target = address(new MockTarget());
@@ -44,15 +44,15 @@ abstract contract Freezable_RemoveRelayer_TestBase is UnitTestBase {
 
 }
 
-contract ALMProxy_Freezable_RemoveRelayer_FailureTests is Freezable_RemoveRelayer_TestBase {
+contract ALMProxy_Freezable_RemoveAllocator_FailureTests is Freezable_RemoveAllocator_TestBase {
 
-    function test_removeRelayer_unauthorizedAccount() public {
+    function test_removeAllocator_unauthorizedAccount() public {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             FREEZER_ROLE
         ));
-        almProxyFreezable.removeRelayer(relayer);
+        almProxyFreezable.removeAllocator(allocator);
 
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSignature(
@@ -60,20 +60,20 @@ contract ALMProxy_Freezable_RemoveRelayer_FailureTests is Freezable_RemoveRelaye
             admin,
             FREEZER_ROLE
         ));
-        almProxyFreezable.removeRelayer(relayer);
+        almProxyFreezable.removeAllocator(allocator);
     }
 
-    function test_removeRelayer_notLiveRelayer() public {
+    function test_removeAllocator_notLiveAllocator() public {
         vm.prank(freezer);
-        vm.expectRevert("ALMProxyFreezable/not-live-relayer");
-        almProxyFreezable.removeRelayer(exampleAddress);
+        vm.expectRevert("ALMProxyFreezable/not-live-allocator");
+        almProxyFreezable.removeAllocator(exampleAddress);
     }
 
 }
 
-contract ALMProxy_Freezable_RemoveRelayer_SuccessTests is Freezable_RemoveRelayer_TestBase {
+contract ALMProxy_Freezable_RemoveAllocator_SuccessTests is Freezable_RemoveAllocator_TestBase {
 
-    function test_removeRelayer() public {
+    function test_removeAllocator() public {
         // ALM Proxy Freezable is msg.sender, target emits the event
         vm.expectEmit(target);
         emit ExampleEvent({
@@ -83,29 +83,29 @@ contract ALMProxy_Freezable_RemoveRelayer_SuccessTests is Freezable_RemoveRelaye
             caller         : address(almProxyFreezable),
             value          : 0
         });
-        vm.prank(relayer);
+        vm.prank(allocator);
         bytes memory returnData = almProxyFreezable.doCall(target, data);
 
         assertEq(abi.decode(returnData, (uint256)), 84);
 
-        // Before has relayer role
-        assertTrue(almProxyFreezable.hasRole(RELAYER_ROLE, relayer));
+        // Before has allocator role
+        assertTrue(almProxyFreezable.hasRole(ALLOCATOR_ROLE, allocator));
 
-        // Freezer comes in and removes relayer.
+        // Freezer comes in and removes allocator.
         vm.prank(freezer);
         vm.expectEmit(address(almProxyFreezable));
-        emit RelayerRemoved(relayer);
-        almProxyFreezable.removeRelayer(relayer);
+        emit AllocatorRemoved(allocator);
+        almProxyFreezable.removeAllocator(allocator);
 
-        // After no longer has relayer role
-        assertFalse(almProxyFreezable.hasRole(RELAYER_ROLE, relayer));
+        // After no longer has allocator role
+        assertFalse(almProxyFreezable.hasRole(ALLOCATOR_ROLE, allocator));
 
-        // After can no longer call as relayer
-        vm.prank(relayer);
+        // After can no longer call as allocator
+        vm.prank(allocator);
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
-            relayer,
-            RELAYER_ROLE
+            allocator,
+            ALLOCATOR_ROLE
         ));
         almProxyFreezable.doCall(target, data);
     }

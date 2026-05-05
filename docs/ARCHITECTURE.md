@@ -16,7 +16,7 @@ The proxy contract that holds custody of all funds. This contract routes calls t
 
 ### Controller
 
-The unified controller contract that serves as the entry point for all relayer operations. Inspired by the [EIP-2535 Diamond Proxy](https://eips.ethereum.org/EIPS/eip-2535) pattern, the Controller uses dispatch-based routing to delegate calls to specialized facets. Rather than maintaining separate controllers per domain (e.g., mainnet vs L2), a single Controller is deployed on each chain and configured with only the facets relevant to that deployment.
+The unified controller contract that serves as the entry point for all allocator operations. Inspired by the [EIP-2535 Diamond Proxy](https://eips.ethereum.org/EIPS/eip-2535) pattern, the Controller uses dispatch-based routing to delegate calls to specialized facets. Rather than maintaining separate controllers per domain (e.g., mainnet vs L2), a single Controller is deployed on each chain and configured with only the facets relevant to that deployment.
 
 **Key characteristics:**
 
@@ -47,7 +47,7 @@ Factory contract for deploying complete PAU systems. Takes a Beacon address at c
 
 ### AccessControls
 
-Wraps OpenZeppelin `AccessControlEnumerable` to define the PAU-specific roles used by facets at runtime. Declares `FREEZER_ROLE` and `RELAYER_ROLE` as constants. Provides a `removeRelayer` function gated by `FREEZER_ROLE` for emergency revocation of a compromised relayer without requiring a slower governance process. A separate contract was used here to make facet development easier (external call to a module vs. maintaining ACL storage across all facets).
+Wraps OpenZeppelin `AccessControlEnumerable` to define the PAU-specific roles used by facets at runtime. Declares `FREEZER_ROLE` and `ALLOCATOR_ROLE` as constants. Provides a `removeAllocator` function gated by `FREEZER_ROLE` for emergency revocation of a compromised allocator without requiring a slower governance process. A separate contract was used here to make facet development easier (external call to a module vs. maintaining ACL storage across all facets).
 
 ### RateLimits
 
@@ -67,8 +67,8 @@ A variant of the `ALMProxy` that is not intended to hold funds or have critical 
 
 **Architectural differences from standard ALMProxy:**
 
-- **Controller role usage:** In the standard `ALMProxy`, the controller is the `Controller` contract that acts when approved relayers interact with it. In `ALMProxyFreezable`, the relayers are granted the `RELAYER` role directly (there is no intermediary Controller contract), so they can call `doCall` and `doCallWithValue` without a Controller.
-- **Additional safety mechanism:** The `FREEZER` role can remove relayers via `removeRelayer`, providing quick revocation of access from compromised or malicious relayers without slower governance processes.
+- **Controller role usage:** In the standard `ALMProxy`, the controller is the `Controller` contract that acts when approved allocators interact with it. In `ALMProxyFreezable`, the allocators are granted the `ALLOCATOR_ROLE` role directly (there is no intermediary Controller contract), so they can call `doCall` and `doCallWithValue` without a Controller.
+- **Additional safety mechanism:** The `FREEZER_ROLE` role can remove allocators via `removeAllocator`, providing quick revocation of access from compromised or malicious allocators without slower governance processes.
 
 ### OTCBuffer
 
@@ -106,8 +106,8 @@ contract for role checks. The following roles are defined:
 | Role                 | Description                                                                                                                                                                      |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DEFAULT_ADMIN_ROLE` | Admin role that can grant and revoke roles. Also used for general admin functions in all contracts.                                                                              |
-| `RELAYER`            | Used for the offchain relayer system. Can call functions on controller contracts to perform actions on behalf of the `ALMProxy`.                                                 |
-| `FREEZER`            | Allows removal of a compromised `RELAYER`. Intended for use with a backup relayer that the system can fall back to.                                                              |
+| `ALLOCATOR_ROLE`     | Used for the offchain allocator system. Can call functions on controller contracts to perform actions on behalf of the `ALMProxy`.                                               |
+| `FREEZER_ROLE`       | Allows removal of a compromised `ALLOCATOR_ROLE`. Intended for use with a backup allocator that the system can fall back to.                                                     |
 | `CONTROLLER`         | Used for the `ALMProxy` contract. Only the `Controller` with this role can call the `call` functions on `ALMProxy`. Also used in `RateLimits` contract for updating rate limits. |
 
 ## Contract Interactions

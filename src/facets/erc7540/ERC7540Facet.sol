@@ -55,7 +55,7 @@ contract ERC7540Facet is IERC7540Facet, Facet {
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IERC7540Facet
@@ -63,7 +63,7 @@ contract ERC7540Facet is IERC7540Facet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         address proxy = _getSharedControllerStorage().proxy;
         address asset = IERC4626Like(token).asset();
@@ -82,7 +82,7 @@ contract ERC7540Facet is IERC7540Facet, Facet {
     }
 
     /// @inheritdoc IERC7540Facet
-    function claimDeposit(address token) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function claimDeposit(address token) external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         _requireRateLimitExists(getDepositRateLimitKey(token, IERC4626Like(token).asset()));
 
         address proxy  = _getSharedControllerStorage().proxy;
@@ -99,7 +99,7 @@ contract ERC7540Facet is IERC7540Facet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         _decreaseRateLimit(
             getRedeemRateLimitKey(token),
@@ -117,7 +117,7 @@ contract ERC7540Facet is IERC7540Facet, Facet {
     }
 
     /// @inheritdoc IERC7540Facet
-    function claimRedeem(address token) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function claimRedeem(address token) external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         _requireRateLimitExists(getRedeemRateLimitKey(token));
 
         address proxy  = _getSharedControllerStorage().proxy;

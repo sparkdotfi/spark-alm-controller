@@ -112,7 +112,7 @@ contract MainnetController_OTC_SetOTCBuffer_Tests is OTC_TestBase {
         deal(Ethereum.USDT, address(almProxy), 5_000_000e6);
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 5_000_000e6);
 
         vm.expectRevert("OTCFacet/swap-in-progress");
@@ -130,30 +130,30 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         mainnetController.otcSend(exchange, address(1), 1e18);
     }
 
-    function test_otcSend_notRelayer() external {
+    function test_otcSend_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.otcSend(exchange, address(1), 1e18);
     }
 
     function test_otcSend_assetToSendZero() external {
         vm.expectRevert("OTCFacet/asset-to-send-zero");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, address(0), 1e18);
     }
 
     function test_otcSend_amountToSendZero() external {
         vm.expectRevert("OTCFacet/amount-to-send-zero");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 0);
     }
 
     function test_otcSend_assetNotWhitelisted() external {
         vm.expectRevert("OTCFacet/asset-not-whitelisted");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, address(1), 1e18);
     }
 
@@ -164,7 +164,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(makeAddr("fake-exchange"), Ethereum.USDT, 1e18);
     }
 
@@ -172,10 +172,10 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         deal(Ethereum.USDT, address(almProxy), 10_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 10_000_000e6 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 10_000_000e6);
     }
 
@@ -183,10 +183,10 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         deal(Ethereum.USDS, address(almProxy), 10_000_000e18 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 10_000_000e18 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 10_000_000e18);
     }
 
@@ -199,7 +199,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         deal(token, address(almProxy), 1_000_000e6);
 
         vm.expectRevert("OTCFacet/transfer-failed");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, token, 1_000_000e6);
     }
 
@@ -207,7 +207,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         deal(Ethereum.USDT, address(almProxy), 5_000_000e6);
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 5_000_000e6);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
@@ -219,7 +219,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
         // Six decimal asset conversion
@@ -228,19 +228,19 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCFacet/last-swap-not-returned");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 1e6);
 
         deal(Ethereum.USDT, address(otcBuffer), 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18);
 
         assertTrue(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 1e6);
     }
 
@@ -248,7 +248,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         deal(Ethereum.USDS, address(almProxy), 5_000_000e18);
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 5_000_000e18);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
@@ -260,7 +260,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18 - 1);
@@ -268,19 +268,19 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCFacet/last-swap-not-returned");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 1e18);
 
         deal(Ethereum.USDS, address(otcBuffer), 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 4_997_500e18);
 
         assertTrue(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 1e18);
     }
 
@@ -288,7 +288,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         deal(Ethereum.USDT, address(almProxy), 5_000_000e6);
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 5_000_000e6);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
@@ -300,7 +300,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
         // Six decimal asset conversion
@@ -309,7 +309,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCFacet/last-swap-not-returned");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 1e6);
 
         skip(1 seconds);
@@ -318,7 +318,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertTrue(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 1e6);
     }
 
@@ -326,7 +326,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         deal(Ethereum.USDS, address(almProxy), 5_000_000e18);
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 5_000_000e18);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
@@ -338,7 +338,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         // Six decimal asset conversion
@@ -347,7 +347,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         assertFalse(mainnetController.isOtcSwapReady(exchange));
 
         vm.expectRevert("OTCFacet/last-swap-not-returned");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 1e18);
 
         skip(1 seconds);
@@ -356,7 +356,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
 
         assertTrue(mainnetController.isOtcSwapReady(exchange));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 1e18);
     }
 
@@ -389,7 +389,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         );
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 10_000_000e6);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -436,7 +436,7 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         );
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 10_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -465,30 +465,30 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
         mainnetController.otcClaim(exchange, address(1));
     }
 
-    function test_otcClaim_notRelayer() external {
+    function test_otcClaim_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.otcClaim(exchange, address(1));
     }
 
     function test_otcClaim_assetToClaimZero() external {
         vm.expectRevert("OTCFacet/asset-to-claim-zero");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, address(0));
     }
 
     function test_otcClaim_otcBufferNotSet() external {
         vm.expectRevert("OTCFacet/buffer-not-set");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(makeAddr("fake-exchange"), address(1));
     }
 
     function test_otcClaim_assetNotWhitelisted() external {
         vm.expectRevert("OTCFacet/asset-not-whitelisted");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, address(1));
     }
 
@@ -504,7 +504,7 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
         otcBuffer.approve(token, type(uint256).max);
 
         vm.expectRevert("OTCFacet/transferFrom-failed");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, token);
     }
 
@@ -532,7 +532,7 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
             10_000_000e18
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -570,7 +570,7 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
             10_000_000e18
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -616,7 +616,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
             normalizedAmountSent : 10_000_000e18
         });
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 10_000_000e6);
 
         assertEq(USDT.balanceOf(address(almProxy)),  0);
@@ -683,7 +683,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
             normalizedAmountClaimed : 9_980_000e18
         });
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         _assertOTCState({
@@ -706,7 +706,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
 
         // Cannot do another swap
         vm.expectRevert("OTCFacet/last-swap-not-returned");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 1e18);
 
         // Step 4: Demonstrate how recharging can bring an OTC swap above slippage requirements over time
@@ -743,7 +743,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         // Able to do another swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 200_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(key), currentRateLimit - 200_000e18);
@@ -786,7 +786,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
             normalizedAmountSent : 10_000_000e18
         });
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDS, 10_000_000e18);
 
         assertEq(USDS.balanceOf(address(almProxy)), 0);
@@ -853,7 +853,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
             normalizedAmountClaimed : 9_980_000e18
         });
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDT);
 
         _assertOTCState({
@@ -876,7 +876,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
 
         // Cannot do another swap
         vm.expectRevert("OTCFacet/last-swap-not-returned");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 1e6);
 
         // Step 4: Demonstrate how recharging can bring an OTC swap above slippage requirements over time
@@ -913,7 +913,7 @@ contract MainnetController_OTC_E2ETests is OTC_TestBase {
         });
 
         // Able to do another swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 200_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), currentRateLimit - 200_000e18);
@@ -955,7 +955,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         );
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(
             exchange,
             Ethereum.USDT,
@@ -978,7 +978,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 20_833.333333333333333200e18);
 
         // Claiming increases claimed amount
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 20_833.333333333333333200e18);
@@ -1010,7 +1010,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         );
 
         // Execute OTC swap
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(
             exchange,
             Ethereum.USDT,
@@ -1030,7 +1030,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         });
 
         // No effect on state because of zero claim
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         _assertOTCState({
@@ -1047,7 +1047,7 @@ contract MainnetController_OTC_GetClaimedWithRecharge_Tests is OTC_TestBase {
         USDS.transfer(address(otcBuffer), 5_500_000e18);
 
         // Claiming increases claimed amount
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 5_500_000e18 + 30 minutes * (uint256(1_000_000e18) / 1 days));
@@ -1064,7 +1064,7 @@ contract MainnetController_OTC_IsSwapReady_Tests is OTC_TestBase {
     function test_isOTCSwapReady() external {
         deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcSend(exchange, Ethereum.USDT, 10_000_000e6);
 
         deal(Ethereum.USDS, exchange, 9_995_000e18 - 1);
@@ -1074,7 +1074,7 @@ contract MainnetController_OTC_IsSwapReady_Tests is OTC_TestBase {
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 0);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.otcClaim(exchange, Ethereum.USDS);
 
         assertEq(mainnetController.getOtcClaimWithRecharge(exchange), 9_995_000e18 - 1);

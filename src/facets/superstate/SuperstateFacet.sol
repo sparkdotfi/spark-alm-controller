@@ -52,11 +52,11 @@ contract SuperstateFacet is ISuperstateFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc ISuperstateFacet
-    function subscribe(uint256 usdcAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function subscribe(uint256 usdcAmount) external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         _decreaseRateLimit(subscribeRateLimitKey(), usdcAmount);
 
         address proxy = _getSharedControllerStorage().proxy;

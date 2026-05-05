@@ -14,8 +14,8 @@ contract ALMProxyFreezable is IALMProxyFreezable, AccessControl {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 public constant override FREEZER = keccak256("FREEZER");
-    bytes32 public constant override RELAYER = keccak256("RELAYER");
+    bytes32 public constant override ALLOCATOR_ROLE = keccak256("ALLOCATOR_ROLE");
+    bytes32 public constant override FREEZER_ROLE   = keccak256("FREEZER_ROLE");
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -31,20 +31,20 @@ contract ALMProxyFreezable is IALMProxyFreezable, AccessControl {
     /*** External Interactive Freezer Functions                                                 ***/
     /**********************************************************************************************/
 
-    function removeRelayer(address relayer) external override onlyRole(FREEZER) {
-        require(_revokeRole(RELAYER, relayer), "ALMProxyFreezable/not-live-relayer");
+    function removeAllocator(address allocator) external override onlyRole(FREEZER_ROLE) {
+        require(_revokeRole(ALLOCATOR_ROLE, allocator), "ALMProxyFreezable/not-live-allocator");
 
-        emit RelayerRemoved(relayer);
+        emit AllocatorRemoved(allocator);
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     function doCall(address target, bytes calldata data)
         external
         override
-        onlyRole(RELAYER)
+        onlyRole(ALLOCATOR_ROLE)
         returns (bytes memory result)
     {
         result = target.functionCall(data);
@@ -54,7 +54,7 @@ contract ALMProxyFreezable is IALMProxyFreezable, AccessControl {
         external
         payable
         override
-        onlyRole(RELAYER)
+        onlyRole(ALLOCATOR_ROLE)
         returns (bytes memory result)
     {
         result = target.functionCallWithValue(data, value);

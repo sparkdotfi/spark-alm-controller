@@ -40,17 +40,17 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DaiUsds_TestBase {
         mainnetController.swapUSDSToDAI(1_000_000e18);
     }
 
-    function test_swapUSDSToDAI_notRelayer() external {
+    function test_swapUSDSToDAI_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.swapUSDSToDAI(1_000_000e18);
     }
 
     function test_swapUSDSToDAI() external {
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.mintUSDS(1_000_000e18);
 
         assertEq(USDS.balanceOf(address(almProxy)), 1_000_000e18);
@@ -66,7 +66,7 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DaiUsds_TestBase {
         vm.expectEmit(address(mainnetController));
         emit IDAIUSDSFacet.DAIUSDSSwapUSDSToDAI(1_000_000e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.swapUSDSToDAI(1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -90,11 +90,11 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DaiUsds_TestBase {
         mainnetController.swapDAIToUSDS(1_000_000e18);
     }
 
-    function test_swapDAIToUSDS_notRelayer() external {
+    function test_swapDAIToUSDS_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.swapDAIToUSDS(1_000_000e18);
     }
@@ -115,7 +115,7 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DaiUsds_TestBase {
         vm.expectEmit(address(mainnetController));
         emit IDAIUSDSFacet.DAIUSDSSwapDAIToUSDS(1_000_000e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.swapDAIToUSDS(1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();

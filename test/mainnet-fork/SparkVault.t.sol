@@ -80,11 +80,11 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }
 
-    function test_takeFromSparkVault_notRelayer() external {
+    function test_takeFromSparkVault_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }
@@ -94,7 +94,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         rateLimits.setRateLimitData(takeKey, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), 1e18);
     }
 
@@ -110,10 +110,10 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         rateLimits.setRateLimitData(takeKey, 10_000_000e6, uint256(10_000_000e6) / 1 days);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), 10_000_000e6 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), 10_000_000e6);
     }
 
@@ -140,7 +140,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         vm.expectEmit(address(mainnetController));
         emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), 1_000_000e6);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -164,7 +164,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         vm.expectEmit(address(mainnetController));
         emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), rateLimitIncreaseInOneHour);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
 
         testState.rateLimit -= rateLimitIncreaseInOneHour;  // Rate limit goes down
@@ -174,7 +174,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         _assertTestState(testState);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), 1);
     }
 
@@ -205,7 +205,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         vm.expectEmit(address(mainnetController));
         emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), takeAmount);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), takeAmount);
 
         testState.rateLimit -= takeAmount;  // Rate limit goes down
@@ -241,7 +241,7 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 
-        sparkVault.grantRole(sparkVault.SETTER_ROLE(), relayer);
+        sparkVault.grantRole(sparkVault.SETTER_ROLE(), allocator);
 
         sparkVault.setVsrBounds(1e27, 1.000000003022265980097387650e27);  // 0% to 10% APY
 
@@ -331,7 +331,7 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         vm.expectEmit(address(mainnetController));
         emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), 9_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.takeFromSparkVault(address(sparkVault), 9_000_000e6);
 
         testState.takeRateLimit  = 1_000_000e6;
@@ -345,7 +345,7 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
 
         // Step 4: Swap into DAI, deposit into Morpho, and set the VSR to 4% APY
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         mainnetController.swapUSDCToUSDS(9_000_000e6);
         mainnetController.swapUSDSToDAI(9_000_000e18);
         uint256 shares = mainnetController.depositERC4626(Ethereum.MORPHO_VAULT_DAI_1, 9_000_000e18, 0);
@@ -370,7 +370,7 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
 
         // Step 6: Redeem assets from Morpho, swap DAI to USDC and transfer outstanding assets to the vault
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         uint256 assets = mainnetController.redeemERC4626(Ethereum.MORPHO_VAULT_DAI_1, shares, 0);
         mainnetController.swapDAIToUSDS(9_400_000e18);
         mainnetController.swapUSDSToUSDC(9_400_000e6);

@@ -87,7 +87,7 @@ contract AaveFacet is IAaveFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IAaveFacet
@@ -95,7 +95,7 @@ contract AaveFacet is IAaveFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         uint256 maxSlippage = _getFacetStorage().maxSlippages[aToken];
 
@@ -130,7 +130,7 @@ contract AaveFacet is IAaveFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
         returns (uint256 amountWithdrawn)
     {
         address proxy      = _getSharedControllerStorage().proxy;

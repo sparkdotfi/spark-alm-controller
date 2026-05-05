@@ -67,20 +67,20 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
         mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID);
     }
 
-    function test_transferSharesCentrifuge_notRelayer() external {
+    function test_transferSharesCentrifuge_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID);
     }
 
     function test_transferSharesCentrifuge_invalidCentrifugeId() external {
-        deal(relayer, 0.1 ether);
+        deal(allocator, 0.1 ether);
 
         vm.expectRevert("CentrifugeFacet/id-not-configured");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,
@@ -93,7 +93,7 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
         mainnetController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID);
     }
 
@@ -112,17 +112,17 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
 
         // Setup token balances
         deal(vaultToken, address(almProxy), 10_000_000e6);
-        deal(relayer, 1 ether);  // Gas cost for Centrifuge
+        deal(allocator, 1 ether);  // Gas cost for Centrifuge
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6 + 1,
             DESTINATION_CENTRIFUGE_ID
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,
@@ -145,7 +145,7 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
 
         // Setup token balances
         deal(address(vaultToken), address(almProxy), 10_000_000e6);
-        deal(relayer, 1 ether);  // Gas cost for Centrifuge
+        deal(allocator, 1 ether);  // Gas cost for Centrifuge
 
         // Issue shares at price 1.0
         vm.prank(root);
@@ -176,7 +176,7 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
             DESTINATION_CENTRIFUGE_ID
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         mainnetController.transferSharesCentrifuge{value: 0.1 ether}(
             CENTRIFUGE_VAULT,
             10_000_000e6,

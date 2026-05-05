@@ -22,7 +22,7 @@ abstract contract Facet is IFacet, ControllerSharedStorage, ReentrancyGuardUpgra
     bytes32 public constant override DEFAULT_ADMIN_ROLE = 0x00;
 
     /// @inheritdoc IFacet
-    bytes32 public constant override RELAYER_ROLE = keccak256("RELAYER");
+    bytes32 public constant override ALLOCATOR_ROLE = keccak256("ALLOCATOR_ROLE");
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/

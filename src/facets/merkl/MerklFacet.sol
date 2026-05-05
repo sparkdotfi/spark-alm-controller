@@ -60,7 +60,7 @@ contract MerklFacet is IMerklFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IMerklFacet
@@ -68,7 +68,7 @@ contract MerklFacet is IMerklFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         require(operator != address(0), "MerklFacet/zero-operator");
 

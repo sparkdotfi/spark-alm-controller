@@ -86,7 +86,7 @@ contract PSMFacet is IPSMFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     // NOTE: The param `usdcAmount` is denominated in 1e6 precision to match how PSM uses
@@ -96,7 +96,7 @@ contract PSMFacet is IPSMFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         _decreaseRateLimit(usdsToUSDCSwapRateLimitKey(), usdcAmount);
 
@@ -127,7 +127,7 @@ contract PSMFacet is IPSMFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         _increaseRateLimit(usdsToUSDCSwapRateLimitKey(), usdcAmount);
 

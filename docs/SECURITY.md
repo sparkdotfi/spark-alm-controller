@@ -9,21 +9,21 @@ This document describes protocol-specific security considerations for PAU.
 | Role                 | Trust Level               | Description                                                                                                       |
 | -------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `DEFAULT_ADMIN_ROLE` | **Fully trusted**         | Run by governance                                                                                                 |
-| `RELAYER`            | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements. |
-| `FREEZER`            | Trusted                   | Can stop compromised relayers via `removeRelayer`                                                                 |
+| `ALLOCATOR_ROLE`     | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements. |
+| `FREEZER_ROLE`       | Trusted                   | Can stop compromised allocators via `removeAllocator`                                                             |
 
-### Relayer Compromise Mitigations
+### Allocator Compromise Mitigations
 
-When assuming a compromised `RELAYER`:
+When assuming a compromised `ALLOCATOR`:
 
 1. **Value movement restrictions:** Smart contract logic must prevent movement of value outside the PAU system of contracts
-   - Exception: Asynchronous integrations (e.g., BUIDL) where `transferAsset` sends funds to whitelisted addresses, with LP tokens minted asynchronously, or OTC trades.
+    - Exception: Asynchronous integrations (e.g., BUIDL) where `transferAsset` sends funds to whitelisted addresses, with LP tokens minted asynchronously, or OTC trades.
 
 2. **Loss limitations:** Any action must be limited to "reasonable" slippage/losses/opportunity cost by rate limits
 
-3. **Emergency response:** The `FREEZER` must be able to stop harmful actions within max rate limits using `removeRelayer`
+3. **Emergency response:** The `FREEZER_ROLE` must be able to stop harmful actions within max rate limits using `removeAllocator`
 
-4. **DOS attacks:** A compromised relayer can perform DOS attacks. Recovery procedures are outlined in `Attacks.t.sol` test files.
+4. **DOS attacks:** A compromised allocator can perform DOS attacks. Recovery procedures are outlined in `Attacks.t.sol` test files.
 
 For comprehensive threat modeling, attack vectors, and trust assumptions, see [Threat Model](./THREAT_MODEL.md).
 
@@ -35,9 +35,9 @@ For comprehensive threat modeling, attack vectors, and trust assumptions, see [T
 
 **Trust Assumption:** Ethena is a trusted counterparty in this system.
 
-**Scenario:** An operation initiated by a relayer can continue after a freeze is performed.
+**Scenario:** An operation initiated by a allocator can continue after a freeze is performed.
 
-**Implication:** If the `FREEZER` role removes a relayer while an Ethena mint/burn operation is pending, that operation will still complete.
+**Implication:** If the `FREEZER_ROLE` role removes a allocator while an Ethena mint/burn operation is pending, that operation will still complete.
 
 **Rationale:**
 
@@ -46,7 +46,7 @@ For comprehensive threat modeling, attack vectors, and trust assumptions, see [T
 - Ethena's API [Order Validity Checks](https://docs.ethena.fi/solution-design/minting-usde/order-validity-checks) provide protection against malicious delegated signers
 - Worst-case loss is bounded by slippage limits and rate limits on the operation
 
-**Security Note:** The delegated signer role can technically be set by a compromised relayer. Ethena's off-chain validation is trusted to prevent abuse in this scenario.
+**Security Note:** The delegated signer role can technically be set by a compromised allocator. Ethena's off-chain validation is trusted to prevent abuse in this scenario.
 
 ### EtherFi/weETH Integration
 
@@ -76,10 +76,10 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
 **Guarantee:** Any ETH left in the `ALMProxy` can always be removed.
 
-| Method            | Access       | Description                                                  |
-| ----------------- | ------------ | ------------------------------------------------------------ |
-| `doCallWithValue` | `CONTROLLER` | Allows arbitrary calls with ETH value attached from ALMProxy |
-| `wrapAll`         | `RELAYER`    | Wraps all ETH in ALMProxy to WETH (via WrapProxyETHFacet)    |
+| Method            | Access           | Description                                                  |
+| ----------------- | ---------------- | ------------------------------------------------------------ |
+| `doCallWithValue` | `CONTROLLER`     | Allows arbitrary calls with ETH value attached from ALMProxy |
+| `wrapAll`         | `ALLOCATOR_ROLE` | Wraps all ETH in ALMProxy to WETH (via WrapProxyETHFacet)    |
 
 **Use Cases:**
 
@@ -88,7 +88,7 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 - Convert ETH to WETH for standard token handling
 - Emergency fund extraction
 
-**Security:** The `doCallWithValue` function is governance-controlled and does not introduce attack vectors for compromised relayers. The `wrapAll` function is relayer-accessible but only converts ETH to WETH within the ALMProxy, keeping funds in the system.
+**Security:** The `doCallWithValue` function is governance-controlled and does not introduce attack vectors for compromised allocators. The `wrapAll` function is allocator-accessible but only converts ETH to WETH within the ALMProxy, keeping funds in the system.
 
 ---
 
@@ -101,7 +101,7 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 **Rationale:**
 
 - Gas fees are operational costs, not security vulnerabilities
-- Gas fee griefing by a compromised relayer is bounded by block production and MEV considerations
+- Gas fee griefing by a compromised allocator is bounded by block production and MEV considerations
 - Economic impact is minimal compared to rate-limited capital protection
 
 **Implication:** Audits should focus on capital preservation and rate limit effectiveness.

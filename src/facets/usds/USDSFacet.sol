@@ -85,11 +85,11 @@ contract USDSFacet is IUSDSFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IUSDSFacet
-    function mint(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function mint(uint256 usdsAmount) external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         _decreaseRateLimit(mintRateLimitKey(), usdsAmount);
 
         address proxy  = _getSharedControllerStorage().proxy;
@@ -112,7 +112,7 @@ contract USDSFacet is IUSDSFacet, Facet {
     }
 
     /// @inheritdoc IUSDSFacet
-    function burn(uint256 usdsAmount) external override nonReentrant onlyRole(RELAYER_ROLE) {
+    function burn(uint256 usdsAmount) external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         _increaseRateLimit(mintRateLimitKey(), usdsAmount);
 
         address proxy  = _getSharedControllerStorage().proxy;

@@ -29,7 +29,7 @@ contract SparkVaultFacet is ISparkVaultFacet, Facet {
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc ISparkVaultFacet
@@ -37,7 +37,7 @@ contract SparkVaultFacet is ISparkVaultFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         _decreaseRateLimit(getTakeRateLimitKey(sparkVault), assetAmount);
 

@@ -47,18 +47,18 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
     }
 
-    function test_transferAsset_notRelayer() external {
+    function test_transferAsset_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
     }
 
     function test_transferAsset_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.transferAsset(makeAddr("fake-token"), receiver, 1e18);
     }
 
@@ -66,10 +66,10 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         deal(Base.USDC, address(almProxy), 1_000_000e6 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6 + 1);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
     }
 
@@ -88,7 +88,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
 
         deal(address(token), address(almProxy), 1_000_000e18);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("TransferAssetFacet/transfer-failed");
         foreignController.transferAsset(address(token), receiver, 1_000_000e18);
     }
@@ -104,7 +104,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.expectEmit(address(foreignController));
         emit ITransferAssetFacet.TransferAssetTransfer(Base.USDC, receiver, 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.transferAsset(Base.USDC, receiver, 1_000_000e6);
 
         _assertReentrancyGuardWrittenToTwice();
@@ -134,7 +134,7 @@ contract ForeignController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.expectEmit(address(foreignController));
         emit ITransferAssetFacet.TransferAssetTransfer(address(token), receiver, 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.transferAsset(address(token), receiver, 1_000_000e6);
 
         assertEq(token.balanceOf(receiver),          1_000_000e6);

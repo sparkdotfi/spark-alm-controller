@@ -93,11 +93,11 @@ contract Controller_ERC4626Facet_Tests is Integration_TestBase {
 
         vm.expectRevert(abi.encodeWithSelector(
             IFacet.AccessControlUnauthorizedAccount.selector,
-            relayer,
+            allocator,
             DEFAULT_ADMIN_ROLE
         ));
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         controller.setMaxExchangeRate(makeAddr("token"), 1e18, 1e18);
     }
 

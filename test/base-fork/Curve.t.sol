@@ -123,7 +123,7 @@ abstract contract Curve_TestBase is ForkTestBase {
 
         uint256 minLpAmount = (usdcAmount + cgUSDAmount) * 1e12 * 98 / 100;
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         lpTokensReceived = foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
         return lpTokensReceived;
     }
@@ -170,7 +170,7 @@ abstract contract Curve_TestBase is ForkTestBase {
 
 contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
-    function test_addLiquidityCurve_notRelayer() public {
+    function test_addLiquidityCurve_notAllocator() public {
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1_000_000e6;
         amounts[1] = 1_000_000e6;
@@ -180,7 +180,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -195,7 +195,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
         vm.prank(SPARK_EXECUTOR);
         foreignController.setCurveMaxSlippage(CURVE_POOL, 0);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("CurveFacet/max-slippage-not-set");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -210,7 +210,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
         uint256 minLpAmount = 0;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
 
         vm.expectRevert("CurveFacet/invalid-deposit-amounts");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
@@ -236,7 +236,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
         uint256 minLpAmount = boundaryAmount - 1;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
@@ -255,7 +255,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
         uint256 minLpAmount = ICurvePoolLike(CURVE_POOL).calc_token_amount(amounts, true);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -273,7 +273,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
         uint256 minLpAmount = ICurvePoolLike(CURVE_POOL).calc_token_amount(amounts, true);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -291,7 +291,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
         uint256 minLpAmount = ICurvePoolLike(CURVE_POOL).calc_token_amount(amounts, true);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
     }
@@ -308,7 +308,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
         amounts[0] = 1_000_000e6 + 1;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
@@ -329,7 +329,7 @@ contract ForeignController_Curve_AddLiquidity_FailureTests is Curve_TestBase {
 
         amounts[1] = 1_000_000e6 + 1;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
@@ -382,7 +382,7 @@ contract ForeignController_Curve_AddLiquidity_SuccessTests is Curve_TestBase {
             amounts
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 lpTokensReceived = foreignController.addLiquidityCurve(
             CURVE_POOL,
             amounts,
@@ -451,7 +451,7 @@ contract ForeignController_Curve_AddLiquidity_SuccessTests is Curve_TestBase {
         amounts[0] = usdcAmount;
         amounts[1] = cgUSDAmount;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         uint256 lpTokens = foreignController.addLiquidityCurve(CURVE_POOL, amounts, 1e18);
 
         // Step 2: Withdraw full balance of LP tokens, withdrawing proportional amounts from the pool.
@@ -491,7 +491,7 @@ contract ForeignController_Curve_AddLiquidity_SuccessTests is Curve_TestBase {
 
 contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase {
 
-    function test_removeLiquidityCurve_notRelayer() public {
+    function test_removeLiquidityCurve_notAllocator() public {
         uint256[] memory minWithdrawAmounts = new uint256[](2);
         minWithdrawAmounts[0] = 1_000_000e6;
         minWithdrawAmounts[1] = 1_000_000e6;
@@ -501,7 +501,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         foreignController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
     }
@@ -516,7 +516,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
         vm.prank(SPARK_EXECUTOR);
         foreignController.setCurveMaxSlippage(CURVE_POOL, 0);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("CurveFacet/max-slippage-not-set");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
     }
@@ -529,7 +529,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
 
         uint256 lpReturn = 1_980_000e18;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
 
         vm.expectRevert("CurveFacet/invalid-min-withdraw-amounts");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpReturn, minWithdrawAmounts);
@@ -552,7 +552,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
         uint256[] memory minWithdrawAmounts = _calcMinWithdrawAmounts(lpTokensReceived);
         minWithdrawAmounts[0] -= 100;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
@@ -570,7 +570,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
 
         uint256[] memory minWithdrawAmounts = _calcMinWithdrawAmounts(lpTokensReceived);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
     }
@@ -583,7 +583,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
         uint256 id = vm.snapshotState();
 
         // Use a success call to see how many tokens are returned from burning all LP tokens
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256[] memory withdrawnAmounts = foreignController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
         uint256 totalWithdrawn = (withdrawnAmounts[0] + withdrawnAmounts[1]) * 1e12;
@@ -594,7 +594,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
         vm.prank(SPARK_EXECUTOR);
         rateLimits.setRateLimitData(curveWithdrawKey, totalWithdrawn - 1, totalWithdrawn / 1 days);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
 
@@ -602,7 +602,7 @@ contract ForeignController_Curve_RemoveLiquidity_FailureTests is Curve_TestBase 
         vm.prank(SPARK_EXECUTOR);
         rateLimits.setRateLimitData(curveWithdrawKey, totalWithdrawn, totalWithdrawn / 1 days);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.removeLiquidityCurve(CURVE_POOL, lpTokensReceived, minWithdrawAmounts);
     }
 
@@ -650,7 +650,7 @@ contract ForeignController_Curve_RemoveLiquidity_SuccessTests is Curve_TestBase 
             expectedWithdrawnAmounts
         );
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256[] memory assetsReceived = foreignController.removeLiquidityCurve(
             CURVE_POOL,
             lpTokensReceived,
@@ -685,17 +685,17 @@ contract ForeignController_Curve_RemoveLiquidity_SuccessTests is Curve_TestBase 
 
 contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
 
-    function test_swapCurve_notRelayer() public {
+    function test_swapCurve_notAllocator() public {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
-            RELAYER_ROLE
+            ALLOCATOR_ROLE
         ));
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
     function test_swapCurve_sameIndex() public {
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("CurveFacet/invalid-indices");
         foreignController.swapCurve(CURVE_POOL, 1, 1, 1_000_000e6, 980_000e6);
     }
@@ -706,11 +706,11 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
 
         deal(address(cgUSD), address(almProxy), 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("CurveFacet/index-too-high");
         foreignController.swapCurve(CURVE_POOL, 4, 0, 1_000_000e6, 980_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
 
@@ -720,11 +720,11 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
 
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("CurveFacet/index-too-high");
         foreignController.swapCurve(CURVE_POOL, 0, 4, 1_000_000e6, 980_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         foreignController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6);
     }
 
@@ -732,7 +732,7 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
         vm.prank(SPARK_EXECUTOR);
         foreignController.setCurveMaxSlippage(CURVE_POOL, 0);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("CurveFacet/max-slippage-not-set");
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
@@ -743,7 +743,7 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
 
         deal(address(usdcBase), address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, 980_000e6 - 1);
 
@@ -756,7 +756,7 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
 
         deal(address(cgUSD), address(almProxy), 1_000_000e6);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("CurveFacet/min-amount-not-met");
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6 - 1);
 
@@ -767,7 +767,7 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
         vm.prank(SPARK_EXECUTOR);
         rateLimits.setRateLimitData(curveSwapUSDCKey, 0, 0);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.swapCurve(CURVE_POOL, 0, 1, 980_000e6, 1_000_000e6);
     }
@@ -776,7 +776,7 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
         vm.prank(SPARK_EXECUTOR);
         rateLimits.setRateLimitData(curveSwapCGUSDKey, 0, 0);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, 980_000e6);
     }
@@ -787,7 +787,7 @@ contract ForeignController_Curve_Swap_FailureTests is Curve_TestBase {
 
         deal(address(cgUSD), address(almProxy), 1_000_000e6 + 1);
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6 + 1, 998_000e6);
 
@@ -833,7 +833,7 @@ contract ForeignController_Curve_Swap_SuccessTests is Curve_TestBase {
         vm.expectEmit(address(foreignController));
         emit ICurveFacet.CurveSwap(CURVE_POOL, 0, 1, 1_000_000e6, expectedAmountOut);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 amountOut = foreignController.swapCurve(CURVE_POOL, 0, 1, 1_000_000e6, minAmountOut);
 
         assertEq(amountOut, expectedAmountOut);
@@ -886,7 +886,7 @@ contract ForeignController_Curve_Swap_SuccessTests is Curve_TestBase {
         vm.expectEmit(address(foreignController));
         emit ICurveFacet.CurveSwap(CURVE_POOL, 1, 0, 1_000_000e6, expectedAmountOut);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 amountOut = foreignController.swapCurve(CURVE_POOL, 1, 0, 1_000_000e6, minAmountOut);
 
         assertEq(amountOut, expectedAmountOut);
@@ -934,7 +934,7 @@ contract ForeignController_Curve_GetVirtualPrice_StressTests is Curve_TestBase {
         uint256 expectedAmountOut = curvePool.get_dy(0, 1, 100_000_000e6);
 
         // Perform a massive swap to stress the virtual price
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 amountOut = foreignController.swapCurve(CURVE_POOL, 0, 1, 100_000_000e6, 1000e6);
 
         assertEq(amountOut, expectedAmountOut);
@@ -968,7 +968,7 @@ contract ForeignController_Curve_GetVirtualPrice_StressTests is Curve_TestBase {
         minWithdrawAmounts[0] = 1000e6;
         minWithdrawAmounts[1] = 1000e6;
 
-        vm.startPrank(relayer);
+        vm.startPrank(allocator);
         foreignController.removeLiquidityCurve(
             CURVE_POOL,
             curveLp.balanceOf(address(almProxy)),
@@ -1011,7 +1011,7 @@ contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is Curve_TestBase {
         assertEq(usdcBase.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(cgUSD.balanceOf(address(almProxy)),    1_000_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 lpTokensReceived = foreignController.addLiquidityCurve(CURVE_POOL, amounts, minLpAmount);
 
         assertEq(curveLp.balanceOf(address(almProxy)), lpTokensReceived);
@@ -1032,7 +1032,7 @@ contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is Curve_TestBase {
         // Calculate expected output dynamically using Curve's get_dy function
         uint256 expectedUsdcOut1 = curvePool.get_dy(1, 0, 100_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 usdcReturned = foreignController.swapCurve(CURVE_POOL, 1, 0, 100_000e6, 99_900e6);
 
         assertEq(usdcReturned, expectedUsdcOut1);
@@ -1050,7 +1050,7 @@ contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is Curve_TestBase {
         // Calculate expected output for second swap (pool state has changed after first swap)
         uint256 expectedUsdcOut2 = curvePool.get_dy(1, 0, 100_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 usdcReturnedFromSwap2 = foreignController.swapCurve(CURVE_POOL, 1, 0, 100_000e6, 99_900e6);
 
         assertEq(usdcReturnedFromSwap2, expectedUsdcOut2);
@@ -1070,7 +1070,7 @@ contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is Curve_TestBase {
         // Calculate expected output for swap in opposite direction
         uint256 expectedCgUsdOut = curvePool.get_dy(0, 1, 100_000e6);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256 cgUSDReturned = foreignController.swapCurve(CURVE_POOL, 0, 1, 100_000e6, 99_900e6);
 
         assertEq(cgUSDReturned, expectedCgUsdOut);
@@ -1094,7 +1094,7 @@ contract ForeignController_Curve_E2E_CgUSDUsdcBasePool_Test is Curve_TestBase {
         // Calculate minimum withdraw amounts dynamically based on current pool state
         uint256[] memory minWithdrawAmounts = _calcMinWithdrawAmounts(lpTokensReceived);
 
-        vm.prank(relayer);
+        vm.prank(allocator);
         uint256[] memory assetsReceived = foreignController.removeLiquidityCurve(
             CURVE_POOL,
             lpTokensReceived,

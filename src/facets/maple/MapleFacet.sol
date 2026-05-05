@@ -33,7 +33,7 @@ contract MapleFacet is IMapleFacet, Facet {
     string public constant override VERSION = "1.0.0";
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IMapleFacet
@@ -41,7 +41,7 @@ contract MapleFacet is IMapleFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         _decreaseRateLimit(
             getRedeemRateLimitKey(mapleToken),
@@ -63,7 +63,7 @@ contract MapleFacet is IMapleFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         require(_rateLimitExists(getRedeemRateLimitKey(mapleToken)), "MapleFacet/invalid-action");
 

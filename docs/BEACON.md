@@ -10,12 +10,12 @@ The Beacon centralizes integration management. It holds the canonical mapping of
 
 The Beacon uses three storage structures defined in `IEnumerableIntegrations`:
 
-| Struct | Fields | Description |
-|--------|--------|-------------|
-| `Config` | `address facet`, `Wire[] wires` | A facet address and its array of selector mappings |
-| `Wire` | `bytes4 callSelector`, `bytes4 delegateSelector` | Maps an incoming selector to the selector that will be delegatecalled on the facet |
-| `Dispatch` | `address facet`, `bytes4 delegateSelector` | Hot-path lookup entry for a single call selector |
-| `Integration` | `bytes32 id`, `Config config` | An integration ID paired with its config (used by `integrations()`) |
+| Struct        | Fields                                           | Description                                                                        |
+| ------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `Config`      | `address facet`, `Wire[] wires`                  | A facet address and its array of selector mappings                                 |
+| `Wire`        | `bytes4 callSelector`, `bytes4 delegateSelector` | Maps an incoming selector to the selector that will be delegatecalled on the facet |
+| `Dispatch`    | `address facet`, `bytes4 delegateSelector`       | Hot-path lookup entry for a single call selector                                   |
+| `Integration` | `bytes32 id`, `Config config`                    | An integration ID paired with its config (used by `integrations()`)                |
 
 ### Storage Layout
 
@@ -61,16 +61,19 @@ After the Beacon admin configures integrations, a Controller admin calls `contro
 The Beacon prevents facets from overriding core function selectors that must remain available on every Controller. The `_revertIfCallSelectorIsHardcoded` function checks against:
 
 **Controller admin/lifecycle selectors:**
+
 - `updateIntegrations`
 - `removeIntegrations`
 
 **Controller getter selectors:**
+
 - `accessControls`
 - `beacon`
 - `proxy`
 - `rateLimits`
 
 **Shared enumeration selectors (from IEnumerableIntegrations):**
+
 - `integrations`
 - `getConfig`
 - `getConfigs`
@@ -87,11 +90,11 @@ This means Beacon and Controller upgrades are tightly coupled: any change to the
 
 ## View Functions
 
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `integrations()` | `Integration[]` | All configured integrations with their configs |
-| `getConfig(bytes32)` | `Config` | Config for a single integration ID |
-| `getConfigs(bytes32[])` | `Config[]` | Batch config fetch |
-| `getDispatch(bytes4)` | `Dispatch` | Dispatch entry for a single call selector |
-| `getDispatches(bytes4[])` | `Dispatch[]` | Batch dispatch fetch |
-| `supportsInterface(bytes4)` | `bool` | ERC-165 support for `IBeacon` |
+| Function                    | Returns         | Description                                    |
+| --------------------------- | --------------- | ---------------------------------------------- |
+| `integrations()`            | `Integration[]` | All configured integrations with their configs |
+| `getConfig(bytes32)`        | `Config`        | Config for a single integration ID             |
+| `getConfigs(bytes32[])`     | `Config[]`      | Batch config fetch                             |
+| `getDispatch(bytes4)`       | `Dispatch`      | Dispatch entry for a single call selector      |
+| `getDispatches(bytes4[])`   | `Dispatch[]`    | Batch dispatch fetch                           |
+| `supportsInterface(bytes4)` | `bool`          | ERC-165 support for `IBeacon`                  |

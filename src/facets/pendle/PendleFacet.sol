@@ -108,7 +108,7 @@ contract PendleFacet is IPendleFacet, Facet {
     }
 
     /**********************************************************************************************/
-    /*** External Interactive Relayer Functions                                                 ***/
+    /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     // NOTE: DO NOT use for markets with non-standard SYs, without additional testing
@@ -119,7 +119,7 @@ contract PendleFacet is IPendleFacet, Facet {
         external
         override
         nonReentrant
-        onlyRole(RELAYER_ROLE)
+        onlyRole(ALLOCATOR_ROLE)
     {
         require(IPendleMarketLike(market).isExpired(), "PendleFacet/market-not-expired");
         require(minAmountOut != 0,                     "PendleFacet/min-amount-out-not-set");
