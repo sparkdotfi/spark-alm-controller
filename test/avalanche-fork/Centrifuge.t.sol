@@ -992,8 +992,6 @@ contract ForeignController_Centrifuge_TransferShares_Tests is Centrifuge_TestBas
 
         rateLimits.setRateLimitData(key, 10_000_000e6, 0);
 
-        foreignController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
-
         vm.stopPrank();
 
         // Setup token balances
@@ -1011,8 +1009,13 @@ contract ForeignController_Centrifuge_TransferShares_Tests is Centrifuge_TestBas
     }
 
     function test_transferSharesCentrifuge_zeroMaxAmount() external {
-        vm.prank(GROVE_EXECUTOR);
+        vm.startPrank(GROVE_EXECUTOR);
+
         rateLimits.setRateLimitData(key, 0, 0);
+
+        foreignController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
+
+        vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(ALM_RELAYER);
@@ -1020,6 +1023,9 @@ contract ForeignController_Centrifuge_TransferShares_Tests is Centrifuge_TestBas
     }
 
     function test_transferSharesCentrifuge_rateLimitedBoundary() external {
+        vm.prank(GROVE_EXECUTOR);
+        foreignController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
+
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.startPrank(ALM_RELAYER);
         foreignController.transferSharesCentrifuge{value: 0.5 ether}(
@@ -1036,9 +1042,6 @@ contract ForeignController_Centrifuge_TransferShares_Tests is Centrifuge_TestBas
     }
 
     function test_transferSharesCentrifuge_invalidCentrifugeId() external {
-        vm.prank(GROVE_EXECUTOR);
-        foreignController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, bytes32(0));
-
         vm.expectRevert("CentrifugeFacet/id-not-configured");
         vm.startPrank(ALM_RELAYER);
         foreignController.transferSharesCentrifuge{value: 0.5 ether}(
@@ -1049,6 +1052,9 @@ contract ForeignController_Centrifuge_TransferShares_Tests is Centrifuge_TestBas
     }
 
     function test_transferSharesCentrifuge() external {
+        vm.prank(GROVE_EXECUTOR);
+        foreignController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
+
         // Issue shares at price 1.0
         vm.prank(root);
         manager.issuedShares(

@@ -97,6 +97,12 @@ contract Controller_LayerZeroFacet_Tests is Integration_TestBase {
         controller.setRecipient(0, bytes32(0));
     }
 
+    function test_setRecipient_zeroAddress() external {
+        vm.expectRevert("LayerZeroFacet/zero-recipient");
+        vm.prank(admin);
+        controller.setRecipient(0, bytes32(0));
+    }
+
     function test_setRecipient() external {
         bytes32 recipient = bytes32(type(uint256).max);
 

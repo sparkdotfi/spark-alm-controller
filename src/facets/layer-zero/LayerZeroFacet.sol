@@ -143,6 +143,8 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(recipient != bytes32(0), "LayerZeroFacet/zero-recipient");
+
         _getFacetStorage().recipients[destinationEndpointId] = recipient;
 
         emit LayerZeroRecipientSet(destinationEndpointId, recipient);

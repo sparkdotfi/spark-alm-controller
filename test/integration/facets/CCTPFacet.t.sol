@@ -167,6 +167,12 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
         controller.setMintRecipient(1, mintRecipient1);
     }
 
+    function test_setMintRecipient_zeroAddress() external {
+        vm.expectRevert("CCTPFacet/zero-recipient");
+        vm.prank(admin);
+        controller.setMintRecipient(1, bytes32(0));
+    }
+
     function test_setMintRecipient() external {
         assertEq(controller.getMintRecipient(1), bytes32(0));
         assertEq(controller.getMintRecipient(2), bytes32(0));

@@ -61,13 +61,6 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
 
     bytes32 internal target = bytes32(uint256(uint160(makeAddr("centrifugeRecipient"))));
 
-    function setUp() public override {
-        super.setUp();
-
-        vm.prank(SPARK_PROXY);
-        mainnetController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
-    }
-
     function test_transferSharesCentrifuge_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
@@ -84,9 +77,6 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
     }
 
     function test_transferSharesCentrifuge_invalidCentrifugeId() external {
-        vm.prank(SPARK_PROXY);
-        mainnetController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, bytes32(0));
-
         deal(relayer, 0.1 ether);
 
         vm.expectRevert("CentrifugeFacet/id-not-configured");
@@ -99,6 +89,9 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
     }
 
     function test_transferSharesCentrifuge_zeroMaxAmount() external {
+        vm.prank(SPARK_PROXY);
+        mainnetController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(relayer);
         mainnetController.transferSharesCentrifuge(CENTRIFUGE_VAULT, 1_000_000e6, DESTINATION_CENTRIFUGE_ID);
@@ -106,6 +99,8 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
 
     function test_transferSharesCentrifuge_rateLimitedBoundary() external {
         vm.startPrank(SPARK_PROXY);
+
+        mainnetController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
 
         rateLimits.setRateLimitData(
             mainnetController.getCentrifugeTransferRateLimitKey(CENTRIFUGE_VAULT, DESTINATION_CENTRIFUGE_ID, address(spoke)),
@@ -137,6 +132,8 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
 
     function test_transferSharesCentrifuge() external {
         vm.startPrank(SPARK_PROXY);
+
+        mainnetController.setCentrifugeRecipient(DESTINATION_CENTRIFUGE_ID, target);
 
         rateLimits.setRateLimitData(
             mainnetController.getCentrifugeTransferRateLimitKey(CENTRIFUGE_VAULT, DESTINATION_CENTRIFUGE_ID, address(spoke)),

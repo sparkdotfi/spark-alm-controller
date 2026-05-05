@@ -117,6 +117,8 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(recipient != bytes32(0), "CentrifugeFacet/zero-recipient");
+
         emit CentrifugeRecipientSet(
             centrifugeId,
             _getFacetStorage().recipients[centrifugeId] = recipient

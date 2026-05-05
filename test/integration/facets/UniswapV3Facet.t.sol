@@ -240,6 +240,12 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         controller.setMaxTickDelta(address(0), 0);
     }
 
+    function test_setMaxTickDelta_zeroAddress() external {
+        vm.expectRevert("UniswapV3Facet/pool-zero-address");
+        vm.prank(admin);
+        controller.setMaxTickDelta(address(0), 0);
+    }
+
     function test_setMaxTickDelta_outOfBoundsBoundary() external {
         address pool = makeAddr("pool");
 
@@ -305,6 +311,12 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         ));
 
         vm.prank(relayer);
+        controller.setLiquidityLowerTickBound(address(0), 0);
+    }
+
+    function test_setLiquidityLowerTickBound_zeroAddress() external {
+        vm.expectRevert("UniswapV3Facet/pool-zero-address");
+        vm.prank(admin);
         controller.setLiquidityLowerTickBound(address(0), 0);
     }
 
@@ -389,6 +401,12 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         controller.setLiquidityUpperTickBound(address(0), 0);
     }
 
+    function test_setLiquidityUpperTickBound_zeroAddress() external {
+        vm.expectRevert("UniswapV3Facet/pool-zero-address");
+        vm.prank(admin);
+        controller.setLiquidityUpperTickBound(address(0), 0);
+    }
+
     function test_setLiquidityUpperTickBound_outOfBoundsBoundary() external {
         address pool = makeAddr("pool");
 
@@ -458,6 +476,12 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         ));
 
         vm.prank(relayer);
+        controller.setTWAPSecondsAgo(address(0), 0);
+    }
+
+    function test_setTWAPSecondsAgo_zeroAddress() external {
+        vm.expectRevert("UniswapV3Facet/pool-zero-address");
+        vm.prank(admin);
         controller.setTWAPSecondsAgo(address(0), 0);
     }
 

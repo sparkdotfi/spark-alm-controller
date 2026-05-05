@@ -152,6 +152,8 @@ contract UniswapV4Facet is IUniswapV4Facet, Facet {
         nonReentrant
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(poolId != bytes32(0), "UniswapV4Facet/zero-pool-id");
+
         require(
             ((tickLowerMin == 0) && (tickUpperMax == 0) && (maxTickSpacing == 0)) ||
             ((maxTickSpacing > 0) && (tickLowerMin < tickUpperMax)),

@@ -109,6 +109,12 @@ contract Controller_CentrifugeFacet_Tests is Integration_TestBase {
         controller.setRecipient(1, centrifugeRecipient1);
     }
 
+    function test_setRecipient_zeroAddress() external {
+        vm.expectRevert("CentrifugeFacet/zero-recipient");
+        vm.prank(admin);
+        controller.setRecipient(1, bytes32(0));
+    }
+
     function test_setRecipient() external {
         assertEq(controller.getRecipient(1), bytes32(0));
         assertEq(controller.getRecipient(2), bytes32(0));

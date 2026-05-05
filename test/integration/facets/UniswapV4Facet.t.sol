@@ -225,20 +225,26 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
         controller.setTickLimits(bytes32(0), 0, 0, 0);
     }
 
+    function test_setTickLimits_zeroPoolId() external {
+        vm.expectRevert("UniswapV4Facet/zero-pool-id");
+        vm.prank(admin);
+        controller.setTickLimits(bytes32(0), 0, 0, 0);
+    }
+
     function test_setTickLimits_invalidTicks() external {
         vm.expectRevert("UniswapV4Facet/invalid-ticks");
         vm.prank(admin);
-        controller.setTickLimits(bytes32(0), 1, 1, 1); // Reverts when lower >= upper
+        controller.setTickLimits(_POOL_ID, 1, 1, 1); // Reverts when lower >= upper
 
         vm.prank(admin);
-        controller.setTickLimits(bytes32(0), 0, 1, 1); // lower must be less than upper
+        controller.setTickLimits(_POOL_ID, 0, 1, 1); // lower must be less than upper
 
         vm.expectRevert("UniswapV4Facet/invalid-ticks");
         vm.prank(admin);
-        controller.setTickLimits(bytes32(0), 0, 1, 0); // Reverts when maxTickSpacing is zero
+        controller.setTickLimits(_POOL_ID, 0, 1, 0); // Reverts when maxTickSpacing is zero
 
         vm.prank(admin);
-        controller.setTickLimits(bytes32(0), 0, 0, 0); // maxTickSpacing can only be 0 if all 0
+        controller.setTickLimits(_POOL_ID, 1, 2, 1);
     }
 
     function test_setTickLimits() external {
