@@ -38,6 +38,12 @@ abstract contract Farm_TestBase is ForkTestBase {
             uint256(1_000_000e6) / 1 days
         );
 
+        rateLimits.setRateLimitData(
+            mainnetController.getFarmClaimRewardRateLimitKey(FARM),
+            type(uint256).max,
+            0
+        );
+
         vm.stopPrank();
     }
 
@@ -136,6 +142,20 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
+        mainnetController.claimRewardFromFarm(FARM);
+    }
+
+    function test_claimRewardFromFarm_invalidAction() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(
+            mainnetController.getFarmClaimRewardRateLimitKey(FARM),
+            0,
+            0
+        );
+        vm.stopPrank();
+
+        vm.expectRevert("FarmFacet/invalid-action");
+        vm.prank(allocator);
         mainnetController.claimRewardFromFarm(FARM);
     }
 

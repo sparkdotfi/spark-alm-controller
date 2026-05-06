@@ -10,11 +10,17 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
+    function setDelegatedSignerRateLimitKey() external pure returns (bytes32);
+
+    function removeDelegatedSignerRateLimitKey() external pure returns (bytes32);
+
+    function mintRateLimitKey() external pure returns (bytes32);
+
     function burnRateLimitKey() external pure returns (bytes32);
 
     function cooldownRateLimitKey() external pure returns (bytes32);
 
-    function mintRateLimitKey() external pure returns (bytes32);
+    function unstakeRateLimitKey() external pure returns (bytes32);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
@@ -36,21 +42,36 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "USDEFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IControllerLike.burnRateLimitKey.selector,
-            IUSDEFacet.burnRateLimitKey.selector
+            IControllerLike.setDelegatedSignerRateLimitKey.selector,
+            IUSDEFacet.setDelegatedSignerRateLimitKey.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IControllerLike.cooldownRateLimitKey.selector,
-            IUSDEFacet.cooldownRateLimitKey.selector
+            IControllerLike.removeDelegatedSignerRateLimitKey.selector,
+            IUSDEFacet.removeDelegatedSignerRateLimitKey.selector
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.mintRateLimitKey.selector,
             IUSDEFacet.mintRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.burnRateLimitKey.selector,
+            IUSDEFacet.burnRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.cooldownRateLimitKey.selector,
+            IUSDEFacet.cooldownRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IControllerLike.unstakeRateLimitKey.selector,
+            IUSDEFacet.unstakeRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -104,6 +125,30 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
+    /*** setDelegatedSignerRateLimitKey Tests                                                    ***/
+    /**********************************************************************************************/
+
+    function test_setDelegatedSignerRateLimitKey() external {
+        assertEq(controller.setDelegatedSignerRateLimitKey(), keccak256("LIMIT_SET_DELEGATED_SIGNER"));
+    }
+
+    /**********************************************************************************************/
+    /*** removeDelegatedSignerRateLimitKey Tests                                                ***/
+    /**********************************************************************************************/
+
+    function test_removeDelegatedSignerRateLimitKey() external {
+        assertEq(controller.removeDelegatedSignerRateLimitKey(), keccak256("LIMIT_REMOVE_DELEGATED_SIGNER"));
+    }
+
+    /**********************************************************************************************/
+    /*** mintRateLimitKey Tests                                                                 ***/
+    /**********************************************************************************************/
+
+    function test_mintRateLimitKey() external {
+        assertEq(controller.mintRateLimitKey(), keccak256("LIMIT_USDE_MINT"));
+    }
+
+    /**********************************************************************************************/
     /*** burnRateLimitKey Tests                                                                 ***/
     /**********************************************************************************************/
 
@@ -120,11 +165,11 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** mintRateLimitKey Tests                                                                 ***/
+    /*** unstakeRateLimitKey Tests                                                               ***/
     /**********************************************************************************************/
 
-    function test_mintRateLimitKey() external {
-        assertEq(controller.mintRateLimitKey(), keccak256("LIMIT_USDE_MINT"));
+    function test_unstakeRateLimitKey() external {
+        assertEq(controller.unstakeRateLimitKey(), keccak256("LIMIT_UNSTAKE"));
     }
 
 }

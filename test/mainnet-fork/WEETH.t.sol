@@ -370,6 +370,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
 
     bytes32 internal depositKey;
     bytes32 internal requestWithdrawKey;
+    bytes32 internal claimWithdrawKey;
 
     function setUp() public override {
         super.setUp();
@@ -377,6 +378,11 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         depositKey = mainnetController.getWEETHDepositRateLimitKey(address(eeth), address(liquidityPool));
 
         requestWithdrawKey = mainnetController.getWEETHRequestWithdrawRateLimitKey(weethModule, address(eeth), address(liquidityPool));
+
+        claimWithdrawKey = mainnetController.getWEETHClaimWithdrawRateLimitKey(weethModule);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(claimWithdrawKey, type(uint256).max, 0);
     }
 
     function test_claimWithdrawalFromWEETH_reentrancy() external {
@@ -394,7 +400,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         mainnetController.claimWithdrawalFromWeETH(weethModule, 1);
     }
 
-    function test_claimWithdrawalFromWEETH_failsWhenRequestRateLimitDoesNotExist() external {
+    function test_claimWithdrawalFromWEETH_invalidAction() external {
         vm.expectRevert("WEETHFacet/invalid-action");
         vm.prank(allocator);
         mainnetController.claimWithdrawalFromWeETH(makeAddr("invalid-weethModule"), 1);

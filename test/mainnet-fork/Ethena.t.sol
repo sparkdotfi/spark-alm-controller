@@ -41,6 +41,17 @@ abstract contract Ethena_TestBase is ForkTestBase {
 
 contract MainnetController_Ethena_SetDelegatedSigner_Tests is Ethena_TestBase {
 
+    bytes32 internal setSignerKey;
+
+    function setUp() public override {
+        super.setUp();
+
+        setSignerKey = mainnetController.usdeSetDelegatedSignerRateLimitKey();
+
+        vm.prank(SPARK_PROXY);
+        rateLimits.setRateLimitData(setSignerKey, type(uint256).max, 0);
+    }
+
     function test_setDelegatedSigner_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
@@ -53,6 +64,15 @@ contract MainnetController_Ethena_SetDelegatedSigner_Tests is Ethena_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
+        mainnetController.setDelegatedSigner(makeAddr("signer"));
+    }
+
+    function test_setDelegatedSigner_invalidAction() external {
+        vm.prank(SPARK_PROXY);
+        rateLimits.setRateLimitData(setSignerKey, 0, 0);
+
+        vm.expectRevert("USDEFacet/invalid-action");
+        vm.prank(allocator);
         mainnetController.setDelegatedSigner(makeAddr("signer"));
     }
 
@@ -84,6 +104,21 @@ contract MainnetController_Ethena_SetDelegatedSigner_Tests is Ethena_TestBase {
 
 contract MainnetController_Ethena_RemoveDelegatedSigner_Tests is Ethena_TestBase {
 
+    bytes32 internal setSignerKey;
+    bytes32 internal removeSignerKey;
+
+    function setUp() public override {
+        super.setUp();
+
+        setSignerKey    = mainnetController.usdeSetDelegatedSignerRateLimitKey();
+        removeSignerKey = mainnetController.usdeRemoveDelegatedSignerRateLimitKey();
+
+        vm.startPrank(SPARK_PROXY);
+        rateLimits.setRateLimitData(setSignerKey,    type(uint256).max, 0);
+        rateLimits.setRateLimitData(removeSignerKey, type(uint256).max, 0);
+        vm.stopPrank();
+    }
+
     function test_removeDelegatedSigner_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
@@ -96,6 +131,15 @@ contract MainnetController_Ethena_RemoveDelegatedSigner_Tests is Ethena_TestBase
             address(this),
             ALLOCATOR_ROLE
         ));
+        mainnetController.removeDelegatedSigner(makeAddr("signer"));
+    }
+
+    function test_removeDelegatedSigner_invalidAction() external {
+        vm.prank(SPARK_PROXY);
+        rateLimits.setRateLimitData(removeSignerKey, 0, 0);
+
+        vm.expectRevert("USDEFacet/invalid-action");
+        vm.prank(allocator);
         mainnetController.removeDelegatedSigner(makeAddr("signer"));
     }
 
@@ -559,6 +603,17 @@ contract MainnetController_Ethena_CooldownSharesSUSDE_Tests is Ethena_TestBase {
 
 contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
 
+    bytes32 internal unstakeKey;
+
+    function setUp() public override {
+        super.setUp();
+
+        unstakeKey = mainnetController.usdeUnstakeRateLimitKey();
+
+        vm.prank(SPARK_PROXY);
+        rateLimits.setRateLimitData(unstakeKey, type(uint256).max, 0);
+    }
+
     function test_unstakeSUSDE_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
@@ -571,6 +626,15 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
+        mainnetController.unstakeSUSDe();
+    }
+
+    function test_unstakeSUSDE_invalidAction() external {
+        vm.prank(SPARK_PROXY);
+        rateLimits.setRateLimitData(unstakeKey, 0, 0);
+
+        vm.expectRevert("USDEFacet/invalid-action");
+        vm.prank(allocator);
         mainnetController.unstakeSUSDe();
     }
 
@@ -654,21 +718,27 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
     bytes32 internal cooldownKey;
     bytes32 internal depositKey;
     bytes32 internal mintKey;
+    bytes32 internal unstakeKey;
+    bytes32 internal setSignerKey;
 
     function setUp() public override {
         super.setUp();
 
         vm.startPrank(SPARK_PROXY);
 
-        burnKey     = mainnetController.usdeBurnRateLimitKey();
-        cooldownKey = mainnetController.usdeCooldownRateLimitKey();
-        depositKey  = mainnetController.getERC4626DepositRateLimitKey(address(susde), Ethereum.USDE);
-        mintKey     = mainnetController.usdeMintRateLimitKey();
+        burnKey      = mainnetController.usdeBurnRateLimitKey();
+        cooldownKey  = mainnetController.usdeCooldownRateLimitKey();
+        depositKey   = mainnetController.getERC4626DepositRateLimitKey(address(susde), Ethereum.USDE);
+        mintKey      = mainnetController.usdeMintRateLimitKey();
+        unstakeKey   = mainnetController.usdeUnstakeRateLimitKey();
+        setSignerKey = mainnetController.usdeSetDelegatedSignerRateLimitKey();
 
-        rateLimits.setRateLimitData(burnKey,     5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        rateLimits.setRateLimitData(cooldownKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        rateLimits.setRateLimitData(depositKey,  5_000_000e18, uint256(1_000_000e18) / 4 hours);
-        rateLimits.setRateLimitData(mintKey,     5_000_000e6,  uint256(1_000_000e6)  / 4 hours);
+        rateLimits.setRateLimitData(burnKey,      5_000_000e18,      uint256(1_000_000e18) / 4 hours);
+        rateLimits.setRateLimitData(cooldownKey,  5_000_000e18,      uint256(1_000_000e18) / 4 hours);
+        rateLimits.setRateLimitData(depositKey,   5_000_000e18,      uint256(1_000_000e18) / 4 hours);
+        rateLimits.setRateLimitData(mintKey,      5_000_000e6,       uint256(1_000_000e6)  / 4 hours);
+        rateLimits.setRateLimitData(unstakeKey,   type(uint256).max, 0);
+        rateLimits.setRateLimitData(setSignerKey, type(uint256).max, 0);
 
         mainnetController.setMaxExchangeRate(address(susde), susde.convertToShares(1e18), 1.2e18);
 

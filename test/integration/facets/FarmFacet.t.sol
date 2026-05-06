@@ -11,6 +11,8 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
+    function getClaimRewardRateLimitKey(address farm) external pure returns (bytes32);
+
     function getDepositRateLimitKey(address farm, address stakingToken) external pure returns (bytes32);
 
     function getWithdrawRateLimitKey(address farm) external pure returns (bytes32);
@@ -30,14 +32,19 @@ contract Controller_FarmFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "FarmFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
 
         wires[0] = IEnumerableIntegrations.Wire(
+            IControllerLike.getClaimRewardRateLimitKey.selector,
+            IFarmFacet.getClaimRewardRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getDepositRateLimitKey.selector,
             IFarmFacet.getDepositRateLimitKey.selector
         );
 
-        wires[1] = IEnumerableIntegrations.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.getWithdrawRateLimitKey.selector,
             IFarmFacet.getWithdrawRateLimitKey.selector
         );
@@ -52,6 +59,17 @@ contract Controller_FarmFacet_Tests is Integration_TestBase {
 
         vm.prank(admin);
         controller.updateIntegrations(integrationIds);
+    }
+
+    /**********************************************************************************************/
+    /*** getClaimRewardRateLimitKey Tests                                                        ***/
+    /**********************************************************************************************/
+
+    function test_getClaimRewardRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_FARM_CLAIM_REWARD");
+        address farm      = makeAddr("farm");
+
+        assertEq(controller.getClaimRewardRateLimitKey(farm), makeAddressKey(keyPrefix, farm));
     }
 
     /**********************************************************************************************/

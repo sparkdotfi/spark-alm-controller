@@ -121,8 +121,17 @@ interface IUSDEFacet is IFacet {
     /// @notice The derived rate limit key for USDe mint operations.
     function mintRateLimitKey() external pure returns (bytes32 key);
 
+    /// @notice The derived rate limit key for remove delegated signer operations.
+    function removeDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+
+    /// @notice The derived rate limit key for set delegated signer operations.
+    function setDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+
     /// @notice Address of the sUSDe (staked USDe) token contract (immutable).
     function susde() external view returns (address);
+
+    /// @notice The derived rate limit key for unstake operations.
+    function unstakeRateLimitKey() external pure returns (bytes32 key);
 
     /// @notice Address of the USDC token contract (immutable).
     function usdc() external view returns (address);

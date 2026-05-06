@@ -147,8 +147,8 @@ contract AaveFacet is IAaveFacet, Facet {
 
         amountWithdrawn = IERC20Like(underlying).balanceOf(proxy) - startingBalance;
 
-        _decreaseRateLimit(getWithdrawRateLimitKey(aToken, pool),            amountWithdrawn);
-        _increaseRateLimit(getDepositRateLimitKey(aToken, pool, underlying), amountWithdrawn);
+        _decreaseRateLimit(getWithdrawRateLimitKey(aToken, pool),               amountWithdrawn);
+        _tryIncreaseRateLimit(getDepositRateLimitKey(aToken, pool, underlying), amountWithdrawn);
 
         emit AaveWithdraw(aToken, amountWithdrawn);
     }

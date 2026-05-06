@@ -99,6 +99,13 @@ interface IWEETHFacet is IFacet {
     /**********************************************************************************************/
 
     /**
+     * @notice Returns the derived claim withdraw rate limit key for a weETH module.
+     * @param  weethModule Address of the weETH withdrawal module.
+     * @return key         Derived rate limit key.
+     */
+    function getClaimWithdrawRateLimitKey(address weethModule) external pure returns (bytes32 key);
+
+    /**
      * @notice Returns the derived deposit rate limit key for an eETH token and liquidity pool.
      * @param  eeth          Address of the eETH token.
      * @param  liquidityPool Address of the liquidity pool.
@@ -110,7 +117,7 @@ interface IWEETHFacet is IFacet {
         returns (bytes32 key);
 
     /**
-     * @notice Returns the derived request-withdraw rate limit key for a weETH module, eETH, and
+     * @notice Returns the derived request withdraw rate limit key for a weETH module, eETH, and
      *         liquidity pool.
      * @param  weethModule   Address of the weETH withdrawal module.
      * @param  eeth          Address of the eETH token.

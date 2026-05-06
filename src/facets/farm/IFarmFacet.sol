@@ -65,6 +65,13 @@ interface IFarmFacet is IFacet {
     /**********************************************************************************************/
 
     /**
+     * @notice Returns the derived claim reward rate limit key for a farm.
+     * @param  farm Address of the farm contract.
+     * @return key  Derived rate limit key.
+     */
+    function getClaimRewardRateLimitKey(address farm) external pure returns (bytes32 key);
+
+    /**
      * @notice Returns the derived deposit rate limit key for a farm and staking token.
      * @param  farm         Address of the farm contract.
      * @param  stakingToken Address of the staking token for the farm.

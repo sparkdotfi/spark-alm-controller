@@ -5,7 +5,7 @@ import { IFacet } from "../IFacet.sol";
 
 /**
  * @title  IMerklFacet
- * @notice PAU facet for toggling operators on the Merkl reward distributor. Operators can claim
+ * @notice PAU facet for toggling operators on a Merkl reward distributor. Operators can claim
  *         Merkl rewards on behalf of the proxy.
  */
 interface IMerklFacet is IFacet {
@@ -15,38 +15,36 @@ interface IMerklFacet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Emitted when the address of the Merkl reward distributor contract is set.
-     * @param  distributor Address of the Merkl reward distributor contract.
-     */
-    event MerklDistributorSet(address indexed distributor);
-
-    /**
      * @notice Emitted when an operator is toggled on the Merkl distributor.
-     * @param  operator Address of the operator being toggled.
+     * @param  distributor Address of the Merkl reward distributor contract.
+     * @param  operator    Address of the operator being toggled.
      */
-    event MerklToggleOperator(address indexed operator);
+    event MerklToggleOperator(address indexed distributor, address indexed operator);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
     /**********************************************************************************************/
 
     /**
-     * @notice Sets the address of the Merkl reward distributor contract.
+     * @notice Toggles an operator's authorization on the Merkl distributor for the proxy.
      * @param  distributor Address of the Merkl reward distributor contract.
+     * @param  operator    Address of the operator to toggle.
      */
-    function setDistributor(address distributor) external;
+    function toggleOperator(address distributor, address operator) external;
+
+    /**********************************************************************************************/
+    /*** View/Pure Functions                                                                    ***/
+    /**********************************************************************************************/
 
     /**
-     * @notice Toggles an operator's authorization on the Merkl distributor for the proxy.
-     * @param  operator Address of the operator to toggle.
+     * @notice Returns the derived toggle operator rate limit key for a distributor and operator.
+     * @param  distributor Address of the Merkl reward distributor contract.
+     * @param  operator    Address of the operator being toggled.
+     * @return key         Derived rate limit key.
      */
-    function toggleOperator(address operator) external;
-
-    /**********************************************************************************************/
-    /*** Variables                                                                              ***/
-    /**********************************************************************************************/
-
-    /// @notice Address of the Merkl reward distributor contract.
-    function distributor() external view returns (address);
+    function getToggleOperatorRateLimitKey(address distributor, address operator)
+        external
+        pure
+        returns (bytes32 key);
 
 }

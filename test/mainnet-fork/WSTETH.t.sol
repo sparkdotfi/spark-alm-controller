@@ -269,10 +269,12 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
     function test_claimWithdrawalFromWSTETH() external {
         bytes32 depositKey         = mainnetController.wstethDepositRateLimitKey();
         bytes32 requestWithdrawKey = mainnetController.wstethRequestWithdrawRateLimitKey();
+        bytes32 claimWithdrawKey   = mainnetController.wstethClaimWithdrawRateLimitKey();
 
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(depositKey,         1_000e18, uint256(1_000e18) / 1 days);
-        rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
+        rateLimits.setRateLimitData(depositKey,         1_000e18,          uint256(1_000e18) / 1 days);
+        rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18,          uint256(1_000e18) / 1 days);
+        rateLimits.setRateLimitData(claimWithdrawKey,   type(uint256).max, 0);
         vm.stopPrank();
 
         deal(Ethereum.WETH, address(almProxy), 1_000e18);

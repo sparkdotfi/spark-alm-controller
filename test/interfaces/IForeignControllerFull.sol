@@ -74,6 +74,14 @@ interface IForeignControllerFull is IController {
 
     function getCentrifugeRecipient(uint16 centrifugeId) external view returns (bytes32);
 
+    function getCentrifugeCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+
+    function getCentrifugeClaimCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+
+    function getCentrifugeCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+
+    function getCentrifugeClaimCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+
     function getCentrifugeTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
         external
         pure
@@ -164,12 +172,16 @@ interface IForeignControllerFull is IController {
 
     function claimRedeemERC7540(address token) external;
 
-    function getERC7540DepositRateLimitKey(address token, address asset)
+    function getERC7540RequestDepositRateLimitKey(address token, address asset)
         external
         pure
         returns (bytes32 key);
 
-    function getERC7540RedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function getERC7540ClaimDepositRateLimitKey(address token) external pure returns (bytes32 key);
+
+    function getERC7540RequestRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+
+    function getERC7540ClaimRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** LayerZeroFacet actions                                                                 ***/
@@ -196,11 +208,12 @@ interface IForeignControllerFull is IController {
     /*** MerklFacet actions                                                                     ***/
     /**********************************************************************************************/
 
-    function setMerklDistributor(address distributor) external;
+    function toggleOperatorMerkl(address distributor, address operator) external;
 
-    function toggleOperatorMerkl(address operator) external;
-
-    function merklDistributor() external view returns (address);
+    function getMerklToggleOperatorRateLimitKey(address distributor, address operator)
+        external
+        pure
+        returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** PendleFacet actions                                                                    ***/

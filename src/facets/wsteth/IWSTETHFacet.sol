@@ -67,6 +67,9 @@ interface IWSTETHFacet is IFacet {
     /*** Variables                                                                              ***/
     /**********************************************************************************************/
 
+    /// @notice The derived rate limit key for wstETH claim withdrawal operations.
+    function claimWithdrawRateLimitKey() external pure returns (bytes32 key);
+
     /// @notice The derived rate limit key for wstETH deposit operations.
     function depositRateLimitKey() external pure returns (bytes32 key);
 

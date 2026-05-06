@@ -51,10 +51,17 @@ interface IMapleFacet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Returns the derived redeem rate limit key for a Maple pool token.
+     * @notice Returns the derived cancel redeem rate limit key for a Maple pool token.
      * @param  mapleToken Address of the Maple pool token.
      * @return key        Derived rate limit key.
      */
-    function getRedeemRateLimitKey(address mapleToken) external pure returns (bytes32 key);
+    function getCancelRedeemRateLimitKey(address mapleToken) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived request redeem rate limit key for a Maple pool token.
+     * @param  mapleToken Address of the Maple pool token.
+     * @return key        Derived rate limit key.
+     */
+    function getRequestRedeemRateLimitKey(address mapleToken) external pure returns (bytes32 key);
 
 }

@@ -314,6 +314,38 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
         assertEq(susds.balanceOf(address(almProxy)), 0);
     }
 
+    function test_withdrawERC4626_zeroDepositRateLimit() external {
+        vm.prank(allocator);
+        mainnetController.mintUSDS(1_000_000e18);
+
+        vm.prank(allocator);
+        mainnetController.depositERC4626(address(susds), 1_000_000e18, 990_000e18);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
+
+        // Partial withdraw
+        vm.prank(allocator);
+        mainnetController.withdrawERC4626(address(susds), 400_000e18, 400_000e18);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_400_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 4_600_000e18);
+
+        // Zero deposit rate limit
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(depositKey, 0, 0);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  0);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 4_600_000e18);
+
+        // Partial withdraw
+        vm.prank(allocator);
+        mainnetController.withdrawERC4626(address(susds), 400_000e18, 400_000e18);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  0);  // stays at 0
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 4_200_000e18);
+    }
+
 }
 
 contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
@@ -452,6 +484,42 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
         assertEq(susds.totalSupply(),                SUSDS_TOTAL_SUPPLY);
         assertEq(susds.totalAssets(),                SUSDS_TOTAL_ASSETS);
         assertEq(susds.balanceOf(address(almProxy)), 0);
+    }
+
+    function test_redeemERC4626_zeroDepositRateLimit() external {
+        vm.prank(allocator);
+        mainnetController.mintUSDS(1_000_000e18);
+
+        vm.prank(allocator);
+        mainnetController.depositERC4626(address(susds), 1_000_000e18, 990_000e18);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
+
+        uint256 assets1 = susds.convertToAssets(400_000e18);
+
+        // Partial redeem
+        vm.prank(allocator);
+        mainnetController.redeemERC4626(address(susds), 400_000e18, 400_000e18);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  4_000_000e18 + assets1);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - assets1);
+
+        // Zero deposit rate limit
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(depositKey, 0, 0);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  0);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - assets1);
+
+        uint256 assets2 = susds.convertToAssets(400_000e18);
+
+        // Partial redeem
+        vm.prank(allocator);
+        mainnetController.redeemERC4626(address(susds), 400_000e18, 400_000e18);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  0);  // stays at 0
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - assets1 - assets2);
     }
 
 }

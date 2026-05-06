@@ -50,7 +50,23 @@ contract MainnetController_WrapAllProxyETH_Tests is ForkTestBase {
         assertEq(WETH.balanceOf(address(almProxy)), 0);
     }
 
+    function test_wrapAllProxyETH_invalidAction() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.wrapAllProxyETHRateLimitKey(), 0, 0);
+        vm.stopPrank();
+
+        vm.deal(address(almProxy), 1 ether);
+
+        vm.expectRevert("WrapProxyETHFacet/invalid-action");
+        vm.prank(allocator);
+        mainnetController.wrapAllProxyETH();
+    }
+
     function test_wrapAllProxyETH() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.wrapAllProxyETHRateLimitKey(), type(uint256).max, 0);
+        vm.stopPrank();
+
         vm.deal(address(almProxy), 1 ether);
 
         assertEq(address(almProxy).balance,         1 ether);

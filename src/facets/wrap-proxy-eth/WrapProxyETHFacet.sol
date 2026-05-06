@@ -15,6 +15,8 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    bytes32 internal constant _LIMIT_WRAP = keccak256("LIMIT_WRAP_PROXY_ETH");
+
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
@@ -47,9 +49,20 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, Facet {
 
         if (ethAmount == 0) return;
 
+        require(_rateLimitExists(wrapRateLimitKey()), "WrapProxyETHFacet/invalid-action");
+
         IALMProxy(proxy).doCallWithValue(weth, "", ethAmount);
 
         emit WrapProxyETHWrap(ethAmount);
+    }
+
+    /**********************************************************************************************/
+    /*** External View/Pure Functions                                                           ***/
+    /**********************************************************************************************/
+
+    /// @inheritdoc IWrapProxyETHFacet
+    function wrapRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_WRAP;
     }
 
 }

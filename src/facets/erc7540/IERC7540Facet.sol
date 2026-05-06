@@ -79,21 +79,35 @@ interface IERC7540Facet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Returns the derived deposit rate limit key for a vault token and asset.
+     * @notice Returns the derived request deposit rate limit key for a vault token and asset.
      * @param  token Address of the ERC-7540 vault token.
      * @param  asset Address of the asset being deposited.
      * @return key   Derived rate limit key.
      */
-    function getDepositRateLimitKey(address token, address asset)
+    function getRequestDepositRateLimitKey(address token, address asset)
         external
         pure
         returns (bytes32 key);
 
     /**
-     * @notice Returns the derived redeem rate limit key for a vault token.
+     * @notice Returns the derived claim deposit rate limit key for a vault token.
      * @param  token Address of the ERC-7540 vault token.
      * @return key   Derived rate limit key.
      */
-    function getRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function getClaimDepositRateLimitKey(address token) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived request redeem rate limit key for a vault token.
+     * @param  token Address of the ERC-7540 vault token.
+     * @return key   Derived rate limit key.
+     */
+    function getRequestRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived claim redeem rate limit key for a vault token.
+     * @param  token Address of the ERC-7540 vault token.
+     * @return key   Derived rate limit key.
+     */
+    function getClaimRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
 }

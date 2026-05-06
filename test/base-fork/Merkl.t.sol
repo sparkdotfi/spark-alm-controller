@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
+import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+
 import { Base as GroveBase } from "../../lib/grove-address-registry/src/Base.sol";
 import { Base as SparkBase } from "../../lib/spark-address-registry/src/Base.sol";
 
@@ -35,13 +37,33 @@ abstract contract Merkl_TestBase is ForkTestBase {
     function setUp() public override {
         super.setUp();
 
-        vm.prank(SparkBase.SPARK_EXECUTOR);
-        foreignController.setMerklDistributor(address(merklDistributor));
+        bytes32 toggleKey1 = foreignController.getMerklToggleOperatorRateLimitKey(
+            address(merklDistributor),
+            operator1
+        );
+
+        bytes32 toggleKey2 = foreignController.getMerklToggleOperatorRateLimitKey(
+            address(merklDistributor),
+            operator2
+        );
+
+        vm.startPrank(SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(toggleKey1, type(uint256).max, 0);
+        rateLimits.setRateLimitData(toggleKey2, type(uint256).max, 0);
+        vm.stopPrank();
     }
 
 }
 
 contract ForeignController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
+
+    function test_toggleOperatorMerkl_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        vm.prank(allocator);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
+    }
 
     function test_toggleOperatorMerkl_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
@@ -49,7 +71,15 @@ contract ForeignController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
+    }
+
+    function test_toggleOperatorMerkl_invalidAction() external {
+        address freshOperator = makeAddr("freshOperator");
+
+        vm.expectRevert("MerklFacet/invalid-action");
+        vm.prank(allocator);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), freshOperator);
     }
 
 }
@@ -67,10 +97,10 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         });
 
         vm.expectEmit(address(foreignController));
-        emit IMerklFacet.MerklToggleOperator(operator1);
+        emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
 
@@ -82,10 +112,10 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         });
 
         vm.expectEmit(address(foreignController));
-        emit IMerklFacet.MerklToggleOperator(operator1);
+        emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
 
@@ -97,10 +127,10 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         });
 
         vm.expectEmit(address(foreignController));
-        emit IMerklFacet.MerklToggleOperator(operator1);
+        emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
     }
@@ -110,37 +140,37 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
 
         vm.expectEmit(address(foreignController));
-        emit IMerklFacet.MerklToggleOperator(operator1);
+        emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
 
         vm.expectEmit(address(foreignController));
-        emit IMerklFacet.MerklToggleOperator(operator1);
+        emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
 
         vm.expectEmit(address(foreignController));
-        emit IMerklFacet.MerklToggleOperator(operator1);
+        emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
 
         vm.expectEmit(address(foreignController));
-        emit IMerklFacet.MerklToggleOperator(operator2);
+        emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator2);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator2);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator2);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 1);
@@ -163,7 +193,7 @@ contract ForeignController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         merklDistributor.claim(users, tokens, amounts, proofs);
 
         vm.prank(allocator);
-        foreignController.toggleOperatorMerkl(operator1);
+        foreignController.toggleOperatorMerkl(address(merklDistributor), operator1);
 
         // Hitting the InvalidProof() error proves that we are whitelisted as operator1
         // (https://github.com/AngleProtocol/merkl-contracts/blob/e4c49c1fbfb274029d31969adf70ca6aeec689f0/contracts/Distributor.sol#L378-L383)

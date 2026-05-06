@@ -6,7 +6,8 @@ import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableInte
 
 import {
     makeAddressAddressAddressKey,
-    makeAddressAddressKey
+    makeAddressAddressKey,
+    makeAddressKey
 } from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { WEETHFacet } from "../../../src/facets/weeth/WEETHFacet.sol";
@@ -14,6 +15,8 @@ import { WEETHFacet } from "../../../src/facets/weeth/WEETHFacet.sol";
 import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
+
+    function getClaimWithdrawRateLimitKey(address weethModule) external pure returns (bytes32);
 
     function getDepositRateLimitKey(address eeth, address liquidityPool) external pure returns (bytes32);
 
@@ -37,14 +40,19 @@ contract Controller_WEETHFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "WEETHFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
 
         wires[0] = IEnumerableIntegrations.Wire(
+            IControllerLike.getClaimWithdrawRateLimitKey.selector,
+            IWEETHFacet.getClaimWithdrawRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getDepositRateLimitKey.selector,
             IWEETHFacet.getDepositRateLimitKey.selector
         );
 
-        wires[1] = IEnumerableIntegrations.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.getRequestWithdrawRateLimitKey.selector,
             IWEETHFacet.getRequestWithdrawRateLimitKey.selector
         );
@@ -83,6 +91,17 @@ contract Controller_WEETHFacet_Tests is Integration_TestBase {
 
         assertEq(facet.weeth(), weeth);
         assertEq(facet.weth(),  weth);
+    }
+
+    /**********************************************************************************************/
+    /*** getClaimWithdrawRateLimitKey Tests                                                      ***/
+    /**********************************************************************************************/
+
+    function test_getClaimWithdrawRateLimitKey() external {
+        bytes32 keyPrefix   = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
+        address weethModule = makeAddr("weethModule");
+
+        assertEq(controller.getClaimWithdrawRateLimitKey(weethModule), makeAddressKey(keyPrefix, weethModule));
     }
 
     /**********************************************************************************************/

@@ -38,8 +38,9 @@ contract FarmFacet is IFarmFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 internal constant _LIMIT_DEPOSIT  = keccak256("LIMIT_FARM_DEPOSIT");
-    bytes32 internal constant _LIMIT_WITHDRAW = keccak256("LIMIT_FARM_WITHDRAW");
+    bytes32 internal constant _LIMIT_CLAIM_REWARD = keccak256("LIMIT_FARM_CLAIM_REWARD");
+    bytes32 internal constant _LIMIT_DEPOSIT      = keccak256("LIMIT_FARM_DEPOSIT");
+    bytes32 internal constant _LIMIT_WITHDRAW     = keccak256("LIMIT_FARM_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -75,6 +76,7 @@ contract FarmFacet is IFarmFacet, Facet {
         onlyRole(ALLOCATOR_ROLE)
         returns (uint256 reward)
     {
+        require(_rateLimitExists(getClaimRewardRateLimitKey(farm)), "FarmFacet/invalid-action");
         return _claimReward(farm);
     }
 
@@ -101,6 +103,11 @@ contract FarmFacet is IFarmFacet, Facet {
     /**********************************************************************************************/
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
+
+    /// @inheritdoc IFarmFacet
+    function getClaimRewardRateLimitKey(address farm) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_CLAIM_REWARD, farm);
+    }
 
     /// @inheritdoc IFarmFacet
     function getDepositRateLimitKey(address farm, address stakingToken)

@@ -115,17 +115,6 @@ interface ICentrifugeFacet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Returns the derived deposit rate limit key for a vault token and underlying asset.
-     * @param  token Address of the Centrifuge vault token.
-     * @param  asset Address of the underlying asset.
-     * @return key   Derived rate limit key.
-     */
-    function getDepositRateLimitKey(address token, address asset)
-        external
-        pure
-        returns (bytes32 key);
-
-    /**
      * @notice Returns the configured recipient for a centrifuge chain ID.
      * @param  centrifugeId Centrifuge chain identifier.
      * @return recipient    Bytes32-encoded recipient. Zero if not set.
@@ -133,11 +122,32 @@ interface ICentrifugeFacet is IFacet {
     function getRecipient(uint16 centrifugeId) external view returns (bytes32 recipient);
 
     /**
-     * @notice Returns the derived redeem rate limit key for a vault token.
+     * @notice Returns the derived cancel deposit rate limit key for a vault token.
      * @param  token Address of the Centrifuge vault token.
      * @return key   Derived rate limit key.
      */
-    function getRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function getCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived claim cancel deposit rate limit key for a vault token.
+     * @param  token Address of the Centrifuge vault token.
+     * @return key   Derived rate limit key.
+     */
+    function getClaimCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived cancel redeem rate limit key for a vault token.
+     * @param  token Address of the Centrifuge vault token.
+     * @return key   Derived rate limit key.
+     */
+    function getCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived claim cancel redeem rate limit key for a vault token.
+     * @param  token Address of the Centrifuge vault token.
+     * @return key   Derived rate limit key.
+     */
+    function getClaimCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
     /**
      * @notice Returns the derived cross-chain transfer rate limit key.

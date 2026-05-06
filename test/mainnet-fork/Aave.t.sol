@@ -502,6 +502,43 @@ contract MainnetController_AaveV3_Withdraw_Tests is AaveV3_TestBase {
         assertLt(usdc.balanceOf(ATOKEN_USDC), startingAUSDCBalance);
     }
 
+    function test_withdrawAave_usdc_zeroDepositRateLimit() external {
+        bytes32 depositKey  = mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDC, POOL, Ethereum.USDC);
+        bytes32 withdrawKey = mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDC, POOL);
+
+        // NOTE: Using lower amount to not hit rate limit
+        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  25_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
+
+        vm.prank(allocator);
+        mainnetController.depositAave(ATOKEN_USDC, 1_000_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e6);
+
+        // Partial withdraw
+        vm.prank(allocator);
+        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  24_400_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_600_000e6);
+
+        // Zero deposit rate limit
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(depositKey, 0, 0);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey), 0);
+
+        // Partial withdraw
+        vm.prank(allocator);
+        assertEq(mainnetController.withdrawAave(ATOKEN_USDC, 400_000e6), 400_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey),  0);  // stays at 0
+        assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_200_000e6);
+    }
+
     function test_withdrawAave_usdc_unlimitedRateLimit() external {
         bytes32 depositKey  = mainnetController.getAaveDepositRateLimitKey(ATOKEN_USDC, POOL, Ethereum.USDC);
         bytes32 withdrawKey = mainnetController.getAaveWithdrawRateLimitKey(ATOKEN_USDC, POOL);

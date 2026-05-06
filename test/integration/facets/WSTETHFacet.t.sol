@@ -10,6 +10,8 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
+    function claimWithdrawRateLimitKey() external pure returns (bytes32);
+
     function depositRateLimitKey() external pure returns (bytes32);
 
     function requestWithdrawRateLimitKey() external pure returns (bytes32);
@@ -33,14 +35,19 @@ contract Controller_WSTETHFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "WSTETHFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
 
         wires[0] = IEnumerableIntegrations.Wire(
+            IControllerLike.claimWithdrawRateLimitKey.selector,
+            IWSTETHFacet.claimWithdrawRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.depositRateLimitKey.selector,
             IWSTETHFacet.depositRateLimitKey.selector
         );
 
-        wires[1] = IEnumerableIntegrations.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.requestWithdrawRateLimitKey.selector,
             IWSTETHFacet.requestWithdrawRateLimitKey.selector
         );
@@ -86,6 +93,14 @@ contract Controller_WSTETHFacet_Tests is Integration_TestBase {
         assertEq(facet.weth(),          weth);
         assertEq(facet.withdrawQueue(), withdrawQueue);
         assertEq(facet.wsteth(),        wsteth);
+    }
+
+    /**********************************************************************************************/
+    /*** claimWithdrawRateLimitKey Tests                                                        ***/
+    /**********************************************************************************************/
+
+    function test_claimWithdrawRateLimitKey() external {
+        assertEq(controller.claimWithdrawRateLimitKey(), keccak256("LIMIT_WSTETH_CLAIM_WITHDRAW"));
     }
 
     /**********************************************************************************************/

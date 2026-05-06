@@ -27,7 +27,8 @@ contract MapleFacet is IMapleFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 internal constant _LIMIT_REDEEM = keccak256("LIMIT_MAPLE_REDEEM");
+    bytes32 internal constant _LIMIT_REQUEST_REDEEM = keccak256("LIMIT_MAPLE_REQUEST_REDEEM");
+    bytes32 internal constant _LIMIT_CANCEL_REDEEM  = keccak256("LIMIT_MAPLE_CANCEL_REDEEM");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -44,7 +45,7 @@ contract MapleFacet is IMapleFacet, Facet {
         onlyRole(ALLOCATOR_ROLE)
     {
         _decreaseRateLimit(
-            getRedeemRateLimitKey(mapleToken),
+            getRequestRedeemRateLimitKey(mapleToken),
             IMapleTokenLike(mapleToken).convertToAssets(shares)
         );
 
@@ -65,7 +66,10 @@ contract MapleFacet is IMapleFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
-        require(_rateLimitExists(getRedeemRateLimitKey(mapleToken)), "MapleFacet/invalid-action");
+        require(
+            _rateLimitExists(getCancelRedeemRateLimitKey(mapleToken)),
+            "MapleFacet/invalid-action"
+        );
 
         address proxy = _getSharedControllerStorage().proxy;
 
@@ -82,8 +86,13 @@ contract MapleFacet is IMapleFacet, Facet {
     /**********************************************************************************************/
 
     /// @inheritdoc IMapleFacet
-    function getRedeemRateLimitKey(address mapleToken) public pure override returns (bytes32) {
-        return makeAddressKey(_LIMIT_REDEEM, mapleToken);
+    function getRequestRedeemRateLimitKey(address mapleToken) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_REQUEST_REDEEM, mapleToken);
+    }
+
+    /// @inheritdoc IMapleFacet
+    function getCancelRedeemRateLimitKey(address mapleToken) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_CANCEL_REDEEM, mapleToken);
     }
 
 }

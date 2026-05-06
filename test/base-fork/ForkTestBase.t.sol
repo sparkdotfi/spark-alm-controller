@@ -318,21 +318,16 @@ abstract contract ForkTestBase is Test {
 
         vm.label(merklFacet, "MerklFacet");
 
-        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](3);
+        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](2);
 
         merklWires[0] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.setMerklDistributor.selector,
-            IMerklFacet.setDistributor.selector
-        );
-
-        merklWires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.toggleOperatorMerkl.selector,
             IMerklFacet.toggleOperator.selector
         );
 
-        merklWires[2] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.merklDistributor.selector,
-            IMerklFacet.distributor.selector
+        merklWires[1] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getMerklToggleOperatorRateLimitKey.selector,
+            IMerklFacet.getToggleOperatorRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -426,38 +421,38 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.maxExchangeRates.selector,
-            IERC4626Facet.getMaxExchangeRate.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.depositERC4626.selector,
             IERC4626Facet.deposit.selector
         );
 
-        wires[3] = IEnumerableIntegrations.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.withdrawERC4626.selector,
             IERC4626Facet.withdraw.selector
         );
 
-        wires[4] = IEnumerableIntegrations.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.redeemERC4626.selector,
             IERC4626Facet.redeem.selector
         );
 
+        wires[4] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.EXCHANGE_RATE_PRECISION.selector,
+            IERC4626Facet.EXCHANGE_RATE_PRECISION.selector
+        );
+
         wires[5] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.maxExchangeRates.selector,
+            IERC4626Facet.getMaxExchangeRate.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getERC4626DepositRateLimitKey.selector,
             IERC4626Facet.getDepositRateLimitKey.selector
         );
 
-        wires[6] = IEnumerableIntegrations.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getERC4626WithdrawRateLimitKey.selector,
             IERC4626Facet.getWithdrawRateLimitKey.selector
-        );
-
-        wires[7] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.EXCHANGE_RATE_PRECISION.selector,
-            IERC4626Facet.EXCHANGE_RATE_PRECISION.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -561,83 +556,83 @@ abstract contract ForkTestBase is Test {
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](16);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.addLiquidityUniswapV3.selector,
-            IUniswapV3Facet.addLiquidity.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.removeLiquidityUniswapV3.selector,
-            IUniswapV3Facet.removeLiquidity.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.swapUniswapV3.selector,
-            IUniswapV3Facet.swap.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3MaxSlippage.selector,
             IUniswapV3Facet.setMaxSlippage.selector
         );
 
-        wires[4] = IEnumerableIntegrations.Wire(
+        wires[1] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3PoolMaxTickDelta.selector,
             IUniswapV3Facet.setMaxTickDelta.selector
         );
 
-        wires[5] = IEnumerableIntegrations.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3AddLiquidityLowerTickBound.selector,
             IUniswapV3Facet.setLiquidityLowerTickBound.selector
         );
 
-        wires[6] = IEnumerableIntegrations.Wire(
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3AddLiquidityUpperTickBound.selector,
             IUniswapV3Facet.setLiquidityUpperTickBound.selector
         );
 
-        wires[7] = IEnumerableIntegrations.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3TWAPSecondsAgo.selector,
             IUniswapV3Facet.setTWAPSecondsAgo.selector
         );
 
+        wires[5] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.swapUniswapV3.selector,
+            IUniswapV3Facet.swap.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.addLiquidityUniswapV3.selector,
+            IUniswapV3Facet.addLiquidity.selector
+        );
+
+        wires[7] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.removeLiquidityUniswapV3.selector,
+            IUniswapV3Facet.removeLiquidity.selector
+        );
+
         wires[8] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getUniswapV3AggregateDepositRateLimitKey.selector,
-            IUniswapV3Facet.getAggregateDepositRateLimitKey.selector
-        );
-
-        wires[9] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getUniswapV3AssetDepositRateLimitKey.selector,
-            IUniswapV3Facet.getAssetDepositRateLimitKey.selector
-        );
-
-        wires[10] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getUniswapV3SwapRateLimitKey.selector,
-            IUniswapV3Facet.getSwapRateLimitKey.selector
-        );
-
-        wires[11] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getUniswapV3WithdrawRateLimitKey.selector,
-            IUniswapV3Facet.getWithdrawRateLimitKey.selector
-        );
-
-        wires[12] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3MaxSlippage.selector,
             IUniswapV3Facet.getMaxSlippage.selector
         );
 
-        wires[13] = IEnumerableIntegrations.Wire(
+        wires[9] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3PoolMaxTickDelta.selector,
             IUniswapV3Facet.getMaxTickDelta.selector
         );
 
-        wires[14] = IEnumerableIntegrations.Wire(
+        wires[10] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3AddLiquidityTickBounds.selector,
             IUniswapV3Facet.getLiquidityTickBounds.selector
         );
 
-        wires[15] = IEnumerableIntegrations.Wire(
+        wires[11] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getUniswapV3TWAPSecondsAgo.selector,
             IUniswapV3Facet.getTWAPSecondsAgo.selector
+        );
+
+        wires[12] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getUniswapV3AggregateDepositRateLimitKey.selector,
+            IUniswapV3Facet.getAggregateDepositRateLimitKey.selector
+        );
+
+        wires[13] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getUniswapV3AssetDepositRateLimitKey.selector,
+            IUniswapV3Facet.getAssetDepositRateLimitKey.selector
+        );
+
+        wires[14] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getUniswapV3SwapRateLimitKey.selector,
+            IUniswapV3Facet.getSwapRateLimitKey.selector
+        );
+
+        wires[15] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getUniswapV3WithdrawRateLimitKey.selector,
+            IUniswapV3Facet.getWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

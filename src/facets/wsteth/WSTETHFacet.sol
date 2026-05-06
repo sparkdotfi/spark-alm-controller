@@ -45,6 +45,7 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
 
     bytes32 internal constant _LIMIT_DEPOSIT          = keccak256("LIMIT_WSTETH_DEPOSIT");
     bytes32 internal constant _LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WSTETH_REQUEST_WITHDRAW");
+    bytes32 internal constant _LIMIT_CLAIM_WITHDRAW   = keccak256("LIMIT_WSTETH_CLAIM_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -142,7 +143,7 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
 
         uint256 initialETHBalance = proxy.balance;
 
-        require(_rateLimitExists(requestWithdrawRateLimitKey()), "WSTETHFacet/invalid-action");
+        require(_rateLimitExists(claimWithdrawRateLimitKey()), "WSTETHFacet/invalid-action");
 
         IALMProxy(proxy).doCall(
             withdrawQueue,
@@ -168,6 +169,11 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
     /// @inheritdoc IWSTETHFacet
     function requestWithdrawRateLimitKey() public pure override returns (bytes32) {
         return _LIMIT_REQUEST_WITHDRAW;
+    }
+
+    /// @inheritdoc IWSTETHFacet
+    function claimWithdrawRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_CLAIM_WITHDRAW;
     }
 
 }

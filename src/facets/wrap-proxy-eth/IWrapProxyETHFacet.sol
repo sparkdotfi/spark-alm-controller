@@ -34,4 +34,7 @@ interface IWrapProxyETHFacet is IFacet {
     /// @notice Address of the WETH token contract (immutable).
     function weth() external view returns (address);
 
+    /// @notice The derived rate limit key for wrap operations.
+    function wrapRateLimitKey() external pure returns (bytes32 key);
+
 }

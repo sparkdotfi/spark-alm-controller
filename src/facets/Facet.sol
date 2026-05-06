@@ -51,6 +51,12 @@ abstract contract Facet is IFacet, ControllerSharedStorage, ReentrancyGuardUpgra
         IRateLimits(_getSharedControllerStorage().rateLimits).triggerRateLimitDecrease(key, amount);
     }
 
+    function _tryIncreaseRateLimit(bytes32 key, uint256 amount) internal {
+        if (!_rateLimitExists(key)) return;
+
+        _increaseRateLimit(key, amount);
+    }
+
     /**********************************************************************************************/
     /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/

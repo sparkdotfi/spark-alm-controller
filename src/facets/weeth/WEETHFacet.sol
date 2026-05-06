@@ -5,7 +5,8 @@ import { ApproveLib } from "../../libraries/ApproveLib.sol";
 
 import {
     makeAddressAddressAddressKey,
-    makeAddressAddressKey
+    makeAddressAddressKey,
+    makeAddressKey
 } from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy } from "../../interfaces/IALMProxy.sol";
@@ -72,6 +73,7 @@ contract WEETHFacet is IWEETHFacet, Facet {
 
     bytes32 internal constant _LIMIT_DEPOSIT          = keccak256("LIMIT_WEETH_DEPOSIT");
     bytes32 internal constant _LIMIT_REQUEST_WITHDRAW = keccak256("LIMIT_WEETH_REQUEST_WITHDRAW");
+    bytes32 internal constant _LIMIT_CLAIM_WITHDRAW   = keccak256("LIMIT_WEETH_CLAIM_WITHDRAW");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -200,13 +202,9 @@ contract WEETHFacet is IWEETHFacet, Facet {
         onlyRole(ALLOCATOR_ROLE)
         returns (uint256 wethReceived)
     {
-        address eeth = IWEETHLike(weeth).eETH();
-
         // NOTE: An authorized weethModule is enforced by the rate limit key.
         require(
-            _rateLimitExists(
-                getRequestWithdrawRateLimitKey(weethModule, eeth, IEETHLike(eeth).liquidityPool())
-            ),
+            _rateLimitExists(getClaimWithdrawRateLimitKey(weethModule)),
             "WEETHFacet/invalid-action"
         );
 
@@ -255,6 +253,11 @@ contract WEETHFacet is IWEETHFacet, Facet {
             liquidityPool,
             weethModule
         );
+    }
+
+    /// @inheritdoc IWEETHFacet
+    function getClaimWithdrawRateLimitKey(address weethModule) public pure override returns (bytes32) {
+        return makeAddressKey(_LIMIT_CLAIM_WITHDRAW, weethModule);
     }
 
 }

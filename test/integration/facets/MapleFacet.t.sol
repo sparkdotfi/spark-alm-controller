@@ -11,7 +11,9 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function getRedeemRateLimitKey(address mapleToken) external pure returns (bytes32);
+    function getCancelRedeemRateLimitKey(address mapleToken) external pure returns (bytes32 key);
+
+    function getRequestRedeemRateLimitKey(address mapleToken) external pure returns (bytes32);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
@@ -28,11 +30,16 @@ contract Controller_MapleFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "MapleFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](1);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IControllerLike.getRedeemRateLimitKey.selector,
-            IMapleFacet.getRedeemRateLimitKey.selector
+            IControllerLike.getCancelRedeemRateLimitKey.selector,
+            IMapleFacet.getCancelRedeemRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IControllerLike.getRequestRedeemRateLimitKey.selector,
+            IMapleFacet.getRequestRedeemRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -48,14 +55,25 @@ contract Controller_MapleFacet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** getRedeemRateLimitKey Tests                                                            ***/
+    /*** getRequestRedeemRateLimitKey Tests                                                     ***/
     /**********************************************************************************************/
 
-    function test_getRedeemRateLimitKey() external {
-        bytes32 keyPrefix  = keccak256("LIMIT_MAPLE_REDEEM");
+    function test_getRequestRedeemRateLimitKey() external {
+        bytes32 keyPrefix  = keccak256("LIMIT_MAPLE_REQUEST_REDEEM");
         address mapleToken = makeAddr("mapleToken");
 
-        assertEq(controller.getRedeemRateLimitKey(mapleToken), makeAddressKey(keyPrefix, mapleToken));
+        assertEq(controller.getRequestRedeemRateLimitKey(mapleToken), makeAddressKey(keyPrefix, mapleToken));
+    }
+
+    /**********************************************************************************************/
+    /*** getCancelRedeemRateLimitKey Tests                                                      ***/
+    /**********************************************************************************************/
+
+    function test_getCancelRedeemRateLimitKey() external {
+        bytes32 keyPrefix  = keccak256("LIMIT_MAPLE_CANCEL_REDEEM");
+        address mapleToken = makeAddr("mapleToken");
+
+        assertEq(controller.getCancelRedeemRateLimitKey(mapleToken), makeAddressKey(keyPrefix, mapleToken));
     }
 
 }

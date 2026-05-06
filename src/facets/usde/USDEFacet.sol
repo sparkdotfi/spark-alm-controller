@@ -41,9 +41,15 @@ contract USDEFacet is IUSDEFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    bytes32 internal constant _LIMIT_SET_DELEGATED_SIGNER = keccak256("LIMIT_SET_DELEGATED_SIGNER");
+
+    bytes32 internal constant _LIMIT_REMOVE_DELEGATED_SIGNER
+        = keccak256("LIMIT_REMOVE_DELEGATED_SIGNER");
+
+    bytes32 internal constant _LIMIT_MINT     = keccak256("LIMIT_USDE_MINT");
     bytes32 internal constant _LIMIT_BURN     = keccak256("LIMIT_USDE_BURN");
     bytes32 internal constant _LIMIT_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
-    bytes32 internal constant _LIMIT_MINT     = keccak256("LIMIT_USDE_MINT");
+    bytes32 internal constant _LIMIT_UNSTAKE  = keccak256("LIMIT_UNSTAKE");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -91,6 +97,8 @@ contract USDEFacet is IUSDEFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
+        require(_rateLimitExists(setDelegatedSignerRateLimitKey()), "USDEFacet/invalid-action");
+
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
             ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.setDelegatedSigner, (delegatedSigner))
@@ -106,6 +114,8 @@ contract USDEFacet is IUSDEFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
+        require(_rateLimitExists(removeDelegatedSignerRateLimitKey()), "USDEFacet/invalid-action");
+
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
             ethenaMinter,
             abi.encodeCall(IEthenaMinterLike.removeDelegatedSigner, (delegatedSigner))
@@ -194,6 +204,8 @@ contract USDEFacet is IUSDEFacet, Facet {
 
         uint256 startingUSDE = IERC20Like(usde).balanceOf(proxy);
 
+        require(_rateLimitExists(unstakeRateLimitKey()), "USDEFacet/invalid-action");
+
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
 
         emit USDEUnstake(IERC20Like(usde).balanceOf(proxy) - startingUSDE);
@@ -202,6 +214,21 @@ contract USDEFacet is IUSDEFacet, Facet {
     /**********************************************************************************************/
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
+
+    /// @inheritdoc IUSDEFacet
+    function setDelegatedSignerRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_SET_DELEGATED_SIGNER;
+    }
+
+    /// @inheritdoc IUSDEFacet
+    function removeDelegatedSignerRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_REMOVE_DELEGATED_SIGNER;
+    }
+
+    /// @inheritdoc IUSDEFacet
+    function mintRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_MINT;
+    }
 
     /// @inheritdoc IUSDEFacet
     function burnRateLimitKey() public pure override returns (bytes32) {
@@ -214,8 +241,8 @@ contract USDEFacet is IUSDEFacet, Facet {
     }
 
     /// @inheritdoc IUSDEFacet
-    function mintRateLimitKey() public pure override returns (bytes32) {
-        return _LIMIT_MINT;
+    function unstakeRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_UNSTAKE;
     }
 
 }
