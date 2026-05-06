@@ -31,6 +31,7 @@ import { ICurveFacet }         from "../../src/facets/curve/ICurveFacet.sol";
 import { IDAIUSDSFacet }       from "../../src/facets/dai-usds/IDAIUSDSFacet.sol";
 import { IERC4626Facet }       from "../../src/facets/erc4626/IERC4626Facet.sol";
 import { IERC7540Facet }       from "../../src/facets/erc7540/IERC7540Facet.sol";
+import { IEthenaFacet }        from "../../src/facets/ethena/IEthenaFacet.sol";
 import { IFarmFacet }          from "../../src/facets/farm/IFarmFacet.sol";
 import { ILayerZeroFacet }     from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
 import { IMapleFacet }         from "../../src/facets/maple/IMapleFacet.sol";
@@ -43,7 +44,6 @@ import { ISuperstateFacet }    from "../../src/facets/superstate/ISuperstateFace
 import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
 import { IUniswapV3Facet }     from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 import { IUniswapV4Facet }     from "../../src/facets/uniswap-v4/IUniswapV4Facet.sol";
-import { IUSDEFacet }          from "../../src/facets/usde/IUSDEFacet.sol";
 import { IUSDSFacet }          from "../../src/facets/usds/IUSDSFacet.sol";
 import { IWEETHFacet }         from "../../src/facets/weeth/IWEETHFacet.sol";
 import { IWrapProxyETHFacet }  from "../../src/facets/wrap-proxy-eth/IWrapProxyETHFacet.sol";
@@ -57,6 +57,7 @@ import { CurveFacet }         from "../../src/facets/curve/CurveFacet.sol";
 import { DAIUSDSFacet }       from "../../src/facets/dai-usds/DAIUSDSFacet.sol";
 import { ERC4626Facet }       from "../../src/facets/erc4626/ERC4626Facet.sol";
 import { ERC7540Facet }       from "../../src/facets/erc7540/ERC7540Facet.sol";
+import { EthenaFacet }        from "../../src/facets/ethena/EthenaFacet.sol";
 import { FarmFacet }          from "../../src/facets/farm/FarmFacet.sol";
 import { LayerZeroFacet }     from "../../src/facets/layer-zero/LayerZeroFacet.sol";
 import { MapleFacet }         from "../../src/facets/maple/MapleFacet.sol";
@@ -69,7 +70,6 @@ import { SuperstateFacet }    from "../../src/facets/superstate/SuperstateFacet.
 import { TransferAssetFacet } from "../../src/facets/transfer-asset/TransferAssetFacet.sol";
 import { UniswapV3Facet }     from "../../src/facets/uniswap-v3/UniswapV3Facet.sol";
 import { UniswapV4Facet }     from "../../src/facets/uniswap-v4/UniswapV4Facet.sol";
-import { USDEFacet }          from "../../src/facets/usde/USDEFacet.sol";
 import { USDSFacet }          from "../../src/facets/usds/USDSFacet.sol";
 import { WEETHFacet }         from "../../src/facets/weeth/WEETHFacet.sol";
 import { WrapProxyETHFacet }  from "../../src/facets/wrap-proxy-eth/WrapProxyETHFacet.sol";
@@ -306,7 +306,7 @@ abstract contract ForkTestBase is DssTest {
         _wireTransferAssetFacet();
         _wireUniswapV3Facet();
         _wireUniswapV4Facet();
-        _wireUSDEFacet();
+        _wireEthenaFacet();
         _wireUSDSFacet();
         _wireWEETHFacet();
         _wireWrapProxyETHFacet();
@@ -1308,85 +1308,85 @@ abstract contract ForkTestBase is DssTest {
         beacon.setIntegration("WSTETH_FACET", config);
     }
 
-    function _wireUSDEFacet() internal {
-        address usdeFacet = address(new USDEFacet(
+    function _wireEthenaFacet() internal {
+        address ethenaFacet = address(new EthenaFacet(
             ETHENA_MINTER,
             address(susde),
             address(usdc),
             address(usde)
         ));
 
-        vm.label(usdeFacet, "USDEFacet");
+        vm.label(ethenaFacet, "EthenaFacet");
 
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](13);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setDelegatedSigner.selector,
-            IUSDEFacet.setDelegatedSigner.selector
+            IMainnetControllerFull.setEthenaDelegatedSigner.selector,
+            IEthenaFacet.setDelegatedSigner.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.removeDelegatedSigner.selector,
-            IUSDEFacet.removeDelegatedSigner.selector
+            IMainnetControllerFull.removeEthenaDelegatedSigner.selector,
+            IEthenaFacet.removeDelegatedSigner.selector
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.prepareUSDeMint.selector,
-            IUSDEFacet.prepareMint.selector
+            IEthenaFacet.prepareMint.selector
         );
 
         wires[3] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.prepareUSDeBurn.selector,
-            IUSDEFacet.prepareBurn.selector
+            IEthenaFacet.prepareBurn.selector
         );
 
         wires[4] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.cooldownAssetsSUSDe.selector,
-            IUSDEFacet.cooldownAssets.selector
+            IEthenaFacet.cooldownAssets.selector
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.cooldownSharesSUSDe.selector,
-            IUSDEFacet.cooldownShares.selector
+            IEthenaFacet.cooldownShares.selector
         );
 
         wires[6] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.unstakeSUSDe.selector,
-            IUSDEFacet.unstake.selector
+            IEthenaFacet.unstake.selector
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdeSetDelegatedSignerRateLimitKey.selector,
-            IUSDEFacet.setDelegatedSignerRateLimitKey.selector
+            IMainnetControllerFull.setEthenaDelegatedSignerRateLimitKey.selector,
+            IEthenaFacet.setDelegatedSignerRateLimitKey.selector
         );
 
         wires[8] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdeRemoveDelegatedSignerRateLimitKey.selector,
-            IUSDEFacet.removeDelegatedSignerRateLimitKey.selector
+            IMainnetControllerFull.removeEthenaDelegatedSignerRateLimitKey.selector,
+            IEthenaFacet.removeDelegatedSignerRateLimitKey.selector
         );
 
         wires[9] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.usdeMintRateLimitKey.selector,
-            IUSDEFacet.mintRateLimitKey.selector
+            IEthenaFacet.mintRateLimitKey.selector
         );
 
         wires[10] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.usdeBurnRateLimitKey.selector,
-            IUSDEFacet.burnRateLimitKey.selector
+            IEthenaFacet.burnRateLimitKey.selector
         );
 
         wires[11] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.usdeCooldownRateLimitKey.selector,
-            IUSDEFacet.cooldownRateLimitKey.selector
+            IEthenaFacet.cooldownRateLimitKey.selector
         );
 
         wires[12] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.usdeUnstakeRateLimitKey.selector,
-            IUSDEFacet.unstakeRateLimitKey.selector
+            IEthenaFacet.unstakeRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : usdeFacet,
+            facet : ethenaFacet,
             wires : wires
         });
 

@@ -4,11 +4,11 @@ pragma solidity ^0.8.34;
 import { IFacet } from "../IFacet.sol";
 
 /**
- * @title  IUSDEFacet
+ * @title  IEthenaFacet
  * @notice PAU facet for interacting with Ethena's USDe ecosystem. Supports minting/burning USDe via
  *         the Ethena minter, staking/unstaking sUSDe, and managing the sUSDe cooldown process.
  */
-interface IUSDEFacet is IFacet {
+interface IEthenaFacet is IFacet {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -19,44 +19,44 @@ interface IUSDEFacet is IFacet {
      * @param  usdeAmount Amount of USDe queued for cooldown.
      * @param  shares     Amount of sUSDe shares locked.
      */
-    event USDECooldownAssets(uint256 usdeAmount, uint256 shares);
+    event EthenaCooldownAssets(uint256 usdeAmount, uint256 shares);
 
     /**
      * @notice Emitted when a USDe cooldown is initiated by share amount.
      * @param  susdeAmount Amount of sUSDe shares queued for cooldown.
      * @param  assets      Amount of USDe assets that will be received.
      */
-    event USDECooldownShares(uint256 susdeAmount, uint256 assets);
+    event EthenaCooldownShares(uint256 susdeAmount, uint256 assets);
 
     /**
      * @notice Emitted when a USDe burn is prepared by approving USDe to the Ethena minter.
      * @param  usdeAmount Amount of USDe approved for burning.
      */
-    event USDEPrepareBurn(uint256 usdeAmount);
+    event EthenaPrepareBurn(uint256 usdeAmount);
 
     /**
      * @notice Emitted when a USDe mint is prepared by approving USDC to the Ethena minter.
      * @param  usdcAmount Amount of USDC approved for minting (6-decimal precision).
      */
-    event USDEPrepareMint(uint256 usdcAmount);
+    event EthenaPrepareMint(uint256 usdcAmount);
 
     /**
      * @notice Emitted when a delegated signer is removed from the Ethena minter.
      * @param  delegatedSigner Address of the removed delegated signer.
      */
-    event USDERemoveDelegatedSigner(address indexed delegatedSigner);
+    event EthenaRemoveDelegatedSigner(address indexed delegatedSigner);
 
     /**
      * @notice Emitted when a delegated signer is set on the Ethena minter.
      * @param  delegatedSigner Address of the delegated signer.
      */
-    event USDESetDelegatedSigner(address indexed delegatedSigner);
+    event EthenaSetDelegatedSigner(address indexed delegatedSigner);
 
     /**
      * @notice Emitted when sUSDe is unstaked after the cooldown period.
      * @param  assets Amount of USDe assets received from unstaking.
      */
-    event USDEUnstake(uint256 assets);
+    event EthenaUnstake(uint256 assets);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/
@@ -116,7 +116,7 @@ interface IUSDEFacet is IFacet {
     function cooldownRateLimitKey() external pure returns (bytes32 key);
 
     /// @notice Address of the Ethena minter contract (immutable).
-    function ethenaMinter() external view returns (address);
+    function minter() external view returns (address);
 
     /// @notice The derived rate limit key for USDe mint operations.
     function mintRateLimitKey() external pure returns (bytes32 key);

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IUSDEFacet }              from "../../../src/facets/usde/IUSDEFacet.sol";
+import { IEthenaFacet }            from "../../../src/facets/ethena/IEthenaFacet.sol";
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 
-import { USDEFacet } from "../../../src/facets/usde/USDEFacet.sol";
+import { EthenaFacet } from "../../../src/facets/ethena/EthenaFacet.sol";
 
 import { Integration_TestBase } from "../TestBase.t.sol";
 
@@ -26,52 +26,52 @@ interface IControllerLike {
 
 }
 
-contract Controller_USDEFacet_Tests is Integration_TestBase {
+contract Controller_EthenaFacet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
     function setUp() external {
         controller = IControllerLike(_deploy());
 
-        address facet = address(new USDEFacet(
-            makeAddr("ethenaMinter"),
+        address facet = address(new EthenaFacet(
+            makeAddr("minter"),
             makeAddr("susde"),
             makeAddr("usdc"),
             makeAddr("usde")
         ));
 
-        vm.label(facet, "USDEFacet");
+        vm.label(facet, "EthenaFacet");
 
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setDelegatedSignerRateLimitKey.selector,
-            IUSDEFacet.setDelegatedSignerRateLimitKey.selector
+            IEthenaFacet.setDelegatedSignerRateLimitKey.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.removeDelegatedSignerRateLimitKey.selector,
-            IUSDEFacet.removeDelegatedSignerRateLimitKey.selector
+            IEthenaFacet.removeDelegatedSignerRateLimitKey.selector
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.mintRateLimitKey.selector,
-            IUSDEFacet.mintRateLimitKey.selector
+            IEthenaFacet.mintRateLimitKey.selector
         );
 
         wires[3] = IEnumerableIntegrations.Wire(
             IControllerLike.burnRateLimitKey.selector,
-            IUSDEFacet.burnRateLimitKey.selector
+            IEthenaFacet.burnRateLimitKey.selector
         );
 
         wires[4] = IEnumerableIntegrations.Wire(
             IControllerLike.cooldownRateLimitKey.selector,
-            IUSDEFacet.cooldownRateLimitKey.selector
+            IEthenaFacet.cooldownRateLimitKey.selector
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
             IControllerLike.unstakeRateLimitKey.selector,
-            IUSDEFacet.unstakeRateLimitKey.selector
+            IEthenaFacet.unstakeRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -91,37 +91,37 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_constructor_zeroEthenaMinter() external {
-        vm.expectRevert("USDEFacet/zero-ethenaMinter");
-        new USDEFacet(address(0), address(0), address(0), address(0));
+        vm.expectRevert("EthenaFacet/zero-minter");
+        new EthenaFacet(address(0), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroSusde() external {
-        vm.expectRevert("USDEFacet/zero-susde");
-        new USDEFacet(makeAddr("ethenaMinter"), address(0), address(0), address(0));
+        vm.expectRevert("EthenaFacet/zero-susde");
+        new EthenaFacet(makeAddr("minter"), address(0), address(0), address(0));
     }
 
     function test_constructor_zeroUSDC() external {
-        vm.expectRevert("USDEFacet/zero-usdc");
-        new USDEFacet(makeAddr("ethenaMinter"), makeAddr("susde"), address(0), address(0));
+        vm.expectRevert("EthenaFacet/zero-usdc");
+        new EthenaFacet(makeAddr("minter"), makeAddr("susde"), address(0), address(0));
     }
 
     function test_constructor_zeroUSDE() external {
-        vm.expectRevert("USDEFacet/zero-usde");
-        new USDEFacet(makeAddr("ethenaMinter"), makeAddr("susde"), makeAddr("usdc"), address(0));
+        vm.expectRevert("EthenaFacet/zero-usde");
+        new EthenaFacet(makeAddr("minter"), makeAddr("susde"), makeAddr("usdc"), address(0));
     }
 
     function test_constructor() external {
-        address ethenaMinter = makeAddr("ethenaMinter");
-        address susde        = makeAddr("susde");
-        address usdc         = makeAddr("usdc");
-        address usde         = makeAddr("usde");
+        address minter = makeAddr("minter");
+        address susde  = makeAddr("susde");
+        address usdc   = makeAddr("usdc");
+        address usde   = makeAddr("usde");
 
-        USDEFacet facet = new USDEFacet(ethenaMinter, susde, usdc, usde);
+        EthenaFacet facet = new EthenaFacet(minter, susde, usdc, usde);
 
-        assertEq(facet.ethenaMinter(), ethenaMinter);
-        assertEq(facet.susde(),        susde);
-        assertEq(facet.usdc(),         usdc);
-        assertEq(facet.usde(),         usde);
+        assertEq(facet.minter(), minter);
+        assertEq(facet.susde(),  susde);
+        assertEq(facet.usdc(),   usdc);
+        assertEq(facet.usde(),   usde);
     }
 
     /**********************************************************************************************/
@@ -129,7 +129,7 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_setDelegatedSignerRateLimitKey() external {
-        assertEq(controller.setDelegatedSignerRateLimitKey(), keccak256("LIMIT_SET_DELEGATED_SIGNER"));
+        assertEq(controller.setDelegatedSignerRateLimitKey(), keccak256("LIMIT_ETHENA_SET_DELEGATED_SIGNER"));
     }
 
     /**********************************************************************************************/
@@ -137,7 +137,7 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_removeDelegatedSignerRateLimitKey() external {
-        assertEq(controller.removeDelegatedSignerRateLimitKey(), keccak256("LIMIT_REMOVE_DELEGATED_SIGNER"));
+        assertEq(controller.removeDelegatedSignerRateLimitKey(), keccak256("LIMIT_ETHENA_REMOVE_DELEGATED_SIGNER"));
     }
 
     /**********************************************************************************************/
@@ -145,7 +145,7 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_mintRateLimitKey() external {
-        assertEq(controller.mintRateLimitKey(), keccak256("LIMIT_USDE_MINT"));
+        assertEq(controller.mintRateLimitKey(), keccak256("LIMIT_ETHENA_MINT"));
     }
 
     /**********************************************************************************************/
@@ -153,7 +153,7 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_burnRateLimitKey() external {
-        assertEq(controller.burnRateLimitKey(), keccak256("LIMIT_USDE_BURN"));
+        assertEq(controller.burnRateLimitKey(), keccak256("LIMIT_ETHENA_BURN"));
     }
 
     /**********************************************************************************************/
@@ -161,7 +161,7 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_cooldownRateLimitKey() external {
-        assertEq(controller.cooldownRateLimitKey(), keccak256("LIMIT_SUSDE_COOLDOWN"));
+        assertEq(controller.cooldownRateLimitKey(), keccak256("LIMIT_ETHENA_COOLDOWN"));
     }
 
     /**********************************************************************************************/
@@ -169,7 +169,7 @@ contract Controller_USDEFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_unstakeRateLimitKey() external {
-        assertEq(controller.unstakeRateLimitKey(), keccak256("LIMIT_UNSTAKE"));
+        assertEq(controller.unstakeRateLimitKey(), keccak256("LIMIT_ETHENA_UNSTAKE"));
     }
 
 }

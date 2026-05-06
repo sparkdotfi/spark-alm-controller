@@ -9,7 +9,7 @@ import { IFacet } from "../IFacet.sol";
 
 import { Facet } from "../Facet.sol";
 
-import { IUSDEFacet } from "./IUSDEFacet.sol";
+import { IEthenaFacet } from "./IEthenaFacet.sol";
 
 interface IERC20Like {
 
@@ -35,21 +35,22 @@ interface ISUSDELike {
 
 }
 
-contract USDEFacet is IUSDEFacet, Facet {
+contract EthenaFacet is IEthenaFacet, Facet {
 
     /**********************************************************************************************/
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 internal constant _LIMIT_SET_DELEGATED_SIGNER = keccak256("LIMIT_SET_DELEGATED_SIGNER");
+    bytes32 internal constant _LIMIT_SET_DELEGATED_SIGNER
+        = keccak256("LIMIT_ETHENA_SET_DELEGATED_SIGNER");
 
     bytes32 internal constant _LIMIT_REMOVE_DELEGATED_SIGNER
-        = keccak256("LIMIT_REMOVE_DELEGATED_SIGNER");
+        = keccak256("LIMIT_ETHENA_REMOVE_DELEGATED_SIGNER");
 
-    bytes32 internal constant _LIMIT_MINT     = keccak256("LIMIT_USDE_MINT");
-    bytes32 internal constant _LIMIT_BURN     = keccak256("LIMIT_USDE_BURN");
-    bytes32 internal constant _LIMIT_COOLDOWN = keccak256("LIMIT_SUSDE_COOLDOWN");
-    bytes32 internal constant _LIMIT_UNSTAKE  = keccak256("LIMIT_UNSTAKE");
+    bytes32 internal constant _LIMIT_MINT     = keccak256("LIMIT_ETHENA_MINT");
+    bytes32 internal constant _LIMIT_BURN     = keccak256("LIMIT_ETHENA_BURN");
+    bytes32 internal constant _LIMIT_COOLDOWN = keccak256("LIMIT_ETHENA_COOLDOWN");
+    bytes32 internal constant _LIMIT_UNSTAKE  = keccak256("LIMIT_ETHENA_UNSTAKE");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -58,73 +59,76 @@ contract USDEFacet is IUSDEFacet, Facet {
     /*** Declarations                                                                           ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IUSDEFacet
-    address public immutable override ethenaMinter;
+    /// @inheritdoc IEthenaFacet
+    address public immutable override minter;
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     address public immutable override susde;
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     address public immutable override usdc;
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     address public immutable override usde;
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
     /**********************************************************************************************/
 
-    constructor(address ethenaMinter_, address susde_, address usdc_, address usde_) {
-        require(ethenaMinter_ != address(0), "USDEFacet/zero-ethenaMinter");
-        require(susde_        != address(0), "USDEFacet/zero-susde");
-        require(usdc_         != address(0), "USDEFacet/zero-usdc");
-        require(usde_         != address(0), "USDEFacet/zero-usde");
+    constructor(address minter_, address susde_, address usdc_, address usde_) {
+        require(minter_ != address(0), "EthenaFacet/zero-minter");
+        require(susde_  != address(0), "EthenaFacet/zero-susde");
+        require(usdc_   != address(0), "EthenaFacet/zero-usdc");
+        require(usde_   != address(0), "EthenaFacet/zero-usde");
 
-        ethenaMinter = ethenaMinter_;
-        susde        = susde_;
-        usdc         = usdc_;
-        usde         = usde_;
+        minter = minter_;
+        susde  = susde_;
+        usdc   = usdc_;
+        usde   = usde_;
     }
 
     /**********************************************************************************************/
     /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function setDelegatedSigner(address delegatedSigner)
         external
         override
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
-        require(_rateLimitExists(setDelegatedSignerRateLimitKey()), "USDEFacet/invalid-action");
+        require(_rateLimitExists(setDelegatedSignerRateLimitKey()), "EthenaFacet/invalid-action");
 
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
-            ethenaMinter,
+            minter,
             abi.encodeCall(IEthenaMinterLike.setDelegatedSigner, (delegatedSigner))
         );
 
-        emit USDESetDelegatedSigner(delegatedSigner);
+        emit EthenaSetDelegatedSigner(delegatedSigner);
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function removeDelegatedSigner(address delegatedSigner)
         external
         override
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
-        require(_rateLimitExists(removeDelegatedSignerRateLimitKey()), "USDEFacet/invalid-action");
+        require(
+            _rateLimitExists(removeDelegatedSignerRateLimitKey()),
+            "EthenaFacet/invalid-action"
+        );
 
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
-            ethenaMinter,
+            minter,
             abi.encodeCall(IEthenaMinterLike.removeDelegatedSigner, (delegatedSigner))
         );
 
-        emit USDERemoveDelegatedSigner(delegatedSigner);
+        emit EthenaRemoveDelegatedSigner(delegatedSigner);
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function prepareMint(uint256 usdcAmount)
         external
         override
@@ -133,12 +137,12 @@ contract USDEFacet is IUSDEFacet, Facet {
     {
         _decreaseRateLimit(mintRateLimitKey(), usdcAmount);
 
-        ApproveLib.approve(usdc, _getSharedControllerStorage().proxy, ethenaMinter, usdcAmount);
+        ApproveLib.approve(usdc, _getSharedControllerStorage().proxy, minter, usdcAmount);
 
-        emit USDEPrepareMint(usdcAmount);
+        emit EthenaPrepareMint(usdcAmount);
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function prepareBurn(uint256 usdeAmount)
         external
         override
@@ -147,12 +151,12 @@ contract USDEFacet is IUSDEFacet, Facet {
     {
         _decreaseRateLimit(burnRateLimitKey(), usdeAmount);
 
-        ApproveLib.approve(usde, _getSharedControllerStorage().proxy, ethenaMinter, usdeAmount);
+        ApproveLib.approve(usde, _getSharedControllerStorage().proxy, minter, usdeAmount);
 
-        emit USDEPrepareBurn(usdeAmount);
+        emit EthenaPrepareBurn(usdeAmount);
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function cooldownAssets(uint256 usdeAmount)
         external
         override
@@ -172,10 +176,10 @@ contract USDEFacet is IUSDEFacet, Facet {
             (uint256)
         );
 
-        emit USDECooldownAssets(usdeAmount, shares);
+        emit EthenaCooldownAssets(usdeAmount, shares);
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function cooldownShares(uint256 susdeAmount)
         external
         override
@@ -195,52 +199,52 @@ contract USDEFacet is IUSDEFacet, Facet {
 
         _decreaseRateLimit(cooldownRateLimitKey(), assets);
 
-        emit USDECooldownShares(susdeAmount, assets);
+        emit EthenaCooldownShares(susdeAmount, assets);
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function unstake() external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 startingUSDE = IERC20Like(usde).balanceOf(proxy);
 
-        require(_rateLimitExists(unstakeRateLimitKey()), "USDEFacet/invalid-action");
+        require(_rateLimitExists(unstakeRateLimitKey()), "EthenaFacet/invalid-action");
 
         IALMProxy(proxy).doCall(susde, abi.encodeCall(ISUSDELike.unstake, (proxy)));
 
-        emit USDEUnstake(IERC20Like(usde).balanceOf(proxy) - startingUSDE);
+        emit EthenaUnstake(IERC20Like(usde).balanceOf(proxy) - startingUSDE);
     }
 
     /**********************************************************************************************/
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function setDelegatedSignerRateLimitKey() public pure override returns (bytes32) {
         return _LIMIT_SET_DELEGATED_SIGNER;
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function removeDelegatedSignerRateLimitKey() public pure override returns (bytes32) {
         return _LIMIT_REMOVE_DELEGATED_SIGNER;
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function mintRateLimitKey() public pure override returns (bytes32) {
         return _LIMIT_MINT;
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function burnRateLimitKey() public pure override returns (bytes32) {
         return _LIMIT_BURN;
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function cooldownRateLimitKey() public pure override returns (bytes32) {
         return _LIMIT_COOLDOWN;
     }
 
-    /// @inheritdoc IUSDEFacet
+    /// @inheritdoc IEthenaFacet
     function unstakeRateLimitKey() public pure override returns (bytes32) {
         return _LIMIT_UNSTAKE;
     }

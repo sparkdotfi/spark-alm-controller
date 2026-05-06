@@ -5,7 +5,7 @@ import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/util
 
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
-import { IUSDEFacet } from "../../src/facets/usde/IUSDEFacet.sol";
+import { IEthenaFacet } from "../../src/facets/ethena/IEthenaFacet.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -46,37 +46,37 @@ contract MainnetController_Ethena_SetDelegatedSigner_Tests is Ethena_TestBase {
     function setUp() public override {
         super.setUp();
 
-        setSignerKey = mainnetController.usdeSetDelegatedSignerRateLimitKey();
+        setSignerKey = mainnetController.setEthenaDelegatedSignerRateLimitKey();
 
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(setSignerKey, type(uint256).max, 0);
     }
 
-    function test_setDelegatedSigner_reentrancy() external {
+    function test_setEthenaDelegatedSigner_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.setDelegatedSigner(makeAddr("signer"));
+        mainnetController.setEthenaDelegatedSigner(makeAddr("signer"));
     }
 
-    function test_setDelegatedSigner_notAllocator() external {
+    function test_setEthenaDelegatedSigner_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.setDelegatedSigner(makeAddr("signer"));
+        mainnetController.setEthenaDelegatedSigner(makeAddr("signer"));
     }
 
-    function test_setDelegatedSigner_invalidAction() external {
+    function test_setEthenaDelegatedSigner_invalidAction() external {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(setSignerKey, 0, 0);
 
-        vm.expectRevert("USDEFacet/invalid-action");
+        vm.expectRevert("EthenaFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.setDelegatedSigner(makeAddr("signer"));
+        mainnetController.setEthenaDelegatedSigner(makeAddr("signer"));
     }
 
-    function test_setDelegatedSigner() external {
+    function test_setEthenaDelegatedSigner() external {
         address signer = makeAddr("signer");
 
         assertEq(IEthenaMinterLike(ETHENA_MINTER).delegatedSigner(signer, address(almProxy)), 0);  // REJECTED
@@ -90,10 +90,10 @@ contract MainnetController_Ethena_SetDelegatedSigner_Tests is Ethena_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDESetDelegatedSigner(signer);
+        emit IEthenaFacet.EthenaSetDelegatedSigner(signer);
 
         vm.prank(allocator);
-        mainnetController.setDelegatedSigner(signer);
+        mainnetController.setEthenaDelegatedSigner(signer);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -110,8 +110,8 @@ contract MainnetController_Ethena_RemoveDelegatedSigner_Tests is Ethena_TestBase
     function setUp() public override {
         super.setUp();
 
-        setSignerKey    = mainnetController.usdeSetDelegatedSignerRateLimitKey();
-        removeSignerKey = mainnetController.usdeRemoveDelegatedSignerRateLimitKey();
+        setSignerKey    = mainnetController.setEthenaDelegatedSignerRateLimitKey();
+        removeSignerKey = mainnetController.removeEthenaDelegatedSignerRateLimitKey();
 
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(setSignerKey,    type(uint256).max, 0);
@@ -119,38 +119,38 @@ contract MainnetController_Ethena_RemoveDelegatedSigner_Tests is Ethena_TestBase
         vm.stopPrank();
     }
 
-    function test_removeDelegatedSigner_reentrancy() external {
+    function test_removeEthenaDelegatedSigner_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.removeDelegatedSigner(makeAddr("signer"));
+        mainnetController.removeEthenaDelegatedSigner(makeAddr("signer"));
     }
 
-    function test_removeDelegatedSigner_notAllocator() external {
+    function test_removeEthenaDelegatedSigner_notAllocator() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.removeDelegatedSigner(makeAddr("signer"));
+        mainnetController.removeEthenaDelegatedSigner(makeAddr("signer"));
     }
 
-    function test_removeDelegatedSigner_invalidAction() external {
+    function test_removeEthenaDelegatedSigner_invalidAction() external {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(removeSignerKey, 0, 0);
 
-        vm.expectRevert("USDEFacet/invalid-action");
+        vm.expectRevert("EthenaFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.removeDelegatedSigner(makeAddr("signer"));
+        mainnetController.removeEthenaDelegatedSigner(makeAddr("signer"));
     }
 
-    function test_removeDelegatedSigner() external {
+    function test_removeEthenaDelegatedSigner() external {
         address signer = makeAddr("signer");
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDESetDelegatedSigner(signer);
+        emit IEthenaFacet.EthenaSetDelegatedSigner(signer);
 
         vm.prank(allocator);
-        mainnetController.setDelegatedSigner(signer);
+        mainnetController.setEthenaDelegatedSigner(signer);
 
         assertEq(IEthenaMinterLike(ETHENA_MINTER).delegatedSigner(signer, address(almProxy)), 1);  // PENDING
 
@@ -163,10 +163,10 @@ contract MainnetController_Ethena_RemoveDelegatedSigner_Tests is Ethena_TestBase
         });
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDERemoveDelegatedSigner(signer);
+        emit IEthenaFacet.EthenaRemoveDelegatedSigner(signer);
 
         vm.prank(allocator);
-        mainnetController.removeDelegatedSigner(signer);
+        mainnetController.removeEthenaDelegatedSigner(signer);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -230,7 +230,7 @@ contract MainnetController_Ethena_PrepareUSDEMint_Tests is Ethena_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDEPrepareMint(100e6);
+        emit IEthenaFacet.EthenaPrepareMint(100e6);
 
         vm.prank(allocator);
         mainnetController.prepareUSDeMint(100e6);
@@ -244,7 +244,7 @@ contract MainnetController_Ethena_PrepareUSDEMint_Tests is Ethena_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e6);
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDEPrepareMint(4_000_000e6);
+        emit IEthenaFacet.EthenaPrepareMint(4_000_000e6);
 
         vm.prank(allocator);
         mainnetController.prepareUSDeMint(4_000_000e6);
@@ -256,7 +256,7 @@ contract MainnetController_Ethena_PrepareUSDEMint_Tests is Ethena_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(key), 2_000_000e6 - 6400);  // Rounding
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDEPrepareMint(600_000e6);
+        emit IEthenaFacet.EthenaPrepareMint(600_000e6);
 
         vm.prank(allocator);
         mainnetController.prepareUSDeMint(600_000e6);
@@ -321,7 +321,7 @@ contract MainnetController_Ethena_PrepareUSDEBurn_Tests is Ethena_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDEPrepareBurn(100e18);
+        emit IEthenaFacet.EthenaPrepareBurn(100e18);
 
         vm.prank(allocator);
         mainnetController.prepareUSDeBurn(100e18);
@@ -335,7 +335,7 @@ contract MainnetController_Ethena_PrepareUSDEBurn_Tests is Ethena_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e18);
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDEPrepareBurn(4_000_000e18);
+        emit IEthenaFacet.EthenaPrepareBurn(4_000_000e18);
 
         vm.prank(allocator);
         mainnetController.prepareUSDeBurn(4_000_000e18);
@@ -347,7 +347,7 @@ contract MainnetController_Ethena_PrepareUSDEBurn_Tests is Ethena_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(key), 2_000_000e18 - 6400);  // Rounding
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDEPrepareBurn(600_000e18);
+        emit IEthenaFacet.EthenaPrepareBurn(600_000e18);
 
         vm.prank(allocator);
         mainnetController.prepareUSDeBurn(600_000e18);
@@ -434,7 +434,7 @@ contract MainnetController_Ethena_CooldownAssetsSUSDE_Tests is Ethena_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDECooldownAssets(assets, 100e18);
+        emit IEthenaFacet.EthenaCooldownAssets(assets, 100e18);
 
         vm.prank(allocator);
         uint256 returnedShares = mainnetController.cooldownAssetsSUSDe(assets);
@@ -553,7 +553,7 @@ contract MainnetController_Ethena_CooldownSharesSUSDE_Tests is Ethena_TestBase {
         });
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDECooldownShares(100e18, assets);
+        emit IEthenaFacet.EthenaCooldownShares(100e18, assets);
 
         vm.prank(allocator);
         uint256 returnedAssets = mainnetController.cooldownSharesSUSDe(100e18);
@@ -633,7 +633,7 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
         vm.prank(SPARK_PROXY);
         rateLimits.setRateLimitData(unstakeKey, 0, 0);
 
-        vm.expectRevert("USDEFacet/invalid-action");
+        vm.expectRevert("EthenaFacet/invalid-action");
         vm.prank(allocator);
         mainnetController.unstakeSUSDe();
     }
@@ -684,7 +684,7 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
         deal(address(susde), address(almProxy), 100e18);
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDECooldownShares(100e18, assets);
+        emit IEthenaFacet.EthenaCooldownShares(100e18, assets);
 
         vm.prank(allocator);
         mainnetController.cooldownSharesSUSDe(100e18);
@@ -697,7 +697,7 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IUSDEFacet.USDEUnstake(assets);
+        emit IEthenaFacet.EthenaUnstake(assets);
 
         vm.prank(allocator);
         mainnetController.unstakeSUSDe();
@@ -731,7 +731,7 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
         depositKey   = mainnetController.getERC4626DepositRateLimitKey(address(susde), Ethereum.USDE);
         mintKey      = mainnetController.usdeMintRateLimitKey();
         unstakeKey   = mainnetController.usdeUnstakeRateLimitKey();
-        setSignerKey = mainnetController.usdeSetDelegatedSignerRateLimitKey();
+        setSignerKey = mainnetController.setEthenaDelegatedSignerRateLimitKey();
 
         rateLimits.setRateLimitData(burnKey,      5_000_000e18,      uint256(1_000_000e18) / 4 hours);
         rateLimits.setRateLimitData(cooldownKey,  5_000_000e18,      uint256(1_000_000e18) / 4 hours);

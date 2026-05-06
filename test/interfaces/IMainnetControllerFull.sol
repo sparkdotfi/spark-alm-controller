@@ -510,12 +510,12 @@ interface IMainnetControllerFull is IController {
     function getUniswapV4WithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
-    /*** USDEFacet actions                                                                      ***/
+    /*** EthenaFacet actions                                                                    ***/
     /**********************************************************************************************/
 
-    function setDelegatedSigner(address delegatedSigner) external;
+    function setEthenaDelegatedSigner(address delegatedSigner) external;
 
-    function removeDelegatedSigner(address delegatedSigner) external;
+    function removeEthenaDelegatedSigner(address delegatedSigner) external;
 
     function prepareUSDeMint(uint256 usdcAmount) external;
 
@@ -527,9 +527,9 @@ interface IMainnetControllerFull is IController {
 
     function unstakeSUSDe() external;
 
-    function usdeSetDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+    function setEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
 
-    function usdeRemoveDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+    function removeEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
 
     function usdeMintRateLimitKey() external pure returns (bytes32 key);
 
