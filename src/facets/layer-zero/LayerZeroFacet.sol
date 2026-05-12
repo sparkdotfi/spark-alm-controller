@@ -29,25 +29,6 @@ interface ILayerZeroLike {
         MessagingFee fee;
     }
 
-    /**
-     * @notice Struct representing OFT fee details.
-     * @notice Future proof mechanism to provide a standardized way to communicate fees to things
-     *         like a UI.
-     */
-    struct OFTFeeDetail {
-        int256 feeAmountLD; // Amount of the fee in local decimals.
-        string description; // Description of the fee.
-    }
-
-    /**
-     * @notice Struct representing OFT limit information.
-     * @notice These amounts can change dynamically and are up to the specific oft implementation.
-     */
-    struct OFTLimit {
-        uint256 minAmountLD; // Minimum amount in local decimals that can be sent to the recipient.
-        uint256 maxAmountLD; // Maximum amount in local decimals that can be sent to the recipient.
-    }
-
     struct OFTReceipt {
         uint256 amountSentLD; // Actual amount of tokens debited from the sender in local decimals.
         /// @notice In non-default implementations, the amountReceivedLD COULD differ from this.
@@ -75,14 +56,7 @@ interface ILayerZeroLike {
         bytes   oftCmd;
     }
 
-    function quoteOFT(SendParam calldata sendParam)
-        external
-        view
-        returns (
-            OFTLimit       memory oftLimit,
-            OFTFeeDetail[] memory oftFeeDetails,
-            OFTReceipt     memory oftReceipt
-        );
+    function decimalConversionRate() external view returns (uint256);
 
     function quoteSend(SendParam calldata sendParam, bool payInLzToken)
         external
@@ -181,26 +155,20 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
             ApproveLib.approve(token, proxy, oft, amount);
         }
 
+        uint256 decimalConversionRate = ILayerZeroLike(oft).decimalConversionRate();
+        uint256 minAmountLD           = (amount / decimalConversionRate) * decimalConversionRate;
+
+        require(minAmountLD > 0, "LayerZeroFacet/zero-min-amount");
+
         ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
             dstEid       : destinationEndpointId,
             to           : recipient,
             amountLD     : amount,
-            minAmountLD  : 0,
+            minAmountLD  : minAmountLD,
             extraOptions : OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0),
             composeMsg   : "",
             oftCmd       : ""
         });
-
-        // Query the min amount received on the destination chain and set it.
-        ( , , ILayerZeroLike.OFTReceipt memory receipt ) = abi.decode(
-            IALMProxy(proxy).doCall(
-                oft,
-                abi.encodeCall(ILayerZeroLike.quoteOFT, (sendParams))
-            ),
-            (ILayerZeroLike.OFTLimit, ILayerZeroLike.OFTFeeDetail[], ILayerZeroLike.OFTReceipt)
-        );
-
-        sendParams.minAmountLD = receipt.amountReceivedLD;
 
         ILayerZeroLike.MessagingFee memory fee = abi.decode(
             IALMProxy(proxy).doCall(

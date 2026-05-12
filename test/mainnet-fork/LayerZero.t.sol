@@ -64,6 +64,8 @@ interface ILayerZeroLike {
         uint256         amountReceivedLD
     );
 
+    function decimalConversionRate() external view returns (uint256);
+
     function quoteSend(SendParam calldata sendParam, bool payInLzToken)
         external
         view
@@ -201,6 +203,30 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
+    }
+
+    function test_transferTokenLayerZero_zeroMinAmount() external {
+        vm.startPrank(SPARK_PROXY);
+
+        rateLimits.setRateLimitData(key, 10_000_000e6, 0);
+
+        mainnetController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
+
+        vm.stopPrank();
+
+        deal(allocator, 0.1 ether);
+
+        uint256 decimalConversionRate = ILayerZeroLike(USDT_OFT).decimalConversionRate();
+
+        uint256 amount = decimalConversionRate - 1;
+
+        vm.expectRevert("LayerZeroFacet/zero-min-amount");
+        vm.prank(allocator);
+        mainnetController.transferTokenLayerZero{value: 0.1 ether}(
+            USDT_OFT,
+            amount,
             DESTINATION_ENDPOINT_ID
         );
     }
@@ -597,6 +623,30 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         foreignController.transferTokenLayerZero{value: fee.nativeFee}(
             USDT_OFT,
             10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
+    }
+
+    function test_transferTokenLayerZero_zeroMinAmount() external {
+        vm.startPrank(SPARK_EXECUTOR);
+
+        foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
+
+        foreignController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
+
+        vm.stopPrank();
+
+        deal(allocator, 0.1 ether);
+
+        uint256 decimalConversionRate = ILayerZeroLike(USDT_OFT).decimalConversionRate();
+
+        uint256 amount = decimalConversionRate - 1;
+
+        vm.expectRevert("LayerZeroFacet/zero-min-amount");
+        vm.prank(allocator);
+        foreignController.transferTokenLayerZero{value: 0.1 ether}(
+            USDT_OFT,
+            amount,
             DESTINATION_ENDPOINT_ID
         );
     }
