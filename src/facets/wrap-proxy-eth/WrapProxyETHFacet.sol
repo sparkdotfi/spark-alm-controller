@@ -43,13 +43,13 @@ contract WrapProxyETHFacet is IWrapProxyETHFacet, Facet {
 
     /// @inheritdoc IWrapProxyETHFacet
     function wrapAll() external override nonReentrant onlyRole(ALLOCATOR_ROLE) {
+        require(_rateLimitExists(wrapRateLimitKey()), "WrapProxyETHFacet/invalid-action");
+
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 ethAmount = proxy.balance;
 
         if (ethAmount == 0) return;
-
-        require(_rateLimitExists(wrapRateLimitKey()), "WrapProxyETHFacet/invalid-action");
 
         IALMProxy(proxy).doCallWithValue(weth, "", ethAmount);
 
