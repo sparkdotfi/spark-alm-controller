@@ -6,7 +6,7 @@ import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/u
 import { IEnumerableIntegrations } from "../../../src/interfaces/IEnumerableIntegrations.sol";
 import { IFacet }                  from "../../../src/facets/IFacet.sol";
 import { IOTCFacet }               from "../../../src/facets/otc/IOTCFacet.sol";
-import { makeAddressKey }          from "../../../src/libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey }   from "../../../src/libraries/RateLimitHelpers.sol";
 
 import { OTCFacet } from "../../../src/facets/otc/OTCFacet.sol";
 
@@ -16,21 +16,19 @@ interface IControllerLike {
 
     function setBuffer(address exchange, address buffer) external;
 
-    function setIsWhitelisted(address exchange, address asset, bool isWhitelisted) external;
-
     function setMaxSlippage(address exchange, uint256 maxSlippage) external;
 
-    function setRechargeRate(address exchange, uint256 rechargeRate18) external;
+    function setRechargeRate(address exchange, uint256 normalizedRate) external;
 
     function getBuffer(address exchange) external view returns (address);
-
-    function getIsWhitelisted(address exchange, address asset) external view returns (bool);
 
     function getMaxSlippage(address exchange) external view returns (uint256);
 
     function getRechargeRate(address exchange) external view returns (uint256);
 
-    function getSwapRateLimitKey(address exchange) external pure returns (bytes32);
+    function getSendRateLimitKey(address exchange, address asset) external pure returns (bytes32);
+
+    function getClaimRateLimitKey(address exchange, address asset) external pure returns (bytes32);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
@@ -47,7 +45,7 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "OTCFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](9);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setBuffer.selector,
@@ -65,33 +63,28 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
         );
 
         wires[3] = IEnumerableIntegrations.Wire(
-            IControllerLike.setIsWhitelisted.selector,
-            IOTCFacet.setIsWhitelisted.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
             IControllerLike.getBuffer.selector,
             IOTCFacet.getBuffer.selector
         );
 
-        wires[5] = IEnumerableIntegrations.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IControllerLike.getMaxSlippage.selector,
             IOTCFacet.getMaxSlippage.selector
         );
 
-        wires[6] = IEnumerableIntegrations.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IControllerLike.getRechargeRate.selector,
             IOTCFacet.getRechargeRate.selector
         );
 
-        wires[7] = IEnumerableIntegrations.Wire(
-            IControllerLike.getIsWhitelisted.selector,
-            IOTCFacet.getIsWhitelisted.selector
+        wires[6] = IEnumerableIntegrations.Wire(
+            IControllerLike.getSendRateLimitKey.selector,
+            IOTCFacet.getSendRateLimitKey.selector
         );
 
-        wires[8] = IEnumerableIntegrations.Wire(
-            IControllerLike.getSwapRateLimitKey.selector,
-            IOTCFacet.getSwapRateLimitKey.selector
+        wires[7] = IEnumerableIntegrations.Wire(
+            IControllerLike.getClaimRateLimitKey.selector,
+            IOTCFacet.getClaimRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -302,97 +295,33 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** setIsWhitelisted Tests                                                                 ***/
+    /*** getSendRateLimitKey Tests                                                               ***/
     /**********************************************************************************************/
 
-    function test_setIsWhitelisted_reentrancy() external {
-        _setEntered(address(controller));
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setIsWhitelisted(address(0), address(0), false);
-    }
-
-    function test_setIsWhitelisted_notAdmin() external {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IFacet.AccessControlUnauthorizedAccount.selector,
-                unauthorized,
-                DEFAULT_ADMIN_ROLE
-            )
-        );
-
-        vm.prank(unauthorized);
-        controller.setIsWhitelisted(address(0), address(0), false);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IFacet.AccessControlUnauthorizedAccount.selector,
-                allocator,
-                DEFAULT_ADMIN_ROLE
-            )
-        );
-
-        vm.prank(allocator);
-        controller.setIsWhitelisted(address(0), address(0), false);
-    }
-
-    function test_setIsWhitelisted_zeroExchange() external {
-        vm.expectRevert("OTCFacet/exchange-zero-address");
-        vm.prank(admin);
-        controller.setIsWhitelisted(address(0), address(0), false);
-    }
-
-    function test_setIsWhitelisted_zeroAsset() external {
-        vm.expectRevert("OTCFacet/asset-zero-address");
-        vm.prank(admin);
-        controller.setIsWhitelisted(address(1), address(0), false);
-    }
-
-    function test_setIsWhitelisted_bufferNoSet() external {
-        vm.expectRevert("OTCFacet/buffer-not-set");
-        vm.prank(admin);
-        controller.setIsWhitelisted(address(1), address(1), false);
-    }
-
-    function test_setIsWhitelisted() external {
-        address asset    = makeAddr("asset");
-        address buffer   = makeAddr("buffer");
-        address exchange = makeAddr("exchange");
-
-        vm.prank(admin);
-        controller.setBuffer(exchange, buffer);
-
-        assertEq(controller.getIsWhitelisted(exchange, asset), false);
-
-        vm.expectEmit(address(controller));
-        emit IOTCFacet.OTCWhitelistedAssetSet(exchange, asset, true);
-
-        vm.record();
-
-        vm.prank(admin);
-        controller.setIsWhitelisted(exchange, asset, true);
-
-        _assertReentrancyGuardWrittenToTwice(address(controller));
-
-        assertEq(controller.getIsWhitelisted(exchange, asset), true);
-
-        vm.expectEmit(address(controller));
-        emit IOTCFacet.OTCWhitelistedAssetSet(exchange, asset, false);
-
-        vm.prank(admin);
-        controller.setIsWhitelisted(exchange, asset, false);
-
-        assertEq(controller.getIsWhitelisted(exchange, asset), false);
-    }
-
-    /**********************************************************************************************/
-    /*** getSwapRateLimitKey Tests                                                              ***/
-    /**********************************************************************************************/
-
-    function test_getSwapRateLimitKey() external {
-        bytes32 keyPrefix = keccak256("LIMIT_OTC_SWAP");
+    function test_getSendRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_OTC_SEND");
         address exchange  = makeAddr("exchange");
+        address asset     = makeAddr("asset");
 
-        assertEq(controller.getSwapRateLimitKey(exchange), makeAddressKey(keyPrefix, exchange));
+        assertEq(
+            controller.getSendRateLimitKey(exchange, asset),
+            makeAddressAddressKey(keyPrefix, asset, exchange)
+        );
+    }
+
+    /**********************************************************************************************/
+    /*** getClaimRateLimitKey Tests                                                              ***/
+    /**********************************************************************************************/
+
+    function test_getClaimRateLimitKey() external {
+        bytes32 keyPrefix = keccak256("LIMIT_OTC_CLAIM");
+        address exchange  = makeAddr("exchange");
+        address asset     = makeAddr("asset");
+
+        assertEq(
+            controller.getClaimRateLimitKey(exchange, asset),
+            makeAddressAddressKey(keyPrefix, asset, exchange)
+        );
     }
 
 }

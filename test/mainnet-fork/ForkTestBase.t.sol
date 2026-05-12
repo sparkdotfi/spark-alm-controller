@@ -1078,7 +1078,7 @@ abstract contract ForkTestBase is DssTest {
 
         vm.label(otcFacet, "OTCFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](14);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](13);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.setOTCMaxSlippage.selector,
@@ -1096,58 +1096,53 @@ abstract contract ForkTestBase is DssTest {
         );
 
         wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setOTCWhitelistedAsset.selector,
-            IOTCFacet.setIsWhitelisted.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.otcSend.selector,
             IOTCFacet.send.selector
         );
 
-        wires[5] = IEnumerableIntegrations.Wire(
+        wires[4] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.otcClaim.selector,
             IOTCFacet.claim.selector
         );
 
-        wires[6] = IEnumerableIntegrations.Wire(
+        wires[5] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.getOTCBuffer.selector,
             IOTCFacet.getBuffer.selector
         );
 
-        wires[7] = IEnumerableIntegrations.Wire(
+        wires[6] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.getOTCMaxSlippage.selector,
             IOTCFacet.getMaxSlippage.selector
         );
 
-        wires[8] = IEnumerableIntegrations.Wire(
+        wires[7] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.getOTCRechargeRate.selector,
             IOTCFacet.getRechargeRate.selector
         );
 
-        wires[9] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.otcWhitelistedAssets.selector,
-            IOTCFacet.getIsWhitelisted.selector
-        );
-
-        wires[10] = IEnumerableIntegrations.Wire(
+        wires[8] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.otcs.selector,
             IOTCFacet.getState.selector
         );
 
-        wires[11] = IEnumerableIntegrations.Wire(
+        wires[9] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.getOtcClaimWithRecharge.selector,
             IOTCFacet.getClaimWithRecharge.selector
         );
 
-        wires[12] = IEnumerableIntegrations.Wire(
+        wires[10] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.isOtcSwapReady.selector,
             IOTCFacet.getIsSwapReady.selector
         );
 
-        wires[13] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getOTCSwapRateLimitKey.selector,
-            IOTCFacet.getSwapRateLimitKey.selector
+        wires[11] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getOTCSendRateLimitKey.selector,
+            IOTCFacet.getSendRateLimitKey.selector
+        );
+
+        wires[12] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getOTCClaimRateLimitKey.selector,
+            IOTCFacet.getClaimRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

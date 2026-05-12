@@ -121,7 +121,7 @@ The OTC swap module allows offchain swaps with OTC desks and exchanges while con
 2. The contract prevents sending more funds until the required balance is returned
 3. Acts as a gating mechanism: maximum `X` funds outside the system per approved exchange
 
-This provides guarantees that at most `X` can be at risk per whitelisted OTC route, while allowing rapid throughput into high-liquidity offchain markets.
+This provides guarantees that at most `X` can be at risk per whitelisted (rate limited) OTC route, while allowing rapid throughput into high-liquidity offchain markets.
 
 ### System Diagram
 
@@ -149,7 +149,7 @@ $$claimedAmount + (blockTimestamp - sentTimestamp) \times rechargeRate \ge sentA
 
 ### OTC Buffer Configuration
 
-OTC buffers require infinite allowance (`type(uint256).max`) to the ALMProxy. This allows atomic fund pulling during swap completion. `otcClaim` always attempts to transfer the entire buffer balance for a whitelisted asset; with finite allowances, an attacker can donate a small amount to push balance above allowance, causing claim reverts and blocking OTC readiness when recharge is zero/low. See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#otc-buffer-deployment) for deployment checklist.
+OTC buffers require infinite allowance (`type(uint256).max`) to the ALMProxy. This allows atomic fund pulling during swap completion. `otcClaim` always attempts to transfer the entire buffer balance for a whitelisted (via rate limit) asset; with finite allowances, an attacker can donate a small amount to push balance above allowance, causing claim reverts and blocking OTC readiness when recharge is zero/low. See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#otc-buffer-deployment) for deployment checklist.
 
 ---
 

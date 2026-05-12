@@ -319,13 +319,11 @@ interface IMainnetControllerFull is IController {
 
     function setOTCBuffer(address exchange, address otcBuffer) external;
 
-    function setOTCRechargeRate(address exchange, uint256 rechargeRate18) external;
+    function setOTCRechargeRate(address exchange, uint256 normalizedRate) external;
 
-    function setOTCWhitelistedAsset(address exchange, address asset, bool isWhitelisted) external;
+    function otcSend(address exchange, address asset, uint256 amount) external;
 
-    function otcSend(address exchange, address assetToSend, uint256 amount) external;
-
-    function otcClaim(address exchange, address assetToClaim) external;
+    function otcClaim(address exchange, address asset) external;
 
     function getOTCBuffer(address exchange) external view returns (address);
 
@@ -333,18 +331,24 @@ interface IMainnetControllerFull is IController {
 
     function getOTCRechargeRate(address exchange) external view returns (uint256);
 
-    function otcWhitelistedAssets(address exchange, address asset) external view returns (bool);
-
     function otcs(address exchange)
         external
         view
-        returns (uint256 sent18, uint256 sentTimestamp, uint256 claimed18);
+        returns (uint256 normalizedSent, uint256 sentTimestamp, uint256 normalizedClaimed);
 
     function getOtcClaimWithRecharge(address exchange) external view returns (uint256);
 
     function isOtcSwapReady(address exchange) external view returns (bool);
 
-    function getOTCSwapRateLimitKey(address exchange) external pure returns (bytes32 key);
+    function getOTCSendRateLimitKey(address exchange, address asset)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getOTCClaimRateLimitKey(address exchange, address asset)
+        external
+        pure
+        returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** PendleFacet actions                                                                    ***/

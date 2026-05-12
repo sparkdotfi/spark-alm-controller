@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { makeAddressKey } from "../../libraries/RateLimitHelpers.sol";
+import { makeAddressAddressKey } from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
@@ -49,7 +49,8 @@ contract OTCFacet is IOTCFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 internal constant _LIMIT_SWAP = keccak256("LIMIT_OTC_SWAP");
+    bytes32 internal constant _LIMIT_SEND  = keccak256("LIMIT_OTC_SEND");
+    bytes32 internal constant _LIMIT_CLAIM = keccak256("LIMIT_OTC_CLAIM");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -109,88 +110,70 @@ contract OTCFacet is IOTCFacet, Facet {
         emit OTCRechargeRateSet(exchange, normalizedRate);
     }
 
-    /// @inheritdoc IOTCFacet
-    function setIsWhitelisted(address exchange, address asset, bool isWhitelisted)
-        external
-        override
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(exchange != address(0), "OTCFacet/exchange-zero-address");
-        require(asset    != address(0), "OTCFacet/asset-zero-address");
-
-        Parameters storage parameters = _getFacetStorage().parameters[exchange];
-
-        require(parameters.buffer != address(0), "OTCFacet/buffer-not-set");
-
-        parameters.assetWhitelisted[asset] = isWhitelisted;
-
-        emit OTCWhitelistedAssetSet(exchange, asset, isWhitelisted);
-    }
-
     /**********************************************************************************************/
     /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
     /// @inheritdoc IOTCFacet
-    function send(address exchange, address assetToSend, uint256 amount)
+    function send(address exchange, address asset, uint256 amount)
         external
         override
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
-        require(assetToSend != address(0), "OTCFacet/asset-to-send-zero");
-        require(amount > 0,                "OTCFacet/amount-to-send-zero");
+        require(asset != address(0), "OTCFacet/asset-zero-address");
+        require(amount > 0,          "OTCFacet/zero-amount");
 
-        FacetStorage storage $          = _getFacetStorage();
-        Parameters   storage parameters = $.parameters[exchange];
+        FacetStorage storage $ = _getFacetStorage();
 
-        // NOTE: The only way an asset can be whitelisted is if the buffer is set.
-        require(parameters.assetWhitelisted[assetToSend], "OTCFacet/asset-not-whitelisted");
+        address buffer = $.parameters[exchange].buffer;
 
-        // NOTE: This will lose precision for tokens with >18 decimals.
-        uint256 normalizedSent = _toNormalizedAmount(assetToSend, amount);
+        require(buffer != address(0), "OTCFacet/buffer-not-set");
 
-        _decreaseRateLimit(getSwapRateLimitKey(exchange), normalizedSent);
+        _decreaseRateLimit(getSendRateLimitKey(exchange, asset), amount);
 
         require(getIsSwapReady(exchange), "OTCFacet/last-swap-not-returned");
 
         State storage state = $.states[exchange];
 
-        state.normalizedSent    = normalizedSent;
+        // NOTE: This will lose precision for tokens with >18 decimals.
+        state.normalizedSent    = _toNormalizedAmount(asset, amount);
         state.sentTimestamp     = block.timestamp;
         state.normalizedClaimed = 0;
 
-        _transfer(assetToSend, exchange, amount);
+        _transfer(asset, exchange, amount);
 
-        emit OTCSwapSent(exchange, parameters.buffer, assetToSend, amount, normalizedSent);
+        emit OTCSent(exchange, buffer, asset, amount);
     }
 
     /// @inheritdoc IOTCFacet
-    function claim(address exchange, address assetToClaim)
+    function claim(address exchange, address asset)
         external
         override
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
-        require(assetToClaim != address(0), "OTCFacet/asset-to-claim-zero");
+        require(asset != address(0), "OTCFacet/asset-zero-address");
 
         FacetStorage storage $          = _getFacetStorage();
         Parameters   storage parameters = $.parameters[exchange];
 
         address buffer = parameters.buffer;
 
-        require(buffer != address(0),                      "OTCFacet/buffer-not-set");
-        require(parameters.assetWhitelisted[assetToClaim], "OTCFacet/asset-not-whitelisted");
+        require(buffer != address(0), "OTCFacet/buffer-not-set");
 
-        uint256 amount           = IERC20Like(assetToClaim).balanceOf(buffer);
-        uint256 normalizedAmount = _toNormalizedAmount(assetToClaim, amount);
+        require(
+            _rateLimitExists(getClaimRateLimitKey(exchange, asset)),
+            "OTCFacet/invalid-action"
+        );
 
-        $.states[exchange].normalizedClaimed += normalizedAmount;
+        uint256 amount = IERC20Like(asset).balanceOf(buffer);
 
-        _transferFrom(assetToClaim, buffer, amount);
+        $.states[exchange].normalizedClaimed += _toNormalizedAmount(asset, amount);
 
-        emit OTCClaimed(exchange, buffer, assetToClaim, amount, normalizedAmount);
+        _transferFrom(asset, buffer, amount);
+
+        emit OTCClaimed(exchange, buffer, asset, amount);
     }
 
     /**********************************************************************************************/
@@ -210,16 +193,6 @@ contract OTCFacet is IOTCFacet, Facet {
     /// @inheritdoc IOTCFacet
     function getRechargeRate(address exchange) external view override returns (uint256) {
         return _getFacetStorage().parameters[exchange].normalizedRate;
-    }
-
-    /// @inheritdoc IOTCFacet
-    function getIsWhitelisted(address exchange, address asset)
-        external
-        view
-        override
-        returns (bool)
-    {
-        return _getFacetStorage().parameters[exchange].assetWhitelisted[asset];
     }
 
     /// @inheritdoc IOTCFacet
@@ -260,8 +233,23 @@ contract OTCFacet is IOTCFacet, Facet {
     }
 
     /// @inheritdoc IOTCFacet
-    function getSwapRateLimitKey(address exchange) public pure override returns (bytes32) {
-        return makeAddressKey(_LIMIT_SWAP, exchange);
+    function getSendRateLimitKey(address exchange, address asset)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_SEND, asset, exchange);
+    }
+
+    /// @inheritdoc IOTCFacet
+    function getClaimRateLimitKey(address exchange, address asset)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressAddressKey(_LIMIT_CLAIM, asset, exchange);
     }
 
     /**********************************************************************************************/
