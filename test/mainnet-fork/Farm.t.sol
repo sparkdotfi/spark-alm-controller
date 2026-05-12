@@ -265,16 +265,11 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
         vm.record();
 
-        uint256 expectedReward = 2930.857045118398e18;
-
         vm.expectEmit(address(mainnetController));
         emit IFarmFacet.FarmWithdraw(FARM, 1_000_000e18);
 
-        vm.expectEmit(address(mainnetController));
-        emit IFarmFacet.FarmReward(FARM, expectedReward);
-
         vm.prank(allocator);
-        assertEq(mainnetController.withdrawFromFarm(FARM, 1_000_000e18), expectedReward);
+        mainnetController.withdrawFromFarm(FARM, 1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -282,7 +277,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
         assertEq(USDS.balanceOf(address(almProxy)),                     1_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         0);
-        assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), expectedReward);
+        assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0); // No reward claimed
     }
 
 }

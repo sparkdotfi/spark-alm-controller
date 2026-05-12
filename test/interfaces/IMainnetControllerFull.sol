@@ -223,7 +223,7 @@ interface IMainnetControllerFull is IController {
 
     function claimRewardFromFarm(address farm) external returns (uint256 reward);
 
-    function withdrawFromFarm(address farm, uint256 amount) external returns (uint256 reward);
+    function withdrawFromFarm(address farm, uint256 amount) external;
 
     function getFarmClaimRewardRateLimitKey(address farm) external pure returns (bytes32 key);
 

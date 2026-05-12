@@ -77,7 +77,17 @@ contract FarmFacet is IFarmFacet, Facet {
         returns (uint256 reward)
     {
         require(_rateLimitExists(getClaimRewardRateLimitKey(farm)), "FarmFacet/invalid-action");
-        return _claimReward(farm);
+
+        address proxy        = _getSharedControllerStorage().proxy;
+        address rewardsToken = IFarmLike(farm).rewardsToken();
+
+        uint256 startingBalance = IERC20Like(rewardsToken).balanceOf(proxy);
+
+        IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.getReward, ()));
+
+        reward = IERC20Like(rewardsToken).balanceOf(proxy) - startingBalance;
+
+        emit FarmReward(farm, reward);
     }
 
     /// @inheritdoc IFarmFacet
@@ -86,7 +96,6 @@ contract FarmFacet is IFarmFacet, Facet {
         override
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
-        returns (uint256 reward)
     {
         _decreaseRateLimit(getWithdrawRateLimitKey(farm), amount);
 
@@ -96,8 +105,6 @@ contract FarmFacet is IFarmFacet, Facet {
         );
 
         emit FarmWithdraw(farm, amount);
-
-        return _claimReward(farm);
     }
 
     /**********************************************************************************************/
@@ -122,23 +129,6 @@ contract FarmFacet is IFarmFacet, Facet {
     /// @inheritdoc IFarmFacet
     function getWithdrawRateLimitKey(address farm) public pure override returns (bytes32) {
         return makeAddressKey(_LIMIT_WITHDRAW, farm);
-    }
-
-    /**********************************************************************************************/
-    /*** Internal Interactive Functions                                                         ***/
-    /**********************************************************************************************/
-
-    function _claimReward(address farm) internal returns (uint256 reward) {
-        address proxy        = _getSharedControllerStorage().proxy;
-        address rewardsToken = IFarmLike(farm).rewardsToken();
-
-        uint256 startingBalance = IERC20Like(rewardsToken).balanceOf(proxy);
-
-        IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.getReward, ()));
-
-        reward = IERC20Like(rewardsToken).balanceOf(proxy) - startingBalance;
-
-        emit FarmReward(farm, reward);
     }
 
 }
