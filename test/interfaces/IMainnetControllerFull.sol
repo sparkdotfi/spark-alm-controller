@@ -372,6 +372,8 @@ interface IMainnetControllerFull is IController {
 
     function psmTo18ConversionFactor() external view returns (uint256);
 
+    function psmUSDCToUSDSSwapRateLimitKey() external pure returns (bytes32 key);
+
     function psmUSDSToUSDCSwapRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/

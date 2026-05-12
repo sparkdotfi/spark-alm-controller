@@ -257,6 +257,12 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         rateLimits.setRateLimitData(morphoDepositKey, 10_000_000e18, uint256(10_000_000e18) / 1 days);
 
         rateLimits.setRateLimitData(
+            mainnetController.psmUSDCToUSDSSwapRateLimitKey(),
+            10_000_000e6,
+            uint256(10_000_000e6) / 1 days
+        );
+
+        rateLimits.setRateLimitData(
             mainnetController.psmUSDSToUSDCSwapRateLimitKey(),
             10_000_000e6,
             uint256(10_000_000e6) / 1 days

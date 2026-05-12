@@ -195,7 +195,7 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
 
     function test_swapUSDCToUSDS_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.psmUSDSToUSDCSwapRateLimitKey(), 0, 0);
+        rateLimits.setRateLimitData(mainnetController.psmUSDCToUSDSSwapRateLimitKey(), 0, 0);
         vm.stopPrank();
 
         vm.expectRevert("RateLimits/zero-maxAmount");
@@ -203,7 +203,22 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
         mainnetController.swapUSDCToUSDS(1e6);
     }
 
+    function test_swapUSDCToUSDS_rateLimitBoundary() external {
+        deal(Ethereum.USDC, address(almProxy), 10_000_000e6);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(allocator);
+        mainnetController.swapUSDCToUSDS(5_000_000e6 + 1);
+
+        vm.prank(allocator);
+        mainnetController.swapUSDCToUSDS(5_000_000e6);
+    }
+
     function test_swapUSDCToUSDS_incompleteFillBoundary() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setUnlimitedRateLimitData(mainnetController.psmUSDCToUSDSSwapRateLimitKey());
+        vm.stopPrank();
+
         // The line is just over 2.1 billion, this condition will allow DAI to get minted to get to
         // 2 billion in art, and then another fill to get to the `line`.
         deal(Ethereum.USDC, POCKET, 2_000_000_000e6);
@@ -300,6 +315,10 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
     function test_swapUSDCToUSDS_exactBalanceNoRefill() external {
         uint256 swapAmount = DAI_BAL_PSM / 1e12;
 
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.psmUSDCToUSDSSwapRateLimitKey(), swapAmount, 0);
+        vm.stopPrank();
+
         deal(Ethereum.USDC, address(almProxy), swapAmount);
 
         assertEq(USDS.balanceOf(address(almProxy)),          0);
@@ -348,6 +367,10 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
     }
 
     function test_swapUSDCToUSDS_partialRefill() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.psmUSDCToUSDSSwapRateLimitKey(), 415_000_000e6, 0);
+        vm.stopPrank();
+
         assertEq(DAI_BAL_PSM, 413_630_294.354574e18);
 
         // PSM is not fillable at current fork so need to deal USDC
@@ -428,6 +451,10 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
     }
 
     function test_swapUSDCToUSDS_multipleRefills() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.psmUSDCToUSDSSwapRateLimitKey(), 500_000_000e6, 0);
+        vm.stopPrank();
+
         assertEq(DAI_BAL_PSM, 413_630_294.354574e18);
 
         // PSM is not fillable at current fork so need to deal USDC
@@ -520,43 +547,77 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
     }
 
     function test_swapUSDCToUSDS_rateLimited() external {
-        bytes32 key = mainnetController.psmUSDSToUSDCSwapRateLimitKey();
+        bytes32 key = mainnetController.psmUSDCToUSDSSwapRateLimitKey();
+
+        deal(Ethereum.USDC, address(almProxy), 10_000_000e6);
 
         vm.startPrank(allocator);
 
-        mainnetController.mintUSDS(5_000_000e18);
-
-        vm.expectEmit(address(mainnetController));
-        emit IPSMFacet.PSMSwapUSDSToUSDC(1_000_000e6);
-        mainnetController.swapUSDSToUSDC(1_000_000e6);
-
-        assertEq(rateLimits.getCurrentRateLimit(key), 4_000_000e6);
-        assertEq(USDS.balanceOf(address(almProxy)),   4_000_000e18);
-        assertEq(USDC.balanceOf(address(almProxy)),   1_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e6);
+        assertEq(USDC.balanceOf(address(almProxy)),   10_000_000e6);
+        assertEq(USDS.balanceOf(address(almProxy)),   0);
 
         vm.expectEmit(address(mainnetController));
         emit IPSMFacet.PSMSwapUSDCToUSDS(400_000e6);
         mainnetController.swapUSDCToUSDS(400_000e6);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 4_400_000e6);
-        assertEq(USDS.balanceOf(address(almProxy)),   4_400_000e18);
-        assertEq(USDC.balanceOf(address(almProxy)),   600_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(key), 4_600_000e6);
+        assertEq(USDC.balanceOf(address(almProxy)),   9_600_000e6);
+        assertEq(USDS.balanceOf(address(almProxy)),   400_000e18);
 
-        skip(4 hours);
+        skip(1 hours);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e6);
-        assertEq(USDS.balanceOf(address(almProxy)),   4_400_000e18);
-        assertEq(USDC.balanceOf(address(almProxy)),   600_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(key), 4_849_999.998400e6);
+        assertEq(USDC.balanceOf(address(almProxy)),   9_600_000e6);
+        assertEq(USDS.balanceOf(address(almProxy)),   400_000e18);
 
         vm.expectEmit(address(mainnetController));
-        emit IPSMFacet.PSMSwapUSDCToUSDS(600_000e6);
-        mainnetController.swapUSDCToUSDS(600_000e6);
+        emit IPSMFacet.PSMSwapUSDCToUSDS(4_849_999.998400e6);
+        mainnetController.swapUSDCToUSDS(4_849_999.998400e6);
 
-        assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e6);
-        assertEq(USDS.balanceOf(address(almProxy)),   5_000_000e18);
-        assertEq(USDC.balanceOf(address(almProxy)),   0);
+        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+        assertEq(USDC.balanceOf(address(almProxy)),   4_750_000.001600e6);
+        assertEq(USDS.balanceOf(address(almProxy)),   5_249_999.998400000000000000e18);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.swapUSDCToUSDS(1);
 
         vm.stopPrank();
+    }
+
+    function test_swapUSDSToUSDC_zeroUSDSToUSDCSwapRateLimit() external {
+        bytes32 usdsToUsdcKey = mainnetController.psmUSDSToUSDCSwapRateLimitKey();
+        bytes32 usdcToUsdsKey = mainnetController.psmUSDCToUSDSSwapRateLimitKey();
+
+        vm.prank(allocator);
+        mainnetController.mintUSDS(1_000_000e18);
+
+        vm.prank(allocator);
+        mainnetController.swapUSDSToUSDC(1_000_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(usdsToUsdcKey), 4_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(usdcToUsdsKey), 5_000_000e6);
+
+        // Partial swap USDC to USDS
+        vm.prank(allocator);
+        mainnetController.swapUSDCToUSDS(500_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(usdsToUsdcKey), 4_500_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(usdcToUsdsKey), 4_500_000e6);
+
+        // Zero USDS to USDC swap rate limit
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(usdsToUsdcKey, 0, 0);
+
+        assertEq(rateLimits.getCurrentRateLimit(usdsToUsdcKey), 0);
+        assertEq(rateLimits.getCurrentRateLimit(usdcToUsdsKey), 4_500_000e6);
+
+        // Partial swap USDC to USDS
+        vm.prank(allocator);
+        mainnetController.swapUSDCToUSDS(500_000e6);
+
+        assertEq(rateLimits.getCurrentRateLimit(usdsToUsdcKey), 0); // No change
+        assertEq(rateLimits.getCurrentRateLimit(usdcToUsdsKey), 4_000_000e6);
     }
 
     function testFuzz_swapUSDCToUSDS(uint256 swapAmount) external {

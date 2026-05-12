@@ -44,6 +44,7 @@ contract PSMFacet is IPSMFacet, Facet {
     /**********************************************************************************************/
 
     bytes32 internal constant _LIMIT_USDS_TO_USDC = keccak256("LIMIT_USDS_TO_USDC");
+    bytes32 internal constant _LIMIT_USDC_TO_USDS = keccak256("LIMIT_USDC_TO_USDS");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -129,7 +130,8 @@ contract PSMFacet is IPSMFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
-        _increaseRateLimit(usdsToUSDCSwapRateLimitKey(), usdcAmount);
+        _tryIncreaseRateLimit(usdsToUSDCSwapRateLimitKey(), usdcAmount);
+        _decreaseRateLimit(usdcToUSDSSwapRateLimitKey(),    usdcAmount);
 
         // Approve USDC to PSM from the proxy (assumes the proxy has enough USDC).
         _approve(usdc, psm, usdcAmount);
@@ -180,6 +182,11 @@ contract PSMFacet is IPSMFacet, Facet {
     /// @inheritdoc IPSMFacet
     function to18ConversionFactor() public view override returns (uint256) {
         return IPSMLike(psm).to18ConversionFactor();
+    }
+
+    /// @inheritdoc IPSMFacet
+    function usdcToUSDSSwapRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_USDC_TO_USDS;
     }
 
     /// @inheritdoc IPSMFacet

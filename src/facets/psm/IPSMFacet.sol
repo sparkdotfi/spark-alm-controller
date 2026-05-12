@@ -68,6 +68,9 @@ interface IPSMFacet is IFacet {
     /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);
 
+    /// @notice The derived rate limit key for USDC-to-USDS swap operations.
+    function usdcToUSDSSwapRateLimitKey() external pure returns (bytes32 key);
+
     /// @notice The derived rate limit key for USDS-to-USDC swap operations.
     function usdsToUSDCSwapRateLimitKey() external pure returns (bytes32 key);
 
