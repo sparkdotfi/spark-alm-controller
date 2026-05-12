@@ -13,17 +13,21 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setMaxFeeCap(uint256 maxFeeCap) external;
+    function setDomainParameters(
+        uint32  destinationDomain,
+        bytes32 recipient,
+        uint32  minFeeCapRate,
+        uint32  maxFeeCapRate
+    ) external;
 
-    function setMintRecipient(uint32 destinationDomain, bytes32 recipient) external;
-
-    function getMaxFeeCap() external view returns (uint256);
-
-    function getMintRecipient(uint32 destinationDomain) external view returns (bytes32);
+    function toCCTPRateLimitKey() external pure returns (bytes32);
 
     function getToDomainRateLimitKey(uint32 destinationDomain) external pure returns (bytes32);
 
-    function toCCTPRateLimitKey() external pure returns (bytes32);
+    function getDomainParameters(uint32 destinationDomain)
+        external
+        view
+        returns (bytes32 mintRecipient, uint32 minFeeCapRate, uint32 maxFeeCapRate);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
@@ -43,36 +47,26 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "CCTPFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IControllerLike.getMaxFeeCap.selector,
-            ICCTPFacet.maxFeeCap.selector
+            IControllerLike.setDomainParameters.selector,
+            ICCTPFacet.setDomainParameters.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IControllerLike.getMintRecipient.selector,
-            ICCTPFacet.getMintRecipient.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IControllerLike.setMaxFeeCap.selector,
-            ICCTPFacet.setMaxFeeCap.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IControllerLike.setMintRecipient.selector,
-            ICCTPFacet.setMintRecipient.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
             IControllerLike.toCCTPRateLimitKey.selector,
             ICCTPFacet.toCCTPRateLimitKey.selector
         );
 
-        wires[5] = IEnumerableIntegrations.Wire(
+        wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.getToDomainRateLimitKey.selector,
             ICCTPFacet.getToDomainRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.getDomainParameters.selector,
+            ICCTPFacet.getDomainParameters.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -112,98 +106,70 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** setMaxFeeCap Tests                                                                     ***/
+    /*** setDomainParameters Tests                                                              ***/
     /**********************************************************************************************/
 
-    function test_setMaxFeeCap_reentrancy() external {
+    function test_setDomainParameters_reentrancy() external {
         _setEntered(address(controller));
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setMaxFeeCap(1e18);
+        controller.setDomainParameters(0, 0, 0, 0);
     }
 
-    function test_setMaxFeeCap_unauthorizedAccount() external {
-        vm.expectRevert(abi.encodeWithSignature(
-            "AccessControlUnauthorizedAccount(address,bytes32)",
-            unauthorized,
-            DEFAULT_ADMIN_ROLE
-        ));
-
-        vm.prank(unauthorized);
-        controller.setMaxFeeCap(1e18);
-    }
-
-    function test_setMaxFeeCap() external {
-        assertEq(controller.getMaxFeeCap(), 0);
-
-        vm.record();
-
-        vm.expectEmit(address(controller));
-        emit ICCTPFacet.CCTPMaxFeeCapSet(1e18);
-
-        vm.prank(admin);
-        controller.setMaxFeeCap(1e18);
-
-        _assertReentrancyGuardWrittenToTwice(address(controller));
-
-        assertEq(controller.getMaxFeeCap(), 1e18);
-    }
-
-    /**********************************************************************************************/
-    /*** setMintRecipient Tests                                                                 ***/
-    /**********************************************************************************************/
-
-    function test_setMintRecipient_reentrancy() external {
-        _setEntered(address(controller));
-        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setMintRecipient(1, mintRecipient1);
-    }
-
-    function test_setMintRecipient_unauthorizedAccount() external {
+    function test_setDomainParameters_unauthorizedAccount() external {
         vm.expectRevert(abi.encodeWithSignature(
             "AccessControlUnauthorizedAccount(address,bytes32)",
             address(this),
             DEFAULT_ADMIN_ROLE
         ));
-        controller.setMintRecipient(1, mintRecipient1);
+        controller.setDomainParameters(0, 0, 0, 0);
     }
 
-    function test_setMintRecipient_zeroAddress() external {
+    function test_setDomainParameters_zeroRecipient() external {
         vm.expectRevert("CCTPFacet/zero-recipient");
         vm.prank(admin);
-        controller.setMintRecipient(1, bytes32(0));
+        controller.setDomainParameters(1, bytes32(0), 0, 0);
     }
 
-    function test_setMintRecipient() external {
-        assertEq(controller.getMintRecipient(1), bytes32(0));
-        assertEq(controller.getMintRecipient(2), bytes32(0));
+    function test_setDomainParameters_minFeeCapRateBoundary() external {
+        vm.expectRevert("CCTPFacet/min-fee-cap-rate-too-high");
+        vm.prank(admin);
+        controller.setDomainParameters(1, mintRecipient1, 1, 0);
 
-        vm.expectEmit(address(controller));
-        emit ICCTPFacet.CCTPMintRecipientSet(1, mintRecipient1);
+        vm.expectRevert("CCTPFacet/min-fee-cap-rate-too-high");
+        vm.prank(admin);
+        controller.setDomainParameters(1, mintRecipient1, 10_001, 10_000);
 
         vm.prank(admin);
-        controller.setMintRecipient(1, mintRecipient1);
+        controller.setDomainParameters(1, mintRecipient1, 10_000, 10_000);
+    }
 
-        assertEq(controller.getMintRecipient(1), mintRecipient1);
-
-        vm.expectEmit(address(controller));
-        emit ICCTPFacet.CCTPMintRecipientSet(2, mintRecipient2);
+    function test_setDomainParameters_maxFeeCapRateBoundary() external {
+        vm.expectRevert("CCTPFacet/max-fee-cap-rate-too-high");
+        vm.prank(admin);
+        controller.setDomainParameters(1, mintRecipient1, 0, 10_001);
 
         vm.prank(admin);
-        controller.setMintRecipient(2, mintRecipient2);
+        controller.setDomainParameters(1, mintRecipient1, 0, 10_000);
+    }
 
-        assertEq(controller.getMintRecipient(2), mintRecipient2);
+    function test_setDomainParameters() external {
+        ( bytes32 mintRecipient, uint32 minFeeCapRate, uint32 maxFeeCapRate ) = controller.getDomainParameters(1);
 
-        vm.record();
+        assertEq(mintRecipient, bytes32(0));
+        assertEq(minFeeCapRate, 0);
+        assertEq(maxFeeCapRate, 0);
 
         vm.expectEmit(address(controller));
-        emit ICCTPFacet.CCTPMintRecipientSet(1, mintRecipient2);
+        emit ICCTPFacet.CCTPDomainParametersSet(1, mintRecipient1, 100, 1_000);
 
         vm.prank(admin);
-        controller.setMintRecipient(1, mintRecipient2);
+        controller.setDomainParameters(1, mintRecipient1, 100, 1_000);
 
-        assertEq(controller.getMintRecipient(1), mintRecipient2);
+        ( mintRecipient, minFeeCapRate, maxFeeCapRate ) = controller.getDomainParameters(1);
 
-        _assertReentrancyGuardWrittenToTwice(address(controller));
+        assertEq(mintRecipient, mintRecipient1);
+        assertEq(minFeeCapRate, 100);
+        assertEq(maxFeeCapRate, 1_000);
     }
 
     /**********************************************************************************************/

@@ -34,25 +34,27 @@ interface IForeignControllerFull is IController {
     /*** CCTPFacet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function setCCTPMaxFeeCap(uint256 maxFeeCap) external;
+    function setCCTPDomainParameters(
+        uint32  destinationDomain,
+        bytes32 recipient,
+        uint32  minFeeCapRate,
+        uint32  maxFeeCapRate
+    ) external;
 
-    function setCCTPMintRecipient(uint32 destinationDomain, bytes32 recipient) external;
-
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain) external;
-
-    function transferUSDCToCCTPWithFee(uint256 usdcAmount, uint256 maxFee, uint32 destinationDomain)
+    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain, uint64 feeCapRate)
         external;
 
-    function getCCTPMaxFeeCap() external view returns (uint256);
+    function toCCTPRateLimitKey() external pure returns (bytes32 key);
 
-    function getCCTPMintRecipient(uint32 destinationDomain) external view returns (bytes32);
+    function getCCTPDomainParameters(uint32 destinationDomain)
+        external
+        view
+        returns (bytes32 mintRecipient, uint32 minFeeCapRate, uint32 maxFeeCapRate);
 
     function getCCTPToDomainRateLimitKey(uint32 destinationDomain)
         external
         pure
         returns (bytes32 key);
-
-    function toCCTPRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** CentrifugeFacet actions                                                                ***/

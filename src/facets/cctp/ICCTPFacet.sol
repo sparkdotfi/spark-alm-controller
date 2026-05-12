@@ -12,21 +12,32 @@ import { IFacet } from "../IFacet.sol";
 interface ICCTPFacet is IFacet {
 
     /**********************************************************************************************/
-    /*** Events                                                                                 ***/
+    /*** Structs                                                                                ***/
     /**********************************************************************************************/
 
-    /**
-     * @notice Emitted when the admin updates the max fee cap.
-     * @param  maxFeeCap New upper bound on the fee for `transferWithFee`.
-     */
-    event CCTPMaxFeeCapSet(uint256 maxFeeCap);
+    struct DomainParameters {
+        bytes32 mintRecipient;
+        uint32  minFeeCapRate;
+        uint32  maxFeeCapRate;
+    }
+
+    /**********************************************************************************************/
+    /*** Events                                                                                 ***/
+    /**********************************************************************************************/
 
     /**
      * @notice Emitted when a mint recipient is configured for a destination domain.
      * @param  destinationDomain CCTP domain identifier for the target chain.
      * @param  mintRecipient     Bytes32-encoded address that receives minted USDC.
+     * @param  minFeeCapRate     Minimum fee cap rate (in basis points) for the destination domain.
+     * @param  maxFeeCapRate     Maximum fee cap rate (in basis points) for the destination domain.
      */
-    event CCTPMintRecipientSet(uint32 indexed destinationDomain, bytes32 indexed mintRecipient);
+    event CCTPDomainParametersSet(
+        uint32  indexed destinationDomain,
+        bytes32 indexed mintRecipient,
+        uint32          minFeeCapRate,
+        uint32          maxFeeCapRate
+    );
 
     /**
      * @notice Emitted per depositForBurn call for off-chain attestation tracking.
@@ -34,11 +45,13 @@ interface ICCTPFacet is IFacet {
      * @param  destinationDomain CCTP domain identifier for the target chain.
      * @param  mintRecipient     Bytes32-encoded recipient on the target chain.
      * @param  amount            Amount of USDC burned in this transfer chunk.
+     * @param  maxFee            Maximum fee for the transfer (USDC precision, 6 decimals).
      */
     event CCTPTransferInitiated(
         uint32  indexed destinationDomain,
         bytes32 indexed mintRecipient,
-        uint256         amount
+        uint256         amount,
+        uint256         maxFee
     );
 
     /**********************************************************************************************/
@@ -46,32 +59,27 @@ interface ICCTPFacet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Sets the maximum fee cap for `transferWithFee` calls.
-     * @param  maxFeeCap Upper bound on the max fee (USDC precision, 6 decimals).
-     */
-    function setMaxFeeCap(uint256 maxFeeCap) external;
-
-    /**
      * @notice Configures the mint recipient for a CCTP destination domain.
      * @param  destinationDomain CCTP domain identifier for the target chain.
      * @param  recipient         Bytes32-encoded address to receive minted USDC.
+     * @param  minFeeCapRate     Minimum fee cap rate (in basis points) for the destination domain.
+     * @param  maxFeeCapRate     Maximum fee cap rate (in basis points) for the destination domain.
      */
-    function setMintRecipient(uint32 destinationDomain, bytes32 recipient) external;
-
-    /**
-     * @notice Transfers USDC to a destination chain via standard CCTP burn (no fee).
-     * @param  amount            Amount of USDC to transfer (6-decimal precision).
-     * @param  destinationDomain CCTP domain identifier for the target chain.
-     */
-    function transfer(uint256 amount, uint32 destinationDomain) external;
+    function setDomainParameters(
+        uint32  destinationDomain,
+        bytes32 recipient,
+        uint32  minFeeCapRate,
+        uint32  maxFeeCapRate
+    ) external;
 
     /**
      * @notice Transfers USDC to a destination chain with a max fee for fast burns.
      * @param  amount            Amount of USDC to transfer (6-decimal precision).
-     * @param  maxFee            Max fee for fast burn (USDC precision, 6 decimals).
      * @param  destinationDomain CCTP domain identifier for the target chain.
+     * @param  feeCapRate        Fee cap rate (in basis points) for the transfer(s).
+     *                           Fee cap rate should be zero until CCTP introduces fees.
      */
-    function transferWithFee(uint256 amount, uint256 maxFee, uint32 destinationDomain) external;
+    function transfer(uint256 amount, uint32 destinationDomain, uint64 feeCapRate) external;
 
     /**********************************************************************************************/
     /*** Variables                                                                              ***/
@@ -79,9 +87,6 @@ interface ICCTPFacet is IFacet {
 
     /// @notice Always bytes32(0): any address can complete the message on the destination chain.
     function DESTINATION_CALLER() external pure returns (bytes32);
-
-    /// @notice Always zero. Standard CCTP burns do not incur a fee, so the default max fee is zero.
-    function MAX_FEE() external pure returns (uint256);
 
     /**
      * @notice Finality threshold for CCTP depositForBurn. Value 2000 corresponds to standard
@@ -91,9 +96,6 @@ interface ICCTPFacet is IFacet {
 
     /// @notice Address of the CCTP TokenMessenger contract (immutable).
     function cctp() external view returns (address);
-
-    /// @notice The configured max fee cap for `transferWithFee`.
-    function maxFeeCap() external view returns (uint256);
 
     /// @notice The derived rate limit key for aggregate CCTP volume across all domains.
     function toCCTPRateLimitKey() external pure returns (bytes32 key);
@@ -116,10 +118,12 @@ interface ICCTPFacet is IFacet {
      * @notice Returns the configured mint recipient for a destination domain.
      * @param  destinationDomain CCTP domain identifier.
      * @return mintRecipient     Bytes32-encoded recipient. Zero if not set.
+     * @return minFeeCapRate     Minimum fee cap rate (in basis points) for the destination domain.
+     * @return maxFeeCapRate     Maximum fee cap rate (in basis points) for the destination domain.
      */
-    function getMintRecipient(uint32 destinationDomain)
+    function getDomainParameters(uint32 destinationDomain)
         external
         view
-        returns (bytes32 mintRecipient);
+        returns (bytes32 mintRecipient, uint32 minFeeCapRate, uint32 maxFeeCapRate);
 
 }

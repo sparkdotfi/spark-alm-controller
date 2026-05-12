@@ -14,8 +14,6 @@ import { Base as GroveBase } from "../../lib/grove-address-registry/src/Base.sol
 import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
-import { CCTPForwarder } from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
-
 import { IAaveFacet }          from "../../src/facets/aave/IAaveFacet.sol";
 import { ICurveFacet }         from "../../src/facets/curve/ICurveFacet.sol";
 import { IERC4626Facet }       from "../../src/facets/erc4626/IERC4626Facet.sol";
@@ -81,9 +79,8 @@ abstract contract ForkTestBase is Test {
     /*** Base addresses                                                                         ***/
     /**********************************************************************************************/
 
-    address constant SPARK_EXECUTOR      = Base.SPARK_EXECUTOR;
-    address constant CCTP_MESSENGER_BASE = Base.CCTP_TOKEN_MESSENGER;
-    address constant SSR_ORACLE          = Base.SSR_AUTH_ORACLE;
+    address constant SPARK_EXECUTOR = Base.SPARK_EXECUTOR;
+    address constant SSR_ORACLE     = Base.SSR_AUTH_ORACLE;
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
