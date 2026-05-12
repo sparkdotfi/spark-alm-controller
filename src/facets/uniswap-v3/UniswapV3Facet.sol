@@ -438,6 +438,8 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             liquidity : liquidity
         });
 
+        _callCollect(tokenId); // Collect fees first.
+
         uint256 startingToken0Balance = _getProxyBalance(token0);
         uint256 startingToken1Balance = _getProxyBalance(token1);
 
