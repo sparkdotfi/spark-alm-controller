@@ -59,7 +59,7 @@ interface IUniswapV3Facet is IFacet {
      * @param  pool      Address of the Uniswap V3 pool.
      * @param  lowerTick New lower tick bound for liquidity positions.
      */
-    event UniswapV3LowerTickUpdated(address indexed pool, int24 lowerTick);
+    event UniswapV3LowerTickSet(address indexed pool, int24 lowerTick);
 
     /**
      * @notice Emitted when the max slippage for a pool is updated.
@@ -110,14 +110,14 @@ interface IUniswapV3Facet is IFacet {
      * @param  pool           Address of the Uniswap V3 pool.
      * @param  twapSecondsAgo New TWAP lookback duration in seconds.
      */
-    event UniswapV3TWAPSecondsAgoUpdated(address indexed pool, uint32 twapSecondsAgo);
+    event UniswapV3TWAPSecondsAgoSet(address indexed pool, uint32 twapSecondsAgo);
 
     /**
      * @notice Emitted when the upper tick bound for a pool is updated.
      * @param  pool      Address of the Uniswap V3 pool.
      * @param  upperTick New upper tick bound for liquidity positions.
      */
-    event UniswapV3UpperTickUpdated(address indexed pool, int24 upperTick);
+    event UniswapV3UpperTickSet(address indexed pool, int24 upperTick);
 
     /**********************************************************************************************/
     /*** Interactive Functions                                                                  ***/

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
+import { ApproveLib } from "../../libraries/ApproveLib.sol";
+
 import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
 import { IFacet } from "../IFacet.sol";
@@ -8,12 +10,6 @@ import { IFacet } from "../IFacet.sol";
 import { Facet } from "../Facet.sol";
 
 import { IWSTETHFacet } from "./IWSTETHFacet.sol";
-
-interface IERC20Like {
-
-    function approve(address spender, uint256 amount) external returns (bool success);
-
-}
 
 interface IWETHLike {
 
@@ -108,10 +104,7 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
 
         address proxy = _getSharedControllerStorage().proxy;
 
-        IALMProxy(proxy).doCall(
-            wsteth,
-            abi.encodeCall(IERC20Like.approve, (withdrawQueue, amountToRedeem))
-        );
+        ApproveLib.approve(wsteth, proxy, withdrawQueue, amountToRedeem);
 
         uint256[] memory amountsToRedeem = new uint256[](1);
         amountsToRedeem[0] = amountToRedeem;

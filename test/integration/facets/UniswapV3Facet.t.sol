@@ -365,7 +365,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         vm.record();
 
         vm.expectEmit(address(controller));
-        emit IUniswapV3Facet.UniswapV3LowerTickUpdated(pool, 500);
+        emit IUniswapV3Facet.UniswapV3LowerTickSet(pool, 500);
 
         vm.prank(admin);
         controller.setLiquidityLowerTickBound(pool, 500);
@@ -443,7 +443,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         vm.record();
 
         vm.expectEmit(address(controller));
-        emit IUniswapV3Facet.UniswapV3UpperTickUpdated(pool, 1000);
+        emit IUniswapV3Facet.UniswapV3UpperTickSet(pool, 1000);
 
         vm.prank(admin);
         controller.setLiquidityUpperTickBound(pool, 1000);
@@ -511,7 +511,7 @@ contract Controller_UniswapV3Facet_Tests is Integration_TestBase {
         vm.record();
 
         vm.expectEmit(address(controller));
-        emit IUniswapV3Facet.UniswapV3TWAPSecondsAgoUpdated(pool, 300);
+        emit IUniswapV3Facet.UniswapV3TWAPSecondsAgoSet(pool, 300);
 
         vm.prank(admin);
         controller.setTWAPSecondsAgo(pool, 300);
