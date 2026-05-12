@@ -48,10 +48,16 @@ interface IDAIUSDSFacet is IFacet {
     /// @notice Address of the DAI token contract (immutable).
     function dai() external view returns (address);
 
+    /// @notice The derived rate limit key for DAI-to-USDS swap operations.
+    function daiToUSDSSwapRateLimitKey() external pure returns (bytes32 key);
+
     /// @notice Address of the DAI-USDS migrator contract (immutable).
     function daiUSDS() external view returns (address);
 
     /// @notice Address of the USDS token contract (immutable).
     function usds() external view returns (address);
+
+    /// @notice The derived rate limit key for USDS-to-DAI swap operations.
+    function usdsToDAISwapRateLimitKey() external pure returns (bytes32 key);
 
 }

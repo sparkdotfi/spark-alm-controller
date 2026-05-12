@@ -25,6 +25,9 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
+    bytes32 internal constant _LIMIT_USDS_TO_DAI = keccak256("LIMIT_USDS_TO_DAI");
+    bytes32 internal constant _LIMIT_DAI_TO_USDS = keccak256("LIMIT_DAI_TO_USDS");
+
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
 
@@ -66,6 +69,8 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
+        _decreaseRateLimit(usdsToDAISwapRateLimitKey(), usdsAmount);
+
         address proxy = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(usds, proxy, daiUSDS, usdsAmount);
@@ -85,6 +90,8 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
+        _decreaseRateLimit(daiToUSDSSwapRateLimitKey(), daiAmount);
+
         address proxy = _getSharedControllerStorage().proxy;
 
         ApproveLib.approve(dai, proxy, daiUSDS, daiAmount);
@@ -95,6 +102,20 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
         );
 
         emit DAIUSDSSwapDAIToUSDS(daiAmount);
+    }
+
+    /**********************************************************************************************/
+    /*** External Variable Getters                                                              ***/
+    /**********************************************************************************************/
+
+    /// @inheritdoc IDAIUSDSFacet
+    function usdsToDAISwapRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_USDS_TO_DAI;
+    }
+
+    /// @inheritdoc IDAIUSDSFacet
+    function daiToUSDSSwapRateLimitKey() public pure override returns (bytes32) {
+        return _LIMIT_DAI_TO_USDS;
     }
 
 }

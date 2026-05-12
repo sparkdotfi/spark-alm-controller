@@ -268,6 +268,18 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
             uint256(10_000_000e6) / 1 days
         );
 
+        rateLimits.setRateLimitData(
+            mainnetController.daiToUSDSSwapRateLimitKey(),
+            10_000_000e18,
+            uint256(10_000_000e18) / 1 days
+        );
+
+        rateLimits.setRateLimitData(
+            mainnetController.usdsToDAISwapRateLimitKey(),
+            10_000_000e18,
+            uint256(10_000_000e18) / 1 days
+        );
+
         rateLimits.setUnlimitedRateLimitData(morphoWithdrawKey);
 
         // Step 4 (spell): Set maxSlippage for ERC4626 deposit
