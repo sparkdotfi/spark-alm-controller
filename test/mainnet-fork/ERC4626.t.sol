@@ -215,9 +215,23 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
     }
 
     function test_withdrawERC4626_zeroMaxAmount() external {
+        // Longer setup because rate limit revert is at the end of the function
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(
+            mainnetController.getERC4626WithdrawRateLimitKey(Ethereum.SUSDS),
+            0,
+            0
+        );
+        vm.stopPrank();
+
+        vm.startPrank(allocator);
+        mainnetController.mintUSDS(100e18);
+        mainnetController.depositERC4626(address(susds), 100e18, 0);
+        vm.stopPrank();
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.withdrawERC4626(makeAddr("fake-token"), 1e18, 1e18);
+        mainnetController.withdrawERC4626(address(susds), 1e18, 1e18);
     }
 
     function test_withdrawERC4626_rateLimitBoundary() external {

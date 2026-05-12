@@ -133,10 +133,10 @@ contract ERC4626Facet is IERC4626Facet, Facet {
         onlyRole(ALLOCATOR_ROLE)
         returns (uint256 shares)
     {
-        _decreaseRateLimit(getWithdrawRateLimitKey(token), amount);
-
         address proxy = _getSharedControllerStorage().proxy;
+        address asset = IERC4626Like(token).asset();
 
+        uint256 startingAssets = IERC20Like(asset).balanceOf(proxy);
         uint256 startingShares = IERC20Like(token).balanceOf(proxy);
 
         // Withdraw asset from a token, assuming the proxy has adequate token shares.
@@ -145,13 +145,16 @@ contract ERC4626Facet is IERC4626Facet, Facet {
             abi.encodeCall(IERC4626Like.withdraw, (amount, proxy, proxy))
         );
 
+        uint256 assets = IERC20Like(asset).balanceOf(proxy) - startingAssets;
+
         shares = startingShares - IERC20Like(token).balanceOf(proxy);
 
         require(shares <= maxSharesIn, "ERC4626Facet/shares-burned-too-high");
 
-        _tryIncreaseRateLimit(getDepositRateLimitKey(token, IERC4626Like(token).asset()), amount);
+        _decreaseRateLimit(getWithdrawRateLimitKey(token),          assets);
+        _tryIncreaseRateLimit(getDepositRateLimitKey(token, asset), assets);
 
-        emit ERC4626Withdraw(token, amount, shares);
+        emit ERC4626Withdraw(token, assets, shares);
     }
 
     /// @inheritdoc IERC4626Facet

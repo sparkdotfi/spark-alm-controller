@@ -201,9 +201,10 @@ contract ForeignController_Morpho_Deposit_FailureTests is Morpho_TestBase {
         uint256 atBoundaryShares   = USDS_VAULT.convertToShares(25_000_000e18);
 
         vm.expectRevert("ERC4626Facet/min-shares-out-not-met");
-        vm.startPrank(allocator);
+        vm.prank(allocator);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18, overBoundaryShares);
 
+        vm.prank(allocator);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 25_000_000e18, atBoundaryShares);
     }
 
@@ -281,9 +282,23 @@ contract ForeignController_Morpho_Withdraw_FailureTests is Morpho_TestBase {
     }
 
     function test_morpho_withdraw_zeroMaxAmount() external {
+        // Longer setup because rate limit revert is at the end of the function
+        vm.startPrank(Base.SPARK_EXECUTOR);
+        rateLimits.setRateLimitData(
+            foreignController.getERC4626WithdrawRateLimitKey(MORPHO_VAULT_USDS),
+            0,
+            0
+        );
+        vm.stopPrank();
+
+        deal(Base.USDS, address(almProxy), 1_000_000e18);
+
+        vm.prank(allocator);
+        foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 0);
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        foreignController.withdrawERC4626(makeAddr("fake-token"), 1_000_000e18, 1_000_000e18);
+        foreignController.withdrawERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18);
     }
 
     function test_morpho_usds_withdraw_rateLimitBoundary() external {
@@ -463,14 +478,12 @@ contract ForeignController_Morpho_Redeem_FailureTests is Morpho_TestBase {
 
         deal(Base.USDS, address(almProxy), 1_000_000e18);
 
-        vm.startPrank(allocator);
-
+        vm.prank(allocator);
         foreignController.depositERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(allocator);
         foreignController.redeemERC4626(MORPHO_VAULT_USDS, 1_000_000e18, 1_000_000e18);
-
-        vm.stopPrank();
     }
 
     function test_morpho_usds_redeem_rateLimitBoundary() external {
