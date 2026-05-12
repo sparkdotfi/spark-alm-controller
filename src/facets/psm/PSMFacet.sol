@@ -191,7 +191,7 @@ contract PSMFacet is IPSMFacet, Facet {
     /*** Internal Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    // NOTE: As swaps are only done between USDC and USDS, no need for `ApproveLib`.
+    // NOTE: As swaps are only done between USDC, DAI, and USDS, no need for `ApproveLib`.
     function _approve(address token, address spender, uint256 amount) internal {
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
             token,

@@ -23,7 +23,8 @@ interface IFarmFacet is IFacet {
 
     /**
      * @notice Emitted when rewards are claimed from a farm without unstaking.
-     * @param  farm Address of the farm contract.
+     * @param  farm   Address of the farm contract.
+     * @param  amount Amount of rewards claimed.
      */
     event FarmReward(address indexed farm, uint256 amount);
 

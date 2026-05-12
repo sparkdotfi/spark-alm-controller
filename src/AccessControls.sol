@@ -8,11 +8,9 @@ import {
     AccessControlEnumerable
 } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-import { ReentrancyGuard } from "../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-
 import { IAccessControls } from "./interfaces/IAccessControls.sol";
 
-contract AccessControls is IAccessControls, ReentrancyGuard, AccessControlEnumerable {
+contract AccessControls is IAccessControls, AccessControlEnumerable {
 
     /**********************************************************************************************/
     /*** Modifiers                                                                              ***/

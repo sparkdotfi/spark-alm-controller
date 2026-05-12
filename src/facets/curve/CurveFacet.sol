@@ -27,7 +27,7 @@ interface ICurvePoolLike is IERC20Like {
 
     function balances(uint256 index) external view returns (uint256);
 
-    function coins(uint256 index) external returns (address);
+    function coins(uint256 index) external view returns (address);
 
     function exchange(
         int128  inputIndex,
@@ -342,7 +342,7 @@ contract CurveFacet is ICurveFacet, Facet {
             address token = tokens[i];
 
             int256 swappedIn = swappedInAmounts[i];
-            int256 deposited = int256(depositAmounts[i]) - swappedIn;
+            int256 deposited = _safeCastToInt256(depositAmounts[i]) - swappedIn;
 
             if (deposited > 0) {
                 _decreaseRateLimit(getAssetDepositRateLimitKey(pool, token), uint256(deposited));
@@ -373,7 +373,9 @@ contract CurveFacet is ICurveFacet, Facet {
             uint256 resultingUnderlying = _getPoolBalance(pool, i) * shares / totalSupply;
 
             // Positive value means the asset was swapped in.
-            swappedInAmounts[i] = int256(depositAmounts[i]) - int256(resultingUnderlying);
+            swappedInAmounts[i] =
+                _safeCastToInt256(depositAmounts[i]) -
+                _safeCastToInt256(resultingUnderlying);
         }
     }
 
@@ -409,6 +411,11 @@ contract CurveFacet is ICurveFacet, Facet {
 
     function _getPoolBalance(address pool, uint256 index) internal view returns (uint256) {
         return ICurvePoolLike(pool).balances(index);
+    }
+
+    function _safeCastToInt256(uint256 value) internal pure returns (int256) {
+        require(value <= uint256(type(int256).max), "CurveFacet/int256-overflow");
+        return int256(value);
     }
 
     function _validateSwapMinAmountOut(

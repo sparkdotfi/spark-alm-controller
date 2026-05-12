@@ -77,10 +77,10 @@ contract Controller_EthenaFacet_Tests is Integration_TestBase {
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
 
         vm.prank(beaconAdmin);
-        beacon.setIntegration("USDE_FACET", config);
+        beacon.setIntegration("ETHENA_FACET", config);
 
         bytes32[] memory integrationIds = new bytes32[](1);
-        integrationIds[0] = "USDE_FACET";
+        integrationIds[0] = "ETHENA_FACET";
 
         vm.prank(admin);
         controller.updateIntegrations(integrationIds);

@@ -8,7 +8,7 @@ import {
 /**
  * @title  IAccessControls
  * @notice Role-based access control interface for PAU system, extending OpenZeppelin's
- *         AccessControlEnumerable with freezer and allocator roles.
+ *         AccessControlEnumerable, with per-role admins for role revocation.
  */
 interface IAccessControls is IAccessControlEnumerable {
 

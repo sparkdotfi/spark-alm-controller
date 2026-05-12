@@ -216,6 +216,36 @@ interface IMainnetControllerFull is IController {
     function getERC7540ClaimRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
+    /*** EthenaFacet actions                                                                    ***/
+    /**********************************************************************************************/
+
+    function setEthenaDelegatedSigner(address delegatedSigner) external;
+
+    function removeEthenaDelegatedSigner(address delegatedSigner) external;
+
+    function prepareUSDeMint(uint256 usdcAmount) external;
+
+    function prepareUSDeBurn(uint256 usdeAmount) external;
+
+    function cooldownAssetsSUSDe(uint256 usdeAmount) external returns (uint256 cooldownShares);
+
+    function cooldownSharesSUSDe(uint256 susdeAmount) external returns (uint256 cooldownAssets);
+
+    function unstakeSUSDe() external;
+
+    function setEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+
+    function removeEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+
+    function usdeMintRateLimitKey() external pure returns (bytes32 key);
+
+    function usdeBurnRateLimitKey() external pure returns (bytes32 key);
+
+    function usdeCooldownRateLimitKey() external pure returns (bytes32 key);
+
+    function usdeUnstakeRateLimitKey() external pure returns (bytes32 key);
+
+    /**********************************************************************************************/
     /*** FarmFacet actions                                                                      ***/
     /**********************************************************************************************/
 
@@ -508,36 +538,6 @@ interface IMainnetControllerFull is IController {
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
     function getUniswapV4WithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
-
-    /**********************************************************************************************/
-    /*** EthenaFacet actions                                                                    ***/
-    /**********************************************************************************************/
-
-    function setEthenaDelegatedSigner(address delegatedSigner) external;
-
-    function removeEthenaDelegatedSigner(address delegatedSigner) external;
-
-    function prepareUSDeMint(uint256 usdcAmount) external;
-
-    function prepareUSDeBurn(uint256 usdeAmount) external;
-
-    function cooldownAssetsSUSDe(uint256 usdeAmount) external returns (uint256 cooldownShares);
-
-    function cooldownSharesSUSDe(uint256 susdeAmount) external returns (uint256 cooldownAssets);
-
-    function unstakeSUSDe() external;
-
-    function setEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
-
-    function removeEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
-
-    function usdeMintRateLimitKey() external pure returns (bytes32 key);
-
-    function usdeBurnRateLimitKey() external pure returns (bytes32 key);
-
-    function usdeCooldownRateLimitKey() external pure returns (bytes32 key);
-
-    function usdeUnstakeRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** USDSFacet actions                                                                      ***/

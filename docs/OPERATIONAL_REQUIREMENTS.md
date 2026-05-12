@@ -54,6 +54,14 @@ All ERC-20 tokens used with PAU must be:
 - Unconfigured integrations will revert on interaction
 - Rate limit keys act as a whitelist (see [Rate Limits](./RATE_LIMITS.md))
 
+# Maple Deposits
+
+Maple Finance pools have an impairment lifecycle where `unrealizedLosses` can rise while `totalAssets` remains unchanged. Deposits price shares using `convertToShares`, which uses gross `totalAssets`, while redemptions price shares using `convertToExitAssets`, which is decreased during impairment. Therefore, deposits and immediate redemptions will be subject to immediate losses on an impaired pool.
+
+The `ERC4626Facet` does not check that `unrealizedLosses()` is zero on a Maple pool during the deposit flow, which can result in socializing pre-existing losses onto PAU through fresh deposits.
+
+Governance (via a spell to set rate limits for deposits to such Maple Pools) should mitigate this risk as soon as unrealized losses are posted to a Maple pool.
+
 ### Withdrawal Dependencies
 
 | Withdrawal Function         | Required                                                  |

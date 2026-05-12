@@ -294,6 +294,7 @@ abstract contract ForkTestBase is DssTest {
         _wireDAIUSDSFacet();
         _wireERC4626Facet();
         _wireERC7540Facet();
+        _wireEthenaFacet();
         _wireFarmFacet();
         _wireLayerZeroFacet();
         _wireMapleFacet();
@@ -306,7 +307,6 @@ abstract contract ForkTestBase is DssTest {
         _wireTransferAssetFacet();
         _wireUniswapV3Facet();
         _wireUniswapV4Facet();
-        _wireEthenaFacet();
         _wireUSDSFacet();
         _wireWEETHFacet();
         _wireWrapProxyETHFacet();
@@ -349,7 +349,7 @@ abstract contract ForkTestBase is DssTest {
         integrationIds[17] = "TRANSFER_ASSET_FACET";
         integrationIds[18] = "UNISWAP_V3_FACET";
         integrationIds[19] = "UNISWAP_V4_FACET";
-        integrationIds[20] = "USDE_FACET";
+        integrationIds[20] = "ETHENA_FACET";
         integrationIds[21] = "USDS_FACET";
         integrationIds[22] = "WEETH_FACET";
         integrationIds[23] = "WRAP_PROXY_ETH_FACET";
@@ -436,6 +436,51 @@ abstract contract ForkTestBase is DssTest {
     /**********************************************************************************************/
     /*** Facet wiring helpers                                                                   ***/
     /**********************************************************************************************/
+
+    function _wireAaveFacet() internal {
+        address aaveFacet = address(new AaveFacet());
+
+        vm.label(aaveFacet, "AaveFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setAaveMaxSlippage.selector,
+            IAaveFacet.setMaxSlippage.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getAaveMaxSlippage.selector,
+            IAaveFacet.getMaxSlippage.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.depositAave.selector,
+            IAaveFacet.deposit.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.withdrawAave.selector,
+            IAaveFacet.withdraw.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getAaveDepositRateLimitKey.selector,
+            IAaveFacet.getDepositRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getAaveWithdrawRateLimitKey.selector,
+            IAaveFacet.getWithdrawRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : aaveFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("AAVE_FACET", config);
+    }
 
     function _wireBasinFacet() internal {
         address basinFacet = address(new BasinFacet());
@@ -664,51 +709,6 @@ abstract contract ForkTestBase is DssTest {
         beacon.setIntegration("CCTP_FACET", config);
     }
 
-    function _wireAaveFacet() internal {
-        address aaveFacet = address(new AaveFacet());
-
-        vm.label(aaveFacet, "AaveFacet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setAaveMaxSlippage.selector,
-            IAaveFacet.setMaxSlippage.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getAaveMaxSlippage.selector,
-            IAaveFacet.getMaxSlippage.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.depositAave.selector,
-            IAaveFacet.deposit.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.withdrawAave.selector,
-            IAaveFacet.withdraw.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getAaveDepositRateLimitKey.selector,
-            IAaveFacet.getDepositRateLimitKey.selector
-        );
-
-        wires[5] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getAaveWithdrawRateLimitKey.selector,
-            IAaveFacet.getWithdrawRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : aaveFacet,
-            wires : wires
-        });
-
-        beacon.setIntegration("AAVE_FACET", config);
-    }
-
     function _wireDAIUSDSFacet() internal {
         address daiUSDSFacet = address(new DAIUSDSFacet({
             dai_     : Ethereum.DAI,
@@ -736,31 +736,6 @@ abstract contract ForkTestBase is DssTest {
         });
 
         beacon.setIntegration("DAIUSDS_FACET", config);
-    }
-
-    function _wireMerklFacet() internal {
-        address merklFacet = address(new MerklFacet());
-
-        vm.label(merklFacet, "MerklFacet");
-
-        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](2);
-
-        merklWires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.toggleOperatorMerkl.selector,
-            IMerklFacet.toggleOperator.selector
-        );
-
-        merklWires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getMerklToggleOperatorRateLimitKey.selector,
-            IMerklFacet.getToggleOperatorRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : merklFacet,
-            wires : merklWires
-        });
-
-        beacon.setIntegration("MERKL_FACET", config);
     }
 
     function _wireERC4626Facet() internal {
@@ -873,6 +848,91 @@ abstract contract ForkTestBase is DssTest {
         beacon.setIntegration("ERC7540_FACET", config);
     }
 
+    function _wireEthenaFacet() internal {
+        address ethenaFacet = address(new EthenaFacet(
+            ETHENA_MINTER,
+            address(susde),
+            address(usdc),
+            address(usde)
+        ));
+
+        vm.label(ethenaFacet, "EthenaFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](13);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setEthenaDelegatedSigner.selector,
+            IEthenaFacet.setDelegatedSigner.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.removeEthenaDelegatedSigner.selector,
+            IEthenaFacet.removeDelegatedSigner.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.prepareUSDeMint.selector,
+            IEthenaFacet.prepareMint.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.prepareUSDeBurn.selector,
+            IEthenaFacet.prepareBurn.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.cooldownAssetsSUSDe.selector,
+            IEthenaFacet.cooldownAssets.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.cooldownSharesSUSDe.selector,
+            IEthenaFacet.cooldownShares.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.unstakeSUSDe.selector,
+            IEthenaFacet.unstake.selector
+        );
+
+        wires[7] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setEthenaDelegatedSignerRateLimitKey.selector,
+            IEthenaFacet.setDelegatedSignerRateLimitKey.selector
+        );
+
+        wires[8] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.removeEthenaDelegatedSignerRateLimitKey.selector,
+            IEthenaFacet.removeDelegatedSignerRateLimitKey.selector
+        );
+
+        wires[9] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdeMintRateLimitKey.selector,
+            IEthenaFacet.mintRateLimitKey.selector
+        );
+
+        wires[10] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdeBurnRateLimitKey.selector,
+            IEthenaFacet.burnRateLimitKey.selector
+        );
+
+        wires[11] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdeCooldownRateLimitKey.selector,
+            IEthenaFacet.cooldownRateLimitKey.selector
+        );
+
+        wires[12] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdeUnstakeRateLimitKey.selector,
+            IEthenaFacet.unstakeRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : ethenaFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("ETHENA_FACET", config);
+    }
+
     function _wireFarmFacet() internal {
         address farmFacet = address(new FarmFacet());
 
@@ -951,6 +1011,66 @@ abstract contract ForkTestBase is DssTest {
         });
 
         beacon.setIntegration("LAYER_ZERO_FACET", config);
+    }
+
+    function _wireMapleFacet() internal {
+        address mapleFacet = address(new MapleFacet());
+
+        vm.label(mapleFacet, "MapleFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.requestMapleRedemption.selector,
+            IMapleFacet.requestRedemption.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.cancelMapleRedemption.selector,
+            IMapleFacet.cancelRedemption.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getMapleCancelRedeemRateLimitKey.selector,
+            IMapleFacet.getCancelRedeemRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getMapleRequestRedeemRateLimitKey.selector,
+            IMapleFacet.getRequestRedeemRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : mapleFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("MAPLE_FACET", config);
+    }
+
+    function _wireMerklFacet() internal {
+        address merklFacet = address(new MerklFacet());
+
+        vm.label(merklFacet, "MerklFacet");
+
+        IEnumerableIntegrations.Wire[] memory merklWires = new IEnumerableIntegrations.Wire[](2);
+
+        merklWires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.toggleOperatorMerkl.selector,
+            IMerklFacet.toggleOperator.selector
+        );
+
+        merklWires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getMerklToggleOperatorRateLimitKey.selector,
+            IMerklFacet.getToggleOperatorRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : merklFacet,
+            wires : merklWires
+        });
+
+        beacon.setIntegration("MERKL_FACET", config);
     }
 
     function _wireOTCFacet() internal {
@@ -1038,29 +1158,29 @@ abstract contract ForkTestBase is DssTest {
         beacon.setIntegration("OTC_FACET", config);
     }
 
-    function _wireSparkVaultFacet() internal {
-        address sparkVaultFacet = address(new SparkVaultFacet());
+    function _wirePendleFacet() internal {
+        address pendleFacet = address(new PendleFacet(GroveEthereum.PENDLE_ROUTER));
 
-        vm.label(sparkVaultFacet, "SparkVaultFacet");
+        vm.label(pendleFacet, "PendleFacet");
 
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.takeFromSparkVault.selector,
-            ISparkVaultFacet.take.selector
+            IMainnetControllerFull.redeemPendlePT.selector,
+            IPendleFacet.redeem.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getSparkVaultTakeRateLimitKey.selector,
-            ISparkVaultFacet.getTakeRateLimitKey.selector
+            IMainnetControllerFull.getPendleRedeemRateLimitKey.selector,
+            IPendleFacet.getRedeemRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : sparkVaultFacet,
+            facet : pendleFacet,
             wires : wires
         });
 
-        beacon.setIntegration("SPARK_VAULT_FACET", config);
+        beacon.setIntegration("PENDLE_FACET", config);
     }
 
     function _wirePSMFacet() internal {
@@ -1104,89 +1224,29 @@ abstract contract ForkTestBase is DssTest {
         beacon.setIntegration("PSM_FACET", config);
     }
 
-    function _wireTransferAssetFacet() internal {
-        address transferAssetFacet = address(new TransferAssetFacet());
+    function _wireSparkVaultFacet() internal {
+        address sparkVaultFacet = address(new SparkVaultFacet());
 
-        vm.label(transferAssetFacet, "TransferAssetFacet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.transferAsset.selector,
-            ITransferAssetFacet.transfer.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getTransferAssetTransferRateLimitKey.selector,
-            ITransferAssetFacet.getTransferRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : transferAssetFacet,
-            wires : wires
-        });
-
-        beacon.setIntegration("TRANSFER_ASSET_FACET", config);
-    }
-
-    function _wireMapleFacet() internal {
-        address mapleFacet = address(new MapleFacet());
-
-        vm.label(mapleFacet, "MapleFacet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.requestMapleRedemption.selector,
-            IMapleFacet.requestRedemption.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.cancelMapleRedemption.selector,
-            IMapleFacet.cancelRedemption.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getMapleCancelRedeemRateLimitKey.selector,
-            IMapleFacet.getCancelRedeemRateLimitKey.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getMapleRequestRedeemRateLimitKey.selector,
-            IMapleFacet.getRequestRedeemRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : mapleFacet,
-            wires : wires
-        });
-
-        beacon.setIntegration("MAPLE_FACET", config);
-    }
-
-    function _wirePendleFacet() internal {
-        address pendleFacet = address(new PendleFacet(GroveEthereum.PENDLE_ROUTER));
-
-        vm.label(pendleFacet, "PendleFacet");
+        vm.label(sparkVaultFacet, "SparkVaultFacet");
 
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.redeemPendlePT.selector,
-            IPendleFacet.redeem.selector
+            IMainnetControllerFull.takeFromSparkVault.selector,
+            ISparkVaultFacet.take.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getPendleRedeemRateLimitKey.selector,
-            IPendleFacet.getRedeemRateLimitKey.selector
+            IMainnetControllerFull.getSparkVaultTakeRateLimitKey.selector,
+            ISparkVaultFacet.getTakeRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : pendleFacet,
+            facet : sparkVaultFacet,
             wires : wires
         });
 
-        beacon.setIntegration("PENDLE_FACET", config);
+        beacon.setIntegration("SPARK_VAULT_FACET", config);
     }
 
     function _wireSuperstateFacet() internal {
@@ -1214,332 +1274,29 @@ abstract contract ForkTestBase is DssTest {
         beacon.setIntegration("SUPERSTATE_FACET", config);
     }
 
-    function _wireWEETHFacet() internal {
-        address weethFacet = address(new WEETHFacet(Ethereum.WEETH, Ethereum.WETH));
+    function _wireTransferAssetFacet() internal {
+        address transferAssetFacet = address(new TransferAssetFacet());
 
-        vm.label(weethFacet, "WEETHFacet");
+        vm.label(transferAssetFacet, "TransferAssetFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.depositToWeETH.selector,
-            IWEETHFacet.deposit.selector
+            IMainnetControllerFull.transferAsset.selector,
+            ITransferAssetFacet.transfer.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.requestWithdrawFromWeETH.selector,
-            IWEETHFacet.requestWithdraw.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.claimWithdrawalFromWeETH.selector,
-            IWEETHFacet.claimWithdrawal.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getWEETHDepositRateLimitKey.selector,
-            IWEETHFacet.getDepositRateLimitKey.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getWEETHRequestWithdrawRateLimitKey.selector,
-            IWEETHFacet.getRequestWithdrawRateLimitKey.selector
-        );
-
-        wires[5] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getWEETHClaimWithdrawRateLimitKey.selector,
-            IWEETHFacet.getClaimWithdrawRateLimitKey.selector
+            IMainnetControllerFull.getTransferAssetTransferRateLimitKey.selector,
+            ITransferAssetFacet.getTransferRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : weethFacet,
+            facet : transferAssetFacet,
             wires : wires
         });
 
-        beacon.setIntegration("WEETH_FACET", config);
-    }
-
-    function _wireWSTETHFacet() internal {
-        address wstethFacet = address(new WSTETHFacet(
-            Ethereum.WETH,
-            Ethereum.WSTETH_WITHDRAW_QUEUE,
-            Ethereum.WSTETH
-        ));
-
-        vm.label(wstethFacet, "WSTETHFacet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.depositToWstETH.selector,
-            IWSTETHFacet.deposit.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.requestWithdrawFromWstETH.selector,
-            IWSTETHFacet.requestWithdraw.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.claimWithdrawalFromWstETH.selector,
-            IWSTETHFacet.claimWithdrawal.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.wstethDepositRateLimitKey.selector,
-            IWSTETHFacet.depositRateLimitKey.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.wstethRequestWithdrawRateLimitKey.selector,
-            IWSTETHFacet.requestWithdrawRateLimitKey.selector
-        );
-
-        wires[5] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.wstethClaimWithdrawRateLimitKey.selector,
-            IWSTETHFacet.claimWithdrawRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : wstethFacet,
-            wires : wires
-        });
-
-        beacon.setIntegration("WSTETH_FACET", config);
-    }
-
-    function _wireEthenaFacet() internal {
-        address ethenaFacet = address(new EthenaFacet(
-            ETHENA_MINTER,
-            address(susde),
-            address(usdc),
-            address(usde)
-        ));
-
-        vm.label(ethenaFacet, "EthenaFacet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](13);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setEthenaDelegatedSigner.selector,
-            IEthenaFacet.setDelegatedSigner.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.removeEthenaDelegatedSigner.selector,
-            IEthenaFacet.removeDelegatedSigner.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.prepareUSDeMint.selector,
-            IEthenaFacet.prepareMint.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.prepareUSDeBurn.selector,
-            IEthenaFacet.prepareBurn.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.cooldownAssetsSUSDe.selector,
-            IEthenaFacet.cooldownAssets.selector
-        );
-
-        wires[5] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.cooldownSharesSUSDe.selector,
-            IEthenaFacet.cooldownShares.selector
-        );
-
-        wires[6] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.unstakeSUSDe.selector,
-            IEthenaFacet.unstake.selector
-        );
-
-        wires[7] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setEthenaDelegatedSignerRateLimitKey.selector,
-            IEthenaFacet.setDelegatedSignerRateLimitKey.selector
-        );
-
-        wires[8] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.removeEthenaDelegatedSignerRateLimitKey.selector,
-            IEthenaFacet.removeDelegatedSignerRateLimitKey.selector
-        );
-
-        wires[9] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdeMintRateLimitKey.selector,
-            IEthenaFacet.mintRateLimitKey.selector
-        );
-
-        wires[10] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdeBurnRateLimitKey.selector,
-            IEthenaFacet.burnRateLimitKey.selector
-        );
-
-        wires[11] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdeCooldownRateLimitKey.selector,
-            IEthenaFacet.cooldownRateLimitKey.selector
-        );
-
-        wires[12] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdeUnstakeRateLimitKey.selector,
-            IEthenaFacet.unstakeRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : ethenaFacet,
-            wires : wires
-        });
-
-        beacon.setIntegration("USDE_FACET", config);
-    }
-
-    function _wireWrapProxyETHFacet() internal {
-        address wrapProxyETHFacet = address(new WrapProxyETHFacet(Ethereum.WETH));
-
-        vm.label(wrapProxyETHFacet, "WrapProxyETHFacet");
-
-        IEnumerableIntegrations.Wire[] memory wrapWires = new IEnumerableIntegrations.Wire[](2);
-
-        wrapWires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.wrapAllProxyETH.selector,
-            IWrapProxyETHFacet.wrapAll.selector
-        );
-
-        wrapWires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.wrapAllProxyETHRateLimitKey.selector,
-            IWrapProxyETHFacet.wrapRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : wrapProxyETHFacet,
-            wires : wrapWires
-        });
-
-        beacon.setIntegration("WRAP_PROXY_ETH_FACET", config);
-    }
-
-    function _wireUSDSFacet() internal {
-        address usdsFacet = address(new USDSFacet(address(usds)));
-
-        vm.label(usdsFacet, "USDSFacet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setUSDSVault.selector,
-            IUSDSFacet.setVault.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.mintUSDS.selector,
-            IUSDSFacet.mint.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.burnUSDS.selector,
-            IUSDSFacet.burn.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdsVault.selector,
-            IUSDSFacet.vault.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdsMintRateLimitKey.selector,
-            IUSDSFacet.mintRateLimitKey.selector
-        );
-
-        wires[5] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.usdsBurnRateLimitKey.selector,
-            IUSDSFacet.burnRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : usdsFacet,
-            wires : wires
-        });
-
-        beacon.setIntegration("USDS_FACET", config);
-    }
-
-    function _wireUniswapV4Facet() internal {
-        address uniswapV4Facet = address(new UniswapV4Facet({
-            permit2_         : _PERMIT2,
-            positionManager_ : _UNISWAP_V4_POSITION_MANAGER,
-            router_          : _UNISWAP_V4_ROUTER
-        }));
-
-        vm.label(uniswapV4Facet, "UniswapV4Facet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](12);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setUniswapV4MaxSlippage.selector,
-            IUniswapV4Facet.setMaxSlippage.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.setUniswapV4TickLimits.selector,
-            IUniswapV4Facet.setTickLimits.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.mintPositionUniswapV4.selector,
-            IUniswapV4Facet.mintPosition.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.increaseLiquidityUniswapV4.selector,
-            IUniswapV4Facet.increasePosition.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.decreaseLiquidityUniswapV4.selector,
-            IUniswapV4Facet.decreasePosition.selector
-        );
-
-        wires[5] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.swapUniswapV4.selector,
-            IUniswapV4Facet.swap.selector
-        );
-
-        wires[6] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getUniswapV4AggregateDepositRateLimitKey.selector,
-            IUniswapV4Facet.getAggregateDepositRateLimitKey.selector
-        );
-
-        wires[7] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getUniswapV4AssetDepositRateLimitKey.selector,
-            IUniswapV4Facet.getAssetDepositRateLimitKey.selector
-        );
-
-        wires[8] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.uniswapV4MaxSlippages.selector,
-            IUniswapV4Facet.getMaxSlippage.selector
-        );
-
-        wires[9] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getUniswapV4SwapRateLimitKey.selector,
-            IUniswapV4Facet.getSwapRateLimitKey.selector
-        );
-
-        wires[10] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.uniswapV4TickLimits.selector,
-            IUniswapV4Facet.getTickLimits.selector
-        );
-
-        wires[11] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getUniswapV4WithdrawRateLimitKey.selector,
-            IUniswapV4Facet.getWithdrawRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : uniswapV4Facet,
-            wires : wires
-        });
-
-        beacon.setIntegration("UNISWAP_V4_FACET", config);
+        beacon.setIntegration("TRANSFER_ASSET_FACET", config);
     }
 
     function _wireUniswapV3Facet() internal {
@@ -1635,6 +1392,249 @@ abstract contract ForkTestBase is DssTest {
         });
 
         beacon.setIntegration("UNISWAP_V3_FACET", config);
+    }
+
+    function _wireUniswapV4Facet() internal {
+        address uniswapV4Facet = address(new UniswapV4Facet({
+            permit2_         : _PERMIT2,
+            positionManager_ : _UNISWAP_V4_POSITION_MANAGER,
+            router_          : _UNISWAP_V4_ROUTER
+        }));
+
+        vm.label(uniswapV4Facet, "UniswapV4Facet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](12);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setUniswapV4MaxSlippage.selector,
+            IUniswapV4Facet.setMaxSlippage.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setUniswapV4TickLimits.selector,
+            IUniswapV4Facet.setTickLimits.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.mintPositionUniswapV4.selector,
+            IUniswapV4Facet.mintPosition.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.increaseLiquidityUniswapV4.selector,
+            IUniswapV4Facet.increasePosition.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.decreaseLiquidityUniswapV4.selector,
+            IUniswapV4Facet.decreasePosition.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.swapUniswapV4.selector,
+            IUniswapV4Facet.swap.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getUniswapV4AggregateDepositRateLimitKey.selector,
+            IUniswapV4Facet.getAggregateDepositRateLimitKey.selector
+        );
+
+        wires[7] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getUniswapV4AssetDepositRateLimitKey.selector,
+            IUniswapV4Facet.getAssetDepositRateLimitKey.selector
+        );
+
+        wires[8] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.uniswapV4MaxSlippages.selector,
+            IUniswapV4Facet.getMaxSlippage.selector
+        );
+
+        wires[9] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getUniswapV4SwapRateLimitKey.selector,
+            IUniswapV4Facet.getSwapRateLimitKey.selector
+        );
+
+        wires[10] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.uniswapV4TickLimits.selector,
+            IUniswapV4Facet.getTickLimits.selector
+        );
+
+        wires[11] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getUniswapV4WithdrawRateLimitKey.selector,
+            IUniswapV4Facet.getWithdrawRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : uniswapV4Facet,
+            wires : wires
+        });
+
+        beacon.setIntegration("UNISWAP_V4_FACET", config);
+    }
+
+    function _wireUSDSFacet() internal {
+        address usdsFacet = address(new USDSFacet(address(usds)));
+
+        vm.label(usdsFacet, "USDSFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.setUSDSVault.selector,
+            IUSDSFacet.setVault.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.mintUSDS.selector,
+            IUSDSFacet.mint.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.burnUSDS.selector,
+            IUSDSFacet.burn.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdsVault.selector,
+            IUSDSFacet.vault.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdsMintRateLimitKey.selector,
+            IUSDSFacet.mintRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.usdsBurnRateLimitKey.selector,
+            IUSDSFacet.burnRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : usdsFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("USDS_FACET", config);
+    }
+
+    function _wireWEETHFacet() internal {
+        address weethFacet = address(new WEETHFacet(Ethereum.WEETH, Ethereum.WETH));
+
+        vm.label(weethFacet, "WEETHFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.depositToWeETH.selector,
+            IWEETHFacet.deposit.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.requestWithdrawFromWeETH.selector,
+            IWEETHFacet.requestWithdraw.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.claimWithdrawalFromWeETH.selector,
+            IWEETHFacet.claimWithdrawal.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getWEETHDepositRateLimitKey.selector,
+            IWEETHFacet.getDepositRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getWEETHRequestWithdrawRateLimitKey.selector,
+            IWEETHFacet.getRequestWithdrawRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getWEETHClaimWithdrawRateLimitKey.selector,
+            IWEETHFacet.getClaimWithdrawRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : weethFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("WEETH_FACET", config);
+    }
+
+    function _wireWrapProxyETHFacet() internal {
+        address wrapProxyETHFacet = address(new WrapProxyETHFacet(Ethereum.WETH));
+
+        vm.label(wrapProxyETHFacet, "WrapProxyETHFacet");
+
+        IEnumerableIntegrations.Wire[] memory wrapWires = new IEnumerableIntegrations.Wire[](2);
+
+        wrapWires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.wrapAllProxyETH.selector,
+            IWrapProxyETHFacet.wrapAll.selector
+        );
+
+        wrapWires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.wrapAllProxyETHRateLimitKey.selector,
+            IWrapProxyETHFacet.wrapRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : wrapProxyETHFacet,
+            wires : wrapWires
+        });
+
+        beacon.setIntegration("WRAP_PROXY_ETH_FACET", config);
+    }
+
+    function _wireWSTETHFacet() internal {
+        address wstethFacet = address(new WSTETHFacet(
+            Ethereum.WETH,
+            Ethereum.WSTETH_WITHDRAW_QUEUE,
+            Ethereum.WSTETH
+        ));
+
+        vm.label(wstethFacet, "WSTETHFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.depositToWstETH.selector,
+            IWSTETHFacet.deposit.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.requestWithdrawFromWstETH.selector,
+            IWSTETHFacet.requestWithdraw.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.claimWithdrawalFromWstETH.selector,
+            IWSTETHFacet.claimWithdrawal.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.wstethDepositRateLimitKey.selector,
+            IWSTETHFacet.depositRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.wstethRequestWithdrawRateLimitKey.selector,
+            IWSTETHFacet.requestWithdrawRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.wstethClaimWithdrawRateLimitKey.selector,
+            IWSTETHFacet.claimWithdrawRateLimitKey.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : wstethFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("WSTETH_FACET", config);
     }
 
 }
