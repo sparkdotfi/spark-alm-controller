@@ -326,7 +326,7 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         vm.stopPrank();
     }
 
-    function test_swapUniswapV3_minAmountNotMet() public {
+    function test_swapUniswapV3_minAmountNotSet() public {
         uint256 amountIn = 100_000e6;
         _fundProxy(amountIn, 0);
 
@@ -337,6 +337,28 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
             address(token0),
             amountIn,
             0,
+            200
+        );
+        vm.stopPrank();
+    }
+
+    function test_swapUniswapV3_minAmountOutNotMet() public {
+        uint256 amountIn = 100_000e6;
+        _fundProxy(amountIn, 0);
+
+        vm.mockCall(
+            UNISWAP_V3_ROUTER,
+            abi.encodeWithSelector(ISwapRouter.exactInputSingle.selector),
+            abi.encode(uint256(0))
+        );
+
+        vm.startPrank(allocator);
+        vm.expectRevert("UniswapV3Facet/min-amount-out-not-met");
+        mainnetController.swapUniswapV3(
+            _getPool(),
+            address(token0),
+            amountIn,
+            1,
             200
         );
         vm.stopPrank();

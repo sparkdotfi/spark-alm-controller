@@ -2013,6 +2013,25 @@ contract MainnetController_UniswapV4_USDC_USDT_Tests is UniswapV4_USDC_USDT_Test
         mainnetController.swapUniswapV4(_POOL_ID, Ethereum.USDC, 1_000_000e6, 999_280.652247e6);
     }
 
+    function test_swapUniswapV4_revertsWhenFacetAmountOutNotMet() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
+        rateLimits.setRateLimitData(_token0SwapLimitKey, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
+
+        vm.mockCall(
+            _UNISWAP_V4_ROUTER,
+            abi.encodeWithSelector(IUniversalRouterLike.execute.selector),
+            bytes("")
+        );
+
+        vm.expectRevert("UniswapV4Facet/amountOutMin-not-met");
+        vm.prank(allocator);
+        mainnetController.swapUniswapV4(_POOL_ID, Ethereum.USDC, 1_000_000e6, 980_000e6);
+    }
+
     function test_swapUniswapV4_token0toToken1() external {
         vm.startPrank(SPARK_PROXY);
         mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
@@ -4106,6 +4125,25 @@ contract MainnetController_UniswapV4_USDT_USDS_Tests is UniswapV4_USDT_USDS_Test
 
         vm.prank(allocator);
         mainnetController.swapUniswapV4(_POOL_ID, Ethereum.USDT, 10_000e6, 9_963.585379886102636344e18);
+    }
+
+    function test_swapUniswapV4_revertsWhenFacetAmountOutNotMet() external {
+        vm.startPrank(SPARK_PROXY);
+        mainnetController.setUniswapV4MaxSlippage(_POOL_ID, 0.98e18);
+        rateLimits.setRateLimitData(_token0SwapLimitKey, 2_000_000e18, 0);
+        vm.stopPrank();
+
+        deal(Ethereum.USDT, address(almProxy), 10_000e6);
+
+        vm.mockCall(
+            _UNISWAP_V4_ROUTER,
+            abi.encodeWithSelector(IUniversalRouterLike.execute.selector),
+            bytes("")
+        );
+
+        vm.expectRevert("UniswapV4Facet/amountOutMin-not-met");
+        vm.prank(allocator);
+        mainnetController.swapUniswapV4(_POOL_ID, Ethereum.USDT, 10_000e6, 9_800e18);
     }
 
     function test_swapUniswapV4_token0toToken1() external {

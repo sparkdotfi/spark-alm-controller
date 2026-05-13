@@ -333,6 +333,8 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             tickDelta    : tickDelta
         });
 
+        require(amountOut >= minAmountOut, "UniswapV3Facet/min-amount-out-not-met");
+
         uint256 amountSpent = startingBalance - IERC20Like(tokenIn).balanceOf(proxy);
 
         // Clear approvals of dust.

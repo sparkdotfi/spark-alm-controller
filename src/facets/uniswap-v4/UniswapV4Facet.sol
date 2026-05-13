@@ -359,6 +359,8 @@ contract UniswapV4Facet is IUniswapV4Facet, Facet {
             callData : callData
         });
 
+        require(amountOut >= amountOutMin, "UniswapV4Facet/amountOutMin-not-met");
+
         emit UniswapV4Swap(poolId, tokenIn, tokenOut, amountIn, amountOut);
     }
 
