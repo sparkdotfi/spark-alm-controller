@@ -75,19 +75,22 @@ Error messages follow the pattern `ComponentName/error-description`. Each facet 
 
 Additionally, some core contracts use Solidity custom errors (not string-prefix `require` messages):
 
-| Custom Error                       | Source                   |
-| ---------------------------------- | ------------------------ |
-| `CallSelectorAlreadyWired(bytes4)` | IEnumerableIntegrations  |
-| `CallSelectorHardcoded(bytes4)`    | IBeacon                  |
-| `CallSelectorNotWired(bytes4)`     | IController              |
-| `EmptyArray()`                     | IBeacon, IController     |
-| `EmptyFacet()`                     | IEnumerableIntegrations  |
-| `IntegrationNotFound(bytes32)`     | IEnumerableIntegrations  |
-| `InvalidCallDataLength(uint256)`   | IController              |
-| `NotAdmin(address)`                | IController              |
-| `ZeroAdmin()`                      | IAccessControls, IBeacon |
-| `ZeroBeacon()`                     | IController, IPAUFactory |
-| `ZeroFacet()`                      | IBeacon                  |
+| Custom Error                       | Source                                |
+| ---------------------------------- | ------------------------------------- |
+| `CallSelectorAlreadyWired(bytes4)` | IEnumerableIntegrations               |
+| `CallSelectorHardcoded(bytes4)`    | IBeacon                               |
+| `CallSelectorNotWired(bytes4)`     | IController                           |
+| `EmptyArray()`                     | IBeacon, IController                  |
+| `EmptyFacet()`                     | IEnumerableIntegrations               |
+| `IntegrationNotFound(bytes32)`     | IEnumerableIntegrations               |
+| `InvalidCallDataLength(uint256)`   | IController                           |
+| `NotAdmin(address)`                | IController                           |
+| `ZeroAccessControls()`             | IController                           |
+| `ZeroAdmin()`                      | IAccessControls, IBeacon, IRateLimits |
+| `ZeroBeacon()`                     | IController, IPAUFactory              |
+| `ZeroFacet()`                      | IBeacon                               |
+| `ZeroProxy()`                      | IController                           |
+| `ZeroRateLimits()`                 | IController                           |
 
 ### Facet Prefixes
 
@@ -144,14 +147,14 @@ Rate limit keys combine a function identifier with contextual data via `keccak25
 
 `RateLimitHelpers.sol` provides multiple helpers for different key patterns:
 
-| Helper                        | Parameters                                  | Used By                                                                                             |
-| ----------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `makeAddressKey`              | `(bytes32 limit, address)`                  | Most facets (ERC4626, Aave, Curve, etc.)                                                            |
-| `makeBytes32Key`              | `(bytes32 limit, bytes32)`                  | UniswapV4Facet (pool ID)                                                                            |
-| `makeUint32Key`               | `(bytes32 limit, uint32)`                   | CCTPFacet (destination domain)                                                                      |
-| `makeAddressAddressUint32Key` | `(bytes32 limit, address, address, uint32)` | LayerZeroFacet (token + OFT + endpoint)                                                             |
-| `makeAddressUint16Key`        | `(bytes32 limit, address, uint16)`          | CentrifugeFacet (vault + region ID)                                                                 |
-| `makeAddressAddressKey`       | `(bytes32 limit, address, address)`         | TransferAssetFacet (asset + destination), UniswapV3Facet (token + pool), BasinFacet (asset + basin) |
+| Helper                        | Parameters                                  | Used By                                                                                    |
+| ----------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `makeAddressKey`              | `(bytes32 limit, address)`                  | Most withdraw / single-address facets (ERC4626 withdraw, Aave withdraw, Curve, PSM3, etc.) |
+| `makeBytes32Key`              | `(bytes32 limit, bytes32)`                  | UniswapV4Facet (pool ID)                                                                   |
+| `makeUint32Key`               | `(bytes32 limit, uint32)`                   | CCTPFacet (destination domain)                                                             |
+| `makeAddressAddressUint32Key` | `(bytes32 limit, address, address, uint32)` | LayerZeroFacet (token + OFT + endpoint)                                                    |
+| `makeAddressUint16Key`        | `(bytes32 limit, address, uint16)`          | CentrifugeFacet (vault + region ID)                                                        |
+| `makeAddressAddressKey`       | `(bytes32 limit, address, address)`         | AaveFacet (deposit: underlying + aToken), ERC4626Facet (deposit: asset + vault), ERC7540Facet (deposit: asset + vault), CentrifugeFacet (deposit: asset + vault), FarmFacet (deposit: stakingToken + farm), PendleFacet (redeem: PT + market), WEETHFacet (request withdraw: eETH + weETHModule), TransferAssetFacet (asset + destination), UniswapV3Facet (token + pool), BasinFacet (asset + basin)            |
 
 See [Rate Limits](./RATE_LIMITS.md#whitelisting-via-rate-limit-keys) for design rationale.
 
@@ -167,10 +170,10 @@ Function overloading is not recommended in facets. When a facet has overloaded f
 
 Some operations use a "gate-check" pattern where they verify a rate limit is configured (`maxAmount > 0`) without actually decreasing the rate limit. This serves as an implicit whitelist mechanism. Used by:
 
-- `WSTETHFacet.claimWithdrawal`: checks `LIMIT_REQUEST_WITHDRAW.maxAmount > 0`
-- `WEETHFacet.claimWithdrawal`: checks `makeAddressKey(LIMIT_REQUEST_WITHDRAW, weethModule).maxAmount > 0`
+- `WSTETHFacet.claimWithdrawal`: checks `LIMIT_WSTETH_CLAIM_WITHDRAW.maxAmount > 0`
+- `WEETHFacet.claimWithdrawal`: checks `makeAddressKey(LIMIT_WEETH_CLAIM_WITHDRAW, weethModule).maxAmount > 0`
 
-This ensures the corresponding request-withdraw rate limit key was configured by governance before claims are allowed.
+The check is on a dedicated claim-side key. Configuring only the request-withdraw key is not sufficient. The `requestWithdraw` will succeed and queue shares with Lido/EtherFi, but `claimWithdrawal` will later revert with `WSTETHFacet/invalid-action` or `WEETHFacet/invalid-action` until the claim key is added.
 
 ---
 

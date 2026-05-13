@@ -98,9 +98,9 @@ The diagram below provides an example of calling to mint USDS using the Sky allo
 
 ## Permissions
 
-All Contracts except Controller, PAUFactory, ControllerSharedStorage and the facets (via
-FacetBase) inherit and implement the `AccessControl` contract from OpenZeppelin to manage permissions. Controller, PAUFactory, ControllerSharedStorage and the facets (via
-FacetBase) do not inherit AccessControl directly, they rely on an external AccessControls
+All contracts except `Controller`, `PAUFactory`, `ControllerSharedStorage` and the facets (via
+`Facet`) inherit and implement the `AccessControl` contract from OpenZeppelin to manage permissions. `Controller`, `PAUFactory`, `ControllerSharedStorage` and the facets (via
+`Facet`) do not inherit `AccessControl` directly, they rely on an external `AccessControls`
 contract for role checks. The following roles are defined:
 
 | Role                 | Description                                                                                                                                                                      |
@@ -116,7 +116,7 @@ contract for role checks. The following roles are defined:
 
 ## Facets
 
-The system uses a facet-based architecture where each protocol integration is encapsulated in its own facet. All facets extend `FacetBase` that provides the `onlyRole` modifier, and the `FacetBase` inherits `ControllerSharedStorage` and `ReentrancyGuardUpgradeable` which provides reentrancy protection, shared state access (proxy, rate limits, access controls). Each facet has its own ERC-7201 namespaced storage domain and is wired to the Controller via dispatch configuration. Which facets are active depends on the deployment (e.g., a mainnet deployment may have different facets than an L2 deployment).
+The system uses a facet-based architecture where each protocol integration is encapsulated in its own facet. All facets extend `Facet` (the abstract base contract), which provides the `onlyRole` modifier and inherits `ControllerSharedStorage` and `ReentrancyGuardUpgradeable` for reentrancy protection and shared state access (proxy, rate limits, access controls). Each facet has its own ERC-7201 namespaced storage domain and is wired to the Controller via dispatch configuration. Which facets are active depends on the deployment (e.g., a mainnet deployment may have different facets than an L2 deployment).
 
 | Facet                | Purpose                                        |
 | -------------------- | ---------------------------------------------- |

@@ -96,7 +96,7 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 3. Call `LiquidityPool.requestWithdraw()` with WEETHModule as receiver
 4. WEETHModule receives the `WithdrawRequestNFT`
 
-**Rate Limit:** `LIMIT_WEETH_REQUEST_WITHDRAW` (keyed by weETHModule address)
+**Rate Limit:** `LIMIT_WEETH_REQUEST_WITHDRAW` keyed by `(eETH, weETHModule)` via `makeAddressAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, eETH, weETHModule)`. The `eETH` address is read from `IWEETHLike(weeth).eETH()`.
 
 **Important:** The withdrawal request is not immediately claimable. EtherFi must finalize the request based on their liquidity and queue position.
 
@@ -113,7 +113,7 @@ Withdraw: weETH → eETH → WithdrawRequestNFT → (wait) → ETH → WETH
 5. WEETHModule wraps ETH to WETH
 6. WEETHModule transfers WETH to ALMProxy
 
-**Rate Limit:** None. Uses the [gate-check pattern](./RATE_LIMITS.md#gate-check-pattern) on `LIMIT_REQUEST_WITHDRAW` for the given `weethModule` address.
+**Rate Limit:** None. Uses the [gate-check pattern](./RATE_LIMITS.md#gate-check-pattern) on the `LIMIT_WEETH_REQUEST_WITHDRAW` key derived for the given `(eETH, weethModule)` pair.
 
 ---
 
@@ -172,11 +172,13 @@ receive() external payable { }
 
 ### Rate Limit Whitelisting
 
-The `weETHModule` address is embedded in the rate limit keys for withdrawal operations:
+The withdrawal rate limit key embeds both the `eETH` address and the `weETHModule` address:
 
-- `LIMIT_WEETH_REQUEST_WITHDRAW` + weETHModule address
+- `makeAddressAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, eETH, weETHModule)`
 
-`claimWithdrawal` uses the [gate-check pattern](./RATE_LIMITS.md#gate-check-pattern) on `LIMIT_REQUEST_WITHDRAW` for the given weETHModule address.
+The `eETH` address is sourced from `IWEETHLike(weeth).eETH()` at call time. Embedding both addresses prevents an unauthorized `weETHModule` from being used and also locks the key to the configured `eETH` token.
+
+`claimWithdrawal` uses the [gate-check pattern](./RATE_LIMITS.md#gate-check-pattern) on the same `(eETH, weETHModule)` key.
 
 ### EtherFi Admin Risk
 
@@ -201,8 +203,8 @@ The WEETHModule:
 1. Deploy `WEETHModule` proxy with implementation
 2. Initialize with admin and ALMProxy address
 3. Configure rate limit keys in the Controller:
-    - `LIMIT_WEETH_DEPOSIT`
-    - `makeAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, weETHModule)`
+   - `makeAddressKey(LIMIT_WEETH_DEPOSIT, eETH)`
+   - `makeAddressAddressKey(LIMIT_WEETH_REQUEST_WITHDRAW, eETH, weETHModule)`
 
 ### Monitoring
 

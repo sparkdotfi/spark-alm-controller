@@ -65,7 +65,10 @@ Uniswap V3 operations use three rate limit keys per pool per token:
 
 ### Slippage Protection
 
-Uniswap V3 operations require `maxSlippage` to be configured per pool (cannot be zero). The TWAP price is used to compute expected amounts and validate slippage thresholds.
+Uniswap V3 operations use different slippage models depending on the operation:
+
+- **`addLiquidity` (mint and increase) and `removeLiquidity`:** Require the per-pool `maxSlippage` to be configured (cannot be zero). For add-liquidity, caller-supplied `min.amount0` / `min.amount1` are validated against TWAP-derived expected amounts before execution. For remove-liquidity, the same minimums are checked against the amounts actually received after execution.
+- **`swap`:** Does not check `maxSlippage`. Requires a nonzero caller-supplied `minAmountOut` and uses a TWAP-derived `sqrtPriceLimitX96` bounded by the per-pool `swapMaxTickDelta` as the on-chain price boundary.
 
 ### Requirements
 
@@ -97,12 +100,16 @@ Uniswap V4 operations use three rate limit keys per pool:
 
 ### Slippage Protection
 
-Uniswap V4 operations require `maxSlippage` to be configured (cannot be zero).
+Uniswap V4 operations use different slippage models depending on the operation:
+
+- **`swap`:** Requires the per-pool `maxSlippage` to be configured (cannot be zero). Validates that the caller-supplied `amountOutMin`, normalized to 18 decimals, is no less than the normalized `amountIn` scaled by `maxSlippage`. This relies on the 1:1 equal-value assumption between the pool's tokens.
+- **`mintPosition`, `increasePosition`, `decreasePosition`:** Do not check `maxSlippage`. They rely on caller-supplied `amount0Max` / `amount1Max` (mint and increase) or `amount0Min` / `amount1Min` (decrease) as boundaries enforced by the position manager, together with the per-pool tick limits (`tickLowerMin`, `tickUpperMax`, `maxTickSpacing`) on `mintPosition` and `increasePosition`.
 
 ### Requirements
 
 - Only 1:1 stablecoin pools can be onboarded
-- Tick limits must be configured.
+- Tick limits must be configured for `mintPosition` and `increasePosition`
+- `maxSlippage` must be configured per pool for `swap`
 - Only hookless pools can be onboarded. Rate limit decreases are calculated from token balance differences before and after pool interactions, and empty `hookData` is passed. Pool hooks (if present) could manipulate token balances during the call to bypass the rate limit decrease.
 
 ### Seeding Requirement
@@ -172,10 +179,10 @@ There are two PSM integrations with different rate limit behaviors:
 
 **Operations:** Deposit/withdraw assets to/from L2 PSM
 
-| Operation     | Rate Limit                        |
-| ------------- | --------------------------------- |
-| `depositPSM`  | Decreases limit                   |
-| `withdrawPSM` | Decreases limit (no cancellation) |
+| Operation  | Rate Limit                        |
+| ---------- | --------------------------------- |
+| `deposit`  | Decreases limit                   |
+| `withdraw` | Decreases limit (no cancellation) |
 
 **Design Decision:** No cancellation, no `minShares`.
 
