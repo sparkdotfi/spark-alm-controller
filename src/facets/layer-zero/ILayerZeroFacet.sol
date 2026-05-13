@@ -71,11 +71,17 @@ interface ILayerZeroFacet is IFacet {
     /**
      * @notice Returns the derived transfer rate limit key for an OFT, token, and destination.
      * @param  oft                   Address of the OFT contract.
+     * @param  peer                  Bytes32-encoded peer address on the destination chain.
      * @param  destinationEndpointId LayerZero endpoint ID for the destination chain.
      * @param  token                 Address of token transferred by OFT.
      * @return key                   Derived rate limit key.
      */
-    function getTransferRateLimitKey(address oft, uint32 destinationEndpointId, address token)
+    function getTransferRateLimitKey(
+        address oft,
+        bytes32 peer,
+        uint32  destinationEndpointId,
+        address token
+    )
         external
         pure
         returns (bytes32 key);

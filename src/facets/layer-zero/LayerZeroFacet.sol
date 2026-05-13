@@ -5,8 +5,8 @@ import {
     OptionsBuilder
 } from "../../../lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/oapp/libs/OptionsBuilder.sol";
 
-import { ApproveLib }                  from "../../libraries/ApproveLib.sol";
-import { makeAddressAddressUint32Key } from "../../libraries/RateLimitHelpers.sol";
+import { ApproveLib }                         from "../../libraries/ApproveLib.sol";
+import { makeAddressAddressBytes32Uint32Key } from "../../libraries/RateLimitHelpers.sol";
 
 import { IALMProxy } from "../../interfaces/IALMProxy.sol";
 
@@ -71,6 +71,8 @@ interface ILayerZeroLike {
     function token() external view returns (address);
 
     function approvalRequired() external pure returns (bool);
+
+    function peers(uint32 eid) external view returns (bytes32 peer);
 
 }
 
@@ -141,8 +143,12 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
     {
         address proxy = _getSharedControllerStorage().proxy;
         address token = ILayerZeroLike(oft).token();
+        bytes32 peer  = ILayerZeroLike(oft).peers(destinationEndpointId);
 
-        _decreaseRateLimit(getTransferRateLimitKey(oft, destinationEndpointId, token), amount);
+        _decreaseRateLimit(
+            getTransferRateLimitKey(oft, peer, destinationEndpointId, token),
+            amount
+        );
 
         bytes32 recipient = _getFacetStorage().recipients[destinationEndpointId];
 
@@ -206,13 +212,24 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
     }
 
     /// @inheritdoc ILayerZeroFacet
-    function getTransferRateLimitKey(address oft, uint32 destinationEndpointId, address token)
+    function getTransferRateLimitKey(
+        address oft,
+        bytes32 peer,
+        uint32  destinationEndpointId,
+        address token
+    )
         public
         pure
         override
         returns (bytes32)
     {
-        return makeAddressAddressUint32Key(_LIMIT_TRANSFER, token, oft, destinationEndpointId);
+        return makeAddressAddressBytes32Uint32Key(
+            _LIMIT_TRANSFER,
+            token,
+            oft,
+            peer,
+            destinationEndpointId
+        );
     }
 
 }

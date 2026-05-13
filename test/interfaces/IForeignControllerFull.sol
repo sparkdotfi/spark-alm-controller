@@ -199,6 +199,7 @@ interface IForeignControllerFull is IController {
 
     function getLayerZeroTransferRateLimitKey(
         address oft,
+        bytes32 peer,
         uint32  destinationEndpointId,
         address token
     )

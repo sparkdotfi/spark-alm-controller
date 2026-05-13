@@ -86,6 +86,8 @@ abstract contract LayerZero_TestBase is ForkTestBase {
 
     uint32 internal constant DESTINATION_ENDPOINT_ID = 30110;  // Arbitrum EID
 
+    bytes32 internal constant PEER = 0x00000000000000000000000014e4a1b13bf7f943c8ff7c51fb60fa964a298d92; // USDT OFT on Arbitrum
+
     IERC20Like internal constant USDT = IERC20Like(Ethereum.USDT);
 
     bytes32 internal target = bytes32(uint256(uint160(makeAddr("layerZeroRecipient"))));
@@ -97,6 +99,7 @@ abstract contract LayerZero_TestBase is ForkTestBase {
 
         key = mainnetController.getLayerZeroTransferRateLimitKey(
             USDT_OFT,
+            PEER,
             DESTINATION_ENDPOINT_ID,
             Ethereum.USDT
         );
@@ -394,6 +397,8 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
     uint32 internal constant DESTINATION_ENDPOINT_ID = 30101;  // Ethereum EID
 
+    bytes32 internal constant PEER = 0x0000000000000000000000006c96de32cea08842dcc4058c14d3aaad7fa41dee; // USDT OFT on Ethereum
+
     IERC20Like internal constant USDC_ARB = IERC20Like(Arbitrum.USDC);
 
     address internal usdsArb;
@@ -523,6 +528,7 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
         key = foreignController.getLayerZeroTransferRateLimitKey(
             USDT_OFT,
+            PEER,
             DESTINATION_ENDPOINT_ID,
             token
         );

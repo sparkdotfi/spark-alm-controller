@@ -5,6 +5,7 @@ import { RateLimits, IRateLimits } from "../../../src/RateLimits.sol";
 
 import {
     makeAddressAddressAddressKey as makeAddressAddressAddressKeyImplementation,
+    makeAddressAddressBytes32Uint32Key as makeAddressAddressBytes32Uint32KeyImplementation,
     makeAddressAddressUint32Key as makeAddressAddressUint32KeyImplementation,
     makeAddressAddressKey as makeAddressAddressKeyImplementation,
     makeAddressBytes32Key as makeAddressBytes32KeyImplementation,
@@ -45,6 +46,10 @@ contract RateLimitHelpersHarness {
 
     function makeAddressAddressUint32Key(bytes32 key, address asset, address destination, uint32 domain) public pure returns (bytes32) {
         return makeAddressAddressUint32KeyImplementation(key, asset, destination, domain);
+    }
+
+    function makeAddressAddressBytes32Uint32Key(bytes32 key, address asset, address destination, bytes32 peer, uint32 domain) public pure returns (bytes32) {
+        return makeAddressAddressBytes32Uint32KeyImplementation(key, asset, destination, peer, domain);
     }
 
     function makeBytes32Key(bytes32 key, bytes32 asset) public pure returns (bytes32) {
@@ -136,6 +141,13 @@ contract RateLimitHelpers_Tests is UnitTestBase {
         assertEq(
             wrapper.makeAddressAddressUint32Key(KEY, makeAddr("account"), makeAddr("destination"), type(uint32).max),
             keccak256(abi.encode(KEY, makeAddr("account"), makeAddr("destination"), uint32(type(uint32).max)))
+        );
+    }
+
+    function test_makeAddressAddressBytes32Uint32Key() external {
+        assertEq(
+            wrapper.makeAddressAddressBytes32Uint32Key(KEY, makeAddr("account"), makeAddr("destination"), bytes32(type(uint256).max), type(uint32).max),
+            keccak256(abi.encode(KEY, makeAddr("account"), makeAddr("destination"), bytes32(type(uint256).max), uint32(type(uint32).max)))
         );
     }
 
