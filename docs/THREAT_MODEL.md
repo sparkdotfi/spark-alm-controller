@@ -8,7 +8,7 @@ This document outlines the threat model for PAU, including attack vectors, trust
 | ------------------------------------- | ------------- | ---------------------------------------------------------------------- |
 | **Governance** (`DEFAULT_ADMIN_ROLE`) | Fully trusted | Controls all admin functions, can upgrade controllers, set rate limits |
 | **Allocator** (`ALLOCATOR_ROLE`)      | **Untrusted** | Assumed to be potentially compromised at any time                      |
-| **Freezer** (`FREEZER_ROLE`)          | Trusted       | Emergency response role, can remove compromised allocators             |
+| **Allocator role admin**              | Trusted       | Whichever role governance sets as the admin of `ALLOCATOR_ROLE` via `accessControls.setRoleAdmin`. Can grant and revoke `ALLOCATOR_ROLE`, including emergency revocation of compromised allocators. Typically delegated to a custom module that enforces a specific grant/revoke policy. |
 | **External Protocols**                | Varies        | Trust depends on specific integration (see Protocol Trust section)     |
 
 ---
@@ -45,7 +45,7 @@ The system is designed with the assumption that an actor with `ALLOCATOR_ROLE` c
 
 2. **Losses bounded by rate limits** - Any single attack is limited to the current rate limit capacity
 
-3. **Freezer can halt attacks** - The `FREEZER_ROLE` role can remove a compromised allocator within the rate limit window
+3. **Allocator role admin can halt attacks** - The admin of `ALLOCATOR_ROLE` can revoke a compromised allocator within the rate limit window
 
 4. **No trust in allocator input** - All allocator-provided parameters are validated against on-chain constraints
 
@@ -107,7 +107,7 @@ Rate limit keys (hash of function identifier + address) act as an implicit white
 
 **Response:**
 
-1. `FREEZER_ROLE` calls `removeAllocator` to revoke access
+1. The allocator role admin revokes `ALLOCATOR_ROLE` from the compromised account
 2. System switches to backup allocator
 3. Maximum loss bounded by rate limits at time of compromise
 
@@ -118,7 +118,7 @@ Rate limit keys (hash of function identifier + address) act as an implicit white
 **Response:**
 
 1. Rate limits bound total value extracted
-2. `FREEZER_ROLE` removes allocator when attack detected
+2. Allocator role admin revokes `ALLOCATOR_ROLE` when attack detected
 3. Slippage parameters limit per-transaction loss
 
 ### Scenario 3: DOS Attack
@@ -128,7 +128,7 @@ Rate limit keys (hash of function identifier + address) act as an implicit white
 **Response:**
 
 1. Accept temporary operational disruption
-2. `FREEZER_ROLE` removes compromised allocator
+2. Allocator role admin revokes `ALLOCATOR_ROLE` from the compromised account
 3. Resume operations with backup allocator
 4. Recovery procedures documented in `Attacks.t.sol`
 
@@ -161,7 +161,7 @@ The following invariants must always hold:
 1. **Funds stay in system** - ALMProxy balance can only decrease through governance-approved operations
 2. **Rate limits enforced** - No operation can exceed its configured rate limit
 3. **Whitelist enforced** - Only configured addresses can be interacted with
-4. **Freezer can halt** - `FREEZER_ROLE` can always remove any allocator
+4. **Allocator role admin can halt** - The admin of `ALLOCATOR_ROLE` can always revoke `ALLOCATOR_ROLE` from any allocator
 5. **Governance supreme** - `DEFAULT_ADMIN_ROLE` can always recover funds and reconfigure system
 
 ---

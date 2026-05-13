@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity ^0.8.34;
 
-import { IAccessControl } from "../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
-import { AccessControl }  from "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
-
 import {
     AccessControlEnumerable
 } from "../lib/openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
@@ -11,21 +8,6 @@ import {
 import { IAccessControls } from "./interfaces/IAccessControls.sol";
 
 contract AccessControls is IAccessControls, AccessControlEnumerable {
-
-    /**********************************************************************************************/
-    /*** Modifiers                                                                              ***/
-    /**********************************************************************************************/
-
-    modifier onlyRoleAdminOrDefaultAdmin(bytes32 role) {
-        bytes32 roleAdmin = getRoleAdmin(role);
-
-        require(
-            hasRole(roleAdmin, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            NotRoleAdminOrDefaultAdmin(msg.sender, role, roleAdmin)
-        );
-
-        _;
-    }
 
     /**********************************************************************************************/
     /*** Constructor                                                                            ***/
@@ -41,41 +23,13 @@ contract AccessControls is IAccessControls, AccessControlEnumerable {
     /*** External Interactive Functions                                                         ***/
     /**********************************************************************************************/
 
-    /// @inheritdoc IAccessControl
-    function grantRole(bytes32 role, address account)
-        public
-        override(IAccessControl, AccessControl)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _grantRole(role, account);
-    }
-
-    /// @inheritdoc IAccessControl
-    function revokeRole(bytes32 role, address account)
-        public
-        override(IAccessControl, AccessControl)
-        onlyRoleAdminOrDefaultAdmin(role)
-    {
-        require(_revokeRole(role, account), RoleNotGranted(account, role));
-    }
-
-    /// @inheritdoc IAccessControls
-    function setRoleRevoker(bytes32 role, bytes32 revokerRole)
-        public
-        override
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _setRoleAdmin(role, revokerRole);
+    function setRoleAdmin(bytes32 role, bytes32 adminRole) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setRoleAdmin(role, adminRole);
     }
 
     /**********************************************************************************************/
     /*** External View/Pure Functions                                                           ***/
     /**********************************************************************************************/
-
-    /// @inheritdoc IAccessControls
-    function getRoleRevoker(bytes32 role) external view override returns (bytes32) {
-        return getRoleAdmin(role);
-    }
 
     /// @inheritdoc IAccessControls
     function supportsInterface(bytes4 interfaceId)

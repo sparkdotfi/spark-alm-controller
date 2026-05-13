@@ -27,8 +27,8 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
         vm.prank(allocator);
         mainnetController.unstakeSUSDe();
 
-        // Frezer can remove the compromised allocator and fallback to the governance allocator
-        vm.prank(freezer);
+        // Allocator admin can remove the compromised allocator and fallback to the governance allocator
+        vm.prank(allocatorAdmin);
         accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
 
         skip(7 days);
@@ -74,8 +74,8 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
         vm.expectRevert("WM:AS:IN_QUEUE");
         mainnetController.requestMapleRedemption(address(SYRUP), 500_000e6);
 
-        // Frezer can remove the compromised allocator and fallback to the governance allocator
-        vm.prank(freezer);
+        // Allocator admin can remove the compromised allocator and fallback to the governance allocator
+        vm.prank(allocatorAdmin);
         accessControls.revokeRole(ALLOCATOR_ROLE, allocator);
 
         // Compromised allocator cannot perform attack anymore

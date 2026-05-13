@@ -389,10 +389,12 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
         vm.startPrank(Base.SPARK_EXECUTOR);
 
-        foreignAccessControls.grantRole(FREEZER_ROLE,   freezer);
-        foreignAccessControls.grantRole(ALLOCATOR_ROLE, allocator);
+        foreignAccessControls.grantRole(ALLOCATOR_ROLE,       allocator);
+        foreignAccessControls.grantRole(ALLOCATOR_ADMIN_ROLE, allocatorAdmin);
 
-        foreignAccessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        //       logic that calls into AccessControls to perform grants and revocations.
+        foreignAccessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
         bytes32[] memory integrationIds = new bytes32[](1);
         integrationIds[0] = "CCTP_FACET";

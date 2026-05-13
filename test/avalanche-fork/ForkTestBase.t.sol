@@ -47,9 +47,9 @@ contract ForkTestBase is Test {
     /*** Constants/state variables                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 constant ALLOCATOR_ROLE     = keccak256("ALLOCATOR_ROLE");
-    bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
-    bytes32 constant FREEZER_ROLE       = keccak256("FREEZER_ROLE");
+    bytes32 constant ALLOCATOR_ROLE       = keccak256("ALLOCATOR_ROLE");
+    bytes32 constant ALLOCATOR_ADMIN_ROLE = keccak256("ALLOCATOR_ADMIN_ROLE");
+    bytes32 constant DEFAULT_ADMIN_ROLE   = 0x00;
 
     address pocket   = makeAddr("pocket");
     address skyAdmin = makeAddr("skyAdmin");
@@ -58,8 +58,8 @@ contract ForkTestBase is Test {
     /*** Avalanche addresses                                                                    ***/
     /**********************************************************************************************/
 
-    address constant ALM_FREEZER                 = Avalanche.ALM_FREEZER;
-    address constant ALM_ALLOCATOR               = Avalanche.ALM_RELAYER;
+    address constant ALLOCATOR                   = Avalanche.ALM_RELAYER;
+    address constant ALLOCATOR_ADMIN             = Avalanche.ALM_FREEZER;
     address constant GROVE_EXECUTOR              = Avalanche.GROVE_EXECUTOR;
     address constant USDC_AVALANCHE              = Avalanche.USDC;
     address constant UNISWAP_V3_ROUTER           = 0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE;
@@ -137,10 +137,12 @@ contract ForkTestBase is Test {
 
         vm.startPrank(GROVE_EXECUTOR);
 
-        accessControls.grantRole(FREEZER_ROLE,   ALM_FREEZER);
-        accessControls.grantRole(ALLOCATOR_ROLE, ALM_ALLOCATOR);
+        accessControls.grantRole(ALLOCATOR_ROLE,       ALLOCATOR);
+        accessControls.grantRole(ALLOCATOR_ADMIN_ROLE, ALLOCATOR_ADMIN);
 
-        accessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        //       logic that calls into AccessControls to perform grants and revocations.
+        accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
         bytes32[] memory integrationIds = new bytes32[](2);
         integrationIds[0] = "CENTRIFUGE_FACET";

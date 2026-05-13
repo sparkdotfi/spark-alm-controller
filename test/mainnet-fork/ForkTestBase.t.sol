@@ -140,9 +140,9 @@ abstract contract ForkTestBase is DssTest {
 
     bytes32 constant ilk = "ILK-A";
 
-    bytes32 constant ALLOCATOR_ROLE     = keccak256("ALLOCATOR_ROLE");
-    bytes32 constant DEFAULT_ADMIN_ROLE = 0x00;
-    bytes32 constant FREEZER_ROLE       = keccak256("FREEZER_ROLE");
+    bytes32 constant ALLOCATOR_ROLE       = keccak256("ALLOCATOR_ROLE");
+    bytes32 constant ALLOCATOR_ADMIN_ROLE = keccak256("ALLOCATOR_ADMIN_ROLE");
+    bytes32 constant DEFAULT_ADMIN_ROLE   = 0x00;
 
     bytes32 constant PSM_ILK = 0x4c4954452d50534d2d555344432d410000000000000000000000000000000000;
 
@@ -155,8 +155,8 @@ abstract contract ForkTestBase is DssTest {
     address internal constant _UNISWAP_V4_POSITION_MANAGER = 0xbD216513d74C8cf14cf4747E6AaA6420FF64ee9e;
     address internal constant _UNISWAP_V4_ROUTER           = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af;
 
-    address freezer   = Ethereum.ALM_FREEZER_MULTISIG;
-    address allocator = Ethereum.ALM_RELAYER_MULTISIG;
+    address allocator      = Ethereum.ALM_RELAYER_MULTISIG;
+    address allocatorAdmin = Ethereum.ALM_FREEZER_MULTISIG;
 
     address backstopAllocator = makeAddr("backstopAllocator");  // TODO: Replace with real backstop
 
@@ -316,11 +316,13 @@ abstract contract ForkTestBase is DssTest {
 
         vm.startPrank(Ethereum.SPARK_PROXY);
 
-        accessControls.grantRole(FREEZER_ROLE,   freezer);
-        accessControls.grantRole(ALLOCATOR_ROLE, allocator);
-        accessControls.grantRole(ALLOCATOR_ROLE, backstopAllocator);
+        accessControls.grantRole(ALLOCATOR_ROLE,       allocator);
+        accessControls.grantRole(ALLOCATOR_ROLE,       backstopAllocator);
+        accessControls.grantRole(ALLOCATOR_ADMIN_ROLE, allocatorAdmin);
 
-        accessControls.setRoleRevoker(ALLOCATOR_ROLE, FREEZER_ROLE);
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        //       logic that calls into AccessControls to perform grants and revocations.
+        accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
         bytes32[] memory integrationIds = new bytes32[](25);
         integrationIds[0]  = "AAVE_FACET";

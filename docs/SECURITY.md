@@ -6,11 +6,11 @@ This document describes protocol-specific security considerations for PAU.
 
 ### Role Trust Levels
 
-| Role                 | Trust Level               | Description                                                                                                       |
-| -------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_ADMIN_ROLE` | **Fully trusted**         | Run by governance                                                                                                 |
-| `ALLOCATOR_ROLE`     | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements. |
-| `FREEZER_ROLE`       | Trusted                   | Can stop compromised allocators via `removeAllocator`                                                             |
+| Role                  | Trust Level               | Description                                                                                                       |
+| --------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_ADMIN_ROLE`  | **Fully trusted**         | Run by governance                                                                                                 |
+| `ALLOCATOR_ROLE`      | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements. |
+| Allocator role admin  | Trusted                   | The role (or module holding the role) that governance sets as the admin of `ALLOCATOR_ROLE`. Can grant and revoke `ALLOCATOR_ROLE`, including emergency revocation of a compromised allocator. |
 
 ### Allocator Compromise Mitigations
 
@@ -21,7 +21,7 @@ When assuming a compromised `ALLOCATOR`:
 
 2. **Loss limitations:** Any action must be limited to "reasonable" slippage/losses/opportunity cost by rate limits
 
-3. **Emergency response:** The `FREEZER_ROLE` must be able to stop harmful actions within max rate limits using `removeAllocator`
+3. **Emergency response:** The allocator role admin must be able to stop harmful actions within max rate limits by revoking `ALLOCATOR_ROLE` from the compromised account
 
 4. **DOS attacks:** A compromised allocator can perform DOS attacks. Recovery procedures are outlined in `Attacks.t.sol` test files.
 
@@ -35,9 +35,9 @@ For comprehensive threat modeling, attack vectors, and trust assumptions, see [T
 
 **Trust Assumption:** Ethena is a trusted counterparty in this system.
 
-**Scenario:** An operation initiated by a allocator can continue after a freeze is performed.
+**Scenario:** An operation initiated by an allocator can continue after the allocator is revoked.
 
-**Implication:** If the `FREEZER_ROLE` role removes a allocator while an Ethena mint/burn operation is pending, that operation will still complete.
+**Implication:** If the allocator role admin revokes `ALLOCATOR_ROLE` from an allocator while an Ethena mint/burn operation is pending, that operation will still complete.
 
 **Rationale:**
 
