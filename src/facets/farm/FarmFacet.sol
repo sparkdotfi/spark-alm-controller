@@ -97,14 +97,21 @@ contract FarmFacet is IFarmFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
-        _decreaseRateLimit(getWithdrawRateLimitKey(farm), amount);
+        address proxy        = _getSharedControllerStorage().proxy;
+        address stakingToken = IFarmLike(farm).stakingToken();
+
+        uint256 startingBalance = IERC20Like(stakingToken).balanceOf(proxy);
 
         IALMProxy(_getSharedControllerStorage().proxy).doCall(
             farm,
             abi.encodeCall(IFarmLike.withdraw, (amount))
         );
 
-        emit FarmWithdraw(farm, amount);
+        uint256 amountWithdrawn = IERC20Like(stakingToken).balanceOf(proxy) - startingBalance;
+
+        _decreaseRateLimit(getWithdrawRateLimitKey(farm), amountWithdrawn);
+
+        emit FarmWithdraw(farm, amountWithdrawn);
     }
 
     /**********************************************************************************************/

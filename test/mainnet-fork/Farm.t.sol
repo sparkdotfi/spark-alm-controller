@@ -219,9 +219,19 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
     }
 
     function test_withdrawFromFarm_zeroMaxAmount() external {
+        bytes32 key = mainnetController.getFarmWithdrawRateLimitKey(FARM);
+
+        deal(Ethereum.USDS, address(almProxy), 1);
+
+        vm.prank(allocator);
+        mainnetController.depositToFarm(FARM, 1);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 0, 0);
+
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.withdrawFromFarm(makeAddr("fake-farm"), 0);
+        mainnetController.withdrawFromFarm(FARM, 1);
     }
 
     function test_withdrawFromFarm_rateLimitsBoundary() external {
@@ -230,11 +240,11 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
 
-        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18 + 1);
 
         vm.startPrank(allocator);
 
-        mainnetController.depositToFarm(FARM, 1_000_000e18);
+        mainnetController.depositToFarm(FARM, 1_000_000e18 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         mainnetController.withdrawFromFarm(FARM, 1_000_000e18 + 1);
