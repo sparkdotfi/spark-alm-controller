@@ -681,33 +681,33 @@ contract UniswapV3Facet is IUniswapV3Facet, Facet {
             target.amount1
         );
 
-        if (twapTick <= ticks.lower) {
+        if (twapTick < ticks.lower) {
             expectedAmount0 = UniswapV3Utils.getAmount0Delta(
                 sqrtRatioLowerX96,
                 sqrtRatioUpperX96,
                 expectedLiquidity,
-                false
+                true
             );
         } else if (twapTick >= ticks.upper) {
             expectedAmount1 = UniswapV3Utils.getAmount1Delta(
                 sqrtRatioLowerX96,
                 sqrtRatioUpperX96,
                 expectedLiquidity,
-                false
+                true
             );
         } else {
             expectedAmount0 = UniswapV3Utils.getAmount0Delta(
                 sqrtTWAPPriceX96,
                 sqrtRatioUpperX96,
                 expectedLiquidity,
-                false
+                true
             );
 
             expectedAmount1 = UniswapV3Utils.getAmount1Delta(
                 sqrtRatioLowerX96,
                 sqrtTWAPPriceX96,
                 expectedLiquidity,
-                false
+                true
             );
         }
     }

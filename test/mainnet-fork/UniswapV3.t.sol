@@ -3,8 +3,9 @@ pragma solidity ^0.8.34;
 
 import { ReentrancyGuard } from "../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { FullMath } from "../../lib/dss-allocator/src/funnels/uniV3/FullMath.sol";
-import { TickMath } from "../../lib/dss-allocator/src/funnels/uniV3/TickMath.sol";
+import { FullMath }         from "../../lib/dss-allocator/src/funnels/uniV3/FullMath.sol";
+import { LiquidityAmounts } from "../../lib/dss-allocator/src/funnels/uniV3/LiquidityAmounts.sol";
+import { TickMath }         from "../../lib/dss-allocator/src/funnels/uniV3/TickMath.sol";
 
 import { IERC20 } from "../../lib/forge-std/src/interfaces/IERC20.sol";
 
@@ -14,6 +15,7 @@ import { SafeERC20 }          from "../../lib/openzeppelin-contracts/contracts/t
 import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
+import { UniswapV3Utils }  from "../../src/facets/uniswap-v3/UniswapV3Utils.sol";
 
 import {
     INonfungiblePositionManager,
@@ -1410,6 +1412,27 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         );
     }
 
+    function _mockTwapTick(int24 twapTick) internal {
+        // Mock pool.observe so that UniswapV3Utils.consult returns arithmeticMeanTick == twapTick.
+        // consult divides (tickCumulatives[1] - tickCumulatives[0]) by int32(secondsAgo), so we
+        // pick cumulatives whose delta is exactly twapTick * secondsAgo.
+        uint32 twapSecondsAgo = mainnetController.getUniswapV3TWAPSecondsAgo(_getPool());
+
+        int56[] memory tickCumulatives = new int56[](2);
+        tickCumulatives[0] = 0;
+        tickCumulatives[1] = int56(twapTick) * int56(int32(twapSecondsAgo));
+
+        uint160[] memory secondsPerLiquidityCumulativeX128s = new uint160[](2);
+        secondsPerLiquidityCumulativeX128s[0] = 0;
+        secondsPerLiquidityCumulativeX128s[1] = 1; // Non-zero to avoid div-by-zero in consult
+
+        vm.mockCall(
+            _getPool(),
+            abi.encodeWithSelector(IUniswapV3PoolLike.observe.selector),
+            abi.encode(tickCumulatives, secondsPerLiquidityCumulativeX128s)
+        );
+    }
+
     // Transaction fails when spot price has been manipulated out of expected range
     // Even with valid TWAP-based min amounts, Uniswap's own slippage check fails
     // because spot price requires different token ratios than our mins allow
@@ -1470,7 +1493,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
 
         // Incorrectly provide non-zero minAmount0 when TWAP expects only token1
         IUniswapV3Facet.TokenAmounts memory minAmounts = IUniswapV3Facet.TokenAmounts({
-            amount0: 1, // Should be 0 when twapTick >= tick.upper
+            amount0: 1, // Should be 0 when twapTick > tick.upper
             amount1: desired.amount1 * 98 / 100
         });
 
@@ -1509,7 +1532,7 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         // Incorrectly provide non-zero minAmount1 when TWAP expects only token0
         IUniswapV3Facet.TokenAmounts memory minAmounts = IUniswapV3Facet.TokenAmounts({
             amount0: desired.amount0 * 98 / 100,
-            amount1: 1 // Should be 0 when twapTick <= tick.lower
+            amount1: 1 // Should be 0 when twapTick < tick.lower
         });
 
         vm.startPrank(allocator);
@@ -1619,6 +1642,72 @@ contract MainnetController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
 
         assertGt(liquidity, 0, "Should successfully add liquidity");
         assertGt(tokenId, 0, "Should mint position NFT");
+    }
+
+    // When twapTick == ticks.upper, _getExpectedAmounts must produce the same
+    // amounts that Uniswap V3 pool's _modifyPosition computes at currentTick == tickUpper:
+    // amount0 = 0 and amount1 = getAmount1Delta(sqrtLower, sqrtUpper, liquidity) rounded up.
+    // The facet reaches this via its "in-range" branch, but the arithmetic collapses
+    // to the same values because sqrtTWAPPriceX96 == sqrtRatioUpperX96 at the boundary.
+    function test_addLiquidityUniswapV3_twapProtection_boundaryMatchesUniswapV3PoolAtUpperTick() public {
+        int24 lowerTick = _toSpacedTick(initTick - 100);
+        int24 upperTick = _toSpacedTick(initTick);
+
+        _mockTwapTick(upperTick);
+
+        IUniswapV3Facet.TokenAmounts memory desired = _defaultDesiredPosition();
+        _fundProxy(desired.amount0, desired.amount1);
+
+        // Mirror what Uniswap V3 pool's _modifyPosition computes when minting at
+        // currentTick == tickUpper (out-of-range above branch):
+        //   liquidity = LiquidityAmounts.getLiquidityForAmounts(sqrt, sqrtLower, sqrtUpper, a0, a1)
+        //   amount0   = 0
+        //   amount1   = SqrtPriceMath.getAmount1Delta(sqrtLower, sqrtUpper, liquidity) // round up
+        uint160 sqrtLower = TickMath.getSqrtRatioAtTick(lowerTick);
+        uint160 sqrtUpper = TickMath.getSqrtRatioAtTick(upperTick);
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtUpper,
+            sqrtLower,
+            sqrtUpper,
+            desired.amount0,
+            desired.amount1
+        );
+        uint256 uniswapAmount1 = UniswapV3Utils.getAmount1Delta(sqrtLower, sqrtUpper, liquidity, true);
+
+        IUniswapV3Facet.Ticks memory tick = IUniswapV3Facet.Ticks(lowerTick, upperTick);
+
+        // Tighten slippage so min must equal expected exactly.
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.setUniswapV3MaxSlippage(_getPool(), 1e18);
+
+        vm.startPrank(allocator);
+
+        // Any non-zero min.amount0 reverts: facet's expectedAmount0 == 0,
+        // matching pool's "amount0 = 0 at the upper boundary".
+        vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
+        mainnetController.addLiquidityUniswapV3(
+            _getPool(),
+            0,
+            tick,
+            desired,
+            IUniswapV3Facet.TokenAmounts({ amount0: 1, amount1: uniswapAmount1 }),
+            block.timestamp + 1 hours
+        );
+
+        // min.amount1 one wei below the pool's required amount reverts: facet's
+        // expectedAmount1 equals the pool's amount1 exactly (round-up included).
+        vm.expectRevert("UniswapV3Facet/min-amount-below-bound");
+        mainnetController.addLiquidityUniswapV3(
+            _getPool(),
+            0,
+            tick,
+            desired,
+            IUniswapV3Facet.TokenAmounts({ amount0: 0, amount1: uniswapAmount1 - 1 }),
+            block.timestamp + 1 hours
+        );
+
+        vm.stopPrank();
+        vm.clearMockedCalls();
     }
 
 }

@@ -979,7 +979,7 @@ contract ForeignController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
 
         // Incorrectly provide non-zero minAmount0 when TWAP expects only token1
         IUniswapV3Facet.TokenAmounts memory minAmounts = IUniswapV3Facet.TokenAmounts({
-            amount0: 1, // Should be 0 when twapTick >= tick.upper
+            amount0: 1, // Should be 0 when twapTick > tick.upper
             amount1: desired.amount1 * 98 / 100
         });
 
@@ -1018,7 +1018,7 @@ contract ForeignController_UniswapV3_AddLiquidity_TWAPProtectionTests is Uniswap
         // Incorrectly provide non-zero minAmount1 when TWAP expects only token0
         IUniswapV3Facet.TokenAmounts memory minAmounts = IUniswapV3Facet.TokenAmounts({
             amount0: desired.amount0 * 98 / 100,
-            amount1: 1 // Should be 0 when twapTick <= tick.lower
+            amount1: 1 // Should be 0 when twapTick < tick.lower
         });
 
         vm.startPrank(allocator);
