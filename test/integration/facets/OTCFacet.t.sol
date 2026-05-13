@@ -212,12 +212,6 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
         controller.setMaxSlippage(address(0), 0);
     }
 
-    function test_setMaxSlippage_zeroMaxSlippage() external {
-        vm.expectRevert("OTCFacet/max-slippage-zero");
-        vm.prank(admin);
-        controller.setMaxSlippage(address(1), 0);
-    }
-
     function test_setMaxSlippage() external {
         address exchange = makeAddr("exchange");
 

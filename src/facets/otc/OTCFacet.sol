@@ -67,7 +67,6 @@ contract OTCFacet is IOTCFacet, Facet {
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(exchange != address(0), "OTCFacet/exchange-zero-address");
-        require(maxSlippage > 0,        "OTCFacet/max-slippage-zero");
 
         _getFacetStorage().parameters[exchange].maxSlippage = maxSlippage;
 
