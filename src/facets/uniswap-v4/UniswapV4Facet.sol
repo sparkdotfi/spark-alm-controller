@@ -416,8 +416,23 @@ contract UniswapV4Facet is IUniswapV4Facet, Facet {
     }
 
     /// @inheritdoc IUniswapV4Facet
-    function getWithdrawRateLimitKey(bytes32 poolId) public pure override returns (bytes32) {
+    function getAggregateWithdrawRateLimitKey(bytes32 poolId)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
         return makeBytes32Key(_LIMIT_WITHDRAW, poolId);
+    }
+
+    /// @inheritdoc IUniswapV4Facet
+    function getAssetWithdrawRateLimitKey(bytes32 poolId, address token)
+        public
+        pure
+        override
+        returns (bytes32)
+    {
+        return makeAddressBytes32Key(_LIMIT_WITHDRAW, token, poolId);
     }
 
     /**********************************************************************************************/
@@ -467,8 +482,10 @@ contract UniswapV4Facet is IUniswapV4Facet, Facet {
 
         // Account for the theoretical possibility of receiving tokens when adding liquidity by
         // using a clamped subtraction.
-        // NOTE: The limitation of this integration is the assumption that the tokens are valued
-        //       equally (i.e. 1.000000 USDC = 1.000000000000000000 USDS).
+        // NOTE: The aggregate amount is used for aggregate deposit rate limit decrease, which makes
+        //       the assumption that the tokens are valued equally
+        //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT). Aggregate rate limits should be
+        //       set to "infinity" (`type(uint256).max`) for pools with tokens of different values.
         uint256 aggregateAmount = _clampedSub(
             _getNormalizedBalance(token0, startingBalance0) +
             _getNormalizedBalance(token1, startingBalance1),
@@ -510,14 +527,18 @@ contract UniswapV4Facet is IUniswapV4Facet, Facet {
         amount0 = uint128(_getProxyBalance(token0) - startingBalance0);
         amount1 = uint128(_getProxyBalance(token1) - startingBalance1);
 
-        // NOTE: The limitation of this integration is the assumption that the tokens are valued
-        //       equally (i.e. 1.000000 USDC = 1.000000000000000000 USDS).
-        uint256 rateLimitDecrease =
+        // NOTE: The aggregate amount is used for aggregate withdrawal rate limit decrease, which
+        //       makes the assumption that the tokens are valued equally
+        //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT). Aggregate rate limits should be
+        //       set to "infinity" (`type(uint256).max`) for pools with tokens of different values.
+        uint256 aggregateAmount =
             _getNormalizedBalance(token0, amount0) +
             _getNormalizedBalance(token1, amount1);
 
         // NOTE: Rate limit decrease includes any token0 or token1 received due to fees.
-        _decreaseRateLimit(getWithdrawRateLimitKey(poolId), rateLimitDecrease);
+        _decreaseRateLimit(getAggregateWithdrawRateLimitKey(poolId),     aggregateAmount);
+        _decreaseRateLimit(getAssetWithdrawRateLimitKey(poolId, token0), amount0);
+        _decreaseRateLimit(getAssetWithdrawRateLimitKey(poolId, token1), amount1);
     }
 
     function _swap(

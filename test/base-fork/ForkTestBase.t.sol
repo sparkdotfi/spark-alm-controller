@@ -552,7 +552,7 @@ abstract contract ForkTestBase is Test {
 
         vm.label(uniswapV3Facet, "UniswapV3Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](16);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](17);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setUniswapV3MaxSlippage.selector,
@@ -630,8 +630,13 @@ abstract contract ForkTestBase is Test {
         );
 
         wires[15] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getUniswapV3WithdrawRateLimitKey.selector,
-            IUniswapV3Facet.getWithdrawRateLimitKey.selector
+            IForeignControllerFull.getUniswapV3AggregateWithdrawRateLimitKey.selector,
+            IUniswapV3Facet.getAggregateWithdrawRateLimitKey.selector
+        );
+
+        wires[16] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.getUniswapV3AssetWithdrawRateLimitKey.selector,
+            IUniswapV3Facet.getAssetWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

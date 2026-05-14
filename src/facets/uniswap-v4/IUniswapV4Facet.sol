@@ -264,10 +264,21 @@ interface IUniswapV4Facet is IFacet {
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
     /**
-     * @notice Returns the derived withdraw rate limit key for a pool.
+     * @notice Returns the derived aggregate withdraw rate limit key for a pool.
      * @param  poolId Uniswap V4 pool identifier.
      * @return key    Derived rate limit key.
      */
-    function getWithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
+    function getAggregateWithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a pool and token.
+     * @param  poolId Uniswap V4 pool identifier.
+     * @param  token  Address of the token being withdrawn.
+     * @return key    Derived rate limit key.
+     */
+    function getAssetWithdrawRateLimitKey(bytes32 poolId, address token)
+        external
+        pure
+        returns (bytes32 key);
 
 }

@@ -489,7 +489,15 @@ interface IMainnetControllerFull is IController {
 
     function getUniswapV3TWAPSecondsAgo(address pool) external view returns (uint32);
 
-    function getUniswapV3WithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getUniswapV3AggregateWithdrawRateLimitKey(address pool)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getUniswapV3AssetWithdrawRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** UniswapV4Facet actions                                                                 ***/
@@ -558,7 +566,15 @@ interface IMainnetControllerFull is IController {
         view
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
-    function getUniswapV4WithdrawRateLimitKey(bytes32 poolId) external pure returns (bytes32 key);
+    function getUniswapV4AggregateWithdrawRateLimitKey(bytes32 poolId)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getUniswapV4AssetWithdrawRateLimitKey(bytes32 poolId, address token)
+        external
+        pure
+        returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** USDSFacet actions                                                                      ***/

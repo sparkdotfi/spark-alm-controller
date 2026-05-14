@@ -342,6 +342,14 @@ interface IForeignControllerFull is IController {
         pure
         returns (bytes32 key);
 
-    function getUniswapV3WithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getUniswapV3AggregateWithdrawRateLimitKey(address pool)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getUniswapV3AssetWithdrawRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
 
 }

@@ -297,11 +297,22 @@ interface IUniswapV3Facet is IFacet {
     function getTWAPSecondsAgo(address pool) external view returns (uint32 twapSecondsAgo);
 
     /**
-     * @notice Returns the derived withdraw rate limit key for a pool.
+     * @notice Returns the derived aggregate withdraw rate limit key for a pool.
      * @param  pool Address of the Uniswap V3 pool.
      * @return key  Derived rate limit key.
      */
-    function getWithdrawRateLimitKey(address pool)
+    function getAggregateWithdrawRateLimitKey(address pool)
+        external
+        pure
+        returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a pool and token.
+     * @param  pool  Address of the Uniswap V3 pool.
+     * @param  token Address of the token being withdrawn.
+     * @return key   Derived rate limit key.
+     */
+    function getAssetWithdrawRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
