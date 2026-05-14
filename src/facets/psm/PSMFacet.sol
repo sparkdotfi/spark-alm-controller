@@ -90,8 +90,6 @@ contract PSMFacet is IPSMFacet, Facet {
     /*** External Interactive Allocator Functions                                               ***/
     /**********************************************************************************************/
 
-    // NOTE: The param `usdcAmount` is denominated in 1e6 precision to match how PSM uses USDC
-    //       precision for both `buyGemNoFee` and `sellGemNoFee`.
     /// @inheritdoc IPSMFacet
     function swapUSDSToUSDC(uint256 usdcAmount)
         external
@@ -134,6 +132,7 @@ contract PSMFacet is IPSMFacet, Facet {
         nonReentrant
         onlyRole(ALLOCATOR_ROLE)
     {
+        // NOTE: Trusting that the amount transferred by `sellGemNoFee` is the same as requested.
         _tryIncreaseRateLimit(usdsToUSDCSwapRateLimitKey(), usdcAmount);
         _decreaseRateLimit(usdcToUSDSSwapRateLimitKey(),    usdcAmount);
 

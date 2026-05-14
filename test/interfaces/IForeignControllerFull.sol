@@ -91,50 +91,6 @@ interface IForeignControllerFull is IController {
         returns (bytes32 key);
 
     /**********************************************************************************************/
-    /*** CurveFacet actions                                                                     ***/
-    /**********************************************************************************************/
-
-    function setCurveMaxSlippage(address pool, uint256 maxSlippage) external;
-
-    function swapCurve(
-        address pool,
-        uint256 inputIndex,
-        uint256 outputIndex,
-        uint256 amountIn,
-        uint256 minAmountOut
-    )
-        external
-        returns (uint256 amountOut);
-
-    function addLiquidityCurve(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
-        external
-        returns (uint256 shares);
-
-    function removeLiquidityCurve(
-        address            pool,
-        uint256            lpBurnAmount,
-        uint256[] calldata minWithdrawAmounts
-    )
-        external
-        returns (uint256[] memory withdrawnTokens);
-
-    function getCurveMaxSlippage(address pool) external view returns (uint256);
-
-    function getCurveAggregateDepositRateLimitKey(address pool) external pure returns (bytes32 key);
-
-    function getCurveAssetDepositRateLimitKey(address pool, address token)
-        external
-        pure
-        returns (bytes32 key);
-
-    function getCurveSwapRateLimitKey(address pool, address token)
-        external
-        pure
-        returns (bytes32 key);
-
-    function getCurveWithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
-
-    /**********************************************************************************************/
     /*** ERC4626Facet actions                                                                   ***/
     /**********************************************************************************************/
 

@@ -15,7 +15,6 @@ import { PSM3Deploy } from "../../lib/spark-psm/deploy/PSM3Deploy.sol";
 import { IPSM3 }      from "../../lib/spark-psm/src/PSM3.sol";
 
 import { IAaveFacet }          from "../../src/facets/aave/IAaveFacet.sol";
-import { ICurveFacet }         from "../../src/facets/curve/ICurveFacet.sol";
 import { IERC4626Facet }       from "../../src/facets/erc4626/IERC4626Facet.sol";
 import { IMerklFacet }         from "../../src/facets/merkl/IMerklFacet.sol";
 import { IPendleFacet }        from "../../src/facets/pendle/IPendleFacet.sol";
@@ -25,7 +24,6 @@ import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAs
 import { IUniswapV3Facet }     from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
 import { AaveFacet }          from "../../src/facets/aave/AaveFacet.sol";
-import { CurveFacet }         from "../../src/facets/curve/CurveFacet.sol";
 import { ERC4626Facet }       from "../../src/facets/erc4626/ERC4626Facet.sol";
 import { MerklFacet }         from "../../src/facets/merkl/MerklFacet.sol";
 import { PendleFacet }        from "../../src/facets/pendle/PendleFacet.sol";
@@ -144,7 +142,6 @@ abstract contract ForkTestBase is Test {
 
         // Facet wiring
         _wireAaveFacet();
-        _wireCurveFacet();
         _wireERC4626Facet();
         _wireMerklFacet();
         _wirePendleFacet();
@@ -160,20 +157,19 @@ abstract contract ForkTestBase is Test {
         accessControls.grantRole(ALLOCATOR_ROLE,       allocator);
         accessControls.grantRole(ALLOCATOR_ADMIN_ROLE, allocatorAdmin);
 
-        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role
         //       logic that calls into AccessControls to perform grants and revocations.
         accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
-        bytes32[] memory integrationIds = new bytes32[](9);
+        bytes32[] memory integrationIds = new bytes32[](8);
         integrationIds[0] = "AAVE_FACET";
-        integrationIds[1] = "CURVE_FACET";
-        integrationIds[2] = "ERC4626_FACET";
-        integrationIds[3] = "MERKL_FACET";
-        integrationIds[4] = "PENDLE_FACET";
-        integrationIds[5] = "PSM3_FACET";
-        integrationIds[6] = "SPARK_VAULT_FACET";
-        integrationIds[7] = "TRANSFER_ASSET_FACET";
-        integrationIds[8] = "UNISWAP_V3_FACET";
+        integrationIds[1] = "ERC4626_FACET";
+        integrationIds[2] = "MERKL_FACET";
+        integrationIds[3] = "PENDLE_FACET";
+        integrationIds[4] = "PSM3_FACET";
+        integrationIds[5] = "SPARK_VAULT_FACET";
+        integrationIds[6] = "TRANSFER_ASSET_FACET";
+        integrationIds[7] = "UNISWAP_V3_FACET";
 
         foreignController.updateIntegrations(integrationIds);
 
@@ -295,66 +291,6 @@ abstract contract ForkTestBase is Test {
         });
 
         beacon.setIntegration("AAVE_FACET", config);
-    }
-
-    function _wireCurveFacet() internal {
-        address curveFacet = address(new CurveFacet());
-
-        vm.label(curveFacet, "CurveFacet");
-
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](9);
-
-        wires[0] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.setCurveMaxSlippage.selector,
-            ICurveFacet.setMaxSlippage.selector
-        );
-
-        wires[1] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getCurveMaxSlippage.selector,
-            ICurveFacet.getMaxSlippage.selector
-        );
-
-        wires[2] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.swapCurve.selector,
-            ICurveFacet.swap.selector
-        );
-
-        wires[3] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.addLiquidityCurve.selector,
-            ICurveFacet.addLiquidity.selector
-        );
-
-        wires[4] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.removeLiquidityCurve.selector,
-            ICurveFacet.removeLiquidity.selector
-        );
-
-        wires[5] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getCurveAggregateDepositRateLimitKey.selector,
-            ICurveFacet.getAggregateDepositRateLimitKey.selector
-        );
-
-        wires[6] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getCurveAssetDepositRateLimitKey.selector,
-            ICurveFacet.getAssetDepositRateLimitKey.selector
-        );
-
-        wires[7] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getCurveSwapRateLimitKey.selector,
-            ICurveFacet.getSwapRateLimitKey.selector
-        );
-
-        wires[8] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.getCurveWithdrawRateLimitKey.selector,
-            ICurveFacet.getWithdrawRateLimitKey.selector
-        );
-
-        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
-            facet : curveFacet,
-            wires : wires
-        });
-
-        beacon.setIntegration("CURVE_FACET", config);
     }
 
     function _wireERC4626Facet() internal {

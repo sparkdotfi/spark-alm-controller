@@ -17,17 +17,11 @@ interface ICurveFacet is IFacet {
 
     /**
      * @notice Emitted when liquidity is added to a Curve pool.
-     * @param  pool           Address of the Curve pool.
-     * @param  shares         Amount of LP tokens received.
-     * @param  valueDeposited Aggregate deposited value, 18-decimal normalized USD.
-     * @param  depositAmounts Per-token amounts deposited (native token decimals).
+     * @param  pool         Address of the Curve pool.
+     * @param  shares       Amount of LP tokens received.
+     * @param  inputAmounts Per-token amounts deposited (native token decimals).
      */
-    event CurveAddLiquidity(
-        address   indexed pool,
-        uint256           shares,
-        uint256           valueDeposited,
-        uint256[]         depositAmounts
-    );
+    event CurveAddLiquidity(address indexed pool, uint256 shares, uint256[] inputAmounts);
 
     /**
      * @notice Emitted when the max slippage for a Curve pool is updated.
@@ -38,17 +32,11 @@ interface ICurveFacet is IFacet {
 
     /**
      * @notice Emitted when liquidity is removed from a Curve pool.
-     * @param  pool            Address of the Curve pool.
-     * @param  lpBurnAmount    Amount of LP tokens burned.
-     * @param  valueWithdrawn  Aggregate withdrawn value, 18-decimal normalized USD.
-     * @param  withdrawnTokens Per-token amounts withdrawn (native token decimals).
+     * @param  pool             Address of the Curve pool.
+     * @param  shares           Amount of LP tokens burned.
+     * @param  withdrawnAmounts Per-token amounts withdrawn (native token decimals).
      */
-    event CurveRemoveLiquidity(
-        address   indexed pool,
-        uint256           lpBurnAmount,
-        uint256           valueWithdrawn,
-        uint256[]         withdrawnTokens
-    );
+    event CurveRemoveLiquidity(address indexed pool, uint256 shares, uint256[] withdrawnAmounts);
 
     /**
      * @notice Emitted when a token swap is executed on a Curve pool.
@@ -72,29 +60,29 @@ interface ICurveFacet is IFacet {
 
     /**
      * @notice Adds liquidity to a Curve pool.
-     * @param  pool           Address of the Curve pool.
-     * @param  depositAmounts Per-token amounts to deposit (native token decimals).
-     * @param  minLpAmount    Minimum LP tokens to receive.
-     * @return shares         Amount of LP tokens received.
+     * @param  pool         Address of the Curve pool.
+     * @param  inputAmounts Per-token amounts to deposit (native token decimals).
+     * @param  minShares    Minimum LP tokens to receive.
+     * @return shares       Amount of LP tokens received.
      */
-    function addLiquidity(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
+    function addLiquidity(address pool, uint256[] calldata inputAmounts, uint256 minShares)
         external
         returns (uint256 shares);
 
     /**
      * @notice Removes liquidity from a Curve pool proportionally.
      * @param  pool               Address of the Curve pool.
-     * @param  lpBurnAmount       Amount of LP tokens to burn.
+     * @param  shares             Amount of LP tokens to burn.
      * @param  minWithdrawAmounts Per-token minimum amounts to receive.
-     * @return withdrawnTokens    Per-token amounts actually withdrawn.
+     * @return withdrawnAmounts   Per-token amounts actually withdrawn.
      */
     function removeLiquidity(
         address            pool,
-        uint256            lpBurnAmount,
+        uint256            shares,
         uint256[] calldata minWithdrawAmounts
     )
         external
-        returns (uint256[] memory withdrawnTokens);
+        returns (uint256[] memory withdrawnAmounts);
 
     /**
      * @notice Sets the max slippage for a Curve pool.
@@ -160,10 +148,21 @@ interface ICurveFacet is IFacet {
     function getSwapRateLimitKey(address pool, address token) external pure returns (bytes32 key);
 
     /**
-     * @notice Returns the derived withdraw rate limit key for a Curve pool.
+     * @notice Returns the derived aggregate withdraw rate limit key for a Curve pool.
      * @param  pool Address of the Curve pool.
      * @return key  Derived rate limit key.
      */
-    function getWithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getAggregateWithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
+
+    /**
+     * @notice Returns the derived withdraw rate limit key for a Curve pool and token.
+     * @param  pool  Address of the Curve pool.
+     * @param  token Address of the token.
+     * @return key   Derived rate limit key.
+     */
+    function getAssetWithdrawRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
 
 }

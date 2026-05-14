@@ -589,7 +589,7 @@ abstract contract ForkTestBase is DssTest {
 
         vm.label(curveFacet, "CurveFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](9);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](10);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.setCurveMaxSlippage.selector,
@@ -632,8 +632,13 @@ abstract contract ForkTestBase is DssTest {
         );
 
         wires[8] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.getCurveWithdrawRateLimitKey.selector,
-            ICurveFacet.getWithdrawRateLimitKey.selector
+            IMainnetControllerFull.getCurveAggregateWithdrawRateLimitKey.selector,
+            ICurveFacet.getAggregateWithdrawRateLimitKey.selector
+        );
+
+        wires[9] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.getCurveAssetWithdrawRateLimitKey.selector,
+            ICurveFacet.getAssetWithdrawRateLimitKey.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

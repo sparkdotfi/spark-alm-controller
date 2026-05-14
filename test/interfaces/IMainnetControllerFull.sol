@@ -130,17 +130,17 @@ interface IMainnetControllerFull is IController {
         external
         returns (uint256 amountOut);
 
-    function addLiquidityCurve(address pool, uint256[] calldata depositAmounts, uint256 minLpAmount)
+    function addLiquidityCurve(address pool, uint256[] calldata inputAmounts, uint256 minShares)
         external
         returns (uint256 shares);
 
     function removeLiquidityCurve(
         address            pool,
-        uint256            lpBurnAmount,
+        uint256            shares,
         uint256[] calldata minWithdrawAmounts
     )
         external
-        returns (uint256[] memory withdrawnTokens);
+        returns (uint256[] memory withdrawnAmounts);
 
     function getCurveMaxSlippage(address pool) external view returns (uint256);
 
@@ -156,7 +156,15 @@ interface IMainnetControllerFull is IController {
         pure
         returns (bytes32 key);
 
-    function getCurveWithdrawRateLimitKey(address pool) external pure returns (bytes32 key);
+    function getCurveAggregateWithdrawRateLimitKey(address pool)
+        external
+        pure
+        returns (bytes32 key);
+
+    function getCurveAssetWithdrawRateLimitKey(address pool, address token)
+        external
+        pure
+        returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** DaiUsdsFacet actions                                                                   ***/

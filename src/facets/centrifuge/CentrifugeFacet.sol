@@ -245,6 +245,7 @@ contract CentrifugeFacet is ICentrifugeFacet, Facet {
         address spoke
             = IAsyncRedeemManagerLike(ICentrifugeV3VaultLike(token).baseManager()).spoke();
 
+        // NOTE: Trusting that the amount transferred by the spoke call is the same as requested.
         _decreaseRateLimit(getTransferRateLimitKey(token, centrifugeId, spoke), amount);
 
         // Initiate cross-chain transfer via the specific spoke address.

@@ -27,11 +27,13 @@ PAU performs liquidity operations across multiple venues:
 
 ### Rate Limiting
 
-Curve operations use three rate limit keys per pool:
+Curve operations use several rate limit keys per pool:
 
-- **Add liquidity rate limit:** Controls the value deposited into pools
-- **Swap rate limit:** Controls the implicit swap value when deposits are imbalanced
-- **Remove liquidity rate limit:** Controls the value withdrawn from pools
+- **Aggregate deposit rate limit:** Controls the value deposited into pools
+- **Asset deposit rate limits:** Controls the value deposited into pools for a specific token
+- **Asset Swap rate limits:** Controls the implicit swap value when deposits are imbalanced for a specific token
+- **Aggregate withdraw rate limit:** Controls the value withdrawn from pools
+- **Asset withdraw rate limits:** Controls the value withdrawn from pools for a specific token
 
 ### Slippage Protection
 
@@ -39,7 +41,7 @@ All Curve operations require `maxSlippage` to be configured (cannot be zero). Th
 
 ### Requirements
 
-- Only 1:1 stablecoin pools can be onboarded
+- While designed for 1:1 stablecoin pools, Curve pools with different underlying assets can be onboarded if aggregate rate limits are set to infinity (`type(uint256).max`).
 
 ### Seeding Requirement
 
@@ -57,11 +59,13 @@ Curve pools must be seeded with initial liquidity before use. Seeding must be do
 
 ### Rate Limiting
 
-Uniswap V3 operations use three rate limit keys per pool per token:
+Uniswap V3 operations use several rate limit keys per pool:
 
-- **Add liquidity rate limit:** Controls the value deposited into pools
-- **Swap rate limit:** Controls the swap value (amount spent)
-- **Remove liquidity rate limit:** Controls the value withdrawn from pools
+- **Aggregate deposit rate limit:** Controls the value deposited into pools
+- **Asset deposit rate limits:** Controls the value deposited into pools for a specific token
+- **Asset Swap rate limits:** Controls the swap value (amount spent) for a specific token
+- **Aggregate withdraw rate limit:** Controls the value withdrawn from pools
+- **Asset withdraw rate limits:** Controls the value withdrawn from pools for a specific token
 
 ### Slippage Protection
 
@@ -72,7 +76,7 @@ Uniswap V3 operations use different slippage models depending on the operation:
 
 ### Requirements
 
-- Only 1:1 stablecoin pools can be onboarded
+- Uniswap V3 pools with 1:1 stablecoin or different/unpegged underlying assets can be onboarded if aggregate rate limits are set to infinity (`type(uint256).max`).
 - Tick bounds and TWAP seconds must be configured before operations
 - The ALMProxy must own the NFT position for increase/decrease operations
 - Uses the pool's built-in TWAP oracle for price validation on swaps and liquidity additions, unlike V4 which does not rely on TWAP
@@ -92,11 +96,13 @@ See [UNIV3_UNIV4_COMPARISON.md](./UNIV3_UNIV4_COMPARISON.md) for a detailed comp
 
 ### Rate Limiting
 
-Uniswap V4 operations use three rate limit keys per pool:
+Uniswap V4 operations use several rate limit keys per pool:
 
-- **Add liquidity rate limit:** Controls the value deposited into pools
-- **Swap rate limit:** Controls the implicit swap value when deposits are imbalanced
-- **Remove liquidity rate limit:** Controls the value withdrawn from pools
+- **Aggregate deposit rate limit:** Controls the value deposited into pools
+- **Asset deposit rate limits:** Controls the value deposited into pools for a specific token
+- **Asset Swap rate limits:** Controls the implicit swap value when deposits are imbalanced for a specific token
+- **Aggregate withdraw rate limit:** Controls the value withdrawn from pools
+- **Asset withdraw rate limits:** Controls the value withdrawn from pools for a specific token
 
 ### Slippage Protection
 
@@ -107,7 +113,7 @@ Uniswap V4 operations use different slippage models depending on the operation:
 
 ### Requirements
 
-- Only 1:1 stablecoin pools can be onboarded
+- Uniswap V4 pools with 1:1 stablecoin or different/unpegged underlying assets can be onboarded if aggregate rate limits are set to infinity (`type(uint256).max`).
 - Tick limits must be configured for `mintPosition` and `increasePosition`
 - `maxSlippage` must be configured per pool for `swap`
 - Only hookless pools can be onboarded. Rate limit decreases are calculated from token balance differences before and after pool interactions, and empty `hookData` is passed. Pool hooks (if present) could manipulate token balances during the call to bypass the rate limit decrease.
