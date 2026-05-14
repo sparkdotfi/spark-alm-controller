@@ -144,6 +144,9 @@ contract WEETHFacet is IWEETHFacet, Facet {
 
         require(shares >= minSharesOut, "WEETHFacet/slippage-too-high");
 
+        // Clear approvals
+        ApproveLib.approve(eeth, proxy, weeth, 0);
+
         emit WEETHDeposit(amount, eethAmount, shares);
     }
 
@@ -190,6 +193,9 @@ contract WEETHFacet is IWEETHFacet, Facet {
             ),
             (uint256)
         );
+
+        // Clear approvals
+        ApproveLib.approve(eeth, proxy, liquidityPool, 0);
 
         emit WEETHRequestWithdraw(weethModule, requestId, eethAmount, weethShares);
     }

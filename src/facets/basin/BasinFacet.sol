@@ -72,6 +72,9 @@ contract BasinFacet is IBasinFacet, Facet {
 
         require(shares >= minSharesOut, "BasinFacet/min-shares-out-not-met");
 
+        // Clear approvals
+        ApproveLib.approve(asset, proxy, basin, 0);
+
         emit BasinDeposit(basin, asset, amount, shares);
     }
 

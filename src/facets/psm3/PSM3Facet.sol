@@ -87,6 +87,9 @@ contract PSM3Facet is IPSM3Facet, Facet {
 
         shares = IPSM3Like(psm).shares(proxy) - startingShares;
 
+        // Clear approvals
+        ApproveLib.approve(asset, proxy, psm, 0);
+
         emit PSM3Deposit(asset, amount, shares);
     }
 

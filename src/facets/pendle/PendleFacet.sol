@@ -156,6 +156,9 @@ contract PendleFacet is IPendleFacet, Facet {
 
         _decreaseRateLimit(getRedeemRateLimitKey(market, pt), tokenOutAmount);
 
+        // Clear approvals
+        ApproveLib.approve(pt, proxy, router, 0);
+
         emit PendleRedeem(market, pyAmountIn, tokenOutAmount);
     }
 

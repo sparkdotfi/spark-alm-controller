@@ -122,6 +122,9 @@ contract WSTETHFacet is IWSTETHFacet, Facet {
             (uint256[])
         );
 
+        // Clear approvals
+        ApproveLib.approve(wsteth, proxy, withdrawQueue, 0);
+
         emit WSTETHRequestWithdraw(amountToRedeem, stethAmount, requestIds);
     }
 

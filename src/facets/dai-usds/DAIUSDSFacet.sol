@@ -80,6 +80,9 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
             abi.encodeCall(IDAIUSDSLike.usdsToDai, (proxy, usdsAmount))
         );
 
+        // Clear approvals
+        ApproveLib.approve(usds, proxy, daiUSDS, 0);
+
         emit DAIUSDSSwapUSDSToDAI(usdsAmount);
     }
 
@@ -100,6 +103,9 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
             daiUSDS,
             abi.encodeCall(IDAIUSDSLike.daiToUsds, (proxy, daiAmount))
         );
+
+        // Clear approvals
+        ApproveLib.approve(dai, proxy, daiUSDS, 0);
 
         emit DAIUSDSSwapDAIToUSDS(daiAmount);
     }

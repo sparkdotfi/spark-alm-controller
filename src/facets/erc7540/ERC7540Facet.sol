@@ -80,6 +80,9 @@ contract ERC7540Facet is IERC7540Facet, Facet {
             abi.encodeCall(IERC7540Like.requestDeposit, (amount, proxy, proxy))
         );
 
+        // Clear approvals
+        ApproveLib.approve(asset, proxy, token, 0);
+
         emit ERC7540RequestDeposit(token, amount);
     }
 

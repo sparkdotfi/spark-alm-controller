@@ -65,6 +65,9 @@ contract SuperstateFacet is ISuperstateFacet, Facet {
 
         IALMProxy(proxy).doCall(ustb, abi.encodeCall(IUSTBLike.subscribe, (usdcAmount, usdc)));
 
+        // Clear approvals
+        ApproveLib.approve(usdc, proxy, ustb, 0);
+
         emit SuperstateSubscribe(usdcAmount);
     }
 

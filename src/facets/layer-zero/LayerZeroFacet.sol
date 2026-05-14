@@ -136,7 +136,9 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before using in
         //       production.
-        if (ILayerZeroLike(oft).approvalRequired()) {
+        bool approvalRequired = ILayerZeroLike(oft).approvalRequired();
+
+        if (approvalRequired) {
             ApproveLib.approve(token, proxy, oft, amount);
         }
 
@@ -148,6 +150,10 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
 
         // Sweep excess ETH in controller to the proxy.
         _sweepETH();
+
+        if (approvalRequired) {
+            ApproveLib.approve(token, proxy, oft, 0);
+        }
 
         emit LayerZeroTransfer(oft, destinationEndpointId, amount, fee.nativeFee);
     }

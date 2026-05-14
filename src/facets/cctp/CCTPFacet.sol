@@ -169,6 +169,9 @@ contract CCTPFacet is ICCTPFacet, Facet {
 
             amount -= transferAmount;
         }
+
+        // Clear approvals
+        _approve(usdc, cctp, 0);
     }
 
     /**********************************************************************************************/

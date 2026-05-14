@@ -122,6 +122,9 @@ contract ERC4626Facet is IERC4626Facet, Facet {
             "ERC4626Facet/exchange-rate-too-high"
         );
 
+        // Clear approvals
+        ApproveLib.approve(asset, proxy, token, 0);
+
         emit ERC4626Deposit(token, amount, shares);
     }
 

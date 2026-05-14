@@ -150,6 +150,9 @@ contract CurveFacet is ICurveFacet, Facet {
 
         amountOut = IERC20Like(tokenOut).balanceOf(proxy) - startingBalance;
 
+        // Clear approvals
+        _approve(tokenIn, pool, 0);
+
         emit CurveSwap(pool, inputIndex, outputIndex, amountIn, amountOut);
     }
 
@@ -209,6 +212,11 @@ contract CurveFacet is ICurveFacet, Facet {
         shares = ICurvePoolLike(pool).balanceOf(proxy) - startingShares;
 
         _decreaseRateLimitsForAddLiquidity(pool, tokens, depositAmounts, shares);
+
+        // Clear approvals
+        for (uint256 i = 0; i < tokens.length; ++i) {
+            _approve(tokens[i], pool, 0);
+        }
 
         emit CurveAddLiquidity(pool, shares, valueDeposited, depositAmounts);
     }

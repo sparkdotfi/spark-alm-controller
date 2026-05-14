@@ -122,6 +122,9 @@ contract AaveFacet is IAaveFacet, Facet {
 
         require(amountReceived >= amount * maxSlippage / 1e18, "AaveFacet/slippage-too-high");
 
+        // Clear approvals
+        ApproveLib.approve(underlying, proxy, pool, 0);
+
         emit AaveDeposit(aToken, amount);
     }
 

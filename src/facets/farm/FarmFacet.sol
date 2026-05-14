@@ -65,6 +65,9 @@ contract FarmFacet is IFarmFacet, Facet {
 
         IALMProxy(proxy).doCall(farm, abi.encodeCall(IFarmLike.stake, (amount)));
 
+        // Clear approvals
+        ApproveLib.approve(stakingToken, proxy, farm, 0);
+
         emit FarmDeposit(farm, amount);
     }
 
