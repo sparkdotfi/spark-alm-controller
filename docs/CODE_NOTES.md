@@ -26,16 +26,6 @@ See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding)
 
 ---
 
-## CCTPFacet.transfer - maxFee Validation with Chunked Transfers
-
-**Location:** `src/facets/cctp/CCTPFacet.sol` - `transfer` function
-
-**Known Issue:** When a transfer exceeds `burnLimit` and is split into chunks, the same `maxFee` is passed to each `depositForBurn` call. The last chunk may be smaller than `maxFee`, causing the `maxFee < amount` check to revert at the CCTP level.
-
-**Practical Impact:** Negligible. In practice, CCTP relay fees are orders of magnitude smaller than `burnLimit`, so the last chunk will almost always exceed `maxFee`.
-
----
-
 ## CCTPFacet.transfer - Zero Burn Limit
 
 **Location:** `src/facets/cctp/CCTPFacet.sol` - `transfer` function
@@ -52,11 +42,11 @@ See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding)
 
 ---
 
-## CCTPFacet.transferWithFee - CCTPv2 Fee Handling
+## CCTPFacet.transfer - feeCapRate Configuration
 
-**Location:** `src/facets/cctp/CCTPFacet.sol` - `transferWithFee` function
+**Location:** `src/facets/cctp/CCTPFacet.sol` - `transfer` function
 
-The current CCTPFacet targets CCTPv2, which will enable a non-zero `maxFee` in the future. To handle this, `transferWithFee` allows the allocator to fetch the CCTPv2 fee off-chain and submit it as a parameter. The original `transfer` function (which hardcodes `maxFee = 0`) is kept for backward compatibility. These two functions may be unified into one after CCTPv2 fees are fully enabled.
+`transfer` computes `maxFee = (transferAmount * feeCapRate) / 10_000` per chunk and bounds `feeCapRate` against the per-domain `[minFeeCapRate, maxFeeCapRate]` set by governance via `setDomainParameters`. Until CCTPv2 relay fees are enabled, the per-domain `minFeeCapRate` and `maxFeeCapRate` should be set to `0`.
 
 ---
 
@@ -117,7 +107,7 @@ Additionally, some core contracts use Solidity custom errors (not string-prefix 
 | ------------- | ---------------------- |
 | `ApproveLib/` | Token approval utility |
 
-Facets without custom error messages (use only rate limit reverts): `DAIUSDSFacet`, `ERC7540Facet`, `FarmFacet`, `MerklFacet`, `PSMFacet`, `PSM3Facet`, `SparkVaultFacet`, `SuperstateFacet`, `USDEFacet`, `USDSFacet`, `WrapProxyETHFacet`, `WSTETHFacet`.
+Facets without custom error messages (use only rate limit reverts): `DAIUSDSFacet`, `ERC7540Facet`, `FarmFacet`, `MerklFacet`, `PSMFacet`, `PSM3Facet`, `SparkVaultFacet`, `SuperstateFacet`, `EthenaFacet`, `USDSFacet`, `WrapProxyETHFacet`, `WSTETHFacet`.
 
 ---
 

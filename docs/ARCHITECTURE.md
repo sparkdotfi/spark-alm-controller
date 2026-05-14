@@ -141,7 +141,7 @@ The system uses a facet-based architecture where each protocol integration is en
 | `TransferAssetFacet` | Generic ERC-20 transfers                       |
 | `UniswapV3Facet`     | Uniswap V3 positions and swaps                 |
 | `UniswapV4Facet`     | Uniswap V4 positions and swaps                 |
-| `USDEFacet`          | Ethena USDe/sUSDe operations                   |
+| `EthenaFacet`        | Ethena USDe/sUSDe operations                   |
 | `USDSFacet`          | USDS minting/burning via vault                 |
 | `WEETHFacet`         | EtherFi weETH/eETH operations                  |
 | `WrapProxyETHFacet`  | WETH wrapping utility                          |

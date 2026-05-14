@@ -64,13 +64,13 @@ Governance (via a spell to set rate limits for deposits to such Maple Pools) sho
 
 ### Withdrawal Dependencies
 
-| Withdrawal Function         | Required                                                  |
-| --------------------------- | --------------------------------------------------------- |
-| `withdrawERC4626`           | Non-zero deposit rate limit for same vault                |
-| `redeemERC4626`             | Non-zero deposit rate limit for same vault                |
-| `withdrawAave`              | Non-zero deposit rate limit for same aToken               |
-| `claimWithdrawalFromWstETH` | Non-zero request-withdraw rate limit                      |
-| `claimWithdrawalFromWeETH`  | Non-zero request-withdraw rate limit for same weETHModule |
+| Withdrawal Function           | Required                                                  |
+| ----------------------------- | ------------------------------------------------------- |
+| `withdrawERC4626`             | Non-zero deposit rate limit for same vault              |
+| `redeemERC4626`               | Non-zero deposit rate limit for same vault              |
+| `withdrawAave`                | Non-zero deposit rate limit for same aToken             |
+| `WSTETHFacet.claimWithdrawal` | Non-zero claim-withdraw rate limit                      |
+| `WEETHFacet.claimWithdrawal`  | Non-zero claim-withdraw rate limit for same weETHModule |
 
 ---
 
