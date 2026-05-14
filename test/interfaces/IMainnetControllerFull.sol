@@ -2,6 +2,7 @@
 pragma solidity ^0.8.34;
 
 import { IController }     from "../../src/interfaces/IController.sol";
+import { ILayerZeroFacet } from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
 import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
 interface IMainnetControllerFull is IController {
@@ -291,6 +292,13 @@ interface IMainnetControllerFull is IController {
         external
         pure
         returns (bytes32 key);
+
+    function quoteTransferLayerZero(address oft, uint256 amount, uint32 destinationEndpointId)
+        external
+        returns (
+            ILayerZeroFacet.SendParam    memory sendParams,
+            ILayerZeroFacet.MessagingFee memory fee
+        );
 
     /**********************************************************************************************/
     /*** MapleFacet actions                                                                     ***/

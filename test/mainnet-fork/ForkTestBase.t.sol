@@ -320,7 +320,7 @@ abstract contract ForkTestBase is DssTest {
         accessControls.grantRole(ALLOCATOR_ROLE,       backstopAllocator);
         accessControls.grantRole(ALLOCATOR_ADMIN_ROLE, allocatorAdmin);
 
-        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role
         //       logic that calls into AccessControls to perform grants and revocations.
         accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
@@ -968,7 +968,7 @@ abstract contract ForkTestBase is DssTest {
 
         vm.label(layerZeroFacet, "LayerZeroFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.setLayerZeroRecipient.selector,
@@ -988,6 +988,11 @@ abstract contract ForkTestBase is DssTest {
         wires[3] = IEnumerableIntegrations.Wire(
             IMainnetControllerFull.getLayerZeroTransferRateLimitKey.selector,
             ILayerZeroFacet.getTransferRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.quoteTransferLayerZero.selector,
+            ILayerZeroFacet.quoteTransfer.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({

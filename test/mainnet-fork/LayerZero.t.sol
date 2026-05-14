@@ -130,79 +130,10 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, 30110);
     }
 
-    function test_transferTokenLayerZero_zeroMaxAmount() external {
-        vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(allocator);
-        mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
-    }
-
-    function test_transferTokenLayerZero_rateLimitedBoundary() external {
-        vm.startPrank(SPARK_PROXY);
-
-        rateLimits.setRateLimitData(key, 10_000_000e6, 0);
-
-        mainnetController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
-
-        vm.stopPrank();
-
-        // Setup token balances
-        deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
-        deal(allocator, 1 ether);  // Gas cost for LayerZero
-
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
-
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(allocator);
-        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
-            USDT_OFT,
-            10_000_000e6 + 1,
-            DESTINATION_ENDPOINT_ID
-        );
-
-        vm.prank(allocator);
-        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
-            USDT_OFT,
-            10_000_000e6,
-            DESTINATION_ENDPOINT_ID
-        );
-    }
-
     function test_transferTokenLayerZero_recipientNotSet() external {
-        // Set up rate limit, but forget to set recipient
-        vm.prank(SPARK_PROXY);
-        rateLimits.setRateLimitData(key, 10_000_000e6, 0);
-
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
-
-        deal(allocator, fee.nativeFee);
-
         vm.expectRevert("LayerZeroFacet/recipient-not-set");
         vm.prank(allocator);
-        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+        mainnetController.transferTokenLayerZero(
             USDT_OFT,
             10_000_000e6,
             DESTINATION_ENDPOINT_ID
@@ -233,6 +164,50 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         );
     }
 
+    function test_transferTokenLayerZero_zeroMaxAmount() external {
+        vm.prank(SPARK_PROXY);
+        mainnetController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(allocator);
+        mainnetController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
+    }
+
+    function test_transferTokenLayerZero_rateLimitedBoundary() external {
+        vm.startPrank(SPARK_PROXY);
+
+        rateLimits.setRateLimitData(key, 10_000_000e6, 0);
+
+        mainnetController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
+
+        vm.stopPrank();
+
+        // Setup token balances
+        deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
+        deal(allocator, 1 ether);  // Gas cost for LayerZero
+
+        ( , ILayerZeroFacet.MessagingFee memory fee ) = mainnetController.quoteTransferLayerZero(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(allocator);
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6 + 1,
+            DESTINATION_ENDPOINT_ID
+        );
+
+        vm.prank(allocator);
+        mainnetController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
+    }
+
     function test_transferTokenLayerZero() external {
         vm.startPrank(SPARK_PROXY);
 
@@ -246,25 +221,17 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
         deal(allocator, 1 ether);  // Gas cost for LayerZero
 
-        uint256 oftBalanceBefore = USDT.balanceOf(USDT_OFT);
+        uint256 oftStartingUSDT = USDT.balanceOf(USDT_OFT);
 
         assertEq(allocator.balance,                   1 ether);
         assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6);
         assertEq(USDT.balanceOf(address(almProxy)),   10_000_000e6);
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
+        ( , ILayerZeroFacet.MessagingFee memory fee ) = mainnetController.quoteTransferLayerZero(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
 
         vm.record();
 
@@ -290,7 +257,7 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(allocator.balance,                   1 ether - fee.nativeFee);
-        assertEq(USDT.balanceOf(USDT_OFT),            oftBalanceBefore + 10_000_000e6);
+        assertEq(USDT.balanceOf(USDT_OFT),            oftStartingUSDT + 10_000_000e6);
         assertEq(USDT.balanceOf(address(almProxy)),   0);
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
     }
@@ -304,30 +271,27 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
         vm.stopPrank();
 
-        // Setup token balances
-        deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
-        deal(allocator, 1 ether);  // Gas cost for LayerZero
+        // Setup ETH balances
+        deal(allocator,                  1 ether);    // Gas cost for LayerZero
+        deal(address(almProxy),          0.4 ether);  // Some starting ETH for the controller.
+        deal(address(mainnetController), 0.2 ether);  // Some starting ETH for the controller.
 
-        uint256 oftBalanceBefore = USDT.balanceOf(USDT_OFT);
+        // Setup USDT balances
+        deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
+
+        uint256 oftStartingUSDT = USDT.balanceOf(USDT_OFT);
 
         assertEq(allocator.balance,                   1 ether);
-        assertEq(address(mainnetController).balance,  0);
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6);
+        assertEq(address(almProxy).balance,           0.4 ether);
+        assertEq(address(mainnetController).balance,  0.2 ether);
         assertEq(USDT.balanceOf(address(almProxy)),   10_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6);
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
+        ( , ILayerZeroFacet.MessagingFee memory fee ) = mainnetController.quoteTransferLayerZero(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
 
         vm.record();
 
@@ -343,9 +307,11 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
         vm.expectEmit(address(mainnetController));
         emit ILayerZeroFacet.LayerZeroTransfer(USDT_OFT, DESTINATION_ENDPOINT_ID, 10_000_000e6, fee.nativeFee);
 
+        uint256 msgValue = fee.nativeFee + 0.1 ether;
+
         // Sending more native token than required to cover the fee.
         vm.prank(allocator);
-        mainnetController.transferTokenLayerZero{value: fee.nativeFee + 0.1 ether}(
+        mainnetController.transferTokenLayerZero{value: msgValue}(
             USDT_OFT,
             10_000_000e6,
             DESTINATION_ENDPOINT_ID
@@ -353,9 +319,10 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(allocator.balance,                   1 ether - fee.nativeFee); // Allocator should be refunded the excess.
-        assertEq(address(mainnetController).balance,  0); // Controller should not keep any of the excess native token.
-        assertEq(USDT.balanceOf(USDT_OFT),            oftBalanceBefore + 10_000_000e6);
+        assertEq(allocator.balance,                   1 ether - msgValue);
+        assertEq(address(almProxy).balance,           0.4 ether + 0.1 ether + 0.2 ether); // AlmProxy should be given all excess ETH.
+        assertEq(address(mainnetController).balance,  0); // Controller should not keep any excess ETH.
+        assertEq(USDT.balanceOf(USDT_OFT),            oftStartingUSDT + 10_000_000e6);
         assertEq(USDT.balanceOf(address(almProxy)),   0);
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
     }
@@ -456,7 +423,7 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         foreignAccessControls.grantRole(ALLOCATOR_ROLE,       allocator);
         foreignAccessControls.grantRole(ALLOCATOR_ADMIN_ROLE, allocatorAdmin);
 
-        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role
         //       logic that calls into AccessControls to perform grants and revocations.
         foreignAccessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
@@ -473,7 +440,7 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
         vm.label(layerZeroFacet, "LayerZeroFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.setLayerZeroRecipient.selector,
@@ -486,13 +453,18 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.layerZeroRecipients.selector,
+            ILayerZeroFacet.getRecipient.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
             IForeignControllerFull.getLayerZeroTransferRateLimitKey.selector,
             ILayerZeroFacet.getTransferRateLimitKey.selector
         );
 
-        wires[3] = IEnumerableIntegrations.Wire(
-            IForeignControllerFull.layerZeroRecipients.selector,
-            ILayerZeroFacet.getRecipient.selector
+        wires[4] = IEnumerableIntegrations.Wire(
+            IForeignControllerFull.quoteTransferLayerZero.selector,
+            ILayerZeroFacet.quoteTransfer.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
@@ -551,82 +523,10 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         foreignController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
     }
 
-    function test_transferTokenLayerZero_zeroMaxAmount() external {
-        vm.expectRevert("RateLimits/zero-maxAmount");
-        vm.prank(allocator);
-        foreignController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
-    }
-
-    function test_transferTokenLayerZero_rateLimitedBoundary() external {
-        vm.startPrank(SPARK_EXECUTOR);
-
-        foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
-
-        foreignController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
-
-        vm.stopPrank();
-
-        // Setup token balances
-        deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
-        deal(allocator, 1 ether);  // Gas cost for LayerZero
-
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
-
-        vm.expectRevert("RateLimits/rate-limit-exceeded");
-        vm.prank(allocator);
-        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
-            USDT_OFT,
-            10_000_000e6 + 1,
-            DESTINATION_ENDPOINT_ID
-        );
-
-        vm.prank(allocator);
-        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
-            USDT_OFT,
-            10_000_000e6,
-            DESTINATION_ENDPOINT_ID
-        );
-    }
-
     function test_transferTokenLayerZero_recipientNotSet() external {
-        // Set up rate limit, but forget to set recipient
-        vm.startPrank(SPARK_EXECUTOR);
-
-        foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
-
-        vm.stopPrank();
-
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
-
-        deal(allocator, fee.nativeFee);
-
         vm.expectRevert("LayerZeroFacet/recipient-not-set");
         vm.prank(allocator);
-        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+        foreignController.transferTokenLayerZero(
             USDT_OFT,
             10_000_000e6,
             DESTINATION_ENDPOINT_ID
@@ -657,6 +557,50 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         );
     }
 
+    function test_transferTokenLayerZero_zeroMaxAmount() external {
+        vm.prank(SPARK_EXECUTOR);
+        foreignController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
+
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(allocator);
+        foreignController.transferTokenLayerZero(USDT_OFT, 1e6, DESTINATION_ENDPOINT_ID);
+    }
+
+    function test_transferTokenLayerZero_rateLimitedBoundary() external {
+        vm.startPrank(SPARK_EXECUTOR);
+
+        foreignRateLimits.setRateLimitData(key, 10_000_000e6, 0);
+
+        foreignController.setLayerZeroRecipient(DESTINATION_ENDPOINT_ID, target);
+
+        vm.stopPrank();
+
+        // Setup token balances
+        deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
+        deal(allocator, 1 ether);  // Gas cost for LayerZero
+
+        ( , ILayerZeroFacet.MessagingFee memory fee ) = foreignController.quoteTransferLayerZero(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(allocator);
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6 + 1,
+            DESTINATION_ENDPOINT_ID
+        );
+
+        vm.prank(allocator);
+        foreignController.transferTokenLayerZero{value: fee.nativeFee}(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
+    }
+
     function test_transferTokenLayerZero() external {
         vm.startPrank(SPARK_EXECUTOR);
 
@@ -674,19 +618,11 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         assertEq(foreignRateLimits.getCurrentRateLimit(key),            10_000_000e6);
         assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)), 10_000_000e6);
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
+        ( , ILayerZeroFacet.MessagingFee memory fee ) = foreignController.quoteTransferLayerZero(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
 
         vm.record();
 
@@ -725,28 +661,25 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
         vm.stopPrank();
 
+        // Setup ETH balances
+        deal(allocator,                  1 ether);    // Gas cost for LayerZero
+        deal(address(foreignAlmProxy),   0.4 ether);  // Some starting ETH for the controller.
+        deal(address(foreignController), 0.2 ether);  // Some starting ETH for the controller.
+
         // Setup token balances
         deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
-        deal(allocator, 1 ether);  // Gas cost for LayerZero
 
         assertEq(allocator.balance,                                     1 ether);
-        assertEq(address(foreignController).balance,                    0);
-        assertEq(foreignRateLimits.getCurrentRateLimit(key),            10_000_000e6);
+        assertEq(address(foreignAlmProxy).balance,                      0.4 ether);
+        assertEq(address(foreignController).balance,                    0.2 ether);
         assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)), 10_000_000e6);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),            10_000_000e6);
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(200_000, 0);
-
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
-            dstEid       : DESTINATION_ENDPOINT_ID,
-            to           : target,
-            amountLD     : 10_000_000e6,
-            minAmountLD  : 10_000_000e6,
-            extraOptions : options,
-            composeMsg   : "",
-            oftCmd       : ""
-        });
-
-        ILayerZeroLike.MessagingFee memory fee = ILayerZeroLike(USDT_OFT).quoteSend(sendParams, false);
+        ( , ILayerZeroFacet.MessagingFee memory fee ) = foreignController.quoteTransferLayerZero(
+            USDT_OFT,
+            10_000_000e6,
+            DESTINATION_ENDPOINT_ID
+        );
 
         vm.record();
 
@@ -762,9 +695,11 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         vm.expectEmit(address(foreignController));
         emit ILayerZeroFacet.LayerZeroTransfer(USDT_OFT, DESTINATION_ENDPOINT_ID, 10_000_000e6, fee.nativeFee);
 
+        uint256 msgValue = fee.nativeFee + 0.1 ether;
+
         // Sending more native token than required to cover the fee.
         vm.prank(allocator);
-        foreignController.transferTokenLayerZero{value: fee.nativeFee + 0.1 ether}(
+        foreignController.transferTokenLayerZero{value: msgValue}(
             USDT_OFT,
             10_000_000e6,
             DESTINATION_ENDPOINT_ID
@@ -772,10 +707,11 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
         _assertReentrancyGuardWrittenToTwice(address(foreignController));
 
-        assertEq(allocator.balance,                                     1 ether - fee.nativeFee); // Allocator should be refunded the excess.
-        assertEq(address(foreignController).balance,                    0); // Controller should not keep any of the excess native token.
-        assertEq(foreignRateLimits.getCurrentRateLimit(key),            0);
+        assertEq(allocator.balance,                                     1 ether - msgValue);
+        assertEq(address(foreignAlmProxy).balance,                      0.4 ether + 0.1 ether + 0.2 ether); // AlmProxy should be given all excess ETH.
+        assertEq(address(foreignController).balance,                    0); // Controller should not keep any excess ETH.
         assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)), 0);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),            0);
     }
 
 }

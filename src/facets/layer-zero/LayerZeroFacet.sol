@@ -18,15 +18,10 @@ import { ILayerZeroFacet } from "./ILayerZeroFacet.sol";
 
 interface ILayerZeroLike {
 
-    struct MessagingFee {
-        uint256 nativeFee;  // Gas amount in native gas token.
-        uint256 lzTokenFee; // Gas amount in ZRO token.
-    }
-
     struct MessagingReceipt {
-        bytes32      guid;
-        uint64       nonce;
-        MessagingFee fee;
+        bytes32                      guid;
+        uint64                       nonce;
+        ILayerZeroFacet.MessagingFee fee;
     }
 
     struct OFTReceipt {
@@ -35,35 +30,18 @@ interface ILayerZeroLike {
         uint256 amountReceivedLD; // Amount of tokens to be received on the remote side.
     }
 
-    /**
-     * @notice Struct representing token parameters for the OFT send() operation.
-     * @param  dstEid       Destination endpoint ID.
-     * @param  to           Recipient address.
-     * @param  amountLD     Amount to send in local decimals.
-     * @param  minAmountLD  Minimum amount to send in local decimals.
-     * @param  extraOptions Additional options supplied by the caller to be used in the LayerZero
-     *                      message.
-     * @param  composeMsg   Composed message for the send() operation.
-     * @param  oftCmd       OFT command to be executed, unused in default OFT implementations.
-     */
-    struct SendParam {
-        uint32  dstEid;
-        bytes32 to;
-        uint256 amountLD;
-        uint256 minAmountLD;
-        bytes   extraOptions;
-        bytes   composeMsg;
-        bytes   oftCmd;
-    }
-
     function decimalConversionRate() external view returns (uint256);
 
-    function quoteSend(SendParam calldata sendParam, bool payInLzToken)
+    function quoteSend(ILayerZeroFacet.SendParam calldata sendParam, bool payInLzToken)
         external
         view
-        returns (MessagingFee memory msgFee);
+        returns (ILayerZeroFacet.MessagingFee memory msgFee);
 
-    function send(SendParam calldata sendParam, MessagingFee calldata fee, address refundAddress)
+    function send(
+        ILayerZeroFacet.SendParam    calldata sendParam,
+        ILayerZeroFacet.MessagingFee calldata fee,
+        address                               refundAddress
+    )
         external
         payable
         returns (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt);
@@ -145,14 +123,15 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
         address token = ILayerZeroLike(oft).token();
         bytes32 peer  = ILayerZeroLike(oft).peers(destinationEndpointId);
 
+        (
+            SendParam    memory sendParams,
+            MessagingFee memory fee
+        ) = quoteTransfer(oft, amount, destinationEndpointId);
+
         _decreaseRateLimit(
             getTransferRateLimitKey(oft, peer, destinationEndpointId, token),
             amount
         );
-
-        bytes32 recipient = _getFacetStorage().recipients[destinationEndpointId];
-
-        require(recipient != bytes32(0), "LayerZeroFacet/recipient-not-set");
 
         // NOTE: Full integration testing of this logic is not possible without OFTs with
         //       approvalRequired == false. Add integration testing for this case before using in
@@ -161,12 +140,34 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
             ApproveLib.approve(token, proxy, oft, amount);
         }
 
+        IALMProxy(proxy).doCallWithValue{value: fee.nativeFee}(
+            oft,
+            abi.encodeCall(ILayerZeroLike.send, (sendParams, fee, proxy)),
+            fee.nativeFee
+        );
+
+        // Sweep excess ETH in controller to the proxy.
+        _sweepETH();
+
+        emit LayerZeroTransfer(oft, destinationEndpointId, amount, fee.nativeFee);
+    }
+
+    /// @inheritdoc ILayerZeroFacet
+    function quoteTransfer(address oft, uint256 amount, uint32 destinationEndpointId)
+        public
+        override
+        returns (SendParam memory sendParams, MessagingFee memory fee)
+    {
+        bytes32 recipient = _getFacetStorage().recipients[destinationEndpointId];
+
+        require(recipient != bytes32(0), "LayerZeroFacet/recipient-not-set");
+
         uint256 decimalConversionRate = ILayerZeroLike(oft).decimalConversionRate();
         uint256 minAmountLD           = (amount / decimalConversionRate) * decimalConversionRate;
 
         require(minAmountLD > 0, "LayerZeroFacet/zero-min-amount");
 
-        ILayerZeroLike.SendParam memory sendParams = ILayerZeroLike.SendParam({
+        sendParams = SendParam({
             dstEid       : destinationEndpointId,
             to           : recipient,
             amountLD     : amount,
@@ -176,30 +177,13 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
             oftCmd       : ""
         });
 
-        ILayerZeroLike.MessagingFee memory fee = abi.decode(
-            IALMProxy(proxy).doCall(
+        fee = abi.decode(
+            IALMProxy(_getSharedControllerStorage().proxy).doCall(
                 oft,
                 abi.encodeCall(ILayerZeroLike.quoteSend, (sendParams, false))
             ),
-            (ILayerZeroLike.MessagingFee)
+            (MessagingFee)
         );
-
-        IALMProxy(proxy).doCallWithValue{value: fee.nativeFee}(
-            oft,
-            abi.encodeCall(ILayerZeroLike.send, (sendParams, fee, proxy)),
-            fee.nativeFee
-        );
-
-        // Refund any excess native fee back to the caller.
-        uint256 refund = msg.value - fee.nativeFee;
-
-        if (refund > 0) {
-            ( bool success, ) = msg.sender.call{value: refund}("");
-
-            require(success, "LayerZeroFacet/refund-failed");
-        }
-
-        emit LayerZeroTransfer(oft, destinationEndpointId, amount, fee.nativeFee);
     }
 
     /**********************************************************************************************/

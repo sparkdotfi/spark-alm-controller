@@ -6,11 +6,11 @@ This document describes protocol-specific security considerations for PAU.
 
 ### Role Trust Levels
 
-| Role                  | Trust Level               | Description                                                                                                       |
-| --------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `DEFAULT_ADMIN_ROLE`  | **Fully trusted**         | Run by governance                                                                                                 |
-| `ALLOCATOR_ROLE`      | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements. |
-| Allocator role admin  | Trusted                   | The role (or module holding the role) that governance sets as the admin of `ALLOCATOR_ROLE`. Can grant and revoke `ALLOCATOR_ROLE`, including emergency revocation of a compromised allocator. |
+| Role                 | Trust Level               | Description                                                                                                                                                                                    |
+| -------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEFAULT_ADMIN_ROLE` | **Fully trusted**         | Run by governance                                                                                                                                                                              |
+| `ALLOCATOR_ROLE`     | **Assumed compromisable** | Logic must prevent unauthorized value movement. This should be a major consideration during auditing engagements.                                                                              |
+| Allocator role admin | Trusted                   | The role (or module holding the role) that governance sets as the admin of `ALLOCATOR_ROLE`. Can grant and revoke `ALLOCATOR_ROLE`, including emergency revocation of a compromised allocator. |
 
 ### Allocator Compromise Mitigations
 
@@ -79,7 +79,7 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 **Guarantee:** Any ETH left in the `ALMProxy` can always be removed.
 
 | Method                              | Access       | Description                                                              |
-| ------------------------------------| ------------ | ------------------------------------------------------------------------ |
+| ----------------------------------- | ------------ | ------------------------------------------------------------------------ |
 | `ALMProxy.doCallWithValue`          | `CONTROLLER` | Allows arbitrary calls with ETH value attached from `ALMProxy`.          |
 | `ALMProxyFreezable.doCallWithValue` | `RELAYER`    | Allows arbitrary calls with ETH value attached from `ALMProxyFreezable`. |
 | `wrapAll`                           | `RELAYER`    | Wraps all ETH in `ALMProxy` to WETH (via `WrapProxyETHFacet`).           |
