@@ -25,8 +25,8 @@ contract DAIUSDSFacet is IDAIUSDSFacet, Facet {
     /*** Constants                                                                              ***/
     /**********************************************************************************************/
 
-    bytes32 internal constant _LIMIT_USDS_TO_DAI = keccak256("LIMIT_USDS_TO_DAI");
-    bytes32 internal constant _LIMIT_DAI_TO_USDS = keccak256("LIMIT_DAI_TO_USDS");
+    bytes32 internal constant _LIMIT_USDS_TO_DAI = keccak256("LIMIT_DAIUSDS_SWAP_USDS_TO_DAI");
+    bytes32 internal constant _LIMIT_DAI_TO_USDS = keccak256("LIMIT_DAIUSDS_SWAP_DAI_TO_USDS");
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";

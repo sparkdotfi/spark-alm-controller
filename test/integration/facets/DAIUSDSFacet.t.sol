@@ -93,7 +93,7 @@ contract Controller_DAIUSDSFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_daiToUSDSSwapRateLimitKey() external {
-        assertEq(controller.daiToUSDSSwapRateLimitKey(), keccak256("LIMIT_DAI_TO_USDS"));
+        assertEq(controller.daiToUSDSSwapRateLimitKey(), keccak256("LIMIT_DAIUSDS_SWAP_DAI_TO_USDS"));
     }
 
     /**********************************************************************************************/
@@ -101,7 +101,7 @@ contract Controller_DAIUSDSFacet_Tests is Integration_TestBase {
     /**********************************************************************************************/
 
     function test_usdsToDAISwapRateLimitKey() external {
-        assertEq(controller.usdsToDAISwapRateLimitKey(), keccak256("LIMIT_USDS_TO_DAI"));
+        assertEq(controller.usdsToDAISwapRateLimitKey(), keccak256("LIMIT_DAIUSDS_SWAP_USDS_TO_DAI"));
     }
 
 }
