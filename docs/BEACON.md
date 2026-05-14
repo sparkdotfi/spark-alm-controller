@@ -56,6 +56,20 @@ After the Beacon admin configures integrations, a Controller admin calls `contro
 - Each Controller admin decides when to pull new configs
 - Multiple Controllers can be at different config versions temporarily
 
+### Stale integrations and `CallSelectorAlreadyWired`
+
+Both the Beacon and the Controller keep a `callSelector → dispatch` map and refuse to wire the same incoming selector twice. On the Beacon, `_setConfigAndDispatches` requires `_dispatches[callSelector].facet == address(0)` before writing a wire, or it reverts with `CallSelectorAlreadyWired(callSelector)`. On the Controller, `updateIntegrations` applies the same rule against the Controller’s own `dispatches` storage.
+
+The Beacon only enforces **global** non-collision among integrations that exist **on the Beacon at that moment**. When `removeIntegration` runs, the Beacon deletes that integration’s config and clears every dispatch slot its wires occupied, so those selectors become available for a different live integration.
+
+The Controller does not automatically drop integrations when the Beacon removes them. Its `dispatches` entries are cleared only when an admin calls `removeIntegrations` for an ID, or when `updateIntegrations` **overwrites** an ID that is already installed (in which case it deletes that ID’s old wires before applying the new config from the Beacon). If an integration was removed from the Beacon but never removed from a given Controller, that Controller still holds the old wires and still occupies those call selectors locally.
+
+That mismatch is how a sync can revert with `CallSelectorAlreadyWired`: a **new** integration on the Beacon may legally reuse a call selector that the Beacon has already freed, but the target Controller may still have that selector wired to a **stale** integration that is no longer in the Beacon. When `updateIntegrations` tries to install the new integration’s wires, `_setConfigAndDispatches` sees the selector already in use on the Controller and reverts—even though the Beacon’s own map has no collision for current integrations.
+
+In short, the Beacon guarantees collision-free wiring among **current** Beacon integrations; it cannot guarantee that every Controller’s local copy is collision-free with **its** still-installed integrations until those admins run `removeIntegrations` (or otherwise reconcile IDs) before pulling configs that reuse selectors.
+
+If a Controller admin wants to sync a new integration that is reusing a selector already wired by another unrelated integration, they should decide if they can safely remove or update the existing integration before syncing the new integration.
+
 ## Hardcoded Selector Protection
 
 The Beacon prevents facets from overriding core function selectors that must remain available on every Controller. The `_revertIfCallSelectorIsHardcoded` function checks against:
