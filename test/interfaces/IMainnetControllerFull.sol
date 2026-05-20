@@ -11,22 +11,24 @@ interface IMainnetControllerFull is IController {
     /*** AaveFacet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function setAaveMaxSlippage(address aToken, uint256 maxSlippage) external;
+    function aave_VERSION() external pure returns (string memory);
 
-    function depositAave(address aToken, uint256 amount) external;
+    function aave_setMaxSlippage(address aToken, uint256 maxSlippage) external;
 
-    function withdrawAave(address aToken, uint256 amount)
+    function aave_deposit(address aToken, uint256 amount) external;
+
+    function aave_withdraw(address aToken, uint256 amount)
         external
         returns (uint256 amountWithdrawn);
 
-    function getAaveMaxSlippage(address aToken) external view returns (uint256);
+    function aave_getMaxSlippage(address aToken) external view returns (uint256);
 
-    function getAaveDepositRateLimitKey(address aToken, address pool, address underlyingAsset)
+    function aave_getDepositRateLimitKey(address aToken, address pool, address underlyingAsset)
         external
         pure
         returns (bytes32 key);
 
-    function getAaveWithdrawRateLimitKey(address aToken, address pool)
+    function aave_getWithdrawRateLimitKey(address aToken, address pool)
         external
         pure
         returns (bytes32 key);
@@ -35,22 +37,24 @@ interface IMainnetControllerFull is IController {
     /*** BasinFacet actions                                                                     ***/
     /**********************************************************************************************/
 
-    function depositBasin(address basin, address asset, uint256 amount, uint256 minSharesOut)
+    function basin_VERSION() external pure returns (string memory);
+
+    function basin_deposit(address basin, address asset, uint256 amount, uint256 minSharesOut)
         external returns (uint256 shares);
 
-    function withdrawBasin(
+    function basin_withdraw(
         address basin,
         address asset,
         uint256 maxAmount,
         uint256 minConversionRate
     ) external returns (uint256 assetsWithdrawn);
 
-    function getBasinDepositRateLimitKey(address basin, address asset)
+    function basin_getDepositRateLimitKey(address basin, address asset)
         external
         pure
         returns (bytes32 key);
 
-    function getBasinWithdrawRateLimitKey(address basin, address asset)
+    function basin_getWithdrawRateLimitKey(address basin, address asset)
         external
         pure
         returns (bytes32 key);
@@ -59,24 +63,34 @@ interface IMainnetControllerFull is IController {
     /*** CCTPFacet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function setCCTPDomainParameters(
+    function cctp_VERSION() external pure returns (string memory);
+
+    function cctp_DESTINATION_CALLER() external pure returns (bytes32);
+
+    function cctp_MAX_FINALITY_THRESHOLD() external pure returns (uint32);
+
+    function cctp_cctp() external view returns (address);
+
+    function cctp_usdc() external view returns (address);
+
+    function cctp_setDomainParameters(
         uint32  destinationDomain,
         bytes32 recipient,
         uint32  minFeeCapRate,
         uint32  maxFeeCapRate
     ) external;
 
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain, uint64 feeCapRate)
+    function cctp_transfer(uint256 usdcAmount, uint32 destinationDomain, uint64 feeCapRate)
         external;
 
-    function toCCTPRateLimitKey() external pure returns (bytes32 key);
+    function cctp_toCCTPRateLimitKey() external pure returns (bytes32 key);
 
-    function getCCTPDomainParameters(uint32 destinationDomain)
+    function cctp_getDomainParameters(uint32 destinationDomain)
         external
         view
         returns (bytes32 mintRecipient, uint32 minFeeCapRate, uint32 maxFeeCapRate);
 
-    function getCCTPToDomainRateLimitKey(uint32 destinationDomain)
+    function cctp_getToDomainRateLimitKey(uint32 destinationDomain)
         external
         pure
         returns (bytes32 key);
@@ -85,31 +99,35 @@ interface IMainnetControllerFull is IController {
     /*** CentrifugeFacet actions                                                                ***/
     /**********************************************************************************************/
 
-    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external;
+    function centrifuge_VERSION() external pure returns (string memory);
 
-    function cancelCentrifugeDepositRequest(address token) external;
+    function centrifuge_REQUEST_ID() external pure returns (uint256);
 
-    function claimCentrifugeCancelDepositRequest(address token) external;
+    function centrifuge_setRecipient(uint16 centrifugeId, bytes32 recipient) external;
 
-    function cancelCentrifugeRedeemRequest(address token) external;
+    function centrifuge_cancelDepositRequest(address token) external;
 
-    function claimCentrifugeCancelRedeemRequest(address token) external;
+    function centrifuge_claimCancelDepositRequest(address token) external;
 
-    function transferSharesCentrifuge(address token, uint128 amount, uint16 centrifugeId)
+    function centrifuge_cancelRedeemRequest(address token) external;
+
+    function centrifuge_claimCancelRedeemRequest(address token) external;
+
+    function centrifuge_transferShares(address token, uint128 amount, uint16 centrifugeId)
         external
         payable;
 
-    function getCentrifugeRecipient(uint16 centrifugeId) external view returns (bytes32);
+    function centrifuge_getRecipient(uint16 centrifugeId) external view returns (bytes32);
 
-    function getCentrifugeCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeClaimCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getClaimCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeClaimCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getClaimCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
+    function centrifuge_getTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
         external
         pure
         returns (bytes32 key);
@@ -118,9 +136,11 @@ interface IMainnetControllerFull is IController {
     /*** CurveFacet actions                                                                     ***/
     /**********************************************************************************************/
 
-    function setCurveMaxSlippage(address pool, uint256 maxSlippage) external;
+    function curve_VERSION() external pure returns (string memory);
 
-    function swapCurve(
+    function curve_setMaxSlippage(address pool, uint256 maxSlippage) external;
+
+    function curve_swap(
         address pool,
         uint256 inputIndex,
         uint256 outputIndex,
@@ -130,11 +150,11 @@ interface IMainnetControllerFull is IController {
         external
         returns (uint256 amountOut);
 
-    function addLiquidityCurve(address pool, uint256[] calldata inputAmounts, uint256 minShares)
+    function curve_addLiquidity(address pool, uint256[] calldata inputAmounts, uint256 minShares)
         external
         returns (uint256 shares);
 
-    function removeLiquidityCurve(
+    function curve_removeLiquidity(
         address            pool,
         uint256            shares,
         uint256[] calldata minWithdrawAmounts
@@ -142,26 +162,26 @@ interface IMainnetControllerFull is IController {
         external
         returns (uint256[] memory withdrawnAmounts);
 
-    function getCurveMaxSlippage(address pool) external view returns (uint256);
+    function curve_getMaxSlippage(address pool) external view returns (uint256);
 
-    function getCurveAggregateDepositRateLimitKey(address pool) external pure returns (bytes32 key);
+    function curve_getAggregateDepositRateLimitKey(address pool) external pure returns (bytes32 key);
 
-    function getCurveAssetDepositRateLimitKey(address pool, address token)
+    function curve_getAssetDepositRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
 
-    function getCurveSwapRateLimitKey(address pool, address token)
+    function curve_getSwapRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
 
-    function getCurveAggregateWithdrawRateLimitKey(address pool)
+    function curve_getAggregateWithdrawRateLimitKey(address pool)
         external
         pure
         returns (bytes32 key);
 
-    function getCurveAssetWithdrawRateLimitKey(address pool, address token)
+    function curve_getAssetWithdrawRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
@@ -170,128 +190,154 @@ interface IMainnetControllerFull is IController {
     /*** DaiUsdsFacet actions                                                                   ***/
     /**********************************************************************************************/
 
-    function swapUSDSToDAI(uint256 usdsAmount) external;
+    function daiUSDS_VERSION() external pure returns (string memory);
 
-    function swapDAIToUSDS(uint256 daiAmount) external;
+    function daiUSDS_dai() external view returns (address);
 
-    function daiToUSDSSwapRateLimitKey() external pure returns (bytes32 key);
+    function daiUSDS_daiUSDS() external view returns (address);
 
-    function usdsToDAISwapRateLimitKey() external pure returns (bytes32 key);
+    function daiUSDS_usds() external view returns (address);
+
+    function daiUSDS_swapUSDSToDAI(uint256 usdsAmount) external;
+
+    function daiUSDS_swapDAIToUSDS(uint256 daiAmount) external;
+
+    function daiUSDS_daiToUSDSSwapRateLimitKey() external pure returns (bytes32 key);
+
+    function daiUSDS_usdsToDAISwapRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** ERC4626Facet actions                                                                   ***/
     /**********************************************************************************************/
 
-    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets) external;
+    function erc4626_VERSION() external pure returns (string memory);
 
-    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
+    function erc4626_setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets) external;
+
+    function erc4626_deposit(address token, uint256 amount, uint256 minSharesOut)
         external
         returns (uint256 shares);
 
-    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
+    function erc4626_withdraw(address token, uint256 amount, uint256 maxSharesIn)
         external
         returns (uint256 shares);
 
-    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
+    function erc4626_redeem(address token, uint256 shares, uint256 minAssetsOut)
         external
         returns (uint256 assets);
 
-    function EXCHANGE_RATE_PRECISION() external pure returns (uint256);
+    function erc4626_EXCHANGE_RATE_PRECISION() external pure returns (uint256);
 
-    function maxExchangeRates(address token) external view returns (uint256);
+    function erc4626_getMaxExchangeRate(address token) external view returns (uint256);
 
-    function getERC4626DepositRateLimitKey(address token, address asset)
+    function erc4626_getDepositRateLimitKey(address token, address asset)
         external
         pure
         returns (bytes32 key);
 
-    function getERC4626WithdrawRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc4626_getWithdrawRateLimitKey(address token) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** ERC7540Facet actions                                                                   ***/
     /**********************************************************************************************/
 
-    function requestDepositERC7540(address token, uint256 amount) external;
+    function erc7540_VERSION() external pure returns (string memory);
 
-    function claimDepositERC7540(address token) external;
+    function erc7540_requestDeposit(address token, uint256 amount) external;
 
-    function requestRedeemERC7540(address token, uint256 shares) external;
+    function erc7540_claimDeposit(address token) external;
 
-    function claimRedeemERC7540(address token) external;
+    function erc7540_requestRedeem(address token, uint256 shares) external;
 
-    function getERC7540RequestDepositRateLimitKey(address token, address asset)
+    function erc7540_claimRedeem(address token) external;
+
+    function erc7540_getRequestDepositRateLimitKey(address token, address asset)
         external
         pure
         returns (bytes32 key);
 
-    function getERC7540ClaimDepositRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc7540_getClaimDepositRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getERC7540RequestRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc7540_getRequestRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getERC7540ClaimRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc7540_getClaimRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** EthenaFacet actions                                                                    ***/
     /**********************************************************************************************/
 
-    function setEthenaDelegatedSigner(address delegatedSigner) external;
+    function ethena_VERSION() external pure returns (string memory);
 
-    function removeEthenaDelegatedSigner(address delegatedSigner) external;
+    function ethena_minter() external view returns (address);
 
-    function prepareUSDeMint(uint256 usdcAmount) external;
+    function ethena_susde() external view returns (address);
 
-    function prepareUSDeBurn(uint256 usdeAmount) external;
+    function ethena_usdc() external view returns (address);
 
-    function cooldownAssetsSUSDe(uint256 usdeAmount) external returns (uint256 cooldownShares);
+    function ethena_usde() external view returns (address);
 
-    function cooldownSharesSUSDe(uint256 susdeAmount) external returns (uint256 cooldownAssets);
+    function ethena_setDelegatedSigner(address delegatedSigner) external;
 
-    function unstakeSUSDe() external;
+    function ethena_removeDelegatedSigner(address delegatedSigner) external;
 
-    function setEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+    function ethena_prepareMint(uint256 usdcAmount) external;
 
-    function removeEthenaDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+    function ethena_prepareBurn(uint256 usdeAmount) external;
 
-    function usdeMintRateLimitKey() external pure returns (bytes32 key);
+    function ethena_cooldownAssets(uint256 usdeAmount) external returns (uint256 cooldownShares);
 
-    function usdeBurnRateLimitKey() external pure returns (bytes32 key);
+    function ethena_cooldownShares(uint256 susdeAmount) external returns (uint256 cooldownAssets);
 
-    function usdeCooldownRateLimitKey() external pure returns (bytes32 key);
+    function ethena_unstake() external;
 
-    function usdeUnstakeRateLimitKey() external pure returns (bytes32 key);
+    function ethena_setDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+
+    function ethena_removeDelegatedSignerRateLimitKey() external pure returns (bytes32 key);
+
+    function ethena_mintRateLimitKey() external pure returns (bytes32 key);
+
+    function ethena_burnRateLimitKey() external pure returns (bytes32 key);
+
+    function ethena_cooldownRateLimitKey() external pure returns (bytes32 key);
+
+    function ethena_unstakeRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** FarmFacet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function depositToFarm(address farm, uint256 amount) external;
+    function farm_VERSION() external pure returns (string memory);
 
-    function claimRewardFromFarm(address farm) external returns (uint256 reward);
+    function farm_deposit(address farm, uint256 amount) external;
 
-    function withdrawFromFarm(address farm, uint256 amount) external;
+    function farm_claimReward(address farm) external returns (uint256 reward);
 
-    function getFarmClaimRewardRateLimitKey(address farm) external pure returns (bytes32 key);
+    function farm_withdraw(address farm, uint256 amount) external;
 
-    function getFarmDepositRateLimitKey(address farm, address stakingToken)
+    function farm_getClaimRewardRateLimitKey(address farm) external pure returns (bytes32 key);
+
+    function farm_getDepositRateLimitKey(address farm, address stakingToken)
         external
         pure
         returns (bytes32 key);
 
-    function getFarmWithdrawRateLimitKey(address farm) external pure returns (bytes32 key);
+    function farm_getWithdrawRateLimitKey(address farm) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** LayerZeroFacet actions                                                                 ***/
     /**********************************************************************************************/
 
-    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient) external;
+    function layerZero_VERSION() external pure returns (string memory);
 
-    function transferTokenLayerZero(address oft, uint256 amount, uint32 destinationEndpointId)
+    function layerZero_setRecipient(uint32 destinationEndpointId, bytes32 recipient) external;
+
+    function layerZero_transfer(address oft, uint256 amount, uint32 destinationEndpointId)
         external
         payable;
 
-    function layerZeroRecipients(uint32 destinationEndpointId) external view returns (bytes32);
+    function layerZero_getRecipient(uint32 destinationEndpointId) external view returns (bytes32);
 
-    function getLayerZeroTransferRateLimitKey(
+    function layerZero_getTransferRateLimitKey(
         address oft,
         bytes32 peer,
         uint32  destinationEndpointId,
@@ -301,7 +347,7 @@ interface IMainnetControllerFull is IController {
         pure
         returns (bytes32 key);
 
-    function quoteTransferLayerZero(address oft, uint256 amount, uint32 destinationEndpointId)
+    function layerZero_quoteTransfer(address oft, uint256 amount, uint32 destinationEndpointId)
         external
         returns (
             ILayerZeroFacet.SendParam    memory sendParams,
@@ -312,13 +358,15 @@ interface IMainnetControllerFull is IController {
     /*** MapleFacet actions                                                                     ***/
     /**********************************************************************************************/
 
-    function requestMapleRedemption(address mapleToken, uint256 shares) external;
+    function maple_VERSION() external pure returns (string memory);
 
-    function cancelMapleRedemption(address mapleToken, uint256 shares) external;
+    function maple_requestRedemption(address mapleToken, uint256 shares) external;
 
-    function getMapleCancelRedeemRateLimitKey(address mapleToken) external pure returns (bytes32 key);
+    function maple_cancelRedemption(address mapleToken, uint256 shares) external;
 
-    function getMapleRequestRedeemRateLimitKey(address mapleToken)
+    function maple_getCancelRedeemRateLimitKey(address mapleToken) external pure returns (bytes32 key);
+
+    function maple_getRequestRedeemRateLimitKey(address mapleToken)
         external
         pure
         returns (bytes32 key);
@@ -327,9 +375,11 @@ interface IMainnetControllerFull is IController {
     /*** MerklFacet actions                                                                     ***/
     /**********************************************************************************************/
 
-    function toggleOperatorMerkl(address distributor, address operator) external;
+    function merkl_VERSION() external pure returns (string memory);
 
-    function getMerklToggleOperatorRateLimitKey(address distributor, address operator)
+    function merkl_toggleOperator(address distributor, address operator) external;
+
+    function merkl_getToggleOperatorRateLimitKey(address distributor, address operator)
         external
         pure
         returns (bytes32 key);
@@ -338,37 +388,39 @@ interface IMainnetControllerFull is IController {
     /*** OTCFacet actions                                                                       ***/
     /**********************************************************************************************/
 
-    function setOTCMaxSlippage(address exchange, uint256 maxSlippage) external;
+    function otc_VERSION() external pure returns (string memory);
 
-    function setOTCBuffer(address exchange, address otcBuffer) external;
+    function otc_setMaxSlippage(address exchange, uint256 maxSlippage) external;
 
-    function setOTCRechargeRate(address exchange, uint256 normalizedRate) external;
+    function otc_setBuffer(address exchange, address otcBuffer) external;
 
-    function otcSend(address exchange, address asset, uint256 amount) external;
+    function otc_setRechargeRate(address exchange, uint256 normalizedRate) external;
 
-    function otcClaim(address exchange, address asset) external;
+    function otc_send(address exchange, address asset, uint256 amount) external;
 
-    function getOTCBuffer(address exchange) external view returns (address);
+    function otc_claim(address exchange, address asset) external;
 
-    function getOTCMaxSlippage(address exchange) external view returns (uint256);
+    function otc_getBuffer(address exchange) external view returns (address);
 
-    function getOTCRechargeRate(address exchange) external view returns (uint256);
+    function otc_getMaxSlippage(address exchange) external view returns (uint256);
 
-    function otcs(address exchange)
+    function otc_getRechargeRate(address exchange) external view returns (uint256);
+
+    function otc_getState(address exchange)
         external
         view
         returns (uint256 normalizedSent, uint256 sentTimestamp, uint256 normalizedClaimed);
 
-    function getOtcClaimWithRecharge(address exchange) external view returns (uint256);
+    function otc_getClaimWithRecharge(address exchange) external view returns (uint256);
 
-    function isOtcSwapReady(address exchange) external view returns (bool);
+    function otc_getIsSwapReady(address exchange) external view returns (bool);
 
-    function getOTCSendRateLimitKey(address exchange, address asset)
+    function otc_getSendRateLimitKey(address exchange, address asset)
         external
         pure
         returns (bytes32 key);
 
-    function getOTCClaimRateLimitKey(address exchange, address asset)
+    function otc_getClaimRateLimitKey(address exchange, address asset)
         external
         pure
         returns (bytes32 key);
@@ -377,10 +429,14 @@ interface IMainnetControllerFull is IController {
     /*** PendleFacet actions                                                                    ***/
     /**********************************************************************************************/
 
-    function redeemPendlePT(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut)
+    function pendle_VERSION() external pure returns (string memory);
+
+    function pendle_router() external view returns (address);
+
+    function pendle_redeem(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut)
         external;
 
-    function getPendleRedeemRateLimitKey(address pendleMarket, address pt)
+    function pendle_getRedeemRateLimitKey(address pendleMarket, address pt)
         external
         pure
         returns (bytes32 key);
@@ -389,39 +445,61 @@ interface IMainnetControllerFull is IController {
     /*** PSMFacet actions                                                                       ***/
     /**********************************************************************************************/
 
-    function swapUSDSToUSDC(uint256 usdcAmount) external;
+    function psm_VERSION() external pure returns (string memory);
 
-    function swapUSDCToUSDS(uint256 usdcAmount) external;
+    function psm_dai() external view returns (address);
 
-    function psmTo18ConversionFactor() external view returns (uint256);
+    function psm_daiUSDS() external view returns (address);
 
-    function psmUSDCToUSDSSwapRateLimitKey() external pure returns (bytes32 key);
+    function psm_psm() external view returns (address);
 
-    function psmUSDSToUSDCSwapRateLimitKey() external pure returns (bytes32 key);
+    function psm_usdc() external view returns (address);
+
+    function psm_usds() external view returns (address);
+
+    function psm_swapUSDSToUSDC(uint256 usdcAmount) external;
+
+    function psm_swapUSDCToUSDS(uint256 usdcAmount) external;
+
+    function psm_to18ConversionFactor() external view returns (uint256);
+
+    function psm_usdcToUSDSSwapRateLimitKey() external pure returns (bytes32 key);
+
+    function psm_usdsToUSDCSwapRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** SparkVaultFacet actions                                                                ***/
     /**********************************************************************************************/
 
-    function takeFromSparkVault(address sparkVault, uint256 assetAmount) external;
+    function sparkVault_VERSION() external pure returns (string memory);
 
-    function getSparkVaultTakeRateLimitKey(address sparkVault) external pure returns (bytes32 key);
+    function sparkVault_take(address sparkVault, uint256 assetAmount) external;
+
+    function sparkVault_getTakeRateLimitKey(address sparkVault) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** SuperstateFacet actions                                                                ***/
     /**********************************************************************************************/
 
-    function subscribeSuperstate(uint256 usdcAmount) external;
+    function superstate_VERSION() external pure returns (string memory);
 
-    function superstateSubscribeRateLimitKey() external pure returns (bytes32 key);
+    function superstate_usdc() external view returns (address);
+
+    function superstate_ustb() external view returns (address);
+
+    function superstate_subscribe(uint256 usdcAmount) external;
+
+    function superstate_subscribeRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** TransferAssetFacet actions                                                             ***/
     /**********************************************************************************************/
 
-    function transferAsset(address asset, address destination, uint256 amount) external;
+    function transferAsset_VERSION() external pure returns (string memory);
 
-    function getTransferAssetTransferRateLimitKey(address asset, address destination)
+    function transferAsset_transfer(address asset, address destination, uint256 amount) external;
+
+    function transferAsset_getTransferRateLimitKey(address asset, address destination)
         external
         pure
         returns (bytes32 key);
@@ -430,17 +508,29 @@ interface IMainnetControllerFull is IController {
     /*** UniswapV3Facet actions                                                                 ***/
     /**********************************************************************************************/
 
-    function setUniswapV3MaxSlippage(address pool, uint256 maxSlippage) external;
+    function uniswapV3_VERSION() external pure returns (string memory);
 
-    function setUniswapV3PoolMaxTickDelta(address pool, uint24 maxTickDelta) external;
+    function uniswapV3_MAX_TICK_DELTA() external pure returns (uint24);
 
-    function setUniswapV3AddLiquidityLowerTickBound(address pool, int24 lowerTickBound) external;
+    function uniswapV3_MIN_TICK() external pure returns (int24);
 
-    function setUniswapV3AddLiquidityUpperTickBound(address pool, int24 upperTickBound) external;
+    function uniswapV3_MAX_TICK() external pure returns (int24);
 
-    function setUniswapV3TWAPSecondsAgo(address pool, uint32 twapSecondsAgo) external;
+    function uniswapV3_positionManager() external view returns (address);
 
-    function swapUniswapV3(
+    function uniswapV3_router() external view returns (address);
+
+    function uniswapV3_setMaxSlippage(address pool, uint256 maxSlippage) external;
+
+    function uniswapV3_setMaxTickDelta(address pool, uint24 maxTickDelta) external;
+
+    function uniswapV3_setLiquidityLowerTickBound(address pool, int24 lowerTickBound) external;
+
+    function uniswapV3_setLiquidityUpperTickBound(address pool, int24 upperTickBound) external;
+
+    function uniswapV3_setTWAPSecondsAgo(address pool, uint32 twapSecondsAgo) external;
+
+    function uniswapV3_swap(
         address pool,
         address tokenIn,
         uint256 amountIn,
@@ -450,7 +540,7 @@ interface IMainnetControllerFull is IController {
         external
         returns (uint256 amountOut);
 
-    function addLiquidityUniswapV3(
+    function uniswapV3_addLiquidity(
         address                               pool,
         uint256                               tokenId,
         IUniswapV3Facet.Ticks        calldata ticks,
@@ -461,7 +551,7 @@ interface IMainnetControllerFull is IController {
         external
         returns (uint256, uint128, IUniswapV3Facet.TokenAmounts memory);
 
-    function removeLiquidityUniswapV3(
+    function uniswapV3_removeLiquidity(
         address                               pool,
         uint256                               tokenId,
         uint128                               liquidity,
@@ -471,38 +561,38 @@ interface IMainnetControllerFull is IController {
         external
         returns (IUniswapV3Facet.TokenAmounts memory);
 
-    function getUniswapV3AggregateDepositRateLimitKey(address pool)
+    function uniswapV3_getAggregateDepositRateLimitKey(address pool)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3AssetDepositRateLimitKey(address pool, address token)
+    function uniswapV3_getAssetDepositRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3AddLiquidityTickBounds(address pool)
+    function uniswapV3_getLiquidityTickBounds(address pool)
         external
         view
         returns (int24 lower, int24 upper);
 
-    function getUniswapV3MaxSlippage(address pool) external view returns (uint256);
+    function uniswapV3_getMaxSlippage(address pool) external view returns (uint256);
 
-    function getUniswapV3PoolMaxTickDelta(address pool) external view returns (uint24);
+    function uniswapV3_getMaxTickDelta(address pool) external view returns (uint24);
 
-    function getUniswapV3SwapRateLimitKey(address pool, address token)
+    function uniswapV3_getSwapRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3TWAPSecondsAgo(address pool) external view returns (uint32);
+    function uniswapV3_getTWAPSecondsAgo(address pool) external view returns (uint32);
 
-    function getUniswapV3AggregateWithdrawRateLimitKey(address pool)
+    function uniswapV3_getAggregateWithdrawRateLimitKey(address pool)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3AssetWithdrawRateLimitKey(address pool, address token)
+    function uniswapV3_getAssetWithdrawRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
@@ -511,9 +601,17 @@ interface IMainnetControllerFull is IController {
     /*** UniswapV4Facet actions                                                                 ***/
     /**********************************************************************************************/
 
-    function setUniswapV4MaxSlippage(bytes32 poolId, uint256 maxSlippage) external;
+    function uniswapV4_VERSION() external pure returns (string memory);
 
-    function setUniswapV4TickLimits(
+    function uniswapV4_permit2() external view returns (address);
+
+    function uniswapV4_positionManager() external view returns (address);
+
+    function uniswapV4_router() external view returns (address);
+
+    function uniswapV4_setMaxSlippage(bytes32 poolId, uint256 maxSlippage) external;
+
+    function uniswapV4_setTickLimits(
         bytes32 poolId,
         int24   tickLowerMin,
         int24   tickUpperMax,
@@ -521,7 +619,7 @@ interface IMainnetControllerFull is IController {
     )
         external;
 
-    function mintPositionUniswapV4(
+    function uniswapV4_mintPosition(
         bytes32 poolId,
         int24   tickLower,
         int24   tickUpper,
@@ -531,7 +629,7 @@ interface IMainnetControllerFull is IController {
     )
         external;
 
-    function increaseLiquidityUniswapV4(
+    function uniswapV4_increasePosition(
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityIncrease,
@@ -540,7 +638,7 @@ interface IMainnetControllerFull is IController {
     )
         external;
 
-    function decreaseLiquidityUniswapV4(
+    function uniswapV4_decreasePosition(
         bytes32 poolId,
         uint256 tokenId,
         uint128 liquidityDecrease,
@@ -549,37 +647,37 @@ interface IMainnetControllerFull is IController {
     )
         external;
 
-    function swapUniswapV4(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
+    function uniswapV4_swap(bytes32 poolId, address tokenIn, uint128 amountIn, uint128 amountOutMin)
         external;
 
-    function getUniswapV4AggregateDepositRateLimitKey(bytes32 poolId)
+    function uniswapV4_getAggregateDepositRateLimitKey(bytes32 poolId)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV4AssetDepositRateLimitKey(bytes32 poolId, address token)
+    function uniswapV4_getAssetDepositRateLimitKey(bytes32 poolId, address token)
         external
         pure
         returns (bytes32 key);
 
-    function uniswapV4MaxSlippages(bytes32 poolId) external view returns (uint256);
+    function uniswapV4_getMaxSlippage(bytes32 poolId) external view returns (uint256);
 
-    function getUniswapV4SwapRateLimitKey(bytes32 poolId, address token)
+    function uniswapV4_getSwapRateLimitKey(bytes32 poolId, address token)
         external
         pure
         returns (bytes32 key);
 
-    function uniswapV4TickLimits(bytes32 poolId)
+    function uniswapV4_getTickLimits(bytes32 poolId)
         external
         view
         returns (int24 tickLowerMin, int24 tickUpperMax, uint24 maxTickSpacing);
 
-    function getUniswapV4AggregateWithdrawRateLimitKey(bytes32 poolId)
+    function uniswapV4_getAggregateWithdrawRateLimitKey(bytes32 poolId)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV4AssetWithdrawRateLimitKey(bytes32 poolId, address token)
+    function uniswapV4_getAssetWithdrawRateLimitKey(bytes32 poolId, address token)
         external
         pure
         returns (bytes32 key);
@@ -588,25 +686,35 @@ interface IMainnetControllerFull is IController {
     /*** USDSFacet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function setUSDSVault(address vault) external;
+    function usds_VERSION() external pure returns (string memory);
 
-    function mintUSDS(uint256 usdsAmount) external;
+    function usds_usds() external view returns (address);
 
-    function burnUSDS(uint256 usdsAmount) external;
+    function usds_setVault(address vault) external;
 
-    function usdsVault() external view returns (address);
+    function usds_mint(uint256 usdsAmount) external;
 
-    function usdsMintRateLimitKey() external pure returns (bytes32 key);
+    function usds_burn(uint256 usdsAmount) external;
 
-    function usdsBurnRateLimitKey() external pure returns (bytes32 key);
+    function usds_vault() external view returns (address);
+
+    function usds_mintRateLimitKey() external pure returns (bytes32 key);
+
+    function usds_burnRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** WEETHFacet actions                                                                     ***/
     /**********************************************************************************************/
 
-    function depositToWeETH(uint256 amount, uint256 minSharesOut) external returns (uint256 shares);
+    function weeth_VERSION() external pure returns (string memory);
 
-    function requestWithdrawFromWeETH(
+    function weeth_weeth() external view returns (address);
+
+    function weeth_weth() external view returns (address);
+
+    function weeth_deposit(uint256 amount, uint256 minSharesOut) external returns (uint256 shares);
+
+    function weeth_requestWithdraw(
         address weethModule,
         uint256 weethShares,
         uint256 minEETHShares
@@ -614,16 +722,16 @@ interface IMainnetControllerFull is IController {
         external
         returns (uint256 requestId);
 
-    function claimWithdrawalFromWeETH(address weethModule, uint256 requestId)
+    function weeth_claimWithdrawal(address weethModule, uint256 requestId)
         external
         returns (uint256 ethReceived);
 
-    function getWEETHDepositRateLimitKey(address eeth, address liquidityPool)
+    function weeth_getDepositRateLimitKey(address eeth, address liquidityPool)
         external
         pure
         returns (bytes32 key);
 
-    function getWEETHRequestWithdrawRateLimitKey(
+    function weeth_getRequestWithdrawRateLimitKey(
         address weethModule,
         address eeth,
         address liquidityPool
@@ -632,7 +740,7 @@ interface IMainnetControllerFull is IController {
         pure
         returns (bytes32 key);
 
-    function getWEETHClaimWithdrawRateLimitKey(address weethModule)
+    function weeth_getClaimWithdrawRateLimitKey(address weethModule)
         external
         pure
         returns (bytes32 key);
@@ -641,26 +749,38 @@ interface IMainnetControllerFull is IController {
     /*** WrapProxyETHFacet actions                                                              ***/
     /**********************************************************************************************/
 
-    function wrapAllProxyETH() external;
+    function wrapProxyETH_VERSION() external pure returns (string memory);
 
-    function wrapAllProxyETHRateLimitKey() external pure returns (bytes32 key);
+    function wrapProxyETH_weth() external view returns (address);
+
+    function wrapProxyETH_wrapAll() external;
+
+    function wrapProxyETH_wrapRateLimitKey() external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** WSTETHFacet actions                                                                    ***/
     /**********************************************************************************************/
 
-    function depositToWstETH(uint256 amount) external;
+    function wsteth_VERSION() external pure returns (string memory);
 
-    function requestWithdrawFromWstETH(uint256 amountToRedeem)
+    function wsteth_weth() external view returns (address);
+
+    function wsteth_withdrawQueue() external view returns (address);
+
+    function wsteth_wsteth() external view returns (address);
+
+    function wsteth_deposit(uint256 amount) external;
+
+    function wsteth_requestWithdraw(uint256 amountToRedeem)
         external
         returns (uint256[] memory requestIds);
 
-    function claimWithdrawalFromWstETH(uint256 requestId) external;
+    function wsteth_claimWithdrawal(uint256 requestId) external;
 
-    function wstethDepositRateLimitKey() external pure returns (bytes32 key);
+    function wsteth_depositRateLimitKey() external pure returns (bytes32 key);
 
-    function wstethRequestWithdrawRateLimitKey() external pure returns (bytes32 key);
+    function wsteth_requestWithdrawRateLimitKey() external pure returns (bytes32 key);
 
-    function wstethClaimWithdrawRateLimitKey() external pure returns (bytes32 key);
+    function wsteth_claimWithdrawRateLimitKey() external pure returns (bytes32 key);
 
 }

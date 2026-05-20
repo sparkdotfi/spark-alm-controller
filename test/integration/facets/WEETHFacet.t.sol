@@ -25,6 +25,10 @@ interface IControllerLike {
         pure
         returns (bytes32);
 
+    function weeth() external view returns (address);
+
+    function weth() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -40,7 +44,7 @@ contract Controller_WEETHFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "WEETHFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.getClaimWithdrawRateLimitKey.selector,
@@ -55,6 +59,16 @@ contract Controller_WEETHFacet_Tests is Integration_TestBase {
         wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.getRequestWithdrawRateLimitKey.selector,
             IWEETHFacet.getRequestWithdrawRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.weeth.selector,
+            IWEETHFacet.weeth.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.weth.selector,
+            IWEETHFacet.weth.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -91,6 +105,15 @@ contract Controller_WEETHFacet_Tests is Integration_TestBase {
 
         assertEq(facet.weeth(), weeth);
         assertEq(facet.weth(),  weth);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.weeth(), makeAddr("weeth"));
+        assertEq(controller.weth(),  makeAddr("weth"));
     }
 
     /**********************************************************************************************/

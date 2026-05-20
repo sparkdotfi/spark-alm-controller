@@ -37,8 +37,8 @@ abstract contract ERC4626_DonationAttack_TestBase is ForkTestBase {
 
         morpho = MORPHO_VAULT.MORPHO();
 
-        bytes32 depositKey  = mainnetController.getERC4626DepositRateLimitKey(address(MORPHO_VAULT), Ethereum.USDS);
-        bytes32 withdrawKey = mainnetController.getERC4626WithdrawRateLimitKey(address(MORPHO_VAULT));
+        bytes32 depositKey  = mainnetController.erc4626_getDepositRateLimitKey(address(MORPHO_VAULT), Ethereum.USDS);
+        bytes32 withdrawKey = mainnetController.erc4626_getWithdrawRateLimitKey(address(MORPHO_VAULT));
 
         // Basic validation
         assertEq(keccak256(abi.encode(MORPHO_VAULT.symbol())), keccak256(abi.encode("sparkUSDS")));
@@ -87,26 +87,26 @@ contract MainnetController_ERC4626_DonationAttack_Tests is ERC4626_DonationAttac
 
     function test_depositERC4626_donationAttackFailure() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(MORPHO_VAULT), 1e18, 10e18);
+        mainnetController.erc4626_setMaxExchangeRate(address(MORPHO_VAULT), 1e18, 10e18);
         vm.stopPrank();
 
         _doAttack();
 
         vm.prank(allocator);
         vm.expectRevert("ERC4626Facet/exchange-rate-too-high");
-        mainnetController.depositERC4626(address(MORPHO_VAULT), 2_000_000e18, 0);
+        mainnetController.erc4626_deposit(address(MORPHO_VAULT), 2_000_000e18, 0);
     }
 
     function test_depositERC4626_donationAttackSuccess() external {
         // Set max exchange rate too high
         vm.startPrank(Ethereum.SPARK_PROXY);
-        mainnetController.setMaxExchangeRate(address(MORPHO_VAULT), 1, MORPHO_VAULT.convertToAssets(1e24));
+        mainnetController.erc4626_setMaxExchangeRate(address(MORPHO_VAULT), 1, MORPHO_VAULT.convertToAssets(1e24));
         vm.stopPrank();
 
         _doAttack();
 
         vm.prank(allocator);
-        uint256 shares = mainnetController.depositERC4626(address(MORPHO_VAULT), 2_000_000e18, 0);
+        uint256 shares = mainnetController.erc4626_deposit(address(MORPHO_VAULT), 2_000_000e18, 0);
 
         // One can compute:
         // shares == assets * (totalSupply + 1) / (totalAssets + 1)

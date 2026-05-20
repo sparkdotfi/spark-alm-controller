@@ -20,6 +20,8 @@ interface IControllerLike {
 
     function mintRateLimitKey() external pure returns (bytes32);
 
+    function usds() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -35,7 +37,7 @@ contract Controller_USDSFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "USDSFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setVault.selector,
@@ -55,6 +57,11 @@ contract Controller_USDSFacet_Tests is Integration_TestBase {
         wires[3] = IEnumerableIntegrations.Wire(
             IControllerLike.mintRateLimitKey.selector,
             IUSDSFacet.mintRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.usds.selector,
+            IUSDSFacet.usds.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -84,6 +91,14 @@ contract Controller_USDSFacet_Tests is Integration_TestBase {
         USDSFacet facet = new USDSFacet(usds);
 
         assertEq(facet.usds(), usds);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.usds(), makeAddr("usds"));
     }
 
     /**********************************************************************************************/

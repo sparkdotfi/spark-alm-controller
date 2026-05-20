@@ -29,6 +29,14 @@ interface IControllerLike {
         view
         returns (bytes32 mintRecipient, uint32 minFeeCapRate, uint32 maxFeeCapRate);
 
+    function cctp() external view returns (address);
+
+    function usdc() external view returns (address);
+
+    function DESTINATION_CALLER() external pure returns (bytes32);
+
+    function MAX_FINALITY_THRESHOLD() external pure returns (uint32);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -47,7 +55,7 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "CCTPFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setDomainParameters.selector,
@@ -67,6 +75,26 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
         wires[3] = IEnumerableIntegrations.Wire(
             IControllerLike.getDomainParameters.selector,
             ICCTPFacet.getDomainParameters.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.cctp.selector,
+            ICCTPFacet.cctp.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IControllerLike.usdc.selector,
+            ICCTPFacet.usdc.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IControllerLike.DESTINATION_CALLER.selector,
+            ICCTPFacet.DESTINATION_CALLER.selector
+        );
+
+        wires[7] = IEnumerableIntegrations.Wire(
+            IControllerLike.MAX_FINALITY_THRESHOLD.selector,
+            ICCTPFacet.MAX_FINALITY_THRESHOLD.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -103,6 +131,17 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
 
         assertEq(facet.cctp(), cctp);
         assertEq(facet.usdc(), usdc);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables and Constants Tests                                                         ***/
+    /**********************************************************************************************/
+
+    function test_immutablesAndConstants() external {
+        assertEq(controller.cctp(),                   makeAddr("cctp"));
+        assertEq(controller.usdc(),                   makeAddr("usdc"));
+        assertEq(controller.DESTINATION_CALLER(),     bytes32(0));
+        assertEq(controller.MAX_FINALITY_THRESHOLD(), 2_000);
     }
 
     /**********************************************************************************************/

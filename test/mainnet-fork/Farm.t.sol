@@ -27,19 +27,19 @@ abstract contract Farm_TestBase is ForkTestBase {
         vm.startPrank(Ethereum.SPARK_PROXY);
 
         rateLimits.setRateLimitData(
-            mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS),
+            mainnetController.farm_getDepositRateLimitKey(FARM, Ethereum.USDS),
             10_000_000e18,
             uint256(1_000_000e18) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            mainnetController.getFarmWithdrawRateLimitKey(FARM),
+            mainnetController.farm_getWithdrawRateLimitKey(FARM),
             10_000_000e18,
             uint256(1_000_000e6) / 1 days
         );
 
         rateLimits.setRateLimitData(
-            mainnetController.getFarmClaimRewardRateLimitKey(FARM),
+            mainnetController.farm_getClaimRewardRateLimitKey(FARM),
             type(uint256).max,
             0
         );
@@ -58,7 +58,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
     function test_depositToFarm_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.depositToFarm(FARM, 1_000_000e18);
+        mainnetController.farm_deposit(FARM, 1_000_000e18);
     }
 
     function test_depositToFarm_notAllocator() external {
@@ -67,13 +67,13 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.depositToFarm(FARM, 1_000_000e18);
+        mainnetController.farm_deposit(FARM, 1_000_000e18);
     }
 
     function test_depositToFarm_zeroMaxAmount() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS),
+            mainnetController.farm_getDepositRateLimitKey(FARM, Ethereum.USDS),
             0,
             0
         );
@@ -81,11 +81,11 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.depositToFarm(FARM, 0);
+        mainnetController.farm_deposit(FARM, 0);
     }
 
     function test_depositToFarm_rateLimitsBoundary() external {
-        bytes32 key = mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS);
+        bytes32 key = mainnetController.farm_getDepositRateLimitKey(FARM, Ethereum.USDS);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
@@ -94,14 +94,14 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.depositToFarm(FARM, 1_000_000e18 + 1);
+        mainnetController.farm_deposit(FARM, 1_000_000e18 + 1);
 
         vm.prank(allocator);
-        mainnetController.depositToFarm(FARM, 1_000_000e18);
+        mainnetController.farm_deposit(FARM, 1_000_000e18);
     }
 
     function test_depositToFarm() external {
-        bytes32 depositKey = mainnetController.getFarmDepositRateLimitKey(FARM, Ethereum.USDS);
+        bytes32 depositKey = mainnetController.farm_getDepositRateLimitKey(FARM, Ethereum.USDS);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
@@ -116,7 +116,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
         emit IFarmFacet.FarmDeposit(FARM, 1_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.depositToFarm(FARM, 1_000_000e18);
+        mainnetController.farm_deposit(FARM, 1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -133,7 +133,7 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
     function test_claimRewardFromFarm_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.claimRewardFromFarm(FARM);
+        mainnetController.farm_claimReward(FARM);
     }
 
     function test_claimRewardFromFarm_notAllocator() external {
@@ -142,13 +142,13 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.claimRewardFromFarm(FARM);
+        mainnetController.farm_claimReward(FARM);
     }
 
     function test_claimRewardFromFarm_invalidAction() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(
-            mainnetController.getFarmClaimRewardRateLimitKey(FARM),
+            mainnetController.farm_getClaimRewardRateLimitKey(FARM),
             0,
             0
         );
@@ -156,7 +156,7 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
 
         vm.expectRevert("FarmFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.claimRewardFromFarm(FARM);
+        mainnetController.farm_claimReward(FARM);
     }
 
     function test_claimRewardFromFarm() external {
@@ -167,7 +167,7 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
         assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0);
 
         vm.prank(allocator);
-        mainnetController.depositToFarm(FARM, 1_000_000e18);
+        mainnetController.farm_deposit(FARM, 1_000_000e18);
 
         assertEq(USDS.balanceOf(address(almProxy)),                     0);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         1_000_000e18);
@@ -183,7 +183,7 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
         emit IFarmFacet.FarmReward(FARM, expectedReward);
 
         vm.prank(allocator);
-        assertEq(mainnetController.claimRewardFromFarm(FARM), expectedReward);
+        assertEq(mainnetController.farm_claimReward(FARM), expectedReward);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -196,7 +196,7 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
         emit IFarmFacet.FarmReward(FARM, 0);
 
         vm.prank(allocator);
-        assertEq(mainnetController.claimRewardFromFarm(FARM), 0);
+        assertEq(mainnetController.farm_claimReward(FARM), 0);
     }
 
 }
@@ -206,7 +206,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
     function test_withdrawFromFarm_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.withdrawFromFarm(FARM, 1_000_000e18);
+        mainnetController.farm_withdraw(FARM, 1_000_000e18);
     }
 
     function test_withdrawFromFarm_notAllocator() external {
@@ -215,27 +215,27 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.withdrawFromFarm(FARM, 1_000_000e18);
+        mainnetController.farm_withdraw(FARM, 1_000_000e18);
     }
 
     function test_withdrawFromFarm_zeroMaxAmount() external {
-        bytes32 key = mainnetController.getFarmWithdrawRateLimitKey(FARM);
+        bytes32 key = mainnetController.farm_getWithdrawRateLimitKey(FARM);
 
         deal(Ethereum.USDS, address(almProxy), 1);
 
         vm.prank(allocator);
-        mainnetController.depositToFarm(FARM, 1);
+        mainnetController.farm_deposit(FARM, 1);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 0, 0);
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.withdrawFromFarm(FARM, 1);
+        mainnetController.farm_withdraw(FARM, 1);
     }
 
     function test_withdrawFromFarm_rateLimitsBoundary() external {
-        bytes32 key = mainnetController.getFarmWithdrawRateLimitKey(FARM);
+        bytes32 key = mainnetController.farm_getWithdrawRateLimitKey(FARM);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
@@ -244,18 +244,18 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
         vm.startPrank(allocator);
 
-        mainnetController.depositToFarm(FARM, 1_000_000e18 + 1);
+        mainnetController.farm_deposit(FARM, 1_000_000e18 + 1);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.withdrawFromFarm(FARM, 1_000_000e18 + 1);
+        mainnetController.farm_withdraw(FARM, 1_000_000e18 + 1);
 
-        mainnetController.withdrawFromFarm(FARM, 1_000_000e18);
+        mainnetController.farm_withdraw(FARM, 1_000_000e18);
 
         vm.stopPrank();
     }
 
     function test_withdrawFromFarm() external {
-        bytes32 withdrawKey = mainnetController.getFarmWithdrawRateLimitKey(FARM);
+        bytes32 withdrawKey = mainnetController.farm_getWithdrawRateLimitKey(FARM);
 
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
@@ -263,7 +263,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         emit IFarmFacet.FarmDeposit({ farm: FARM, amount: 1_000_000e18 });
 
         vm.prank(allocator);
-        mainnetController.depositToFarm(FARM, 1_000_000e18);
+        mainnetController.farm_deposit(FARM, 1_000_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
@@ -279,7 +279,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
         emit IFarmFacet.FarmWithdraw(FARM, 1_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.withdrawFromFarm(FARM, 1_000_000e18);
+        mainnetController.farm_withdraw(FARM, 1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
 

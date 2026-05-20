@@ -39,12 +39,12 @@ abstract contract Merkl_TestBase is ForkTestBase {
     function setUp() public override {
         super.setUp();
 
-        bytes32 toggleKey1 = mainnetController.getMerklToggleOperatorRateLimitKey(
+        bytes32 toggleKey1 = mainnetController.merkl_getToggleOperatorRateLimitKey(
             address(merklDistributor),
             operator1
         );
 
-        bytes32 toggleKey2 = mainnetController.getMerklToggleOperatorRateLimitKey(
+        bytes32 toggleKey2 = mainnetController.merkl_getToggleOperatorRateLimitKey(
             address(merklDistributor),
             operator2
         );
@@ -68,7 +68,7 @@ contract MainnetController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
 
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
     }
 
     function test_toggleOperatorMerkl_notAllocator() external {
@@ -77,7 +77,7 @@ contract MainnetController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
     }
 
     function test_toggleOperatorMerkl_invalidAction() external {
@@ -85,7 +85,7 @@ contract MainnetController_Merkl_ToggleOperator_FailureTests is Merkl_TestBase {
 
         vm.expectRevert("MerklFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), freshOperator);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), freshOperator);
     }
 
 }
@@ -106,7 +106,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
 
@@ -121,7 +121,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
 
@@ -136,7 +136,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
     }
@@ -149,7 +149,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
@@ -158,7 +158,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 0);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
@@ -167,7 +167,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator1);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 0);
@@ -176,7 +176,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         emit IMerklFacet.MerklToggleOperator(address(merklDistributor), operator2);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator2);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator2);
 
         assertEq(merklDistributor.operators(address(almProxy), operator1), 1);
         assertEq(merklDistributor.operators(address(almProxy), operator2), 1);
@@ -199,7 +199,7 @@ contract MainnetController_Merkl_ToggleOperator_SuccessTests is Merkl_TestBase {
         merklDistributor.claim(users, tokens, amounts, proofs);
 
         vm.prank(allocator);
-        mainnetController.toggleOperatorMerkl(address(merklDistributor), operator1);
+        mainnetController.merkl_toggleOperator(address(merklDistributor), operator1);
 
         // Hitting the InvalidProof() error proves that we are whitelisted as operator1
         // (https://github.com/AngleProtocol/merkl-contracts/blob/e4c49c1fbfb274029d31969adf70ca6aeec689f0/contracts/Distributor.sol#L378-L383)

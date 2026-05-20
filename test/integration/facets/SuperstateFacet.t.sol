@@ -12,6 +12,10 @@ interface IControllerLike {
 
     function subscribeRateLimitKey() external pure returns (bytes32);
 
+    function usdc() external view returns (address);
+
+    function ustb() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -27,11 +31,21 @@ contract Controller_SuperstateFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "SuperstateFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](1);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.subscribeRateLimitKey.selector,
             ISuperstateFacet.subscribeRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IControllerLike.usdc.selector,
+            ISuperstateFacet.usdc.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.ustb.selector,
+            ISuperstateFacet.ustb.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -68,6 +82,15 @@ contract Controller_SuperstateFacet_Tests is Integration_TestBase {
 
         assertEq(facet.usdc(), usdc);
         assertEq(facet.ustb(), ustb);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.usdc(), makeAddr("usdc"));
+        assertEq(controller.ustb(), makeAddr("ustb"));
     }
 
     /**********************************************************************************************/

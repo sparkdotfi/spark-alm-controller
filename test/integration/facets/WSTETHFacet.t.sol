@@ -16,6 +16,12 @@ interface IControllerLike {
 
     function requestWithdrawRateLimitKey() external pure returns (bytes32);
 
+    function weth() external view returns (address);
+
+    function withdrawQueue() external view returns (address);
+
+    function wsteth() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -35,7 +41,7 @@ contract Controller_WSTETHFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "WSTETHFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.claimWithdrawRateLimitKey.selector,
@@ -50,6 +56,21 @@ contract Controller_WSTETHFacet_Tests is Integration_TestBase {
         wires[2] = IEnumerableIntegrations.Wire(
             IControllerLike.requestWithdrawRateLimitKey.selector,
             IWSTETHFacet.requestWithdrawRateLimitKey.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.weth.selector,
+            IWSTETHFacet.weth.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.withdrawQueue.selector,
+            IWSTETHFacet.withdrawQueue.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IControllerLike.wsteth.selector,
+            IWSTETHFacet.wsteth.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -93,6 +114,16 @@ contract Controller_WSTETHFacet_Tests is Integration_TestBase {
         assertEq(facet.weth(),          weth);
         assertEq(facet.withdrawQueue(), withdrawQueue);
         assertEq(facet.wsteth(),        wsteth);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.weth(),          makeAddr("weth"));
+        assertEq(controller.withdrawQueue(), makeAddr("withdrawQueue"));
+        assertEq(controller.wsteth(),        makeAddr("wsteth"));
     }
 
     /**********************************************************************************************/

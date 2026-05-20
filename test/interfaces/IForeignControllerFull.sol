@@ -11,22 +11,24 @@ interface IForeignControllerFull is IController {
     /*** AaveFacet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function setAaveMaxSlippage(address aToken, uint256 maxSlippage) external;
+    function aave_VERSION() external pure returns (string memory);
 
-    function depositAave(address aToken, uint256 amount) external;
+    function aave_setMaxSlippage(address aToken, uint256 maxSlippage) external;
 
-    function withdrawAave(address aToken, uint256 amount)
+    function aave_deposit(address aToken, uint256 amount) external;
+
+    function aave_withdraw(address aToken, uint256 amount)
         external
         returns (uint256 amountWithdrawn);
 
-    function getAaveMaxSlippage(address aToken) external view returns (uint256);
+    function aave_getMaxSlippage(address aToken) external view returns (uint256);
 
-    function getAaveDepositRateLimitKey(address aToken, address pool, address underlyingAsset)
+    function aave_getDepositRateLimitKey(address aToken, address pool, address underlyingAsset)
         external
         pure
         returns (bytes32 key);
 
-    function getAaveWithdrawRateLimitKey(address aToken, address pool)
+    function aave_getWithdrawRateLimitKey(address aToken, address pool)
         external
         pure
         returns (bytes32 key);
@@ -35,24 +37,34 @@ interface IForeignControllerFull is IController {
     /*** CCTPFacet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function setCCTPDomainParameters(
+    function cctp_VERSION() external pure returns (string memory);
+
+    function cctp_DESTINATION_CALLER() external pure returns (bytes32);
+
+    function cctp_MAX_FINALITY_THRESHOLD() external pure returns (uint32);
+
+    function cctp_cctp() external view returns (address);
+
+    function cctp_usdc() external view returns (address);
+
+    function cctp_setDomainParameters(
         uint32  destinationDomain,
         bytes32 recipient,
         uint32  minFeeCapRate,
         uint32  maxFeeCapRate
     ) external;
 
-    function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain, uint64 feeCapRate)
+    function cctp_transfer(uint256 usdcAmount, uint32 destinationDomain, uint64 feeCapRate)
         external;
 
-    function toCCTPRateLimitKey() external pure returns (bytes32 key);
+    function cctp_toCCTPRateLimitKey() external pure returns (bytes32 key);
 
-    function getCCTPDomainParameters(uint32 destinationDomain)
+    function cctp_getDomainParameters(uint32 destinationDomain)
         external
         view
         returns (bytes32 mintRecipient, uint32 minFeeCapRate, uint32 maxFeeCapRate);
 
-    function getCCTPToDomainRateLimitKey(uint32 destinationDomain)
+    function cctp_getToDomainRateLimitKey(uint32 destinationDomain)
         external
         pure
         returns (bytes32 key);
@@ -61,31 +73,35 @@ interface IForeignControllerFull is IController {
     /*** CentrifugeFacet actions                                                                ***/
     /**********************************************************************************************/
 
-    function setCentrifugeRecipient(uint16 centrifugeId, bytes32 recipient) external;
+    function centrifuge_VERSION() external pure returns (string memory);
 
-    function cancelCentrifugeDepositRequest(address token) external;
+    function centrifuge_REQUEST_ID() external pure returns (uint256);
 
-    function claimCentrifugeCancelDepositRequest(address token) external;
+    function centrifuge_setRecipient(uint16 centrifugeId, bytes32 recipient) external;
 
-    function cancelCentrifugeRedeemRequest(address token) external;
+    function centrifuge_cancelDepositRequest(address token) external;
 
-    function claimCentrifugeCancelRedeemRequest(address token) external;
+    function centrifuge_claimCancelDepositRequest(address token) external;
 
-    function transferSharesCentrifuge(address token, uint128 amount, uint16 centrifugeId)
+    function centrifuge_cancelRedeemRequest(address token) external;
+
+    function centrifuge_claimCancelRedeemRequest(address token) external;
+
+    function centrifuge_transferShares(address token, uint128 amount, uint16 centrifugeId)
         external
         payable;
 
-    function getCentrifugeRecipient(uint16 centrifugeId) external view returns (bytes32);
+    function centrifuge_getRecipient(uint16 centrifugeId) external view returns (bytes32);
 
-    function getCentrifugeCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeClaimCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getClaimCancelDepositRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeClaimCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function centrifuge_getClaimCancelRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getCentrifugeTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
+    function centrifuge_getTransferRateLimitKey(address token, uint16 centrifugeId, address spoke)
         external
         pure
         returns (bytes32 key);
@@ -94,67 +110,73 @@ interface IForeignControllerFull is IController {
     /*** ERC4626Facet actions                                                                   ***/
     /**********************************************************************************************/
 
-    function setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets) external;
+    function erc4626_VERSION() external pure returns (string memory);
 
-    function depositERC4626(address token, uint256 amount, uint256 minSharesOut)
+    function erc4626_setMaxExchangeRate(address token, uint256 shares, uint256 maxExpectedAssets) external;
+
+    function erc4626_deposit(address token, uint256 amount, uint256 minSharesOut)
         external
         returns (uint256 shares);
 
-    function withdrawERC4626(address token, uint256 amount, uint256 maxSharesIn)
+    function erc4626_withdraw(address token, uint256 amount, uint256 maxSharesIn)
         external
         returns (uint256 shares);
 
-    function redeemERC4626(address token, uint256 shares, uint256 minAssetsOut)
+    function erc4626_redeem(address token, uint256 shares, uint256 minAssetsOut)
         external
         returns (uint256 assets);
 
-    function EXCHANGE_RATE_PRECISION() external pure returns (uint256);
+    function erc4626_EXCHANGE_RATE_PRECISION() external pure returns (uint256);
 
-    function maxExchangeRates(address token) external view returns (uint256);
+    function erc4626_getMaxExchangeRate(address token) external view returns (uint256);
 
-    function getERC4626DepositRateLimitKey(address token, address asset)
+    function erc4626_getDepositRateLimitKey(address token, address asset)
         external
         pure
         returns (bytes32 key);
 
-    function getERC4626WithdrawRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc4626_getWithdrawRateLimitKey(address token) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** ERC7540Facet actions                                                                   ***/
     /**********************************************************************************************/
 
-    function requestDepositERC7540(address token, uint256 amount) external;
+    function erc7540_VERSION() external pure returns (string memory);
 
-    function claimDepositERC7540(address token) external;
+    function erc7540_requestDeposit(address token, uint256 amount) external;
 
-    function requestRedeemERC7540(address token, uint256 shares) external;
+    function erc7540_claimDeposit(address token) external;
 
-    function claimRedeemERC7540(address token) external;
+    function erc7540_requestRedeem(address token, uint256 shares) external;
 
-    function getERC7540RequestDepositRateLimitKey(address token, address asset)
+    function erc7540_claimRedeem(address token) external;
+
+    function erc7540_getRequestDepositRateLimitKey(address token, address asset)
         external
         pure
         returns (bytes32 key);
 
-    function getERC7540ClaimDepositRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc7540_getClaimDepositRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getERC7540RequestRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc7540_getRequestRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
-    function getERC7540ClaimRedeemRateLimitKey(address token) external pure returns (bytes32 key);
+    function erc7540_getClaimRedeemRateLimitKey(address token) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** LayerZeroFacet actions                                                                 ***/
     /**********************************************************************************************/
 
-    function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 recipient) external;
+    function layerZero_VERSION() external pure returns (string memory);
 
-    function transferTokenLayerZero(address oft, uint256 amount, uint32 destinationEndpointId)
+    function layerZero_setRecipient(uint32 destinationEndpointId, bytes32 recipient) external;
+
+    function layerZero_transfer(address oft, uint256 amount, uint32 destinationEndpointId)
         external
         payable;
 
-    function layerZeroRecipients(uint32 destinationEndpointId) external view returns (bytes32);
+    function layerZero_getRecipient(uint32 destinationEndpointId) external view returns (bytes32);
 
-    function getLayerZeroTransferRateLimitKey(
+    function layerZero_getTransferRateLimitKey(
         address oft,
         bytes32 peer,
         uint32  destinationEndpointId,
@@ -164,7 +186,7 @@ interface IForeignControllerFull is IController {
         pure
         returns (bytes32 key);
 
-    function quoteTransferLayerZero(address oft, uint256 amount, uint32 destinationEndpointId)
+    function layerZero_quoteTransfer(address oft, uint256 amount, uint32 destinationEndpointId)
         external
         returns (
             ILayerZeroFacet.SendParam    memory sendParams,
@@ -175,9 +197,11 @@ interface IForeignControllerFull is IController {
     /*** MerklFacet actions                                                                     ***/
     /**********************************************************************************************/
 
-    function toggleOperatorMerkl(address distributor, address operator) external;
+    function merkl_VERSION() external pure returns (string memory);
 
-    function getMerklToggleOperatorRateLimitKey(address distributor, address operator)
+    function merkl_toggleOperator(address distributor, address operator) external;
+
+    function merkl_getToggleOperatorRateLimitKey(address distributor, address operator)
         external
         pure
         returns (bytes32 key);
@@ -186,10 +210,14 @@ interface IForeignControllerFull is IController {
     /*** PendleFacet actions                                                                    ***/
     /**********************************************************************************************/
 
-    function redeemPendlePT(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut)
+    function pendle_VERSION() external pure returns (string memory);
+
+    function pendle_router() external view returns (address);
+
+    function pendle_redeem(address pendleMarket, uint256 pyAmountIn, uint256 minAmountOut)
         external;
 
-    function getPendleRedeemRateLimitKey(address pendleMarket, address pt)
+    function pendle_getRedeemRateLimitKey(address pendleMarket, address pt)
         external
         pure
         returns (bytes32 key);
@@ -198,31 +226,39 @@ interface IForeignControllerFull is IController {
     /*** PSM3Facet actions                                                                      ***/
     /**********************************************************************************************/
 
-    function depositPSM(address asset, uint256 amount) external returns (uint256 shares);
+    function psm3_VERSION() external pure returns (string memory);
 
-    function withdrawPSM(address asset, uint256 maxAmount)
+    function psm3_psm() external view returns (address);
+
+    function psm3_deposit(address asset, uint256 amount) external returns (uint256 shares);
+
+    function psm3_withdraw(address asset, uint256 maxAmount)
         external
         returns (uint256 assetsWithdrawn);
 
-    function getPSMDepositRateLimitKey(address asset) external pure returns (bytes32 key);
+    function psm3_getDepositRateLimitKey(address asset) external pure returns (bytes32 key);
 
-    function getPSMWithdrawRateLimitKey(address asset) external pure returns (bytes32 key);
+    function psm3_getWithdrawRateLimitKey(address asset) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** SparkVaultFacet actions                                                                ***/
     /**********************************************************************************************/
 
-    function takeFromSparkVault(address sparkVault, uint256 assetAmount) external;
+    function sparkVault_VERSION() external pure returns (string memory);
 
-    function getSparkVaultTakeRateLimitKey(address sparkVault) external pure returns (bytes32 key);
+    function sparkVault_take(address sparkVault, uint256 assetAmount) external;
+
+    function sparkVault_getTakeRateLimitKey(address sparkVault) external pure returns (bytes32 key);
 
     /**********************************************************************************************/
     /*** TransferAssetFacet actions                                                             ***/
     /**********************************************************************************************/
 
-    function transferAsset(address asset, address destination, uint256 amount) external;
+    function transferAsset_VERSION() external pure returns (string memory);
 
-    function getTransferAssetTransferRateLimitKey(address asset, address destination)
+    function transferAsset_transfer(address asset, address destination, uint256 amount) external;
+
+    function transferAsset_getTransferRateLimitKey(address asset, address destination)
         external
         pure
         returns (bytes32 key);
@@ -231,17 +267,29 @@ interface IForeignControllerFull is IController {
     /*** UniswapV3Facet actions                                                                 ***/
     /**********************************************************************************************/
 
-    function setUniswapV3MaxSlippage(address pool, uint256 maxSlippage) external;
+    function uniswapV3_VERSION() external pure returns (string memory);
 
-    function setUniswapV3PoolMaxTickDelta(address pool, uint24 maxTickDelta) external;
+    function uniswapV3_MAX_TICK_DELTA() external pure returns (uint24);
 
-    function setUniswapV3AddLiquidityLowerTickBound(address pool, int24 lowerTickBound) external;
+    function uniswapV3_MIN_TICK() external pure returns (int24);
 
-    function setUniswapV3AddLiquidityUpperTickBound(address pool, int24 upperTickBound) external;
+    function uniswapV3_MAX_TICK() external pure returns (int24);
 
-    function setUniswapV3TWAPSecondsAgo(address pool, uint32 twapSecondsAgo) external;
+    function uniswapV3_positionManager() external view returns (address);
 
-    function swapUniswapV3(
+    function uniswapV3_router() external view returns (address);
+
+    function uniswapV3_setMaxSlippage(address pool, uint256 maxSlippage) external;
+
+    function uniswapV3_setMaxTickDelta(address pool, uint24 maxTickDelta) external;
+
+    function uniswapV3_setLiquidityLowerTickBound(address pool, int24 lowerTickBound) external;
+
+    function uniswapV3_setLiquidityUpperTickBound(address pool, int24 upperTickBound) external;
+
+    function uniswapV3_setTWAPSecondsAgo(address pool, uint32 twapSecondsAgo) external;
+
+    function uniswapV3_swap(
         address pool,
         address tokenIn,
         uint256 amountIn,
@@ -251,7 +299,7 @@ interface IForeignControllerFull is IController {
         external
         returns (uint256 amountOut);
 
-    function addLiquidityUniswapV3(
+    function uniswapV3_addLiquidity(
         address                               pool,
         uint256                               tokenId,
         IUniswapV3Facet.Ticks        calldata ticks,
@@ -262,7 +310,7 @@ interface IForeignControllerFull is IController {
         external
         returns (uint256, uint128, IUniswapV3Facet.TokenAmounts memory);
 
-    function removeLiquidityUniswapV3(
+    function uniswapV3_removeLiquidity(
         address                               pool,
         uint256                               tokenId,
         uint128                               liquidity,
@@ -272,38 +320,38 @@ interface IForeignControllerFull is IController {
         external
         returns (IUniswapV3Facet.TokenAmounts memory);
 
-    function getUniswapV3MaxSlippage(address pool) external view returns (uint256);
+    function uniswapV3_getMaxSlippage(address pool) external view returns (uint256);
 
-    function getUniswapV3PoolMaxTickDelta(address pool) external view returns (uint24);
+    function uniswapV3_getMaxTickDelta(address pool) external view returns (uint24);
 
-    function getUniswapV3AddLiquidityTickBounds(address pool)
+    function uniswapV3_getLiquidityTickBounds(address pool)
         external
         view
         returns (int24 lower, int24 upper);
 
-    function getUniswapV3TWAPSecondsAgo(address pool) external view returns (uint32);
+    function uniswapV3_getTWAPSecondsAgo(address pool) external view returns (uint32);
 
-    function getUniswapV3AggregateDepositRateLimitKey(address pool)
+    function uniswapV3_getAggregateDepositRateLimitKey(address pool)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3AssetDepositRateLimitKey(address pool, address token)
+    function uniswapV3_getAssetDepositRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3SwapRateLimitKey(address pool, address token)
+    function uniswapV3_getSwapRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3AggregateWithdrawRateLimitKey(address pool)
+    function uniswapV3_getAggregateWithdrawRateLimitKey(address pool)
         external
         pure
         returns (bytes32 key);
 
-    function getUniswapV3AssetWithdrawRateLimitKey(address pool, address token)
+    function uniswapV3_getAssetWithdrawRateLimitKey(address pool, address token)
         external
         pure
         returns (bytes32 key);

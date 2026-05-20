@@ -25,7 +25,7 @@ abstract contract USDS_TestBase is ForkTestBase {
         super.setUp();
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setUSDSVault(vault);
+        mainnetController.usds_setVault(vault);
     }
 
 }
@@ -37,7 +37,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
     function setUp() public override virtual {
         super.setUp();
 
-        mintKey = mainnetController.usdsMintRateLimitKey();
+        mintKey = mainnetController.usds_mintRateLimitKey();
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(mintKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
@@ -46,7 +46,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
     function test_mintUSDS_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.mintUSDS(1e18);
+        mainnetController.usds_mint(1e18);
     }
 
     function test_mintUSDS_notAllocator() external {
@@ -55,7 +55,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.mintUSDS(1e18);
+        mainnetController.usds_mint(1e18);
     }
 
     function test_mintUSDS_zeroMaxAmount() external {
@@ -64,16 +64,16 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.mintUSDS(1e18);
+        mainnetController.usds_mint(1e18);
     }
 
     function test_mintUSDS_rateLimitBoundary() external {
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.mintUSDS(5_000_000e18 + 1);
+        mainnetController.usds_mint(5_000_000e18 + 1);
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(5_000_000e18);
+        mainnetController.usds_mint(5_000_000e18);
     }
 
     function test_mintUSDS() external {
@@ -95,7 +95,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
         emit IUSDSFacet.USDSMint(1e18);
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(1e18);
+        mainnetController.usds_mint(1e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -117,7 +117,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),       0);
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(1_000_000e18);
+        mainnetController.usds_mint(1_000_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 4_000_000e18);
         assertEq(USDS.balanceOf(address(almProxy)),       1_000_000e18);
@@ -128,14 +128,14 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),       1_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(4_249_999.9999999999999984e18);
+        mainnetController.usds_mint(4_249_999.9999999999999984e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 0);
         assertEq(USDS.balanceOf(address(almProxy)),       5_249_999.9999999999999984e18);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.mintUSDS(1);
+        mainnetController.usds_mint(1);
     }
 
 }
@@ -148,8 +148,8 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
     function setUp() public override virtual {
         super.setUp();
 
-        burnKey = mainnetController.usdsBurnRateLimitKey();
-        mintKey = mainnetController.usdsMintRateLimitKey();
+        burnKey = mainnetController.usds_burnRateLimitKey();
+        mintKey = mainnetController.usds_mintRateLimitKey();
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(burnKey, 5_000_000e18, uint256(1_000_000e18) / 4 hours);
@@ -158,7 +158,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
     function test_burnUSDS_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.burnUSDS(1e18);
+        mainnetController.usds_burn(1e18);
     }
 
     function test_burnUSDS_notAllocator() external {
@@ -167,7 +167,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.burnUSDS(1e18);
+        mainnetController.usds_burn(1e18);
     }
 
     function test_burnUSDS_zeroMaxAmount() external {
@@ -176,7 +176,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.burnUSDS(1e18);
+        mainnetController.usds_burn(1e18);
     }
 
     function test_burnUSDS() external {
@@ -185,7 +185,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         emit IUSDSFacet.USDSMint(1e18);
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(1e18);
+        mainnetController.usds_mint(1e18);
 
         ( uint256 ink, uint256 art ) = dss.vat.urns(ilk, vault);
         ( uint256 Art, , , , )       = dss.vat.ilks(ilk);
@@ -205,7 +205,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         emit IUSDSFacet.USDSBurn(1e18);
 
         vm.prank(allocator);
-        mainnetController.burnUSDS(1e18);
+        mainnetController.usds_burn(1e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -231,14 +231,14 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),       0);
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(1_000_000e18);
+        mainnetController.usds_mint(1_000_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 4_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 5_000_000e18);
         assertEq(USDS.balanceOf(address(almProxy)),       1_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.burnUSDS(500_000e18);
+        mainnetController.usds_burn(500_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 4_500_000e18);
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_500_000e18);
@@ -251,7 +251,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         assertEq(USDS.balanceOf(address(almProxy)),       500_000e18);
 
         vm.prank(allocator);
-        mainnetController.burnUSDS(500_000e18);
+        mainnetController.usds_burn(500_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 5_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_500_000e18);
@@ -266,13 +266,13 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 5_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(1_000_000e18);
+        mainnetController.usds_mint(1_000_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 4_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 5_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.burnUSDS(500_000e18);
+        mainnetController.usds_burn(500_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 4_500_000e18);
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_500_000e18);
@@ -285,7 +285,7 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_500_000e18);
 
         vm.prank(allocator);
-        mainnetController.burnUSDS(500_000e18);
+        mainnetController.usds_burn(500_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 0);  // stays at 0
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_000_000e18);

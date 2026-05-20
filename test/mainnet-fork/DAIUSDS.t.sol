@@ -27,7 +27,7 @@ abstract contract DAIUSDS_TestBase is ForkTestBase {
         super.setUp();
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.setUSDSVault(vault);
+        mainnetController.usds_setVault(vault);
     }
 
 }
@@ -37,7 +37,7 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DAIUSDS_TestBase {
     function test_swapUSDSToDAI_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.swapUSDSToDAI(1_000_000e18);
+        mainnetController.daiUSDS_swapUSDSToDAI(1_000_000e18);
     }
 
     function test_swapUSDSToDAI_notAllocator() external {
@@ -46,38 +46,38 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DAIUSDS_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.swapUSDSToDAI(1_000_000e18);
+        mainnetController.daiUSDS_swapUSDSToDAI(1_000_000e18);
     }
 
     function test_swapUSDSToDAI_rateLimitZeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.swapUSDSToDAI(1_000_000e18);
+        mainnetController.daiUSDS_swapUSDSToDAI(1_000_000e18);
     }
 
     function test_swapUSDSToDAI_rateLimitBoundary() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.usdsToDAISwapRateLimitKey(), 1_000_000e18, 0);
+        rateLimits.setRateLimitData(mainnetController.daiUSDS_usdsToDAISwapRateLimitKey(), 1_000_000e18, 0);
         vm.stopPrank();
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(1_000_000e18);
+        mainnetController.usds_mint(1_000_000e18);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.swapUSDSToDAI(1_000_000e18 + 1);
+        mainnetController.daiUSDS_swapUSDSToDAI(1_000_000e18 + 1);
 
         vm.prank(allocator);
-        mainnetController.swapUSDSToDAI(1_000_000e18);
+        mainnetController.daiUSDS_swapUSDSToDAI(1_000_000e18);
     }
 
     function test_swapUSDSToDAI() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.usdsToDAISwapRateLimitKey(), 2_000_000e18, 0);
+        rateLimits.setRateLimitData(mainnetController.daiUSDS_usdsToDAISwapRateLimitKey(), 2_000_000e18, 0);
         vm.stopPrank();
 
         vm.prank(allocator);
-        mainnetController.mintUSDS(1_000_000e18);
+        mainnetController.usds_mint(1_000_000e18);
 
         assertEq(USDS.balanceOf(address(almProxy)), 1_000_000e18);
         assertEq(USDS.totalSupply(),                USDS_SUPPLY + 1_000_000e18);
@@ -87,7 +87,7 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DAIUSDS_TestBase {
 
         assertEq(USDS.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.usdsToDAISwapRateLimitKey()), 2_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(mainnetController.daiUSDS_usdsToDAISwapRateLimitKey()), 2_000_000e18);
 
         vm.record();
 
@@ -95,7 +95,7 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DAIUSDS_TestBase {
         emit IDAIUSDSFacet.DAIUSDSSwapUSDSToDAI(1_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.swapUSDSToDAI(1_000_000e18);
+        mainnetController.daiUSDS_swapUSDSToDAI(1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -107,7 +107,7 @@ contract MainnetController_DAIUSDS_SwapUSDSToDAI_Tests is DAIUSDS_TestBase {
 
         assertEq(USDS.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.usdsToDAISwapRateLimitKey()), 1_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(mainnetController.daiUSDS_usdsToDAISwapRateLimitKey()), 1_000_000e18);
     }
 
 }
@@ -117,7 +117,7 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DAIUSDS_TestBase {
     function test_swapDAIToUSDS_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.swapDAIToUSDS(1_000_000e18);
+        mainnetController.daiUSDS_swapDAIToUSDS(1_000_000e18);
     }
 
     function test_swapDAIToUSDS_notAllocator() external {
@@ -126,33 +126,33 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DAIUSDS_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.swapDAIToUSDS(1_000_000e18);
+        mainnetController.daiUSDS_swapDAIToUSDS(1_000_000e18);
     }
 
     function test_swapDAIToUSDS_rateLimitZeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.swapDAIToUSDS(1_000_000e18);
+        mainnetController.daiUSDS_swapDAIToUSDS(1_000_000e18);
     }
 
     function test_swapDAIToUSDS_rateLimitBoundary() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.daiToUSDSSwapRateLimitKey(), 1_000_000e18, 0);
+        rateLimits.setRateLimitData(mainnetController.daiUSDS_daiToUSDSSwapRateLimitKey(), 1_000_000e18, 0);
         vm.stopPrank();
 
         deal(address(dai), address(almProxy), 1_000_000e18);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.swapDAIToUSDS(1_000_000e18 + 1);
+        mainnetController.daiUSDS_swapDAIToUSDS(1_000_000e18 + 1);
 
         vm.prank(allocator);
-        mainnetController.swapDAIToUSDS(1_000_000e18);
+        mainnetController.daiUSDS_swapDAIToUSDS(1_000_000e18);
     }
 
     function test_swapDAIToUSDS() external {
         vm.startPrank(Ethereum.SPARK_PROXY);
-        rateLimits.setRateLimitData(mainnetController.daiToUSDSSwapRateLimitKey(), 2_000_000e18, 0);
+        rateLimits.setRateLimitData(mainnetController.daiUSDS_daiToUSDSSwapRateLimitKey(), 2_000_000e18, 0);
         vm.stopPrank();
 
         deal(address(dai), address(almProxy), 1_000_000e18);
@@ -165,7 +165,7 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DAIUSDS_TestBase {
 
         assertEq(dai.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.daiToUSDSSwapRateLimitKey()), 2_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(mainnetController.daiUSDS_daiToUSDSSwapRateLimitKey()), 2_000_000e18);
 
         vm.record();
 
@@ -173,7 +173,7 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DAIUSDS_TestBase {
         emit IDAIUSDSFacet.DAIUSDSSwapDAIToUSDS(1_000_000e18);
 
         vm.prank(allocator);
-        mainnetController.swapDAIToUSDS(1_000_000e18);
+        mainnetController.daiUSDS_swapDAIToUSDS(1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -185,7 +185,7 @@ contract MainnetController_DAIUSDS_SwapDAIToUSDS_Tests is DAIUSDS_TestBase {
 
         assertEq(dai.allowance(address(almProxy), Ethereum.DAI_USDS), 0);
 
-        assertEq(rateLimits.getCurrentRateLimit(mainnetController.daiToUSDSSwapRateLimitKey()), 1_000_000e18);
+        assertEq(rateLimits.getCurrentRateLimit(mainnetController.daiUSDS_daiToUSDSSwapRateLimitKey()), 1_000_000e18);
     }
 
 }

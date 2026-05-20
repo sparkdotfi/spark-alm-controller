@@ -22,6 +22,14 @@ interface IControllerLike {
 
     function unstakeRateLimitKey() external pure returns (bytes32);
 
+    function minter() external view returns (address);
+
+    function susde() external view returns (address);
+
+    function usdc() external view returns (address);
+
+    function usde() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -42,7 +50,7 @@ contract Controller_EthenaFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "EthenaFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](10);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setDelegatedSignerRateLimitKey.selector,
@@ -72,6 +80,26 @@ contract Controller_EthenaFacet_Tests is Integration_TestBase {
         wires[5] = IEnumerableIntegrations.Wire(
             IControllerLike.unstakeRateLimitKey.selector,
             IEthenaFacet.unstakeRateLimitKey.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IControllerLike.minter.selector,
+            IEthenaFacet.minter.selector
+        );
+
+        wires[7] = IEnumerableIntegrations.Wire(
+            IControllerLike.susde.selector,
+            IEthenaFacet.susde.selector
+        );
+
+        wires[8] = IEnumerableIntegrations.Wire(
+            IControllerLike.usdc.selector,
+            IEthenaFacet.usdc.selector
+        );
+
+        wires[9] = IEnumerableIntegrations.Wire(
+            IControllerLike.usde.selector,
+            IEthenaFacet.usde.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -122,6 +150,17 @@ contract Controller_EthenaFacet_Tests is Integration_TestBase {
         assertEq(facet.susde(),  susde);
         assertEq(facet.usdc(),   usdc);
         assertEq(facet.usde(),   usde);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.minter(), makeAddr("minter"));
+        assertEq(controller.susde(),  makeAddr("susde"));
+        assertEq(controller.usdc(),   makeAddr("usdc"));
+        assertEq(controller.usde(),   makeAddr("usde"));
     }
 
     /**********************************************************************************************/

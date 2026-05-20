@@ -14,18 +14,18 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
         uint256 startingSiloBalance = usde.balanceOf(silo);
 
         vm.prank(allocator);
-        mainnetController.cooldownAssetsSUSDe(1_000_000e18);
+        mainnetController.ethena_cooldownAssets(1_000_000e18);
 
         skip(7 days);
 
         // Allocator is now compromised and wants to lock funds in the silo
         vm.prank(allocator);
-        mainnetController.cooldownAssetsSUSDe(1);
+        mainnetController.ethena_cooldownAssets(1);
 
         // Real allocator cannot withdraw when they want to
         vm.expectRevert(abi.encodeWithSignature("InvalidCooldown()"));
         vm.prank(allocator);
-        mainnetController.unstakeSUSDe();
+        mainnetController.ethena_unstake();
 
         // Allocator admin can remove the compromised allocator and fallback to the governance allocator
         vm.prank(allocatorAdmin);
@@ -40,7 +40,7 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
             ALLOCATOR_ROLE
         ));
         vm.prank(allocator);
-        mainnetController.cooldownAssetsSUSDe(1);
+        mainnetController.ethena_cooldownAssets(1);
 
         // Funds have been locked in the silo this whole time
         assertEq(usde.balanceOf(address(almProxy)), 0);
@@ -48,7 +48,7 @@ contract MainnetController_Ethena_Attack_Tests is MainnetController_Ethena_E2ETe
 
         // Backstop allocator can unstake the funds
         vm.prank(backstopAllocator);
-        mainnetController.unstakeSUSDe();
+        mainnetController.ethena_unstake();
 
         assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 + 1);
         assertEq(usde.balanceOf(silo),              startingSiloBalance);
@@ -62,17 +62,17 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
         deal(address(usdc), address(almProxy), 1_000_000e6);
 
         vm.prank(allocator);
-        mainnetController.depositERC4626(address(SYRUP), 1_000_000e6, 0);
+        mainnetController.erc4626_deposit(address(SYRUP), 1_000_000e6, 0);
 
         // Malicious allocator delays the request for redemption for 1m
         // because new requests can't be fulfilled until the previous is fulfilled or cancelled
         vm.prank(allocator);
-        mainnetController.requestMapleRedemption(address(SYRUP), 1);
+        mainnetController.maple_requestRedemption(address(SYRUP), 1);
 
         // Cannot process request
         vm.prank(allocator);
         vm.expectRevert("WM:AS:IN_QUEUE");
-        mainnetController.requestMapleRedemption(address(SYRUP), 500_000e6);
+        mainnetController.maple_requestRedemption(address(SYRUP), 500_000e6);
 
         // Allocator admin can remove the compromised allocator and fallback to the governance allocator
         vm.prank(allocatorAdmin);
@@ -85,12 +85,12 @@ contract MainnetController_Maple_Attack_Tests is Maple_TestBase {
             allocator,
             ALLOCATOR_ROLE
         ));
-        mainnetController.requestMapleRedemption(address(SYRUP), 1);
+        mainnetController.maple_requestRedemption(address(SYRUP), 1);
 
         // Governance allocator can cancel and submit the real request
         vm.startPrank(backstopAllocator);
-        mainnetController.cancelMapleRedemption(address(SYRUP), 1);
-        mainnetController.requestMapleRedemption(address(SYRUP), 500_000e6);
+        mainnetController.maple_cancelRedemption(address(SYRUP), 1);
+        mainnetController.maple_requestRedemption(address(SYRUP), 500_000e6);
         vm.stopPrank();
     }
 

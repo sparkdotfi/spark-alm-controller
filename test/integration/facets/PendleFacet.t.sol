@@ -13,6 +13,8 @@ interface IControllerLike {
 
     function getRedeemRateLimitKey(address market, address pt) external pure returns (bytes32);
 
+    function router() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -28,11 +30,16 @@ contract Controller_PendleFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "PendleFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](1);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.getRedeemRateLimitKey.selector,
             IPendleFacet.getRedeemRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IControllerLike.router.selector,
+            IPendleFacet.router.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -62,6 +69,14 @@ contract Controller_PendleFacet_Tests is Integration_TestBase {
         PendleFacet facet = new PendleFacet(router);
 
         assertEq(facet.router(), router);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.router(), makeAddr("router"));
     }
 
     /**********************************************************************************************/

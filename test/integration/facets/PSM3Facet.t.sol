@@ -15,6 +15,8 @@ interface IControllerLike {
 
     function getWithdrawRateLimitKey(address asset) external pure returns (bytes32);
 
+    function psm() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -30,7 +32,7 @@ contract Controller_PSM3Facet_Tests is Integration_TestBase {
 
         vm.label(facet, "PSM3Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](3);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.getDepositRateLimitKey.selector,
@@ -40,6 +42,11 @@ contract Controller_PSM3Facet_Tests is Integration_TestBase {
         wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.getWithdrawRateLimitKey.selector,
             IPSM3Facet.getWithdrawRateLimitKey.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.psm.selector,
+            IPSM3Facet.psm.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -69,6 +76,14 @@ contract Controller_PSM3Facet_Tests is Integration_TestBase {
         PSM3Facet facet = new PSM3Facet(psm);
 
         assertEq(facet.psm(), psm);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.psm(), makeAddr("psm"));
     }
 
     /**********************************************************************************************/

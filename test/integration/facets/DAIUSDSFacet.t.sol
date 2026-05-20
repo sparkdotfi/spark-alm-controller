@@ -14,6 +14,12 @@ interface IControllerLike {
 
     function usdsToDAISwapRateLimitKey() external pure returns (bytes32);
 
+    function dai() external view returns (address);
+
+    function daiUSDS() external view returns (address);
+
+    function usds() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -33,7 +39,7 @@ contract Controller_DAIUSDSFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "DAIUSDSFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.daiToUSDSSwapRateLimitKey.selector,
@@ -43,6 +49,21 @@ contract Controller_DAIUSDSFacet_Tests is Integration_TestBase {
         wires[1] = IEnumerableIntegrations.Wire(
             IControllerLike.usdsToDAISwapRateLimitKey.selector,
             IDAIUSDSFacet.usdsToDAISwapRateLimitKey.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IControllerLike.dai.selector,
+            IDAIUSDSFacet.dai.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IControllerLike.daiUSDS.selector,
+            IDAIUSDSFacet.daiUSDS.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.usds.selector,
+            IDAIUSDSFacet.usds.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -86,6 +107,16 @@ contract Controller_DAIUSDSFacet_Tests is Integration_TestBase {
         assertEq(facet.dai(),     dai);
         assertEq(facet.daiUSDS(), daiUSDS);
         assertEq(facet.usds(),    usds);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.dai(),     makeAddr("dai"));
+        assertEq(controller.daiUSDS(), makeAddr("daiUSDS"));
+        assertEq(controller.usds(),    makeAddr("usds"));
     }
 
     /**********************************************************************************************/

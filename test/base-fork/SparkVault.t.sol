@@ -51,7 +51,7 @@ abstract contract SparkVault_TestBase is ForkTestBase {
             ))
         );
 
-        takeKey = foreignController.getSparkVaultTakeRateLimitKey(address(sparkVault));
+        takeKey = foreignController.sparkVault_getTakeRateLimitKey(address(sparkVault));
 
         vm.startPrank(Base.SPARK_EXECUTOR);
         sparkVault.grantRole(sparkVault.TAKER_ROLE(), address(almProxy));
@@ -82,7 +82,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
     function test_takeFromSparkVault_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        foreignController.takeFromSparkVault(address(sparkVault), 1e18);
+        foreignController.sparkVault_take(address(sparkVault), 1e18);
     }
 
     function test_takeFromSparkVault_notAllocator() external {
@@ -91,7 +91,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        foreignController.takeFromSparkVault(address(sparkVault), 1e18);
+        foreignController.sparkVault_take(address(sparkVault), 1e18);
     }
 
     function test_takeFromSparkVault_zeroMaxAmount() external {
@@ -100,7 +100,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), 1e18);
+        foreignController.sparkVault_take(address(sparkVault), 1e18);
     }
 
     function test_takeFromSparkVault_rateLimitBoundary() external {
@@ -115,10 +115,10 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), 10_000_000e6 + 1);
+        foreignController.sparkVault_take(address(sparkVault), 10_000_000e6 + 1);
 
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), 10_000_000e6);
+        foreignController.sparkVault_take(address(sparkVault), 10_000_000e6);
     }
 
     function test_takeFromSparkVault_rateLimited() external {
@@ -144,7 +144,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), 1_000_000e6);
 
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), 1_000_000e6);
+        foreignController.sparkVault_take(address(sparkVault), 1_000_000e6);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -168,7 +168,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), rateLimitIncreaseInOneHour);
 
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), rateLimitIncreaseInOneHour);
+        foreignController.sparkVault_take(address(sparkVault), rateLimitIncreaseInOneHour);
 
         testState.rateLimit -= rateLimitIncreaseInOneHour;  // Rate limit goes down
         testState.usdcAlm   += rateLimitIncreaseInOneHour;  // The almProxy receives the taken amount
@@ -178,7 +178,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), 1);
+        foreignController.sparkVault_take(address(sparkVault), 1);
     }
 
     function testFuzz_takeFromSparkVault(uint256 depositAmount, uint256 takeAmount) external {
@@ -208,7 +208,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         emit ISparkVaultFacet.SparkVaultTake(address(sparkVault), takeAmount);
 
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), takeAmount);
+        foreignController.sparkVault_take(address(sparkVault), takeAmount);
 
         testState.rateLimit -= takeAmount;  // Rate limit goes down
         testState.usdcAlm   += takeAmount;  // The almProxy receives the taken amount
@@ -248,10 +248,10 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
 
         // Step 3 (spell): Set the rate limits
 
-        transferKey = foreignController.getTransferAssetTransferRateLimitKey(Base.USDC, address(sparkVault));
+        transferKey = foreignController.transferAsset_getTransferRateLimitKey(Base.USDC, address(sparkVault));
 
-        bytes32 morphoDepositKey  = foreignController.getERC4626DepositRateLimitKey(Base.MORPHO_VAULT_SUSDC, Base.USDC);
-        bytes32 morphoWithdrawKey = foreignController.getERC4626WithdrawRateLimitKey(Base.MORPHO_VAULT_SUSDC);
+        bytes32 morphoDepositKey  = foreignController.erc4626_getDepositRateLimitKey(Base.MORPHO_VAULT_SUSDC, Base.USDC);
+        bytes32 morphoWithdrawKey = foreignController.erc4626_getWithdrawRateLimitKey(Base.MORPHO_VAULT_SUSDC);
 
         rateLimits.setRateLimitData(takeKey,          10_000_000e6, uint256(10_000_000e6) / 1 days);
         rateLimits.setRateLimitData(transferKey,      10_000_000e6, uint256(10_000_000e6) / 1 days);
@@ -261,7 +261,7 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
 
         // Step 4 (spell): Set maxExchangeRate for ERC4626 deposit
 
-        foreignController.setMaxExchangeRate(Base.MORPHO_VAULT_SUSDC, 1e18, 1.2e18);
+        foreignController.erc4626_setMaxExchangeRate(Base.MORPHO_VAULT_SUSDC, 1e18, 1.2e18);
 
         vm.stopPrank();
     }
@@ -317,7 +317,7 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         // Step 3: Take usdc from the spark vault
 
         vm.prank(allocator);
-        foreignController.takeFromSparkVault(address(sparkVault), 9_000_000e6);
+        foreignController.sparkVault_take(address(sparkVault), 9_000_000e6);
 
         testState.takeRateLimit  = 1_000_000e6;
         testState.usdcAlm        = 9_000_000e6;
@@ -331,7 +331,7 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         // Step 4: Deposit into Morpho and set the VSR to 4% APY
 
         vm.startPrank(allocator);
-        uint256 shares = foreignController.depositERC4626(Base.MORPHO_VAULT_SUSDC, 9_000_000e6, 0);
+        uint256 shares = foreignController.erc4626_deposit(Base.MORPHO_VAULT_SUSDC, 9_000_000e6, 0);
         sparkVault.setVsr(1.000000001243680656318820312e27);  // 4% APY
         vm.stopPrank();
 
@@ -354,8 +354,8 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         // Step 6: Redeem assets from Morpho, swap DAI to USDC and transfer outstanding assets to the vault
 
         vm.startPrank(allocator);
-        uint256 assets = foreignController.redeemERC4626(Base.MORPHO_VAULT_SUSDC, shares, 0);
-        foreignController.transferAsset(Base.USDC, address(sparkVault), 9_400_000e6);
+        uint256 assets = foreignController.erc4626_redeem(Base.MORPHO_VAULT_SUSDC, shares, 0);
+        foreignController.transferAsset_transfer(Base.USDC, address(sparkVault), 9_400_000e6);
         vm.stopPrank();
 
         assertEq(assets, 9_424_512.250438e6);  // ~414k in yield

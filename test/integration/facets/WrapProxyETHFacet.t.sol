@@ -12,6 +12,8 @@ interface IControllerLike {
 
     function wrapRateLimitKey() external pure returns (bytes32);
 
+    function weth() external view returns (address);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -27,11 +29,16 @@ contract Controller_WrapProxyETHFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "WrapProxyETHFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](1);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.wrapRateLimitKey.selector,
             IWrapProxyETHFacet.wrapRateLimitKey.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IControllerLike.weth.selector,
+            IWrapProxyETHFacet.weth.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -62,6 +69,14 @@ contract Controller_WrapProxyETHFacet_Tests is Integration_TestBase {
         WrapProxyETHFacet facet = new WrapProxyETHFacet(weth);
 
         assertEq(facet.weth(), weth);
+    }
+
+    /**********************************************************************************************/
+    /*** Immutables Tests                                                                       ***/
+    /**********************************************************************************************/
+
+    function test_immutables() external {
+        assertEq(controller.weth(), makeAddr("weth"));
     }
 
     /**********************************************************************************************/

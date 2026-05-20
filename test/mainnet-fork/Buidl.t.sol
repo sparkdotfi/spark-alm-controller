@@ -29,17 +29,17 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
+        mainnetController.transferAsset_transfer(Ethereum.USDC, buidlDeposit, 1_000_000e6);
     }
 
     function test_transferAsset_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 0);
+        mainnetController.transferAsset_transfer(Ethereum.USDC, buidlDeposit, 0);
     }
 
     function test_transferAsset_rateLimitsBoundary() external {
-        bytes32 key = mainnetController.getTransferAssetTransferRateLimitKey(Ethereum.USDC, buidlDeposit);
+        bytes32 key = mainnetController.transferAsset_getTransferRateLimitKey(Ethereum.USDC, buidlDeposit);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
@@ -48,14 +48,14 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6 + 1);
+        mainnetController.transferAsset_transfer(Ethereum.USDC, buidlDeposit, 1_000_000e6 + 1);
 
         vm.prank(allocator);
-        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
+        mainnetController.transferAsset_transfer(Ethereum.USDC, buidlDeposit, 1_000_000e6);
     }
 
     function test_transferAsset() external {
-        bytes32 key = mainnetController.getTransferAssetTransferRateLimitKey(Ethereum.USDC, buidlDeposit);
+        bytes32 key = mainnetController.transferAsset_getTransferRateLimitKey(Ethereum.USDC, buidlDeposit);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
@@ -71,7 +71,7 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
         emit ITransferAssetFacet.TransferAssetTransfer(Ethereum.USDC, buidlDeposit, 1_000_000e6);
 
         vm.prank(allocator);
-        mainnetController.transferAsset(Ethereum.USDC, buidlDeposit, 1_000_000e6);
+        mainnetController.transferAsset_transfer(Ethereum.USDC, buidlDeposit, 1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 

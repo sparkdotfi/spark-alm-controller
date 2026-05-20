@@ -34,6 +34,8 @@ interface IControllerLike {
         pure
         returns (bytes32);
 
+    function REQUEST_ID() external pure returns (uint256);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -52,7 +54,7 @@ contract Controller_CentrifugeFacet_Tests is Integration_TestBase {
 
         vm.label(facet, "CentrifugeFacet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](7);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](8);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setRecipient.selector,
@@ -89,6 +91,11 @@ contract Controller_CentrifugeFacet_Tests is Integration_TestBase {
             ICentrifugeFacet.getTransferRateLimitKey.selector
         );
 
+        wires[7] = IEnumerableIntegrations.Wire(
+            IControllerLike.REQUEST_ID.selector,
+            ICentrifugeFacet.REQUEST_ID.selector
+        );
+
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
 
         vm.prank(beaconAdmin);
@@ -99,6 +106,14 @@ contract Controller_CentrifugeFacet_Tests is Integration_TestBase {
 
         vm.prank(admin);
         controller.updateIntegrations(integrationIds);
+    }
+
+    /**********************************************************************************************/
+    /*** Constants Tests                                                                        ***/
+    /**********************************************************************************************/
+
+    function test_constants() external {
+        assertEq(controller.REQUEST_ID(), 0);
     }
 
     /**********************************************************************************************/

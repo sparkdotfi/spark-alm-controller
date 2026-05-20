@@ -22,6 +22,8 @@ interface IControllerLike {
 
     function getWithdrawRateLimitKey(address token) external pure returns (bytes32);
 
+    function EXCHANGE_RATE_PRECISION() external pure returns (uint256);
+
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
 }
@@ -37,7 +39,7 @@ contract Controller_ERC4626Facet_Tests is Integration_TestBase {
 
         vm.label(facet, "ERC4626Facet");
 
-        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](4);
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](5);
 
         wires[0] = IEnumerableIntegrations.Wire(
             IControllerLike.setMaxExchangeRate.selector,
@@ -59,6 +61,11 @@ contract Controller_ERC4626Facet_Tests is Integration_TestBase {
             IERC4626Facet.getWithdrawRateLimitKey.selector
         );
 
+        wires[4] = IEnumerableIntegrations.Wire(
+            IControllerLike.EXCHANGE_RATE_PRECISION.selector,
+            IERC4626Facet.EXCHANGE_RATE_PRECISION.selector
+        );
+
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
 
         vm.prank(beaconAdmin);
@@ -69,6 +76,14 @@ contract Controller_ERC4626Facet_Tests is Integration_TestBase {
 
         vm.prank(admin);
         controller.updateIntegrations(integrationIds);
+    }
+
+    /**********************************************************************************************/
+    /*** Constants Tests                                                                        ***/
+    /**********************************************************************************************/
+
+    function test_constants() external {
+        assertEq(controller.EXCHANGE_RATE_PRECISION(), 1e36);
     }
 
     /**********************************************************************************************/

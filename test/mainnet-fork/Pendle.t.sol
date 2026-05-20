@@ -52,7 +52,7 @@ abstract contract Pendle_TestBase is ForkTestBase {
 
         ( , address pt, ) = pendleMarket.readTokens();
 
-        redeemKey = mainnetController.getPendleRedeemRateLimitKey(address(pendleMarket), pt);
+        redeemKey = mainnetController.pendle_getRedeemRateLimitKey(address(pendleMarket), pt);
 
         vm.prank(SparkEthereum.SPARK_PROXY);
         rateLimits.setRateLimitData(redeemKey, 10_000_000e18, uint256(10_000_000e18) / 1 days);
@@ -72,7 +72,7 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, 1);
     }
 
     function test_redeemPendlePT_marketNotExpired() public {
@@ -80,7 +80,7 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
         vm.prank(allocator);
         vm.expectRevert("PendleFacet/market-not-expired");
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, 1);
     }
 
     function test_redeemPendlePT_zeroMaxAmount() public {
@@ -95,7 +95,7 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
         vm.prank(allocator);
         vm.expectRevert("RateLimits/zero-maxAmount");
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, 1);
     }
 
     function test_redeemPendlePT_rateLimitsBoundary() public {
@@ -113,7 +113,7 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
         vm.prank(allocator);
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, 1);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, 1);
     }
 
     function test_redeemPendlePT_insufficientBalance() public {
@@ -125,7 +125,7 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
         vm.prank(allocator);
         vm.expectRevert("ERC20: transfer amount exceeds balance");
-        mainnetController.redeemPendlePT(address(pendleMarket), 1_000_000e18 + 1, 1);
+        mainnetController.pendle_redeem(address(pendleMarket), 1_000_000e18 + 1, 1);
     }
 
     function test_redeemPendlePT_amountTooSmall() public {
@@ -137,7 +137,7 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
         vm.prank(allocator);
         vm.expectRevert("panic: arithmetic underflow or overflow (0x11)");
-        mainnetController.redeemPendlePT(address(pendleMarket), 5, 1);
+        mainnetController.pendle_redeem(address(pendleMarket), 5, 1);
     }
 
     function test_redeemPendlePT_minAmountOutNotSet() public {
@@ -145,7 +145,7 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
         vm.prank(allocator);
         vm.expectRevert("PendleFacet/min-amount-out-not-set");
-        mainnetController.redeemPendlePT(address(pendleMarket), 1_000_000e18, 0);
+        mainnetController.pendle_redeem(address(pendleMarket), 1_000_000e18, 0);
     }
 
     function test_redeemPendlePT_minAmountOutNotMet() public {
@@ -160,10 +160,10 @@ contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
 
         vm.prank(allocator);
         vm.expectRevert("PendleFacet/min-amount-not-met");
-        mainnetController.redeemPendlePT(address(pendleMarket), 1_000_000e18, exactAmountOut + 1);
+        mainnetController.pendle_redeem(address(pendleMarket), 1_000_000e18, exactAmountOut + 1);
 
         vm.prank(allocator);
-        mainnetController.redeemPendlePT(address(pendleMarket), 1_000_000e18, exactAmountOut);
+        mainnetController.pendle_redeem(address(pendleMarket), 1_000_000e18, exactAmountOut);
 
     }
 
@@ -195,7 +195,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         emit IPendleFacet.PendleRedeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         vm.prank(allocator);
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 500_000e18);
         assertEq(yieldToken.balanceOf(address(almProxy)),     500_000e18 * 1e18 / pyIndexCurrent);
@@ -209,7 +209,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         emit IPendleFacet.PendleRedeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         vm.prank(allocator);
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 0);
         assertEq(yieldToken.balanceOf(address(almProxy)),     1_000_000e18 * 1e18 / pyIndexCurrent);
@@ -220,7 +220,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         ( address sy, address pt, address yt ) = pendleMarket.readTokens();
 
-        redeemKey = mainnetController.getPendleRedeemRateLimitKey(address(pendleMarket), pt);
+        redeemKey = mainnetController.pendle_getRedeemRateLimitKey(address(pendleMarket), pt);
 
         vm.prank(SparkEthereum.SPARK_PROXY);
         rateLimits.setRateLimitData(redeemKey, 10_000_000e18, uint256(10_000_000e18) / 1 days);
@@ -247,7 +247,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         emit IPendleFacet.PendleRedeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         vm.prank(allocator);
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 500_000e18);
         assertEq(yieldToken.balanceOf(address(almProxy)),     500_000e18);
@@ -261,7 +261,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         emit IPendleFacet.PendleRedeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         vm.prank(allocator);
-        mainnetController.redeemPendlePT(address(pendleMarket), 500_000e18, exactAmountOut);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
         assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 0);
         assertEq(yieldToken.balanceOf(address(almProxy)),     1_000_000e18);
@@ -272,7 +272,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
 
         ( address sy, address pt, address yt ) = pendleMarket.readTokens();
 
-        redeemKey = mainnetController.getPendleRedeemRateLimitKey(address(pendleMarket), pt);
+        redeemKey = mainnetController.pendle_getRedeemRateLimitKey(address(pendleMarket), pt);
 
         vm.prank(SparkEthereum.SPARK_PROXY);
         rateLimits.setRateLimitData(redeemKey, 10e18, uint256(10e18) / 1 days);
@@ -296,7 +296,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         emit IPendleFacet.PendleRedeem(address(pendleMarket), 5e18, exactAmountOut);
 
         vm.prank(allocator);
-        mainnetController.redeemPendlePT(address(pendleMarket), 5e18, exactAmountOut);
+        mainnetController.pendle_redeem(address(pendleMarket), 5e18, exactAmountOut);
 
         assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 5e18);
         assertEq(yieldToken.balanceOf(address(almProxy)),     5e18 * 1e18 / pyIndexCurrent);
@@ -309,7 +309,7 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         emit IPendleFacet.PendleRedeem(address(pendleMarket), 5e18, exactAmountOut);
 
         vm.prank(allocator);
-        mainnetController.redeemPendlePT(address(pendleMarket), 5e18, exactAmountOut);
+        mainnetController.pendle_redeem(address(pendleMarket), 5e18, exactAmountOut);
 
         assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 0);
         assertEq(yieldToken.balanceOf(address(almProxy)),     10e18 * 1e18 / pyIndexCurrent);

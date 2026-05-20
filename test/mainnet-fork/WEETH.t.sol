@@ -111,13 +111,13 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
     function setUp() public override {
         super.setUp();
 
-        depositKey = mainnetController.getWEETHDepositRateLimitKey(address(eeth), address(liquidityPool));
+        depositKey = mainnetController.weeth_getDepositRateLimitKey(address(eeth), address(liquidityPool));
     }
 
     function test_depositToWEETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.depositToWeETH(1e18, 0);
+        mainnetController.weeth_deposit(1e18, 0);
     }
 
     function test_depositToWEETH_notAllocator() external {
@@ -126,13 +126,13 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.depositToWeETH(1e18, 0);
+        mainnetController.weeth_deposit(1e18, 0);
     }
 
     function test_depositToWEETH_zeroMaxAmount() external {
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1e18, 0);
+        mainnetController.weeth_deposit(1e18, 0);
     }
 
     function test_depositToWEETH_rateLimitsBoundary() external {
@@ -143,10 +143,10 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18 + 1, 0);
+        mainnetController.weeth_deposit(1_000e18 + 1, 0);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, 0);
+        mainnetController.weeth_deposit(1_000e18, 0);
     }
 
     function test_depositToWEETH_slippageTooHighBoundary() external {
@@ -159,10 +159,10 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
 
         vm.expectRevert("WEETHFacet/slippage-too-high");
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut + 1);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut + 1);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut);
     }
 
     function test_depositToWEETH() external {
@@ -193,7 +193,7 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
         );
 
         vm.prank(allocator);
-        uint256 shares = mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        uint256 shares = mainnetController.weeth_deposit(1_000e18, minSharesOut);
 
         _assertReentrancyGuardWrittenToTwice();
 
@@ -222,15 +222,15 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
     function setUp() public override {
         super.setUp();
 
-        depositKey = mainnetController.getWEETHDepositRateLimitKey(address(eeth), address(liquidityPool));
+        depositKey = mainnetController.weeth_getDepositRateLimitKey(address(eeth), address(liquidityPool));
 
-        requestWithdrawKey = mainnetController.getWEETHRequestWithdrawRateLimitKey(weethModule, address(eeth), address(liquidityPool));
+        requestWithdrawKey = mainnetController.weeth_getRequestWithdrawRateLimitKey(weethModule, address(eeth), address(liquidityPool));
     }
 
     function test_requestWithdrawFromWEETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.requestWithdrawFromWeETH(weethModule, 1e18, 0);
+        mainnetController.weeth_requestWithdraw(weethModule, 1e18, 0);
     }
 
     function test_requestWithdrawFromWEETH_notAllocator() external {
@@ -239,7 +239,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.requestWithdrawFromWeETH(weethModule, 1e18, 0);
+        mainnetController.weeth_requestWithdraw(weethModule, 1e18, 0);
     }
 
     function test_requestWithdrawFromWEETH_zeroMaxAmount() external {
@@ -247,7 +247,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.requestWithdrawFromWeETH(weethModule, 1e18, 0);
+        mainnetController.weeth_requestWithdraw(weethModule, 1e18, 0);
     }
 
     function test_requestWithdrawFromWEETH_rateLimitsBoundary() external {
@@ -260,10 +260,10 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.requestWithdrawFromWeETH(weethModule, 500e18 + 1, 0);
+        mainnetController.weeth_requestWithdraw(weethModule, 500e18 + 1, 0);
 
         vm.prank(allocator);
-        mainnetController.requestWithdrawFromWeETH(weethModule, 500e18, 0);
+        mainnetController.weeth_requestWithdraw(weethModule, 500e18, 0);
     }
 
     function test_requestWithdrawFromWEETH_slippageTooHighBoundary() external {
@@ -277,7 +277,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut);
 
         uint256 expectedEETHBalance = WEETH.getEETHByWeETH(500e18 - 1); // Rounding error
 
@@ -285,14 +285,14 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         vm.expectRevert("WEETHFacet/slippage-too-high");
         vm.prank(allocator);
-        mainnetController.requestWithdrawFromWeETH(
+        mainnetController.weeth_requestWithdraw(
             weethModule,
             500e18,
             minEETHShares + 1
         );
 
         vm.prank(allocator);
-        mainnetController.requestWithdrawFromWeETH(
+        mainnetController.weeth_requestWithdraw(
             weethModule,
             500e18,
             minEETHShares
@@ -310,7 +310,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut);
 
         uint256 initialWEETHBalance = WEETH.balanceOf(address(almProxy));
 
@@ -335,7 +335,7 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
         );
 
         vm.prank(allocator);
-        uint256 requestId = mainnetController.requestWithdrawFromWeETH(
+        uint256 requestId = mainnetController.weeth_requestWithdraw(
             weethModule,
             500e18,
             minEETHShares
@@ -375,11 +375,11 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     function setUp() public override {
         super.setUp();
 
-        depositKey = mainnetController.getWEETHDepositRateLimitKey(address(eeth), address(liquidityPool));
+        depositKey = mainnetController.weeth_getDepositRateLimitKey(address(eeth), address(liquidityPool));
 
-        requestWithdrawKey = mainnetController.getWEETHRequestWithdrawRateLimitKey(weethModule, address(eeth), address(liquidityPool));
+        requestWithdrawKey = mainnetController.weeth_getRequestWithdrawRateLimitKey(weethModule, address(eeth), address(liquidityPool));
 
-        claimWithdrawKey = mainnetController.getWEETHClaimWithdrawRateLimitKey(weethModule);
+        claimWithdrawKey = mainnetController.weeth_getClaimWithdrawRateLimitKey(weethModule);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(claimWithdrawKey, type(uint256).max, 0);
@@ -388,7 +388,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
     function test_claimWithdrawalFromWEETH_reentrancy() external {
         _setControllerEntered();
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        mainnetController.claimWithdrawalFromWeETH(weethModule, 1);
+        mainnetController.weeth_claimWithdrawal(weethModule, 1);
     }
 
     function test_claimWithdrawalFromWEETH_notAllocator() external {
@@ -397,13 +397,13 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.claimWithdrawalFromWeETH(weethModule, 1);
+        mainnetController.weeth_claimWithdrawal(weethModule, 1);
     }
 
     function test_claimWithdrawalFromWEETH_invalidAction() external {
         vm.expectRevert("WEETHFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.claimWithdrawalFromWeETH(makeAddr("invalid-weethModule"), 1);
+        mainnetController.weeth_claimWithdrawal(makeAddr("invalid-weethModule"), 1);
     }
 
     function test_claimWithdrawalFromWEETH_failsOnClaimingTwice() external {
@@ -417,10 +417,10 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut);
 
         vm.prank(allocator);
-        uint256 requestId = mainnetController.requestWithdrawFromWeETH(weethModule, 500e18, 0);
+        uint256 requestId = mainnetController.weeth_requestWithdraw(weethModule, 500e18, 0);
 
         IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
@@ -428,12 +428,12 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         IWithdrawRequestNFTLike(withdrawRequestNFT).finalizeRequests(requestId);
 
         vm.prank(allocator);
-        mainnetController.claimWithdrawalFromWeETH(weethModule, requestId);
+        mainnetController.weeth_claimWithdrawal(weethModule, requestId);
 
         // Cannot claim withdrawal again.
         vm.expectRevert("Request does not exist");
         vm.prank(allocator);
-        mainnetController.claimWithdrawalFromWeETH(weethModule, requestId);
+        mainnetController.weeth_claimWithdrawal(weethModule, requestId);
     }
 
     function test_claimWithdrawalFromWEETH_invalidRequest() external {
@@ -447,10 +447,10 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut);
 
         vm.prank(allocator);
-        uint256 requestId = mainnetController.requestWithdrawFromWeETH(weethModule, 500e18, 0);
+        uint256 requestId = mainnetController.weeth_requestWithdraw(weethModule, 500e18, 0);
 
         IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
@@ -459,7 +459,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
 
         vm.expectRevert("WEETHModule/invalid-request-id");
         vm.prank(allocator);
-        mainnetController.claimWithdrawalFromWeETH(weethModule, requestId);
+        mainnetController.weeth_claimWithdrawal(weethModule, requestId);
 
         assertEq(WEETH.balanceOf(address(almProxy)), 427.715236537415314851e18);
     }
@@ -475,10 +475,10 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut);
 
         vm.prank(allocator);
-        uint256 requestId = mainnetController.requestWithdrawFromWeETH(weethModule, 500e18, 0);
+        uint256 requestId = mainnetController.weeth_requestWithdraw(weethModule, 500e18, 0);
 
         IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
@@ -487,7 +487,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
 
         vm.expectRevert("WEETHModule/request-not-finalized");
         vm.prank(allocator);
-        mainnetController.claimWithdrawalFromWeETH(weethModule, requestId);
+        mainnetController.weeth_claimWithdrawal(weethModule, requestId);
     }
 
     function test_claimWithdrawalFromWEETH() external {
@@ -501,10 +501,10 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
         vm.prank(allocator);
-        mainnetController.depositToWeETH(1_000e18, minSharesOut);
+        mainnetController.weeth_deposit(1_000e18, minSharesOut);
 
         vm.prank(allocator);
-        uint256 requestId = mainnetController.requestWithdrawFromWeETH(weethModule, 500e18, 0);
+        uint256 requestId = mainnetController.weeth_requestWithdraw(weethModule, 500e18, 0);
 
         IWithdrawRequestNFTLike withdrawRequestNFT = IWithdrawRequestNFTLike(liquidityPool.withdrawRequestNFT());
 
@@ -526,7 +526,7 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         emit IWEETHFacet.WEETHClaimWithdrawal(weethModule, requestId, eethAmount);
 
         vm.prank(allocator);
-        uint256 wethReceived = mainnetController.claimWithdrawalFromWeETH(weethModule, requestId);
+        uint256 wethReceived = mainnetController.weeth_claimWithdrawal(weethModule, requestId);
 
         _assertReentrancyGuardWrittenToTwice();
 

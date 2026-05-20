@@ -53,7 +53,7 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getERC7540RequestDepositRateLimitKey(address(jTreasuryVault), Ethereum.USDC);
+        key = mainnetController.erc7540_getRequestDepositRateLimitKey(address(jTreasuryVault), Ethereum.USDC);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
@@ -67,7 +67,7 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestDepositERC7540_zeroMaxAmount() external {
@@ -76,16 +76,16 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestDepositERC7540_rateLimitBoundary() external {
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6 + 1);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6 + 1);
 
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestDepositERC7540() external {
@@ -106,7 +106,7 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
         emit IERC7540Facet.ERC7540RequestDeposit(address(jTreasuryVault), 1_000_000e6);
 
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
@@ -130,9 +130,9 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getERC7540ClaimDepositRateLimitKey(address(jTreasuryVault));
+        key = mainnetController.erc7540_getClaimDepositRateLimitKey(address(jTreasuryVault));
 
-        bytes32 requestDepositKey = mainnetController.getERC7540RequestDepositRateLimitKey(
+        bytes32 requestDepositKey = mainnetController.erc7540_getRequestDepositRateLimitKey(
             address(jTreasuryVault),
             Ethereum.USDC
         );
@@ -149,7 +149,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.claimDepositERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimDeposit(address(jTreasuryVault));
     }
 
     function test_claimDepositERC7540_invalidAction() external {
@@ -158,7 +158,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
 
         vm.expectRevert("ERC7540Facet/invalid-action");
         vm.prank(allocator);
-        mainnetController.claimDepositERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimDeposit(address(jTreasuryVault));
     }
 
     function test_claimDepositERC7540_singleRequest() external {
@@ -175,7 +175,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         });
 
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
 
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
@@ -210,7 +210,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         emit IERC7540Facet.ERC7540ClaimDeposit(address(jTreasuryVault), 500_000e6);
 
         vm.prank(allocator);
-        mainnetController.claimDepositERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimDeposit(address(jTreasuryVault));
 
         assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 500_000e6);
@@ -233,7 +233,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         });
 
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
 
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
@@ -253,7 +253,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         });
 
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 500_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 500_000e6);
 
         assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
@@ -287,7 +287,7 @@ contract MainnetController_Centrifuge_ClaimDepositERC7540_Tests is Centrifuge_Te
         });
 
         vm.prank(allocator);
-        mainnetController.claimDepositERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimDeposit(address(jTreasuryVault));
 
         assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal);
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 750_000e6);
@@ -308,9 +308,9 @@ contract MainnetController_Centrifuge_CancelDeposit_Tests is Centrifuge_TestBase
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getCentrifugeCancelDepositRateLimitKey(address(jTreasuryVault));
+        key = mainnetController.centrifuge_getCancelDepositRateLimitKey(address(jTreasuryVault));
 
-        bytes32 requestDepositKey = mainnetController.getERC7540RequestDepositRateLimitKey(
+        bytes32 requestDepositKey = mainnetController.erc7540_getRequestDepositRateLimitKey(
             address(jTreasuryVault),
             Ethereum.USDC
         );
@@ -327,7 +327,7 @@ contract MainnetController_Centrifuge_CancelDeposit_Tests is Centrifuge_TestBase
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelDepositRequest(address(jTreasuryVault));
     }
 
     function test_cancelCentrifugeDepositRequest_invalidAction() external {
@@ -336,7 +336,7 @@ contract MainnetController_Centrifuge_CancelDeposit_Tests is Centrifuge_TestBase
 
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelDepositRequest(address(jTreasuryVault));
     }
 
     function test_cancelCentrifugeDepositRequest() external {
@@ -349,7 +349,7 @@ contract MainnetController_Centrifuge_CancelDeposit_Tests is Centrifuge_TestBase
         });
 
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),       1_000_000e6);
         assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)), false);
@@ -358,7 +358,7 @@ contract MainnetController_Centrifuge_CancelDeposit_Tests is Centrifuge_TestBase
         emit ICentrifugeFacet.CentrifugeCancelDepositRequest(address(jTreasuryVault));
 
         vm.prank(allocator);
-        mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelDepositRequest(address(jTreasuryVault));
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),       1_000_000e6);
         assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)), true);
@@ -376,14 +376,14 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getCentrifugeClaimCancelDepositRateLimitKey(address(jTreasuryVault));
+        key = mainnetController.centrifuge_getClaimCancelDepositRateLimitKey(address(jTreasuryVault));
 
-        bytes32 requestDepositKey = mainnetController.getERC7540RequestDepositRateLimitKey(
+        bytes32 requestDepositKey = mainnetController.erc7540_getRequestDepositRateLimitKey(
             address(jTreasuryVault),
             Ethereum.USDC
         );
 
-        bytes32 cancelDepositKey = mainnetController.getCentrifugeCancelDepositRateLimitKey(
+        bytes32 cancelDepositKey = mainnetController.centrifuge_getCancelDepositRateLimitKey(
             address(jTreasuryVault)
         );
 
@@ -400,7 +400,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.claimCentrifugeCancelDepositRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_claimCancelDepositRequest(address(jTreasuryVault));
     }
 
     function test_claimCentrifugeCancelDepositRequest_invalidAction() external {
@@ -409,7 +409,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
 
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.claimCentrifugeCancelDepositRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_claimCancelDepositRequest(address(jTreasuryVault));
     }
 
     function test_claimCentrifugeCancelDepositRequest() external {
@@ -431,13 +431,13 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         });
 
         vm.prank(allocator);
-        mainnetController.requestDepositERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestDeposit(address(jTreasuryVault), 1_000_000e6);
 
         vm.expectEmit(address(mainnetController));
         emit ICentrifugeFacet.CentrifugeCancelDepositRequest({ token: address(jTreasuryVault) });
 
         vm.prank(allocator);
-        mainnetController.cancelCentrifugeDepositRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelDepositRequest(address(jTreasuryVault));
 
         assertEq(usdc.balanceOf(address(almProxy)), 0);
         assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal + 1_000_000e6);
@@ -465,7 +465,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         emit ICentrifugeFacet.CentrifugeClaimCancelDepositRequest(address(jTreasuryVault), 1_000_000e6);
 
         vm.prank(allocator);
-        mainnetController.claimCentrifugeCancelDepositRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_claimCancelDepositRequest(address(jTreasuryVault));
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         0);
         assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   false);
@@ -487,7 +487,7 @@ contract MainnetController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getERC7540RequestRedeemRateLimitKey(address(jTreasuryVault));
+        key = mainnetController.erc7540_getRequestRedeemRateLimitKey(address(jTreasuryVault));
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
@@ -499,7 +499,7 @@ contract MainnetController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestRedeemERC7540_zeroMaxAmount() external {
@@ -508,7 +508,7 @@ contract MainnetController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
 
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), 1_000_000e6);
     }
 
     function test_requestRedeemERC7540_rateLimitsBoundary() external {
@@ -523,10 +523,10 @@ contract MainnetController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), overBoundaryShares);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), overBoundaryShares);
 
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), atBoundaryShares);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), atBoundaryShares);
     }
 
     function test_requestRedeemERC7540() external {
@@ -550,7 +550,7 @@ contract MainnetController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
         emit IERC7540Facet.ERC7540RequestRedeem(address(jTreasuryVault), shares);
 
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), shares);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), shares);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1);  // Rounding
 
@@ -572,9 +572,9 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getERC7540ClaimRedeemRateLimitKey(address(jTreasuryVault));
+        key = mainnetController.erc7540_getClaimRedeemRateLimitKey(address(jTreasuryVault));
 
-        bytes32 requestRedeemKey = mainnetController.getERC7540RequestRedeemRateLimitKey(
+        bytes32 requestRedeemKey = mainnetController.erc7540_getRequestRedeemRateLimitKey(
             address(jTreasuryVault)
         );
 
@@ -590,7 +590,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.claimRedeemERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimRedeem(address(jTreasuryVault));
     }
 
     function test_claimRedeemERC7540_invalidAction() external {
@@ -599,7 +599,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
         vm.expectRevert("ERC7540Facet/invalid-action");
         vm.prank(allocator);
-        mainnetController.claimRedeemERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimRedeem(address(jTreasuryVault));
     }
 
     function test_claimRedeemERC7540_singleRequest() external {
@@ -622,7 +622,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         });
 
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), 1_000_000e6);
 
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
@@ -660,7 +660,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         emit IERC7540Facet.ERC7540ClaimRedeem(address(jTreasuryVault), 2_000_000e6);
 
         vm.prank(allocator);
-        mainnetController.claimRedeemERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimRedeem(address(jTreasuryVault));
 
         assertEq(usdc.balanceOf(ESCROW),            0);
         assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
@@ -689,7 +689,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         });
 
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 1_000_000e6);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), 1_000_000e6);
 
         uint256 totalSupply = jTreasuryToken.totalSupply();
 
@@ -707,7 +707,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         });
 
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), 500_000e6);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), 500_000e6);
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
         assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + 1_500_000e6);
@@ -746,7 +746,7 @@ contract MainnetController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         });
 
         vm.prank(allocator);
-        mainnetController.claimRedeemERC7540(address(jTreasuryVault));
+        mainnetController.erc7540_claimRedeem(address(jTreasuryVault));
 
         assertEq(usdc.balanceOf(ESCROW),            0);
         assertEq(usdc.balanceOf(address(almProxy)), 3_000_000e6);
@@ -767,9 +767,9 @@ contract MainnetController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getCentrifugeCancelRedeemRateLimitKey(address(jTreasuryVault));
+        key = mainnetController.centrifuge_getCancelRedeemRateLimitKey(address(jTreasuryVault));
 
-        bytes32 requestRedeemKey = mainnetController.getERC7540RequestRedeemRateLimitKey(
+        bytes32 requestRedeemKey = mainnetController.erc7540_getRequestRedeemRateLimitKey(
             address(jTreasuryVault)
         );
 
@@ -785,7 +785,7 @@ contract MainnetController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelRedeemRequest(address(jTreasuryVault));
     }
 
     function test_cancelCentrifugeRedeemRequest_invalidAction() external {
@@ -794,7 +794,7 @@ contract MainnetController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
 
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelRedeemRequest(address(jTreasuryVault));
     }
 
     function test_cancelCentrifugeRedeemRequest() external {
@@ -807,7 +807,7 @@ contract MainnetController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
         emit IERC7540Facet.ERC7540RequestRedeem({ token: address(jTreasuryVault), shares: shares });
 
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), shares);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), shares);
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),       shares);
         assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)), false);
@@ -816,7 +816,7 @@ contract MainnetController_Centrifuge_CancelRedeemRequest_Tests is Centrifuge_Te
         emit ICentrifugeFacet.CentrifugeCancelRedeemRequest(address(jTreasuryVault));
 
         vm.prank(allocator);
-        mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelRedeemRequest(address(jTreasuryVault));
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),       shares);
         assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)), true);
@@ -834,13 +834,13 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         vm.prank(ROOT);
         restrictionManager.updateMember(address(jTreasuryToken), address(almProxy), type(uint64).max);
 
-        key = mainnetController.getCentrifugeClaimCancelRedeemRateLimitKey(address(jTreasuryVault));
+        key = mainnetController.centrifuge_getClaimCancelRedeemRateLimitKey(address(jTreasuryVault));
 
-        bytes32 requestRedeemKey = mainnetController.getERC7540RequestRedeemRateLimitKey(
+        bytes32 requestRedeemKey = mainnetController.erc7540_getRequestRedeemRateLimitKey(
             address(jTreasuryVault)
         );
 
-        bytes32 cancelRedeemKey = mainnetController.getCentrifugeCancelRedeemRateLimitKey(
+        bytes32 cancelRedeemKey = mainnetController.centrifuge_getCancelRedeemRateLimitKey(
             address(jTreasuryVault)
         );
 
@@ -857,7 +857,7 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
             address(this),
             ALLOCATOR_ROLE
         ));
-        mainnetController.claimCentrifugeCancelRedeemRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_claimCancelRedeemRequest(address(jTreasuryVault));
     }
 
     function test_claimCentrifugeCancelRedeemRequest_invalidAction() external {
@@ -866,7 +866,7 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
 
         vm.expectRevert("CentrifugeFacet/invalid-action");
         vm.prank(allocator);
-        mainnetController.claimCentrifugeCancelRedeemRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_claimCancelRedeemRequest(address(jTreasuryVault));
     }
 
     function test_claimCentrifugeCancelRedeemRequest() external {
@@ -888,13 +888,13 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         emit IERC7540Facet.ERC7540RequestRedeem({ token: address(jTreasuryVault), shares: shares });
 
         vm.prank(allocator);
-        mainnetController.requestRedeemERC7540(address(jTreasuryVault), shares);
+        mainnetController.erc7540_requestRedeem(address(jTreasuryVault), shares);
 
         vm.expectEmit(address(mainnetController));
         emit ICentrifugeFacet.CentrifugeCancelRedeemRequest({ token: address(jTreasuryVault) });
 
         vm.prank(allocator);
-        mainnetController.cancelCentrifugeRedeemRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_cancelRedeemRequest(address(jTreasuryVault));
 
         assertEq(jTreasuryToken.balanceOf(address(almProxy)), 0);
         assertEq(jTreasuryToken.balanceOf(ESCROW),            initialEscrowBal + shares);
@@ -921,7 +921,7 @@ contract MainnetController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         emit ICentrifugeFacet.CentrifugeClaimCancelRedeemRequest(address(jTreasuryVault), shares);
 
         vm.prank(allocator);
-        mainnetController.claimCentrifugeCancelRedeemRequest(address(jTreasuryVault));
+        mainnetController.centrifuge_claimCancelRedeemRequest(address(jTreasuryVault));
 
         assertEq(jTreasuryVault.pendingRedeemRequest(REQUEST_ID, address(almProxy)),         0);
         assertEq(jTreasuryVault.pendingCancelRedeemRequest(REQUEST_ID, address(almProxy)),   false);
