@@ -483,9 +483,8 @@ contract UniswapV4Facet is IUniswapV4Facet, Facet {
         // Account for the theoretical possibility of receiving tokens when adding liquidity by
         // using a clamped subtraction.
         // NOTE: The aggregate amount is used for aggregate deposit rate limit decrease, which makes
-        //       the assumption that the tokens are valued equally
-        //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT). Aggregate rate limits should be
-        //       set to "infinity" (`type(uint256).max`) for pools with tokens of different values.
+        //       the assumption that the tokens are pegged and valued equally.
+        //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT).
         uint256 aggregateAmount = _clampedSub(
             _getNormalizedBalance(token0, startingBalance0) +
             _getNormalizedBalance(token1, startingBalance1),
@@ -528,9 +527,8 @@ contract UniswapV4Facet is IUniswapV4Facet, Facet {
         amount1 = uint128(_getProxyBalance(token1) - startingBalance1);
 
         // NOTE: The aggregate amount is used for aggregate withdrawal rate limit decrease, which
-        //       makes the assumption that the tokens are valued equally
-        //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT). Aggregate rate limits should be
-        //       set to "infinity" (`type(uint256).max`) for pools with tokens of different values.
+        //       makes the assumption that the tokens are pegged and valued equally.
+        //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT).
         uint256 aggregateAmount =
             _getNormalizedBalance(token0, amount0) +
             _getNormalizedBalance(token1, amount1);

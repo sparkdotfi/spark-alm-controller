@@ -81,8 +81,8 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 | Method                              | Access       | Description                                                              |
 | ----------------------------------- | ------------ | ------------------------------------------------------------------------ |
 | `ALMProxy.doCallWithValue`          | `CONTROLLER` | Allows arbitrary calls with ETH value attached from `ALMProxy`.          |
-| `ALMProxyFreezable.doCallWithValue` | `RELAYER`    | Allows arbitrary calls with ETH value attached from `ALMProxyFreezable`. |
-| `wrapAll`                           | `RELAYER`    | Wraps all ETH in `ALMProxy` to WETH (via `WrapProxyETHFacet`).           |
+| `ALMProxyFreezable.doCallWithValue` | `ALLOCATOR`  | Allows arbitrary calls with ETH value attached from `ALMProxyFreezable`. |
+| `WrapProxyETHFacet.wrapAll`         | `ALLOCATOR`  | Wraps all ETH in `ALMProxy` to WETH.                                     |
 
 **Use Cases:**
 
@@ -93,9 +93,10 @@ See [Liquidity Operations](./LIQUIDITY_OPERATIONS.md) for OTC mechanics.
 
 **Security:**
 
-- `ALMProxy.doCallWithValue` is gated by the `CONTROLLER` role, which is held only by the `Controller` contract. A compromised relayer can therefore only reach this function indirectly through facets wired into the `Controller`, where rate limits and per-facet logic apply.
+- `ALMProxy.doCallWithValue` is gated by the `CONTROLLER` role, which is held only by the `Controller` contract. A compromised allocator can therefore only reach this function indirectly through facets wired into the `Controller`, where rate limits and per-facet logic apply.
 - `ALMProxyFreezable.doCallWithValue` is gated by the `RELAYER` role directly and is callable by a compromised relayer. `ALMProxyFreezable` is not intended to hold funds, and the `FREEZER` role can revoke a compromised relayer via `removeRelayer` to halt further calls.
-- `wrapAll` is relayer-accessible but only converts ETH to WETH within the `ALMProxy`, keeping funds in the system.
+- Facet functionality gated by the `ALLOCATOR_ROLE` is protected by rate limits and other safeguards.
+- `wrapAll` is accessible to allocators but only converts ETH to WETH within the `ALMProxy`, keeping funds in the system.
 
 ---
 

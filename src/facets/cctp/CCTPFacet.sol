@@ -73,7 +73,7 @@ contract CCTPFacet is ICCTPFacet, Facet {
     bytes32 public constant override DESTINATION_CALLER = 0;  // 0 means anyone can relay
 
     /// @inheritdoc ICCTPFacet
-    uint32 public constant override MAX_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
+    uint32 public constant override MIN_FINALITY_THRESHOLD = 2_000;  // 2_000 for standard (finalized) messages
 
     /// @inheritdoc IFacet
     string public constant override VERSION = "1.0.0";
@@ -118,8 +118,8 @@ contract CCTPFacet is ICCTPFacet, Facet {
     {
         require(recipient != bytes32(0), "CCTPFacet/zero-recipient");
 
-        require(minFeeCapRate <= maxFeeCapRate,        "CCTPFacet/min-fee-cap-rate-too-high");
-        require(maxFeeCapRate <= _ONE_HUNDRED_PERCENT, "CCTPFacet/max-fee-cap-rate-too-high");
+        require(minFeeCapRate <= maxFeeCapRate,       "CCTPFacet/min-fee-cap-rate-too-high");
+        require(maxFeeCapRate < _ONE_HUNDRED_PERCENT, "CCTPFacet/max-fee-cap-rate-too-high");
 
         _getFacetStorage().domainParameters[destinationDomain] = DomainParameters(
             recipient,
@@ -240,7 +240,7 @@ contract CCTPFacet is ICCTPFacet, Facet {
                     usdc,
                     DESTINATION_CALLER,
                     maxFee,
-                    MAX_FINALITY_THRESHOLD
+                    MIN_FINALITY_THRESHOLD
                 )
             )
         );

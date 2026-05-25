@@ -161,6 +161,7 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
     /// @inheritdoc ILayerZeroFacet
     function quoteTransfer(address oft, uint256 amount, uint32 destinationEndpointId)
         public
+        view
         override
         returns (SendParam memory sendParams, MessagingFee memory fee)
     {
@@ -183,13 +184,16 @@ contract LayerZeroFacet is ILayerZeroFacet, Facet {
             oftCmd       : ""
         });
 
-        fee = abi.decode(
-            IALMProxy(_getSharedControllerStorage().proxy).doCall(
-                oft,
-                abi.encodeCall(ILayerZeroLike.quoteSend, (sendParams, false))
-            ),
-            (MessagingFee)
+        ( bool success, bytes memory returnData ) = _getSharedControllerStorage().proxy.staticcall(
+            abi.encodeCall(
+                IALMProxy.doCall,
+                (oft, abi.encodeCall(ILayerZeroLike.quoteSend, (sendParams, false)))
+            )
         );
+
+        require(success, "LayerZeroFacet/quoteSend-failed");
+
+        fee = abi.decode(abi.decode(returnData, (bytes)), (MessagingFee));
     }
 
     /**********************************************************************************************/

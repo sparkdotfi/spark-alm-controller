@@ -13,8 +13,6 @@ PAU performs liquidity operations across multiple venues:
 | **Uniswap V4** | Swaps, positions            | On-chain stablecoin swaps                      |
 | **OTC Desks**  | Offchain swaps              | High-volume institutional liquidity            |
 
-**Asset Assumption:** All assets in these operations are treated as 1:1 (USD stablecoins). See [Threat Model](./THREAT_MODEL.md#core-assumption-11-asset-parity) for details.
-
 ---
 
 ## Curve Integration
@@ -35,13 +33,15 @@ Curve operations use several rate limit keys per pool:
 - **Aggregate withdraw rate limit:** Controls the value withdrawn from pools
 - **Asset withdraw rate limits:** Controls the value withdrawn from pools for a specific token
 
+Since adding liquidity in Curve handles input asset rebalancing with "virtual swaps" to keep the pool's ratio of assets constant, the asset swap rate limits for each token must also be set in order for the add liquidity operation to succeed, regardless if any assets were actually "swapped" in or out.
+
 ### Slippage Protection
 
 All Curve operations require `maxSlippage` to be configured (cannot be zero). The slippage check uses the pool's virtual price to ensure minimum acceptable returns.
 
 ### Requirements
 
-- While designed for 1:1 stablecoin pools, Curve pools with different underlying assets can be onboarded if aggregate rate limits are set to infinity (`type(uint256).max`).
+- Even though it relies on `stored_rates` for asset normalization, it is designed for 1:1 stablecoin or correlated asset pools of correlated assets (e.g. sUSDS/USDC or wstETH/WETH).
 
 ### Seeding Requirement
 
@@ -53,7 +53,7 @@ Curve pools must be seeded with initial liquidity before use. Seeding must be do
 
 ### Supported Operations
 
-- **Swaps:** Exchange between stablecoins via Uniswap V3 pools
+- **Swaps:** Exchange between assets via Uniswap V3 pools
 - **Add Liquidity:** Mint a new position or increase an existing one
 - **Remove Liquidity:** Decrease liquidity from an existing position and collect tokens
 
@@ -76,7 +76,7 @@ Uniswap V3 operations use different slippage models depending on the operation:
 
 ### Requirements
 
-- Uniswap V3 pools with 1:1 stablecoin or different/unpegged underlying assets can be onboarded if aggregate rate limits are set to infinity (`type(uint256).max`).
+- Onboarded pools should be limited to those with 1:1 stablecoin pairs.
 - Tick bounds and TWAP seconds must be configured before operations
 - The ALMProxy must own the NFT position for increase/decrease operations
 - Uses the pool's built-in TWAP oracle for price validation on swaps and liquidity additions, unlike V4 which does not rely on TWAP
@@ -113,7 +113,7 @@ Uniswap V4 operations use different slippage models depending on the operation:
 
 ### Requirements
 
-- Uniswap V4 pools with 1:1 stablecoin or different/unpegged underlying assets can be onboarded if aggregate rate limits are set to infinity (`type(uint256).max`).
+- Onboarded pools should be limited to those with 1:1 stablecoin pairs.
 - Tick limits must be configured for `mintPosition` and `increasePosition`
 - `maxSlippage` must be configured per pool for `swap`
 - Only hookless pools can be onboarded. Rate limit decreases are calculated from token balance differences before and after pool interactions, and empty `hookData` is passed. Pool hooks (if present) could manipulate token balances during the call to bypass the rate limit decrease.

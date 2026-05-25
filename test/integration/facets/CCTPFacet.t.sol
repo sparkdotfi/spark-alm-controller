@@ -35,7 +35,7 @@ interface IControllerLike {
 
     function DESTINATION_CALLER() external pure returns (bytes32);
 
-    function MAX_FINALITY_THRESHOLD() external pure returns (uint32);
+    function MIN_FINALITY_THRESHOLD() external pure returns (uint32);
 
     function updateIntegrations(bytes32[] memory integrationIds) external;
 
@@ -93,8 +93,8 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
-            IControllerLike.MAX_FINALITY_THRESHOLD.selector,
-            ICCTPFacet.MAX_FINALITY_THRESHOLD.selector
+            IControllerLike.MIN_FINALITY_THRESHOLD.selector,
+            ICCTPFacet.MIN_FINALITY_THRESHOLD.selector
         );
 
         IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config(facet, wires);
@@ -141,7 +141,7 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
         assertEq(controller.cctp(),                   makeAddr("cctp"));
         assertEq(controller.usdc(),                   makeAddr("usdc"));
         assertEq(controller.DESTINATION_CALLER(),     bytes32(0));
-        assertEq(controller.MAX_FINALITY_THRESHOLD(), 2_000);
+        assertEq(controller.MIN_FINALITY_THRESHOLD(), 2_000);
     }
 
     /**********************************************************************************************/
@@ -176,19 +176,19 @@ contract Controller_CCTPFacet_Tests is Integration_TestBase {
 
         vm.expectRevert("CCTPFacet/min-fee-cap-rate-too-high");
         vm.prank(admin);
-        controller.setDomainParameters(1, mintRecipient1, 10_001, 10_000);
+        controller.setDomainParameters(1, mintRecipient1, 10_000, 9_999);
 
         vm.prank(admin);
-        controller.setDomainParameters(1, mintRecipient1, 10_000, 10_000);
+        controller.setDomainParameters(1, mintRecipient1, 9_999, 9_999);
     }
 
     function test_setDomainParameters_maxFeeCapRateBoundary() external {
         vm.expectRevert("CCTPFacet/max-fee-cap-rate-too-high");
         vm.prank(admin);
-        controller.setDomainParameters(1, mintRecipient1, 0, 10_001);
+        controller.setDomainParameters(1, mintRecipient1, 0, 10_000);
 
         vm.prank(admin);
-        controller.setDomainParameters(1, mintRecipient1, 0, 10_000);
+        controller.setDomainParameters(1, mintRecipient1, 0, 9_999);
     }
 
     function test_setDomainParameters() external {

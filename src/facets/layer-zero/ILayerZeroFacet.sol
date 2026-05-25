@@ -79,7 +79,7 @@ interface ILayerZeroFacet is IFacet {
 
     /**
      * @notice Transfers tokens cross-chain via a LayerZero OFT contract.
-     * @notice Excess native fee is refunded to the caller.
+     * @notice Excess native fee is refunded to the ALM proxy.
      * @param  oft                   Address of the OFT contract.
      * @param  amount                Amount of tokens to transfer (local decimals).
      * @param  destinationEndpointId LayerZero endpoint ID for the destination chain.
@@ -129,6 +129,7 @@ interface ILayerZeroFacet is IFacet {
      */
     function quoteTransfer(address oft, uint256 amount, uint32 destinationEndpointId)
         external
+        view
         returns (
             SendParam    memory sendParams,
             MessagingFee memory fee

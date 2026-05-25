@@ -15,6 +15,8 @@ interface IERC20Like {
 
     function transfer(address to, uint256 amount) external returns (bool);
 
+    function balanceOf(address account) external view returns (uint256);
+
 }
 
 interface IEETHLike {
@@ -135,10 +137,14 @@ contract WEETHModule is IWEETHModule, AccessControlEnumerableUpgradeable, UUPSUp
 
         IWithdrawRequestNFTLike(withdrawRequestNFT).claimWithdraw(requestId);
 
+        // Sweep all ETH.
         ethReceived = address(this).balance;
 
         // Wrap ETH to WETH.
         IWETHLike(weth).deposit{value: ethReceived}();
+
+        // Sweep all WETH.
+        ethReceived = IERC20Like(weth).balanceOf(address(this));
 
         // No need for SafeERC20 as we are transferring WETH with an expected transfer function.
         IERC20Like(weth).transfer(msg.sender, ethReceived);

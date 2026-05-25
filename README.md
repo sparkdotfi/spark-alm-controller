@@ -94,7 +94,6 @@ Particularly for the UniswapV4 integration, since the pools being interacted wit
 
 - **`DEFAULT_ADMIN_ROLE`**: Fully trusted, run by governance
 - **`ALLOCATOR_ROLE`**: Assumed compromisable - logic prevents unauthorized value movement
-- **`FREEZER_ROLE`**: Can stop compromised allocators via `removeAllocator`
   See [Security Documentation](./docs/SECURITY.md) for complete trust assumptions and mitigations.
 
 ### Audits

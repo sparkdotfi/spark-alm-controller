@@ -41,7 +41,7 @@ interface IForeignControllerFull is IController {
 
     function cctp_DESTINATION_CALLER() external pure returns (bytes32);
 
-    function cctp_MAX_FINALITY_THRESHOLD() external pure returns (uint32);
+    function cctp_MIN_FINALITY_THRESHOLD() external pure returns (uint32);
 
     function cctp_cctp() external view returns (address);
 

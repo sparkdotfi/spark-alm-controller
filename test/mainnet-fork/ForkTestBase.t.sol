@@ -719,8 +719,8 @@ abstract contract ForkTestBase is DssTest {
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.cctp_MAX_FINALITY_THRESHOLD.selector,
-            ICCTPFacet.MAX_FINALITY_THRESHOLD.selector
+            IMainnetControllerFull.cctp_MIN_FINALITY_THRESHOLD.selector,
+            ICCTPFacet.MIN_FINALITY_THRESHOLD.selector
         );
 
         wires[8] = IEnumerableIntegrations.Wire(

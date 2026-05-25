@@ -133,6 +133,8 @@ contract CurveFacet is ICurveFacet, Facet {
             minAmountOut : minAmountOut
         });
 
+        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
+
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 startingBalance = IERC20Like(tokenOut).balanceOf(proxy);
@@ -143,8 +145,6 @@ contract CurveFacet is ICurveFacet, Facet {
 
         // Clear approvals
         _approve(tokenIn, pool, 0);
-
-        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
 
         _validateSwap(
             pool,
@@ -179,6 +179,8 @@ contract CurveFacet is ICurveFacet, Facet {
             _approve(tokens[i], pool, inputAmounts[i]);
         }
 
+        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
+
         address proxy = _getSharedControllerStorage().proxy;
 
         uint256 startingShares = ICurvePoolLike(pool).balanceOf(proxy);
@@ -194,8 +196,6 @@ contract CurveFacet is ICurveFacet, Facet {
         for (uint256 i = 0; i < tokens.length; ++i) {
             _approve(tokens[i], pool, 0);
         }
-
-        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
 
         _validateAddLiquidity(pool, virtualPrice, inputAmounts, rates, minShares, shares);
 
@@ -230,10 +230,12 @@ contract CurveFacet is ICurveFacet, Facet {
             "CurveFacet/invalid-min-withdraw-amounts"
         );
 
-        address proxy = _getSharedControllerStorage().proxy;
+        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
 
         address[] memory tokens           = _getTokens(pool);
         uint256[] memory startingBalances = new uint256[](tokens.length);
+
+        address proxy = _getSharedControllerStorage().proxy;
 
         for (uint256 i = 0; i < minWithdrawAmounts.length; ++i) {
             startingBalances[i] = IERC20Like(tokens[i]).balanceOf(proxy);
@@ -252,8 +254,6 @@ contract CurveFacet is ICurveFacet, Facet {
         for (uint256 i = 0; i < tokens.length; ++i) {
             withdrawnAmounts[i] = IERC20Like(tokens[i]).balanceOf(proxy) - startingBalances[i];
         }
-
-        uint256[] memory rates = ICurvePoolLike(pool).stored_rates();
 
         _validateRemoveLiquidity(pool, shares, minWithdrawAmounts, withdrawnAmounts, rates);
 
@@ -323,11 +323,7 @@ contract CurveFacet is ICurveFacet, Facet {
         internal
     {
         for (uint256 i = 0; i < tokens.length; ++i) {
-            int256 amount = amounts[i];
-
-            if (amount <= 0) continue;
-
-            _decreaseRateLimit(getSwapRateLimitKey(pool, tokens[i]), uint256(amount));
+            _decreaseRateLimit(getSwapRateLimitKey(pool, tokens[i]), _clampUint256(amounts[i]));
         }
     }
 
@@ -341,15 +337,13 @@ contract CurveFacet is ICurveFacet, Facet {
     {
 
         // NOTE: The aggregate amount is used for aggregate deposit rate limit decrease, which makes
-        //       the assumption that the tokens are valued equally
+        //       the assumption that the tokens are pegged and valued equally.
         //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT). Aggregate rate limits should be
-        //       set to "infinity" (`type(uint256).max`) for pools with tokens of different values.
+        //       set to "infinity" (`type(uint256).max`) for pools with unpegged tokens.
         uint256 aggregateAmount;
 
         for (uint256 i = 0; i < tokens.length; ++i) {
             uint256 amount = amounts[i];
-
-            if (amount == 0) continue;
 
             _decreaseRateLimit(getAssetDepositRateLimitKey(pool, tokens[i]), amount);
 
@@ -369,15 +363,13 @@ contract CurveFacet is ICurveFacet, Facet {
         internal
     {
         // NOTE: The aggregate amount is used for aggregate withdrawal rate limit decrease, which
-        //       makes the assumption that the tokens are valued equally
+        //       makes the assumption that the tokens are pegged and valued equally.
         //       (i.e. 1.000000 USDC = 1.000000000000000000 USDT). Aggregate rate limits should be
-        //       set to "infinity" (`type(uint256).max`) for pools with tokens of different values.
+        //       set to "infinity" (`type(uint256).max`) for pools with unpegged tokens.
         uint256 aggregateAmount;
 
         for (uint256 i = 0; i < amounts.length; ++i) {
             uint256 amount = amounts[i];
-
-            if (amount == 0) continue;
 
             _decreaseRateLimit(getAssetWithdrawRateLimitKey(pool, tokens[i]), amount);
 
@@ -390,6 +382,10 @@ contract CurveFacet is ICurveFacet, Facet {
     /**********************************************************************************************/
     /*** Internal View/Pure Functions                                                           ***/
     /**********************************************************************************************/
+
+    function _clampUint256(int256 value) internal pure returns (uint256) {
+        return value >= 0 ? uint256(value) : 0;
+    }
 
     function _getSwappedInAmounts(
         address            pool,

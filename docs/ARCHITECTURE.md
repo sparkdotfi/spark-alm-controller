@@ -23,7 +23,7 @@ The unified controller contract that serves as the entry point for all allocator
 - Dispatch-based call routing: admin syncs integration configs from the Beacon via `updateIntegrations`, which maps call selectors to (facet address, delegate selector) pairs locally
 - Each facet uses its own ERC-7201 namespaced storage domain, preventing storage collisions
 - Shared state (access controls, proxy, rate limits) is accessible to all facets via `ControllerSharedStorage`
-- Reentrancy protection defined in individual facets
+- Reentrancy protection is left to be implemented at the discretion of individual facet functions
 - Enumerable introspection via `integrations()`, `getConfig()`, `getConfigs()`, `getDispatch()`, and `getDispatches()`
 
 **Capabilities (determined by which facets are wired):**
@@ -67,8 +67,8 @@ A variant of the `ALMProxy` that is not intended to hold funds or have critical 
 
 **Architectural differences from standard ALMProxy:**
 
-- **Controller role usage:** In the standard `ALMProxy`, the controller is the `Controller` contract that acts when approved allocators interact with it. In `ALMProxyFreezable`, the allocators are granted the `ALLOCATOR_ROLE` role directly (there is no intermediary Controller contract), so they can call `doCall` and `doCallWithValue` without a Controller.
-- **Additional safety mechanism:** The `FREEZER_ROLE` role can remove allocators via `removeAllocator`, providing quick revocation of access from compromised or malicious allocators without slower governance processes.
+- **Controller role usage:** In the standard `ALMProxy`, the `CONTROLLER` role is held by the `Controller` contract that acts when approved allocators interact with it. In `ALMProxyFreezable`, the allocators are granted the `ALLOCATOR_ROLE` role directly (there is no intermediary Controller contract), so they can call `doCall` and `doCallWithValue` without a Controller.
+- **Additional safety mechanism:** In `ALMProxyFreezable`, the `FREEZER_ROLE` role can remove allocators via `removeAllocator`, providing quick revocation of access from compromised or malicious allocators without slower governance processes. In the standard `ALMProxy`, a role can be created as a role admin of `CONTROLLER` to grant and revoke `CONTROLLER` roles.
 
 ### OTCBuffer
 
@@ -98,9 +98,8 @@ The diagram below provides an example of calling to mint USDS using the Sky allo
 
 ## Permissions
 
-All contracts except `Controller`, `PAUFactory`, `ControllerSharedStorage` and the facets (via
-`Facet`) inherit and implement the `AccessControl` contract from OpenZeppelin to manage permissions. `Controller`, `PAUFactory`, `ControllerSharedStorage` and the facets (via
-`Facet`) do not inherit `AccessControl` directly, they rely on an external `AccessControls`
+`AccessControls`, `ALMProxy`, `ALMProxyFreezable`, `Beacon`, and `RateLimits`, inherit and implement the `AccessControl` contract from OpenZeppelin to manage permissions. `Controller` and facets (via
+the abstract `Facet`) do not inherit `AccessControl` directly, and instead rely on an external `AccessControls`
 contract for role checks. The following roles are defined:
 
 | Role                 | Description                                                                                                                                                                                                                                                                              |
@@ -128,20 +127,20 @@ The system uses a facet-based architecture where each protocol integration is en
 | `DAIUSDSFacet`       | DAI to USDS conversion                         |
 | `ERC4626Facet`       | ERC-4626 vault deposit/withdraw                |
 | `ERC7540Facet`       | ERC-7540 async vault interactions              |
+| `EthenaFacet`        | Ethena USDe/sUSDe operations                   |
 | `FarmFacet`          | SPK farming deposit/withdraw                   |
 | `LayerZeroFacet`     | LayerZero v2 cross-chain messaging             |
 | `MapleFacet`         | Maple token redemptions                        |
 | `MerklFacet`         | Merkl operator toggles                         |
 | `OTCFacet`           | Over-the-counter swap buffering                |
 | `PendleFacet`        | Pendle PT redemptions                          |
-| `PSMFacet`           | Mainnet PSM USDS/USDC swaps                    |
 | `PSM3Facet`          | PSM3 deposit/withdraw                          |
+| `PSMFacet`           | Mainnet PSM USDS/USDC swaps                    |
 | `SparkVaultFacet`    | Spark Vault asset withdrawals                  |
 | `SuperstateFacet`    | Superstate USTB subscriptions                  |
 | `TransferAssetFacet` | Generic ERC-20 transfers                       |
 | `UniswapV3Facet`     | Uniswap V3 positions and swaps                 |
 | `UniswapV4Facet`     | Uniswap V4 positions and swaps                 |
-| `EthenaFacet`        | Ethena USDe/sUSDe operations                   |
 | `USDSFacet`          | USDS minting/burning via vault                 |
 | `WEETHFacet`         | EtherFi weETH/eETH operations                  |
 | `WrapProxyETHFacet`  | WETH wrapping utility                          |

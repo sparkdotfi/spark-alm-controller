@@ -105,6 +105,7 @@ contract RateLimits is IRateLimits, AccessControl {
 
         uint256 currentRateLimit = getCurrentRateLimit(key);
 
+        // NOTE: This will revert if `currentRateLimit + amountToIncrease` overflows.
         d.lastAmount = newLimit = _min(currentRateLimit + amountToIncrease, maxAmount);
         d.lastUpdated = block.timestamp;
 

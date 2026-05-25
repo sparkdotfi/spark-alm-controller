@@ -92,7 +92,7 @@ interface ICCTPFacet is IFacet {
      * @notice Finality threshold for CCTP depositForBurn. Value 2000 corresponds to standard
      *         (finalized) messages in CCTP V2.
      */
-    function MAX_FINALITY_THRESHOLD() external pure returns (uint32);
+    function MIN_FINALITY_THRESHOLD() external pure returns (uint32);
 
     /// @notice Address of the CCTP TokenMessenger contract (immutable).
     function cctp() external view returns (address);

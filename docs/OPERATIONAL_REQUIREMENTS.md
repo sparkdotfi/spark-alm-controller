@@ -62,16 +62,6 @@ The `ERC4626Facet` does not check that `unrealizedLosses()` is zero on a Maple p
 
 Governance (via a spell to set rate limits for deposits to such Maple Pools) should mitigate this risk as soon as unrealized losses are posted to a Maple pool.
 
-### Withdrawal Dependencies
-
-| Withdrawal Function           | Required                                                  |
-| ----------------------------- | ------------------------------------------------------- |
-| `withdrawERC4626`             | Non-zero deposit rate limit for same vault              |
-| `redeemERC4626`               | Non-zero deposit rate limit for same vault              |
-| `withdrawAave`                | Non-zero deposit rate limit for same aToken             |
-| `WSTETHFacet.claimWithdrawal` | Non-zero claim-withdraw rate limit                      |
-| `WEETHFacet.claimWithdrawal`  | Non-zero claim-withdraw rate limit for same weETHModule |
-
 ---
 
 ## OTC Buffer Deployment
@@ -87,11 +77,11 @@ When deploying a new OTC buffer:
 
 ---
 
-## Uniswap V4 Pool Onboarding
+## Uniswap V3/V4 Pool Onboarding
 
 ### Asset Restrictions
 
-Only pools with 1:1 assets can be onboarded:
+Only pools with 1:1 assets should be onboarded:
 
 - USDC/USDT ✓
 - USDC/DAI ✓
@@ -104,7 +94,7 @@ Only pools with 1:1 assets can be onboarded:
 1. Verify pool contains only whitelisted 1:1 stablecoins
 2. Verify pool does not have dangerous hooks
 3. Configure rate limits for the specific pool
-4. Configure tick limits for the specific pool
+4. Configure pool parameters (e.g. tick limits, TWAP seconds, etc.) for the specific pool
 5. Set appropriate slippage parameters
 
 ---

@@ -4,18 +4,18 @@ This document outlines the threat model for PAU, including attack vectors, trust
 
 ## Actors and Trust Levels
 
-| Actor                                 | Trust Level   | Description                                                            |
-| ------------------------------------- | ------------- | ---------------------------------------------------------------------- |
-| **Governance** (`DEFAULT_ADMIN_ROLE`) | Fully trusted | Controls all admin functions, can upgrade controllers, set rate limits |
-| **Allocator** (`ALLOCATOR_ROLE`)      | **Untrusted** | Assumed to be potentially compromised at any time                      |
+| Actor                                 | Trust Level   | Description                                                                                                                                                                                                                                                                              |
+| ------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Governance** (`DEFAULT_ADMIN_ROLE`) | Fully trusted | Controls all admin functions, can upgrade controllers, set rate limits                                                                                                                                                                                                                   |
+| **Allocator** (`ALLOCATOR_ROLE`)      | **Untrusted** | Assumed to be potentially compromised at any time                                                                                                                                                                                                                                        |
 | **Allocator role admin**              | Trusted       | Whichever role governance sets as the admin of `ALLOCATOR_ROLE` via `accessControls.setRoleAdmin`. Can grant and revoke `ALLOCATOR_ROLE`, including emergency revocation of compromised allocators. Typically delegated to a custom module that enforces a specific grant/revoke policy. |
-| **External Protocols**                | Varies        | Trust depends on specific integration (see Protocol Trust section)     |
+| **External Protocols**                | Varies        | Trust depends on specific integration (see Protocol Trust section)                                                                                                                                                                                                                       |
 
 ---
 
 ## Core Assumption: 1:1 Asset Parity
 
-**Assumption:** All stablecoin assets are treated as 1:1 with each other (USDC = USDT = DAI = USDS).
+**Assumption:** All stablecoin assets that share an underlying peg are treated as 1:1 with each other (USDC = USDT = DAI = USDS).
 
 **Implication:** No price oracles are used for stablecoin swaps within the system.
 

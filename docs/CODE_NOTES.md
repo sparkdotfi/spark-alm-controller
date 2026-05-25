@@ -13,13 +13,10 @@ This document captures specific implementation decisions and behaviors that may 
 **Intention:** Prevents adding liquidity to unseeded pools, which could lead to unfavorable exchange rates.
 
 ```solidity
-// Intentionally reverts when get_virtual_price() == 0 to prevent adding liquidity to unseeded pools
-require(
-    params.minLpAmount >= valueDeposited
-        * params.maxSlippage
-        / curvePool.get_virtual_price(),
-    "CurveFacet/min-amount-not-met"
-);
+uint256 virtualPrice = ICurvePoolLike(pool).get_virtual_price();
+
+// Prevent adding liquidity to unseeded pools.
+require(virtualPrice != 0, "CurveFacet/virtual-price-zero");
 ```
 
 See [Operational Requirements](./OPERATIONAL_REQUIREMENTS.md#curve-pool-seeding) for seeding requirements.

@@ -11,8 +11,8 @@ The `RateLimits` contract enforces rate limits on the Controller. Rate limits ar
 Rate limit keys are constructed by hashing together a **function identifier** and an **address or ID** (e.g., pool address, vault address, token address). This mechanism serves as an implicit **whitelist/onboarding system**:
 
 - **Examples:**
-    - Depositing liquidity to a specific Uniswap V4 pool requires the rate limit key `keccak256(abi.encode(LIMIT_UNISWAP_V4_DEPOSIT, poolId))` to be set
-    - Withdrawing an aToken from Aave requires the rate limit key `keccak256(abi.encode(LIMIT_AAVE_WITHDRAW, aToken))` to be set
+    - Depositing liquidity to a specific Uniswap V4 pool requires the rate limit keys `keccak256(abi.encode(LIMIT_UNISWAP_V4_DEPOSIT, poolId))` and `keccak256(abi.encode(LIMIT_UNISWAP_V4_DEPOSIT, token, poolId))` to be set
+    - Withdrawing an aToken from Aave requires the rate limit key `keccak256(abi.encode(LIMIT_AAVE_WITHDRAW, pool, aToken))` to be set
 - **Security benefit:** Prevents allocators from interacting with arbitrary/malicious contracts - only governance-approved integrations have valid rate limit keys
 - **Operational benefit:** New integrations can be onboarded with lower rate limits to ease into use, and then increased to manage ongoing risk/exposure, and providing a clear audit trail
 
@@ -51,15 +51,17 @@ For example, after minting USDS:
 - `lastAmount` is decremented by the minted amount
 - `lastUpdated` is set to `block.timestamp`
 
+Note that setting the rate limit data creates a boundary where the remaining rate limit can be consumed right before it is set, after which it will be reset, which is similar to the ERC20 approval race condition.
+
 ### Events
 
 `RateLimits` emits the following events (declared in `IRateLimits`):
 
-| Event                          | Emitted When                                                                                  |
-| ------------------------------ | --------------------------------------------------------------------------------------------- |
-| `RateLimitDataSet`             | Admin sets the rate limit data for a key (max amount, slope, last amount, last updated).      |
-| `RateLimitDecreaseTriggered`   | The `CONTROLLER` triggers a decrease for a key after an operation consumes the rate limit.    |
-| `RateLimitIncreaseTriggered`   | The `CONTROLLER` triggers an increase for a key (e.g., on cancellation paths or refunds).     |
+| Event                        | Emitted When                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `RateLimitDataSet`           | Admin sets the rate limit data for a key (max amount, slope, last amount, last updated).   |
+| `RateLimitDecreaseTriggered` | The `CONTROLLER` triggers a decrease for a key after an operation consumes the rate limit. |
+| `RateLimitIncreaseTriggered` | The `CONTROLLER` triggers an increase for a key (e.g., on cancellation paths or refunds).  |
 
 ---
 
@@ -82,12 +84,12 @@ For example, after minting USDS:
 
 **Decision:** Rate limits **are** cancelled in the Mainnet PSM integration.
 
-| Operation        | Rate Limit Behavior                |
-| ---------------- | ---------------------------------- |
-| `swapUSDSToUSDC` | Decreases rate limit               |
-| `swapUSDCToUSDS` | **Cancels** (increases) rate limit |
+| Operation        | Rate Limit Behavior                                                                       |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| `swapUSDSToUSDC` | Decreases `usdsToUSDCSwapRateLimit`                                                       |
+| `swapUSDCToUSDS` | **Cancels** (increases) `usdsToUSDCSwapRateLimit` and decreases `usdcToUSDSSwapRateLimit` |
 
-**Rationale:** Swapping USDC back to USDS effectively returns value to the system, so the rate limit is restored.
+**Rationale:** Swapping USDC back to USDS effectively returns value to the system, so the `usdsToUSDCSwapRateLimit` is restored.
 
 #### PSM3 Integration (No Cancellation, No minShares)
 
@@ -128,7 +130,7 @@ The claim path is gated by a dedicated claim-side key. Configuring only `LIMIT_W
 
 ### Try-Increase (Not Gate-Check)
 
-`AaveFacet.withdraw`, `ERC4626Facet.withdraw`, and `ERC4626Facet.redeem` use `_tryIncreaseRateLimit` on the deposit key, which silently no-ops when the deposit key's `maxAmount == 0`. These withdraw paths are gated only by their respective withdraw key (via `_decreaseRateLimit`, which reverts when unset). The deposit key is opportunistically restored when configured and is not a precondition for withdrawal. Setting the deposit key's `maxAmount` to zero does not pause the corresponding withdraw path.
+`AaveFacet.withdraw`, `ERC4626Facet.withdraw`, `ERC4626Facet.redeem`, `PSMFacet.swapUSDCToUSDS`, and `USDSFacet.burn` use `_tryIncreaseRateLimit` on the deposit key, which silently no-ops when the deposit key's `maxAmount == 0`. These withdraw paths are gated only by their respective withdraw key (via `_decreaseRateLimit`, which reverts when unset). The deposit key is opportunistically restored when configured and is not a precondition for withdrawal. Setting the deposit key's `maxAmount` to zero does not pause the corresponding withdraw path.
 
 ---
 
