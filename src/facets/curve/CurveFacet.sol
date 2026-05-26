@@ -225,6 +225,8 @@ contract CurveFacet is ICurveFacet, Facet {
         onlyRole(ALLOCATOR_ROLE)
         returns (uint256[] memory withdrawnAmounts)
     {
+        uint256 virtualPrice = ICurvePoolLike(pool).get_virtual_price();
+
         require(
             minWithdrawAmounts.length == ICurvePoolLike(pool).N_COINS(),
             "CurveFacet/invalid-min-withdraw-amounts"
@@ -255,7 +257,14 @@ contract CurveFacet is ICurveFacet, Facet {
             withdrawnAmounts[i] = IERC20Like(tokens[i]).balanceOf(proxy) - startingBalances[i];
         }
 
-        _validateRemoveLiquidity(pool, shares, minWithdrawAmounts, withdrawnAmounts, rates);
+        _validateRemoveLiquidity(
+            pool,
+            virtualPrice,
+            shares,
+            minWithdrawAmounts,
+            withdrawnAmounts,
+            rates
+        );
 
         _decreaseWithdrawRateLimit(pool, tokens, withdrawnAmounts, rates);
 
@@ -547,6 +556,7 @@ contract CurveFacet is ICurveFacet, Facet {
 
     function _validateRemoveLiquidity(
         address            pool,
+        uint256            virtualPrice,
         uint256            shares,
         uint256[] calldata minWithdrawAmounts,
         uint256[] memory   withdrawnAmounts,
@@ -572,7 +582,7 @@ contract CurveFacet is ICurveFacet, Facet {
         // Check that the aggregated minimums are greater than the max slippage amount.
         require(
             minWithdrawValue * 1e36 >=
-            shares * ICurvePoolLike(pool).get_virtual_price() * maxSlippage,
+            shares * virtualPrice * maxSlippage,
             "CurveFacet/min-amounts-too-low"
         );
     }
