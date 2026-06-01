@@ -21,7 +21,7 @@ This repository contains the onchain components of the PAU system. The system en
 | `RateLimits`     | Enforces and manages rate limits on controller operations                             |
 | `AccessControls` | Role-based access control for the system                                              |
 | `OTCBuffer`      | Buffer contract for offchain OTC swap operations                                      |
-| `PAUFactory`     | Factory contract that deploys and configures the full PAU system                      |
+| `PAUFactory`     | Factory contract that can deploy each component of the PAU system                     |
 
 ## Documentation
 
@@ -52,7 +52,7 @@ See [Development Guide](./docs/DEVELOPMENT.md) for detailed instructions.
 
 ## Architecture Overview
 
-The Beacon holds all integration configurations (facet addresses and selector wiring). The PAUFactory deploys complete PAU systems atomically, each pointing to the shared Beacon. The Controller is the entry point for all allocator calls. It syncs configs from the Beacon and dispatches to the appropriate facet, which checks rate limits and executes logic, performing calls to the ALMProxy atomically.
+The Beacon holds all integration configurations (facet addresses and selector wiring). The PAUFactory can deploy individual PAU system components (`ALMProxy`, `ALMProxyFreezable`, `RateLimits`, `AccessControls`, and `Controller`) with expected bytecode. The Controller is the entry point for all allocator calls. It syncs configs from the Beacon and dispatches to the appropriate facet, which checks rate limits and executes logic, performing calls to the ALMProxy atomically.
 
 ![PAU Architecture](docs/contract_interaction.png)
 

@@ -374,11 +374,21 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
 
         PAUFactory foreignFactory = new PAUFactory(address(foreignBeacon));
 
-        foreignController = IForeignControllerFull(payable(foreignFactory.deploy(Base.SPARK_EXECUTOR)));
-        foreignAlmProxy   = IALMProxy(payable(foreignController.proxy()));
-        foreignRateLimits = IRateLimits(foreignController.rateLimits());
+        IAccessControls foreignAccessControls = IAccessControls(foreignFactory.deployAccessControls(Base.SPARK_EXECUTOR));
 
-        IAccessControls foreignAccessControls = IAccessControls(foreignController.accessControls());
+        foreignRateLimits = IRateLimits(foreignFactory.deployRateLimits(Base.SPARK_EXECUTOR));
+        foreignAlmProxy   = IALMProxy(foreignFactory.deployALMProxy(Base.SPARK_EXECUTOR));
+
+        foreignController = IForeignControllerFull(
+            payable(foreignFactory.deployController(address(foreignAccessControls), address(foreignAlmProxy), address(foreignRateLimits)))
+        );
+
+        vm.startPrank(Base.SPARK_EXECUTOR);
+
+        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
+        foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
+
+        vm.stopPrank();
 
         vm.startPrank(skyAdmin);
 
@@ -392,7 +402,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         foreignAccessControls.grantRole(ALLOCATOR_ROLE,       allocator);
         foreignAccessControls.grantRole(ALLOCATOR_ADMIN_ROLE, allocatorAdmin);
 
-        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role
         //       logic that calls into AccessControls to perform grants and revocations.
         foreignAccessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 

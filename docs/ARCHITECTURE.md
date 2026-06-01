@@ -35,6 +35,21 @@ The unified controller contract that serves as the entry point for all allocator
 - Bridge USDC via CCTP and OFTs with LayerZero
 - Transfer shares via Centrifuge cross-chain
 
+### Multi-Controller Topology (Single ALMProxy)
+
+A PAU deployment can use a single `ALMProxy` with more than one `Controller`. In this topology, each `Controller` can use its own `AccessControls`, its own set of synced integrations/facets, and either:
+
+- a dedicated `RateLimits` contract, or
+- a shared `RateLimits` contract used by multiple controllers.
+
+This is useful when governance wants allocator groups with intentionally different capabilities. For example, one allocator group may be allowed to operate only Integration A while another allocator group may be allowed to operate only Integration B, even though both ultimately direct the same `ALMProxy` custody account.
+
+In practice, this means:
+
+- allocator memberships can differ across each controller's `AccessControls`;
+- available function selectors can differ based on each controller's synced integration set;
+- risk parameters can be isolated per controller (dedicated `RateLimits`) or coordinated across controllers (shared `RateLimits`).
+
 ### Beacon
 
 The Beacon manages all data related to integrations (facet address + wire mappings) and stores the canonical dispatch lookup. Multiple Controllers can reference the same Beacon, each syncing its local config copy via `updateIntegrations`. The Beacon admin (`DEFAULT_ADMIN_ROLE`) configures integrations, and the Beacon validates facet addresses, prevents duplicate selector wiring, and protects hardcoded Controller selectors. Controllers use this syncing pattern to opt in to upgrades from the Beacon.
@@ -43,7 +58,7 @@ See [BEACON.md](./BEACON.md) for data structures, integration lifecycle, hardcod
 
 ### PAUFactory
 
-Factory contract for deploying complete PAU systems. Takes a Beacon address at construction. The `deploy` function atomically creates an `ALMProxy`, `RateLimits`, `AccessControls`, and `Controller` (pointing to the shared Beacon), wires their roles, and transfers admin ownership to the caller-specified admin. Existing PAU systems that will upgrade to use the new controller do not have to deploy from the factory. This factory is to make PAU deployments more convenient for new systems.
+Factory contract for deploying individual PAU system components (`ALMProxy`, `ALMProxyFreezable`, `RateLimits`, `AccessControls`, and `Controller`) with expected bytecode. Note that a deployed `Controller` cannot immediately be used to interact with other PAU system components as it needs to be granted the `CONTROLLER` role on the `ALMProxy` and `RateLimits` contracts.
 
 ### AccessControls
 

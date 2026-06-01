@@ -7,6 +7,7 @@ import { IAccessControls } from "../../src/interfaces/IAccessControls.sol";
 import { IALMProxy }       from "../../src/interfaces/IALMProxy.sol";
 import { IController }     from "../../src/interfaces/IController.sol";
 import { IPAUFactory }     from "../../src/interfaces/IPAUFactory.sol";
+import { IRateLimits }     from "../../src/interfaces/IRateLimits.sol";
 
 import { Beacon }     from "../../src/Beacon.sol";
 import { PAUFactory } from "../../src/PAUFactory.sol";
@@ -43,17 +44,23 @@ abstract contract Integration_TestBase is Test {
         beacon  = new Beacon(beaconAdmin);
         factory = new PAUFactory(address(beacon));
 
-        controller = factory.deploy(admin);
+        IRateLimits     rateLimits     = IRateLimits(factory.deployRateLimits(admin));
+        IAccessControls accessControls = IAccessControls(factory.deployAccessControls(admin));
+        IALMProxy       almProxy       = IALMProxy(factory.deployALMProxy(admin));
 
-        IAccessControls accessControls = IAccessControls(IController(payable(controller)).accessControls());
+        controller = factory.deployController(address(accessControls), address(almProxy), address(rateLimits));
 
         vm.startPrank(admin);
+
         accessControls.grantRole(ALLOCATOR_ROLE,       allocator);
         accessControls.grantRole(ALLOCATOR_ADMIN_ROLE, allocatorAdmin);
 
-        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role
         //       logic that calls into AccessControls to perform grants and revocations.
         accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
+
+        almProxy.grantRole(almProxy.CONTROLLER(),     controller);
+        rateLimits.grantRole(rateLimits.CONTROLLER(), controller);
 
         vm.stopPrank();
 

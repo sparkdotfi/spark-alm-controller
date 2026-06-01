@@ -124,10 +124,20 @@ contract ForkTestBase is Test {
         beacon  = new Beacon(skyAdmin);
         factory = new PAUFactory(address(beacon));
 
-        foreignController = IForeignControllerFull(payable(factory.deploy(GROVE_EXECUTOR)));
-        accessControls    = IAccessControls(foreignController.accessControls());
-        almProxy          = IALMProxy(payable(foreignController.proxy()));
-        rateLimits        = IRateLimits(foreignController.rateLimits());
+        rateLimits     = IRateLimits(factory.deployRateLimits(GROVE_EXECUTOR));
+        accessControls = IAccessControls(factory.deployAccessControls(GROVE_EXECUTOR));
+        almProxy       = IALMProxy(factory.deployALMProxy(GROVE_EXECUTOR));
+
+        foreignController = IForeignControllerFull(
+            payable(factory.deployController(address(accessControls), address(almProxy), address(rateLimits)))
+        );
+
+        vm.startPrank(GROVE_EXECUTOR);
+
+        almProxy.grantRole(almProxy.CONTROLLER(),     address(foreignController));
+        rateLimits.grantRole(rateLimits.CONTROLLER(), address(foreignController));
+
+        vm.stopPrank();
 
         vm.startPrank(skyAdmin);
 
@@ -142,7 +152,7 @@ contract ForkTestBase is Test {
         accessControls.grantRole(ALLOCATOR_ROLE,       ALLOCATOR);
         accessControls.grantRole(ALLOCATOR_ADMIN_ROLE, ALLOCATOR_ADMIN);
 
-        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role 
+        // NOTE: In practice the ALLOCATOR_ADMIN_ROLE will be a wrapper module with custom role
         //       logic that calls into AccessControls to perform grants and revocations.
         accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 

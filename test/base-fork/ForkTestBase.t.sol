@@ -135,10 +135,20 @@ abstract contract ForkTestBase is Test {
         beacon  = new Beacon(skyAdmin);
         factory = new PAUFactory(address(beacon));
 
-        foreignController = IForeignControllerFull(payable(factory.deploy(SPARK_EXECUTOR)));
-        accessControls    = IAccessControls(foreignController.accessControls());
-        almProxy          = IALMProxy(payable(foreignController.proxy()));
-        rateLimits        = IRateLimits(foreignController.rateLimits());
+        rateLimits     = IRateLimits(factory.deployRateLimits(SPARK_EXECUTOR));
+        accessControls = IAccessControls(factory.deployAccessControls(SPARK_EXECUTOR));
+        almProxy       = IALMProxy(factory.deployALMProxy(SPARK_EXECUTOR));
+
+        foreignController = IForeignControllerFull(
+            payable(factory.deployController(address(accessControls), address(almProxy), address(rateLimits)))
+        );
+
+        vm.startPrank(SPARK_EXECUTOR);
+
+        almProxy.grantRole(almProxy.CONTROLLER(),     address(foreignController));
+        rateLimits.grantRole(rateLimits.CONTROLLER(), address(foreignController));
+
+        vm.stopPrank();
 
         vm.startPrank(skyAdmin);
 

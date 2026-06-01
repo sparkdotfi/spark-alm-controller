@@ -6,6 +6,8 @@ This document describes the rate limiting system used in PAU.
 
 The `RateLimits` contract enforces rate limits on the Controller. Rate limits are keyed by individual `bytes32` hashes derived from a `bytes32` identifier unique to the integration and function, and optionally some data unique to the recipient, assets, pool, etc to apply the rate limit to. This design allows flexibility in future function signatures while maintaining the same high-level functionality.
 
+Depending on deployment topology, one `RateLimits` contract can be used by a single `Controller` or shared by multiple controllers that direct the same `ALMProxy`.
+
 ### Whitelisting via Rate Limit Keys
 
 Rate limit keys are constructed by hashing together a **function identifier** and an **address or ID** (e.g., pool address, vault address, token address). This mechanism serves as an implicit **whitelist/onboarding system**:

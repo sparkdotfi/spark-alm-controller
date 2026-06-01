@@ -439,11 +439,21 @@ abstract contract ArbitrumChain_LayerZero_TestBase is ForkTestBase {
 
         PAUFactory foreignFactory = new PAUFactory(address(foreignBeacon));
 
-        foreignController = IForeignControllerFull(payable(foreignFactory.deploy(SPARK_EXECUTOR)));
-        foreignAlmProxy   = IALMProxy(payable(foreignController.proxy()));
-        foreignRateLimits = IRateLimits(foreignController.rateLimits());
+        IAccessControls foreignAccessControls = IAccessControls(foreignFactory.deployAccessControls(SPARK_EXECUTOR));
 
-        IAccessControls foreignAccessControls = IAccessControls(foreignController.accessControls());
+        foreignRateLimits = IRateLimits(foreignFactory.deployRateLimits(SPARK_EXECUTOR));
+        foreignAlmProxy   = IALMProxy(foreignFactory.deployALMProxy(SPARK_EXECUTOR));
+
+        foreignController = IForeignControllerFull(
+            payable(foreignFactory.deployController(address(foreignAccessControls), address(foreignAlmProxy), address(foreignRateLimits)))
+        );
+
+        vm.startPrank(SPARK_EXECUTOR);
+
+        foreignAlmProxy.grantRole(foreignAlmProxy.CONTROLLER(),     address(foreignController));
+        foreignRateLimits.grantRole(foreignRateLimits.CONTROLLER(), address(foreignController));
+
+        vm.stopPrank();
 
         vm.startPrank(skyAdmin);
 
