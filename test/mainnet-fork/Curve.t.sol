@@ -121,7 +121,17 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
         mainnetController.curve_addLiquidity(CURVE_POOL, new uint256[](2), 0);
     }
 
-    // TODO: test_addLiquidityCurve_virtualPriceZero
+    function test_addLiquidityCurve_virtualPriceZero() external {
+        vm.mockCall(
+            CURVE_POOL,
+            abi.encodeWithSelector(ICurvePoolLike.get_virtual_price.selector),
+            abi.encode(0)
+        );
+
+        vm.expectRevert("CurveFacet/virtual-price-zero");
+        vm.prank(allocator);
+        mainnetController.curve_addLiquidity(CURVE_POOL, new uint256[](0), 0);
+    }
 
     function test_addLiquidityCurve_invalidDepositAmounts() external {
         vm.expectRevert("CurveFacet/invalid-deposit-amounts");
@@ -161,7 +171,22 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
         mainnetController.curve_addLiquidity(CURVE_POOL, amounts, boundaryAmount);
     }
 
-    // TODO: test_addLiquidityCurve_minSharesNotMetBoundary
+    function test_addLiquidityCurve_minSharesNotMet() external {
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 1_000_000e6;
+        amounts[1] = 1_000_000e6;
+
+        // Mock first balance check to match the actual expected shares so that the delta shares is 0.
+        vm.mockCall(
+            CURVE_POOL,
+            abi.encodeWithSelector(IERC20Like.balanceOf.selector, address(almProxy)),
+            abi.encode(1_987_199.361495730708108741e18)
+        );
+
+        vm.expectRevert("CurveFacet/min-shares-not-met");
+        vm.prank(allocator);
+        mainnetController.curve_addLiquidity(CURVE_POOL, amounts, 1_950_000e18);
+    }
 
     function test_addLiquidityCurve_zeroMaxAmount_swapAsset0() external {
         vm.prank(SPARK_PROXY);
@@ -486,7 +511,24 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
         mainnetController.curve_removeLiquidity(CURVE_POOL, shares, minWithdrawAmounts);
     }
 
-    // TODO: test_removeLiquidityCurve_minAmountNotMet
+    function test_removeLiquidityCurve_minAmountNotMet() external {
+        uint256 shares = _addLiquidity(1_000_000e6, 1_000_000e6);
+
+        uint256[] memory minWithdrawAmounts = new uint256[](2);
+        minWithdrawAmounts[0] = 465_000e6;
+        minWithdrawAmounts[1] = 1_535_000e6;
+
+        // Mock first balance check to match the actual expected withdrawn amount so that the delta withdrawn amount is 0.
+        vm.mockCall(
+            address(usdc),
+            abi.encodeWithSelector(IERC20Like.balanceOf.selector, address(almProxy)),
+            abi.encode(465_059.586753e6)
+        );
+
+        vm.expectRevert("CurveFacet/min-amount-not-met");
+        vm.prank(allocator);
+        mainnetController.curve_removeLiquidity(CURVE_POOL, shares, minWithdrawAmounts);
+    }
 
     function test_removeLiquidityCurve_slippageBoundary() external {
         uint256 shares = _addLiquidity(1_000_000e6, 1_000_000e6);
@@ -843,7 +885,18 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         mainnetController.curve_swap(CURVE_POOL, 1, 0, 1_000_000e6, boundaryAmount);
     }
 
-    // TODO: test_swapCurve_minAmountNotMet
+    function test_swapCurve_minAmountNotMet() external {
+        // Mock first balance check to match the actual expected swap out amount so that the delta amount out is 0.
+        vm.mockCall(
+            address(usdt),
+            abi.encodeWithSelector(IERC20Like.balanceOf.selector, address(almProxy)),
+            abi.encode(1_000_027.338547e6)
+        );
+
+        vm.expectRevert("CurveFacet/min-amount-not-met");
+        vm.prank(allocator);
+        mainnetController.curve_swap(CURVE_POOL, 0, 1, 1_000_000e6, 999_500e6);
+    }
 
     function test_swapCurve_usdc() external {
         vm.startPrank(SPARK_PROXY);
