@@ -1,4 +1,4 @@
-# PAU
+# Parallelized Allocation Unit (PAU)
 
 ![Foundry CI](https://github.com/marsfoundation/spark-alm-controller/actions/workflows/ci.yml/badge.svg)
 [![Foundry][foundry-badge]][foundry]
@@ -37,7 +37,6 @@ This repository contains the onchain components of the PAU system. The system en
 | [Development](./docs/DEVELOPMENT.md)                           | Testing, deployment, and upgrade procedures                 |
 | [Code Notes](./docs/CODE_NOTES.md)                             | Implementation details and design decisions                 |
 | [Beacon](./docs/BEACON.md)                                     | Beacon integration configs, lifecycle, and versioning       |
-| [PAU Factory](./docs/PAU_FACTORY.md)                           | Factory deployment and Beacon relationship                  |
 | [UniV3/V4 Comparison](./docs/UNIV3_UNIV4_COMPARISON.md)        | Functional differences between UniswapV3 and V4 facets      |
 
 ## Quick Start

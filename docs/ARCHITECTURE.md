@@ -50,6 +50,10 @@ In practice, this means:
 - available function selectors can differ based on each controller's synced integration set;
 - risk parameters can be isolated per controller (dedicated `RateLimits`) or coordinated across controllers (shared `RateLimits`).
 
+**Reentrancy is scoped per `Controller`, not per `ALMProxy`.** Facet functions carry the `nonReentrant` guard, but facets are reached by `delegatecall` from a `Controller`, so the guard slot lives in that `Controller`'s storage. The shared `ALMProxy` that custodies the funds holds no guard of its own. When one `ALMProxy` is backed by more than one `Controller`, each sibling `Controller` has an independent guard over the same custody account, so an operation in flight on one `Controller` does not block a state-changing operation on a sibling.
+
+As a result, operations across sibling `Controllers` are **not** atomic with respect to one another. Check-then-act invariants that a single `Controller`'s guard would normally protect (balance snapshots, slippage measurements, position-ownership checks, pending-request lifecycles, etc.) are not protected across siblings, a call that re-enters a sibling `Controller`'s state-changing function can move assets into or out of the shared `ALMProxy` mid-operation and corrupt the in-flight `Controller`'s accounting. Damage stays bounded by the configured rate limits and slippage, but a per-operation cap can be circumvented by repetition.
+
 ### Beacon
 
 The Beacon manages all data related to integrations (facet address + wire mappings) and stores the canonical dispatch lookup. Multiple Controllers can reference the same Beacon, each syncing its local config copy via `updateIntegrations`. The Beacon admin (`DEFAULT_ADMIN_ROLE`) configures integrations, and the Beacon validates facet addresses, prevents duplicate selector wiring, and protects hardcoded Controller selectors. Controllers use this syncing pattern to opt in to upgrades from the Beacon.
