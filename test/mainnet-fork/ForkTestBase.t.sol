@@ -37,6 +37,8 @@ import { IFarmFacet }          from "../../src/facets/farm/IFarmFacet.sol";
 import { ILayerZeroFacet }     from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
 import { IMapleFacet }         from "../../src/facets/maple/IMapleFacet.sol";
 import { IMerklFacet }         from "../../src/facets/merkl/IMerklFacet.sol";
+import { INFATHaloFacet }      from "../../src/facets/nfat-halo/INFATHaloFacet.sol";
+import { INFATPrimeFacet }     from "../../src/facets/nfat-prime/INFATPrimeFacet.sol";
 import { IOTCFacet }           from "../../src/facets/otc/IOTCFacet.sol";
 import { IPendleFacet }        from "../../src/facets/pendle/IPendleFacet.sol";
 import { IPSMFacet }           from "../../src/facets/psm/IPSMFacet.sol";
@@ -63,6 +65,8 @@ import { FarmFacet }          from "../../src/facets/farm/FarmFacet.sol";
 import { LayerZeroFacet }     from "../../src/facets/layer-zero/LayerZeroFacet.sol";
 import { MapleFacet }         from "../../src/facets/maple/MapleFacet.sol";
 import { MerklFacet }         from "../../src/facets/merkl/MerklFacet.sol";
+import { NFATHaloFacet }      from "../../src/facets/nfat-halo/NFATHaloFacet.sol";
+import { NFATPrimeFacet }     from "../../src/facets/nfat-prime/NFATPrimeFacet.sol";
 import { OTCFacet }           from "../../src/facets/otc/OTCFacet.sol";
 import { PendleFacet }        from "../../src/facets/pendle/PendleFacet.sol";
 import { PSMFacet }           from "../../src/facets/psm/PSMFacet.sol";
@@ -305,6 +309,8 @@ abstract contract ForkTestBase is DssTest {
         _wireLayerZeroFacet();
         _wireMapleFacet();
         _wireMerklFacet();
+        _wireNFATHaloFacet();
+        _wireNFATPrimeFacet();
         _wireOTCFacet();
         _wirePendleFacet();
         _wirePSMFacet();
@@ -336,7 +342,7 @@ abstract contract ForkTestBase is DssTest {
         //       logic that calls into AccessControls to perform grants and revocations.
         accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
-        bytes32[] memory integrationIds = new bytes32[](25);
+        bytes32[] memory integrationIds = new bytes32[](27);
         integrationIds[0]  = "AAVE_FACET";
         integrationIds[1]  = "BASIN_FACET";
         integrationIds[2]  = "CCTP_FACET";
@@ -362,6 +368,8 @@ abstract contract ForkTestBase is DssTest {
         integrationIds[22] = "WEETH_FACET";
         integrationIds[23] = "WRAP_PROXY_ETH_FACET";
         integrationIds[24] = "WSTETH_FACET";
+        integrationIds[25] = "NFAT_HALO_FACET";
+        integrationIds[26] = "NFAT_PRIME_FACET";
 
         mainnetController.updateIntegrations(integrationIds);
 
@@ -808,6 +816,131 @@ abstract contract ForkTestBase is DssTest {
         });
 
         beacon.setIntegration("DAIUSDS_FACET", config);
+    }
+
+    function _wireNFATHaloFacet() internal {
+        address nfatHaloFacet = address(new NFATHaloFacet());
+
+        vm.label(nfatHaloFacet, "NFATHaloFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](12);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_setAnnualGrowthRate.selector,
+            INFATHaloFacet.setAnnualGrowthRate.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_issue.selector,
+            INFATHaloFacet.issue.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_repayPrincipal.selector,
+            INFATHaloFacet.repayPrincipal.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_repayInterest.selector,
+            INFATHaloFacet.repayInterest.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_getAnnualGrowthRate.selector,
+            INFATHaloFacet.getAnnualGrowthRate.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_getFacilityState.selector,
+            INFATHaloFacet.getFacilityState.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_getPosition.selector,
+            INFATHaloFacet.getPosition.selector
+        );
+
+        wires[7] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_getCurrentOutstandingInterest.selector,
+            INFATHaloFacet.getCurrentOutstandingInterest.selector
+        );
+
+        wires[8] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_getIssueRateLimitKey.selector,
+            INFATHaloFacet.getIssueRateLimitKey.selector
+        );
+
+        wires[9] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_getRepayInterestRateLimitKey.selector,
+            INFATHaloFacet.getRepayInterestRateLimitKey.selector
+        );
+
+        wires[10] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_getRepayPrincipalRateLimitKey.selector,
+            INFATHaloFacet.getRepayPrincipalRateLimitKey.selector
+        );
+
+        wires[11] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatHalo_VERSION.selector,
+            IFacet.VERSION.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : nfatHaloFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("NFAT_HALO_FACET", config);
+    }
+
+    function _wireNFATPrimeFacet() internal {
+        address nfatPrimeFacet = address(new NFATPrimeFacet());
+
+        vm.label(nfatPrimeFacet, "NFATPrimeFacet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](7);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatPrime_subscribe.selector,
+            INFATPrimeFacet.subscribe.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatPrime_withdraw.selector,
+            INFATPrimeFacet.withdraw.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatPrime_collect.selector,
+            INFATPrimeFacet.collect.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatPrime_getSubscribeRateLimitKey.selector,
+            INFATPrimeFacet.getSubscribeRateLimitKey.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatPrime_getCollectRateLimitKey.selector,
+            INFATPrimeFacet.getCollectRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatPrime_getWithdrawRateLimitKey.selector,
+            INFATPrimeFacet.getWithdrawRateLimitKey.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.nfatPrime_VERSION.selector,
+            IFacet.VERSION.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : nfatPrimeFacet,
+            wires : wires
+        });
+
+        beacon.setIntegration("NFAT_PRIME_FACET", config);
     }
 
     function _wireERC4626Facet() internal {

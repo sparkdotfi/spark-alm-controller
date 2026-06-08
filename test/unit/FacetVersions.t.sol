@@ -16,6 +16,8 @@ import { FarmFacet }          from "../../src/facets/farm/FarmFacet.sol";
 import { LayerZeroFacet }     from "../../src/facets/layer-zero/LayerZeroFacet.sol";
 import { MapleFacet }         from "../../src/facets/maple/MapleFacet.sol";
 import { MerklFacet }         from "../../src/facets/merkl/MerklFacet.sol";
+import { NFATHaloFacet }      from "../../src/facets/nfat-halo/NFATHaloFacet.sol";
+import { NFATPrimeFacet }     from "../../src/facets/nfat-prime/NFATPrimeFacet.sol";
 import { OTCFacet }           from "../../src/facets/otc/OTCFacet.sol";
 import { PendleFacet }        from "../../src/facets/pendle/PendleFacet.sol";
 import { PSM3Facet }          from "../../src/facets/psm3/PSM3Facet.sol";
@@ -47,6 +49,8 @@ contract FacetVersions_Tests is Test {
     LayerZeroFacet     internal layerZeroFacet;
     MapleFacet         internal mapleFacet;
     MerklFacet         internal merklFacet;
+    NFATHaloFacet      internal nfatHaloFacet;
+    NFATPrimeFacet     internal nfatPrimeFacet;
     OTCFacet           internal otcFacet;
     PendleFacet        internal pendleFacet;
     PSM3Facet          internal psm3Facet;
@@ -75,6 +79,8 @@ contract FacetVersions_Tests is Test {
         layerZeroFacet     = new LayerZeroFacet();
         mapleFacet         = new MapleFacet();
         merklFacet         = new MerklFacet();
+        nfatHaloFacet      = new NFATHaloFacet();
+        nfatPrimeFacet     = new NFATPrimeFacet();
         otcFacet           = new OTCFacet();
         pendleFacet        = new PendleFacet(MOCK_ADDRESS);
         psm3Facet          = new PSM3Facet(MOCK_ADDRESS);
@@ -104,6 +110,8 @@ contract FacetVersions_Tests is Test {
         assertEq(layerZeroFacet.VERSION(),     "1.0.0");
         assertEq(mapleFacet.VERSION(),         "1.0.0");
         assertEq(merklFacet.VERSION(),         "1.0.0");
+        assertEq(nfatHaloFacet.VERSION(),      "1.0.0");
+        assertEq(nfatPrimeFacet.VERSION(),     "1.0.0");
         assertEq(otcFacet.VERSION(),           "1.0.0");
         assertEq(pendleFacet.VERSION(),        "1.0.0");
         assertEq(psm3Facet.VERSION(),          "1.0.0");

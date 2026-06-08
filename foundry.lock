@@ -14,11 +14,23 @@
   "lib/grove-address-registry": {
     "rev": "0d4569cbe8b7a9afe013f49d7948bfa279a4efcf"
   },
+  "lib/grove-basin": {
+    "rev": "be08b03f57ec475939049779c5824b3611ae4f7a"
+  },
+  "lib/grove-xchain-helpers": {
+    "branch": {
+      "name": "master",
+      "rev": "d7bf92cd6182da577c5ff9912507997b7a516561"
+    }
+  },
   "lib/layerzero-v2": {
     "rev": "88428755be6caa71cb1d2926141d73c8989296b5"
   },
   "lib/metamorpho": {
     "rev": "f5faa9c21b1396c291b471a6a5ad9407d23486a9"
+  },
+  "lib/nfat": {
+    "rev": "530a5e328f6a51895f58bbff86ac981be777ea27"
   },
   "lib/openzeppelin-contracts": {
     "rev": "dbb6104ce834628e473d2173bbc9d47f81a9eec3"
@@ -40,6 +52,9 @@
       "name": "dev",
       "rev": "8f1442ad5094d1ddd48c95d390dee6cd6c164133"
     }
+  },
+  "lib/uniswap-v4-periphery": {
+    "rev": "3779387e5d296f39df543d23524b050f89a62917"
   },
   "lib/xchain-helpers": {
     "rev": "07e27b6eebb985b0c1e3376329c02b29d49664f7"

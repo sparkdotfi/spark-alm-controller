@@ -9,7 +9,10 @@ function makeAddressAddressKey(bytes32 key, address a, address b) pure returns (
     return keccak256(abi.encode(key, a, b));
 }
 
-function makeAddressAddressAddressKey(bytes32 key, address a, address b, address c) pure returns (bytes32) {
+function makeAddressAddressAddressKey(bytes32 key, address a, address b, address c)
+    pure
+    returns (bytes32)
+{
     return keccak256(abi.encode(key, a, b, c));
 }
 
@@ -21,7 +24,10 @@ function makeAddressUint16Key(bytes32 key, address a, uint16 b) pure returns (by
     return keccak256(abi.encode(key, a, b));
 }
 
-function makeAddressUint16AddressKey(bytes32 key, address a, uint16 b, address c) pure returns (bytes32) {
+function makeAddressUint16AddressKey(bytes32 key, address a, uint16 b, address c)
+    pure
+    returns (bytes32)
+{
     return keccak256(abi.encode(key, a, b, c));
 }
 

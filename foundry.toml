@@ -18,6 +18,9 @@ remappings = [
     'solidity-bytes-utils/=lib/solidity-bytes-utils/'
 ]
 
+[lint]
+lint_on_build = false
+
 [fuzz]
 runs = 1000
 

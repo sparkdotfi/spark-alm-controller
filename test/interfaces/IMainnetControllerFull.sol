@@ -3,6 +3,7 @@ pragma solidity ^0.8.34;
 
 import { IController }     from "../../src/interfaces/IController.sol";
 import { ILayerZeroFacet } from "../../src/facets/layer-zero/ILayerZeroFacet.sol";
+import { INFATHaloFacet }  from "../../src/facets/nfat-halo/INFATHaloFacet.sol";
 import { IUniswapV3Facet } from "../../src/facets/uniswap-v3/IUniswapV3Facet.sol";
 
 interface IMainnetControllerFull is IController {
@@ -380,6 +381,81 @@ interface IMainnetControllerFull is IController {
     function merkl_toggleOperator(address distributor, address operator) external;
 
     function merkl_getToggleOperatorRateLimitKey(address distributor, address operator)
+        external
+        pure
+        returns (bytes32 key);
+
+    /**********************************************************************************************/
+    /*** NFATHaloFacet actions                                                                  ***/
+    /**********************************************************************************************/
+
+    function nfatHalo_VERSION() external pure returns (string memory);
+
+    function nfatHalo_setAnnualGrowthRate(address facility, uint256 annualGrowthRate) external;
+
+    function nfatHalo_issue(address facility, address to, uint256 tokenId, uint256 amount) external;
+
+    function nfatHalo_repayPrincipal(address facility, uint256 tokenId, uint256 amount) external;
+
+    function nfatHalo_repayInterest(address facility, uint256 tokenId, uint256 amount) external;
+
+    function nfatHalo_getAnnualGrowthRate(address facility) external view returns (uint256);
+
+    function nfatHalo_getFacilityState(address facility)
+        external
+        view
+        returns (uint256 interestIndex, uint256 lastUpdated);
+
+    function nfatHalo_getPosition(address facility, uint256 tokenId)
+        external
+        view
+        returns (
+            bool    issued,
+            uint256 outstandingPrincipal,
+            uint256 outstandingInterest,
+            uint256 interestIndex
+        );
+
+    function nfatHalo_getCurrentOutstandingInterest(address facility, uint256 tokenId)
+        external
+        view
+        returns (uint256);
+
+    function nfatHalo_getIssueRateLimitKey(address facility, address to)
+        external
+        pure
+        returns (bytes32 key);
+
+    function nfatHalo_getRepayInterestRateLimitKey(address facility, address gem)
+        external
+        pure
+        returns (bytes32 key);
+
+    function nfatHalo_getRepayPrincipalRateLimitKey(address facility, address gem)
+        external
+        pure
+        returns (bytes32 key);
+
+    /**********************************************************************************************/
+    /*** NFATPrimeFacet actions                                                                 ***/
+    /**********************************************************************************************/
+
+    function nfatPrime_VERSION() external pure returns (string memory);
+
+    function nfatPrime_subscribe(address facility, uint256 amount, bytes calldata data) external;
+
+    function nfatPrime_withdraw(address facility, uint256 amount) external;
+
+    function nfatPrime_collect(address facility, uint256 tokenId, uint256 amount) external;
+
+    function nfatPrime_getCollectRateLimitKey(address facility) external pure returns (bytes32 key);
+
+    function nfatPrime_getSubscribeRateLimitKey(address facility, address gem)
+        external
+        pure
+        returns (bytes32 key);
+
+    function nfatPrime_getWithdrawRateLimitKey(address facility)
         external
         pure
         returns (bytes32 key);
