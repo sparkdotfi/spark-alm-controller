@@ -5,6 +5,8 @@ import { ScriptTools } from "dss-test/ScriptTools.sol";
 
 import "forge-std/Script.sol";
 
+import { OTCBuffer } from "../src/OTCBuffer.sol";
+
 import { ControllerInstance } from "../deploy/ControllerInstance.sol";
 
 import { ForeignControllerDeploy, MainnetControllerDeploy } from "../deploy/ControllerDeploy.sol";
@@ -64,17 +66,25 @@ contract DeployMainnetController is Script {
 
         vm.createSelectFork(getChain("mainnet").rpcUrl);
 
-        console.log("Deploying Mainnet Controller...");
+        bool isStaging = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"));
+
+        if (isStaging) {
+            console.log("Deploying Staging Mainnet Controller...");
+        } else {
+            console.log("Deploying Production Mainnet Controller...");
+        }
 
         string memory fileSlug = string(abi.encodePacked("mainnet-", vm.envString("ENV")));
 
-        vm.startBroadcast();
+        vm.startBroadcast(uint256(vm.envBytes32("PRIVATE_KEY")));
+
+        ( , , address txOrigin ) = vm.readCallers();
+
+        console.log("Deployer:", txOrigin);
 
         string memory config = ScriptTools.loadConfig(fileSlug);
 
-        address psm = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"))
-            ? config.readAddress(".psmWrapper")
-            : config.readAddress(".psm");
+        address psm = isStaging ? config.readAddress(".psmWrapper") : config.readAddress(".psm");
 
         address controller = MainnetControllerDeploy.deployController({
             admin      : config.readAddress(".admin"),
@@ -86,11 +96,15 @@ contract DeployMainnetController is Script {
             cctp       : config.readAddress(".cctpTokenMessenger")
         });
 
+        address otcBufferImplementation = address(new OTCBuffer());
+
         vm.stopBroadcast();
 
         console.log("Controller deployed at", controller);
+        console.log("OTCBuffer implementation deployed at", otcBufferImplementation);
 
         ScriptTools.exportContract(fileSlug, "controller", controller);
+        ScriptTools.exportContract(fileSlug, "otcBufferImplementation", otcBufferImplementation);
     }
 
 }
