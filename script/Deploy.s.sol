@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.0;
 
-import { ScriptTools } from "dss-test/ScriptTools.sol";
+import { ScriptTools } from "../lib/dss-test/src/ScriptTools.sol";
 
-import "forge-std/Script.sol";
+import { console } from "../lib/forge-std/src/console.sol";
+import { Script }  from "../lib/forge-std/src/Script.sol";
+import { stdJson } from "../lib/forge-std/src/StdJson.sol";
+
+import { ERC1967Proxy } from "../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { OTCBuffer } from "../src/OTCBuffer.sol";
 
@@ -105,6 +109,54 @@ contract DeployMainnetController is Script {
 
         ScriptTools.exportContract(fileSlug, "controller", controller);
         ScriptTools.exportContract(fileSlug, "otcBufferImplementation", otcBufferImplementation);
+    }
+
+}
+
+contract DeployMainnetOTCBufferProxy is Script {
+
+    using stdJson     for string;
+    using ScriptTools for string;
+
+    function run() external {
+        vm.setEnv("FOUNDRY_ROOT_CHAINID",             "1");
+        vm.setEnv("FOUNDRY_EXPORTS_OVERWRITE_LATEST", "true");
+
+        vm.createSelectFork(getChain("mainnet").rpcUrl);
+
+        bool isStaging = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"));
+
+        if (isStaging) {
+            console.log("Deploying Staging Mainnet OTCBuffer Proxy...");
+        } else {
+            console.log("Deploying Production Mainnet OTCBuffer Proxy...");
+        }
+
+        string memory fileSlug = string(abi.encodePacked("mainnet-", vm.envString("ENV")));
+
+        vm.startBroadcast(uint256(vm.envBytes32("PRIVATE_KEY")));
+
+        ( , , address txOrigin ) = vm.readCallers();
+
+        console.log("Deployer:", txOrigin);
+
+        string memory config = ScriptTools.loadConfig(fileSlug);
+
+        address otcBufferImplementation = config.readAddress(".otcBufferImplementation");
+
+        address proxy = address(
+            new ERC1967Proxy(
+                otcBufferImplementation,
+                abi.encodeCall(
+                    OTCBuffer.initialize,
+                    (config.readAddress(".admin"), config.readAddress(".almProxy"))
+                )
+            )
+        );
+
+        vm.stopBroadcast();
+
+        console.log("OTCBuffer proxy deployed at", proxy);
     }
 
 }
