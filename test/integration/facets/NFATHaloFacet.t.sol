@@ -15,9 +15,9 @@ import { Integration_TestBase } from "../TestBase.t.sol";
 
 interface IControllerLike {
 
-    function setAnnualGrowthRate(address facility, uint256 annualGrowthRate) external;
+    function setMaxAnnualGrowthRate(address facility, uint256 maxAnnualGrowthRate) external;
 
-    function getAnnualGrowthRate(address facility) external view returns (uint256);
+    function getMaxAnnualGrowthRate(address facility) external view returns (uint256);
 
     function getFacilityState(address facility)
         external
@@ -38,8 +38,8 @@ contract Controller_NFATHaloFacet_Tests is Integration_TestBase {
 
     IControllerLike internal controller;
 
-    uint256 internal constant ANNUAL_GROWTH_RATE = 0.20e18;  // 20% APR
-    uint256 internal constant TOKEN_ID           = 1;
+    uint256 internal constant MAX_ANNUAL_GROWTH_RATE = 0.20e18;  // 20% APR
+    uint256 internal constant TOKEN_ID               = 1;
 
     function setUp() external {
         controller = IControllerLike(_deploy());
@@ -51,13 +51,13 @@ contract Controller_NFATHaloFacet_Tests is Integration_TestBase {
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](6);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IControllerLike.setAnnualGrowthRate.selector,
-            INFATHaloFacet.setAnnualGrowthRate.selector
+            IControllerLike.setMaxAnnualGrowthRate.selector,
+            INFATHaloFacet.setMaxAnnualGrowthRate.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
-            IControllerLike.getAnnualGrowthRate.selector,
-            INFATHaloFacet.getAnnualGrowthRate.selector
+            IControllerLike.getMaxAnnualGrowthRate.selector,
+            INFATHaloFacet.getMaxAnnualGrowthRate.selector
         );
 
         wires[2] = IEnumerableIntegrations.Wire(
@@ -93,16 +93,16 @@ contract Controller_NFATHaloFacet_Tests is Integration_TestBase {
     }
 
     /**********************************************************************************************/
-    /*** setAnnualGrowthRate Tests                                                              ***/
+    /*** setMaxAnnualGrowthRate Tests                                                           ***/
     /**********************************************************************************************/
 
-    function test_setAnnualGrowthRate_reentrancy() external {
+    function test_setMaxAnnualGrowthRate_reentrancy() external {
         _setEntered(address(controller));
         vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
-        controller.setAnnualGrowthRate(makeAddr("facility"), ANNUAL_GROWTH_RATE);
+        controller.setMaxAnnualGrowthRate(makeAddr("facility"), MAX_ANNUAL_GROWTH_RATE);
     }
 
-    function test_setAnnualGrowthRate_notAdmin() external {
+    function test_setMaxAnnualGrowthRate_notAdmin() external {
         address facility = makeAddr("facility");
 
         vm.expectRevert(
@@ -114,7 +114,7 @@ contract Controller_NFATHaloFacet_Tests is Integration_TestBase {
         );
 
         vm.prank(unauthorized);
-        controller.setAnnualGrowthRate(facility, ANNUAL_GROWTH_RATE);
+        controller.setMaxAnnualGrowthRate(facility, MAX_ANNUAL_GROWTH_RATE);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -125,30 +125,30 @@ contract Controller_NFATHaloFacet_Tests is Integration_TestBase {
         );
 
         vm.prank(allocator);
-        controller.setAnnualGrowthRate(facility, ANNUAL_GROWTH_RATE);
+        controller.setMaxAnnualGrowthRate(facility, MAX_ANNUAL_GROWTH_RATE);
     }
 
-    function test_setAnnualGrowthRate_zeroFacility() external {
+    function test_setMaxAnnualGrowthRate_zeroFacility() external {
         vm.expectRevert("NFATHaloFacet/facility-zero-address");
         vm.prank(admin);
-        controller.setAnnualGrowthRate(address(0), ANNUAL_GROWTH_RATE);
+        controller.setMaxAnnualGrowthRate(address(0), MAX_ANNUAL_GROWTH_RATE);
     }
 
-    function test_setAnnualGrowthRate() external {
+    function test_setMaxAnnualGrowthRate() external {
         address facility       = makeAddr("facility");
         uint256 startTimestamp = vm.getBlockTimestamp();
 
         vm.expectEmit(address(controller));
-        emit INFATHaloFacet.NFATHaloAnnualGrowthRateSet(facility, ANNUAL_GROWTH_RATE);
+        emit INFATHaloFacet.NFATHaloMaxAnnualGrowthRateSet(facility, MAX_ANNUAL_GROWTH_RATE);
 
         vm.record();
 
         vm.prank(admin);
-        controller.setAnnualGrowthRate(facility, ANNUAL_GROWTH_RATE);
+        controller.setMaxAnnualGrowthRate(facility, MAX_ANNUAL_GROWTH_RATE);
 
         _assertReentrancyGuardWrittenToTwice(address(controller));
 
-        assertEq(controller.getAnnualGrowthRate(facility), ANNUAL_GROWTH_RATE);
+        assertEq(controller.getMaxAnnualGrowthRate(facility), MAX_ANNUAL_GROWTH_RATE);
 
         ( uint256 interestIndex, uint256 lastUpdated ) = controller.getFacilityState(facility);
 
@@ -160,12 +160,12 @@ contract Controller_NFATHaloFacet_Tests is Integration_TestBase {
         uint256 newRate = 0.50e18;
 
         vm.expectEmit(address(controller));
-        emit INFATHaloFacet.NFATHaloAnnualGrowthRateSet(facility, newRate);
+        emit INFATHaloFacet.NFATHaloMaxAnnualGrowthRateSet(facility, newRate);
 
         vm.prank(admin);
-        controller.setAnnualGrowthRate(facility, newRate);
+        controller.setMaxAnnualGrowthRate(facility, newRate);
 
-        assertEq(controller.getAnnualGrowthRate(facility), newRate);
+        assertEq(controller.getMaxAnnualGrowthRate(facility), newRate);
 
         ( interestIndex, lastUpdated ) = controller.getFacilityState(facility);
 

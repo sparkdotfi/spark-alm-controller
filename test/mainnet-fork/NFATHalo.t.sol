@@ -21,9 +21,9 @@ abstract contract NFATHalo_TestBase is ForkTestBase {
     bytes32 internal repayPrincipalKey;
     bytes32 internal repayInterestKey;
 
-    uint256 internal constant ANNUAL_GROWTH_RATE = 0.20e18;  // 20% APR
-    uint256 internal constant SUBSCRIBE_AMOUNT   = 2_000_000e18;
-    uint256 internal constant TOKEN_ID           = 1;
+    uint256 internal constant MAX_ANNUAL_GROWTH_RATE = 0.20e18;  // 20% APR
+    uint256 internal constant SUBSCRIBE_AMOUNT       = 2_000_000e18;
+    uint256 internal constant TOKEN_ID               = 1;
 
     function setUp() public virtual override {
         super.setUp();
@@ -50,7 +50,7 @@ abstract contract NFATHalo_TestBase is ForkTestBase {
         rateLimits.setUnlimitedRateLimitData(repayPrincipalKey);
         rateLimits.setUnlimitedRateLimitData(repayInterestKey);
 
-        mainnetController.nfatHalo_setAnnualGrowthRate(address(facility), ANNUAL_GROWTH_RATE);
+        mainnetController.nfatHalo_setMaxAnnualGrowthRate(address(facility), MAX_ANNUAL_GROWTH_RATE);
 
         vm.stopPrank();
 
@@ -81,20 +81,20 @@ abstract contract NFATHalo_TestBase is ForkTestBase {
         uint256 tokenId,
         bool    expectedIssued,
         uint256 expectedOutstandingPrincipal,
-        uint256 expectedOutstandingInterest,
+        uint256 expectedMaxOutstandingInterest,
         uint256 expectedInterestIndex
     ) internal {
         (
             bool    issued,
             uint256 outstandingPrincipal,
-            uint256 outstandingInterest,
+            uint256 maxOutstandingInterest,
             uint256 interestIndex
         ) = mainnetController.nfatHalo_getPosition(facility, tokenId);
 
-        assertEq(issued,               expectedIssued);
-        assertEq(outstandingPrincipal, expectedOutstandingPrincipal);
-        assertEq(outstandingInterest,  expectedOutstandingInterest);
-        assertEq(interestIndex,        expectedInterestIndex);
+        assertEq(issued,                 expectedIssued);
+        assertEq(outstandingPrincipal,   expectedOutstandingPrincipal);
+        assertEq(maxOutstandingInterest, expectedMaxOutstandingInterest);
+        assertEq(interestIndex,          expectedInterestIndex);
     }
 
 }
@@ -166,12 +166,12 @@ contract MainnetController_NFATHalo_Issue_Tests is NFATHalo_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(issueKey), 5_000_000e18);
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : false,
-            expectedOutstandingPrincipal : 0,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : false,
+            expectedOutstandingPrincipal   : 0,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
         vm.expectEmit(address(mainnetController));
@@ -189,12 +189,12 @@ contract MainnetController_NFATHalo_Issue_Tests is NFATHalo_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(issueKey), 5_000_000e18 - ISSUE_AMOUNT);
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
     }
 
@@ -208,21 +208,21 @@ contract MainnetController_NFATHalo_Issue_Tests is NFATHalo_TestBase {
         vm.stopPrank();
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : 1,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : firstAmount,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : 1,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : firstAmount,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : 2,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : secondAmount,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : 2,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : secondAmount,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
     }
 
@@ -275,7 +275,6 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         vm.expectRevert("NFATHaloFacet/principal-exceeded");
         mainnetController.nfatHalo_repayPrincipal(address(facility), TOKEN_ID, ISSUE_AMOUNT + 1);
 
-        // Boundary: exactly equal to remaining principal succeeds.
         vm.prank(allocator);
         mainnetController.nfatHalo_repayPrincipal(address(facility), TOKEN_ID, ISSUE_AMOUNT);
     }
@@ -320,15 +319,15 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
 
         vm.expectEmit(address(mainnetController));
         emit INFATHaloFacet.NFATHaloRepayPrincipal(address(facility), TOKEN_ID, ISSUE_AMOUNT);
@@ -352,20 +351,20 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : 0,
-            expectedOutstandingInterest  : 98_630.136986301369e18,
-            expectedInterestIndex        : 0.098630136986301369e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : 0,
+            expectedMaxOutstandingInterest : 98_630.136986301369e18,
+            expectedInterestIndex          : 0.098630136986301369e18
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
 
         vm.warp(startTimestamp + 360 days);
 
         // Interest has not accrued since last checkpoint given zero outstanding principal.
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
     }
 
     function test_repayPrincipal_multiple() external {
@@ -387,15 +386,15 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
 
         vm.expectEmit(address(mainnetController));
         emit INFATHaloFacet.NFATHaloRepayPrincipal(address(facility), TOKEN_ID, firstAmount);
@@ -413,20 +412,20 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT - firstAmount,
-            expectedOutstandingInterest  : 98_630.136986301369e18,
-            expectedInterestIndex        : 0.098630136986301369e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT - firstAmount,
+            expectedMaxOutstandingInterest : 98_630.136986301369e18,
+            expectedInterestIndex          : 0.098630136986301369e18
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
 
         // Make second principal repayment in 180 days so interest has accrued.
         vm.warp(startTimestamp + 360 days);
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 147_945.2054794520535e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 147_945.2054794520535e18);
 
         vm.expectEmit(address(mainnetController));
         emit INFATHaloFacet.NFATHaloRepayPrincipal(address(facility), TOKEN_ID, secondAmount);
@@ -444,15 +443,15 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : 0,
-            expectedOutstandingInterest  : 147_945.2054794520535e18,
-            expectedInterestIndex        : 0.197260273972602738e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : 0,
+            expectedMaxOutstandingInterest : 147_945.2054794520535e18,
+            expectedInterestIndex          : 0.197260273972602738e18
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 147_945.2054794520535e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 147_945.2054794520535e18);
     }
 
 }
@@ -490,10 +489,9 @@ contract MainnetController_NFATHalo_RepayInterest_Tests is NFATHalo_PostIssue_Te
         vm.warp(vm.getBlockTimestamp() + 180 days);
 
         vm.prank(allocator);
-        vm.expectRevert("NFATHaloFacet/interest-exceeded");
+        vm.expectRevert("NFATHaloFacet/max-interest-exceeded");
         mainnetController.nfatHalo_repayInterest(address(facility), TOKEN_ID, 98_630.136986301369e18 + 1);
 
-        // Boundary: exactly equal to remaining principal succeeds.
         vm.prank(allocator);
         mainnetController.nfatHalo_repayInterest(address(facility), TOKEN_ID, 98_630.136986301369e18);
     }
@@ -542,15 +540,15 @@ contract MainnetController_NFATHalo_RepayInterest_Tests is NFATHalo_PostIssue_Te
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
 
         vm.expectEmit(address(mainnetController));
         emit INFATHaloFacet.NFATHaloRepayInterest(address(facility), TOKEN_ID, 98_630.136986301369e18);
@@ -574,15 +572,15 @@ contract MainnetController_NFATHalo_RepayInterest_Tests is NFATHalo_PostIssue_Te
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0.098630136986301369e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0.098630136986301369e18
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 0);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 0);
     }
 
     function test_repayInterest_multiple() external {
@@ -601,15 +599,15 @@ contract MainnetController_NFATHalo_RepayInterest_Tests is NFATHalo_PostIssue_Te
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
 
         vm.expectEmit(address(mainnetController));
         emit INFATHaloFacet.NFATHaloRepayInterest(address(facility), TOKEN_ID, 50_000e18);
@@ -627,20 +625,20 @@ contract MainnetController_NFATHalo_RepayInterest_Tests is NFATHalo_PostIssue_Te
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 98_630.136986301369e18 - 50_000e18,
-            expectedInterestIndex        : 0.098630136986301369e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 98_630.136986301369e18 - 50_000e18,
+            expectedInterestIndex          : 0.098630136986301369e18
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18 - 50_000e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18 - 50_000e18);
 
         // Make second interest repayment in 180 days so interest has accrued.
         vm.warp(startTimestamp + 360 days);
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 147_260.273972602738e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 147_260.273972602738e18);
 
         vm.expectEmit(address(mainnetController));
         emit INFATHaloFacet.NFATHaloRepayInterest(address(facility), TOKEN_ID, 147_260.273972602738e18);
@@ -658,15 +656,15 @@ contract MainnetController_NFATHalo_RepayInterest_Tests is NFATHalo_PostIssue_Te
         });
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0.197260273972602738e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0.197260273972602738e18
         });
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 0);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 0);
     }
 
 }
@@ -691,7 +689,7 @@ contract MainnetController_NFATHalo_FacilityState_Tests is NFATHalo_TestBase {
         });
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.nfatHalo_setAnnualGrowthRate(address(facility), ANNUAL_GROWTH_RATE / 2);
+        mainnetController.nfatHalo_setMaxAnnualGrowthRate(address(facility), MAX_ANNUAL_GROWTH_RATE / 2);
 
         _assertFacilityState({
             facility              : address(facility),
@@ -708,7 +706,7 @@ contract MainnetController_NFATHalo_FacilityState_Tests is NFATHalo_TestBase {
         });
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.nfatHalo_setAnnualGrowthRate(address(facility), 0);
+        mainnetController.nfatHalo_setMaxAnnualGrowthRate(address(facility), 0);
 
         _assertFacilityState({
             facility              : address(facility),
@@ -725,7 +723,7 @@ contract MainnetController_NFATHalo_FacilityState_Tests is NFATHalo_TestBase {
         });
 
         vm.prank(Ethereum.SPARK_PROXY);
-        mainnetController.nfatHalo_setAnnualGrowthRate(address(facility), 0);
+        mainnetController.nfatHalo_setMaxAnnualGrowthRate(address(facility), 0);
 
         _assertFacilityState({
             facility              : address(facility),
@@ -742,64 +740,64 @@ contract MainnetController_NFATHalo_GetPosition_Tests is NFATHalo_PostIssue_Test
         uint256 startTimestamp = vm.getBlockTimestamp();
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
         vm.warp(startTimestamp + 180 days);
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT,
-            expectedOutstandingInterest  : 0,
-            expectedInterestIndex        : 0
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT,
+            expectedMaxOutstandingInterest : 0,
+            expectedInterestIndex          : 0
         });
 
         vm.prank(allocator);
         mainnetController.nfatHalo_repayPrincipal(address(facility), TOKEN_ID, 1);
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT - 1,
-            expectedOutstandingInterest  : 98_630.136986301369e18,
-            expectedInterestIndex        : 0.098630136986301369e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT - 1,
+            expectedMaxOutstandingInterest : 98_630.136986301369e18,
+            expectedInterestIndex          : 0.098630136986301369e18
         });
 
         vm.warp(startTimestamp + 360 days);
 
         _assertPosition({
-            facility                     : address(facility),
-            tokenId                      : TOKEN_ID,
-            expectedIssued               : true,
-            expectedOutstandingPrincipal : ISSUE_AMOUNT - 1,
-            expectedOutstandingInterest  : 98_630.136986301369e18,
-            expectedInterestIndex        : 0.098630136986301369e18
+            facility                       : address(facility),
+            tokenId                        : TOKEN_ID,
+            expectedIssued                 : true,
+            expectedOutstandingPrincipal   : ISSUE_AMOUNT - 1,
+            expectedMaxOutstandingInterest : 98_630.136986301369e18,
+            expectedInterestIndex          : 0.098630136986301369e18
         });
     }
 
 }
 
-contract MainnetController_NFATHalo_GetCurrentOutstandingInterest_Tests is NFATHalo_PostIssue_TestBase {
+contract MainnetController_NFATHalo_GetCurrentMaxOutstandingInterest_Tests is NFATHalo_PostIssue_TestBase {
 
-    function test_getCurrentOutstandingInterest_positionNotFound() external {
+    function test_getCurrentMaxOutstandingInterest_positionNotFound() external {
         vm.expectRevert("NFATHaloFacet/position-not-found");
-        mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), 99);
+        mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), 99);
     }
 
-    function test_getCurrentOutstandingInterest() external {
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 0);
+    function test_getCurrentMaxOutstandingInterest() external {
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 0);
 
         vm.warp(vm.getBlockTimestamp() + 180 days);
 
-        assertEq(mainnetController.nfatHalo_getCurrentOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
+        assertEq(mainnetController.nfatHalo_getCurrentMaxOutstandingInterest(address(facility), TOKEN_ID), 98_630.136986301369e18);
     }
 
 }

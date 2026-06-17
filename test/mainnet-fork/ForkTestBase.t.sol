@@ -826,8 +826,8 @@ abstract contract ForkTestBase is DssTest {
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](12);
 
         wires[0] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.nfatHalo_setAnnualGrowthRate.selector,
-            INFATHaloFacet.setAnnualGrowthRate.selector
+            IMainnetControllerFull.nfatHalo_setMaxAnnualGrowthRate.selector,
+            INFATHaloFacet.setMaxAnnualGrowthRate.selector
         );
 
         wires[1] = IEnumerableIntegrations.Wire(
@@ -846,8 +846,8 @@ abstract contract ForkTestBase is DssTest {
         );
 
         wires[4] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.nfatHalo_getAnnualGrowthRate.selector,
-            INFATHaloFacet.getAnnualGrowthRate.selector
+            IMainnetControllerFull.nfatHalo_getMaxAnnualGrowthRate.selector,
+            INFATHaloFacet.getMaxAnnualGrowthRate.selector
         );
 
         wires[5] = IEnumerableIntegrations.Wire(
@@ -861,8 +861,8 @@ abstract contract ForkTestBase is DssTest {
         );
 
         wires[7] = IEnumerableIntegrations.Wire(
-            IMainnetControllerFull.nfatHalo_getCurrentOutstandingInterest.selector,
-            INFATHaloFacet.getCurrentOutstandingInterest.selector
+            IMainnetControllerFull.nfatHalo_getCurrentMaxOutstandingInterest.selector,
+            INFATHaloFacet.getCurrentMaxOutstandingInterest.selector
         );
 
         wires[8] = IEnumerableIntegrations.Wire(

@@ -391,7 +391,7 @@ interface IMainnetControllerFull is IController {
 
     function nfatHalo_VERSION() external pure returns (string memory);
 
-    function nfatHalo_setAnnualGrowthRate(address facility, uint256 annualGrowthRate) external;
+    function nfatHalo_setMaxAnnualGrowthRate(address facility, uint256 maxAnnualGrowthRate) external;
 
     function nfatHalo_issue(address facility, address to, uint256 tokenId, uint256 amount) external;
 
@@ -399,7 +399,7 @@ interface IMainnetControllerFull is IController {
 
     function nfatHalo_repayInterest(address facility, uint256 tokenId, uint256 amount) external;
 
-    function nfatHalo_getAnnualGrowthRate(address facility) external view returns (uint256);
+    function nfatHalo_getMaxAnnualGrowthRate(address facility) external view returns (uint256);
 
     function nfatHalo_getFacilityState(address facility)
         external
@@ -412,11 +412,11 @@ interface IMainnetControllerFull is IController {
         returns (
             bool    issued,
             uint256 outstandingPrincipal,
-            uint256 outstandingInterest,
+            uint256 maxOutstandingInterest,
             uint256 interestIndex
         );
 
-    function nfatHalo_getCurrentOutstandingInterest(address facility, uint256 tokenId)
+    function nfatHalo_getCurrentMaxOutstandingInterest(address facility, uint256 tokenId)
         external
         view
         returns (uint256);

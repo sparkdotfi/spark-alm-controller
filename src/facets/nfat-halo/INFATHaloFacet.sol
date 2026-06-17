@@ -19,11 +19,11 @@ interface INFATHaloFacet is IFacet {
 
     /**
      * @notice Per-facility tunable parameters.
-     * @param  annualGrowthRate Annual growth rate (1e18-scaled APR; 1e18 == 100%/year) used to
-     *                          drive interest accrual on issued positions.
+     * @param  maxAnnualGrowthRate Max annual growth rate (1e18-scaled APR; 1e18 == 100%/year) used
+     *                             to drive interest accrual on issued positions.
      */
     struct Parameters {
-        uint256 annualGrowthRate;
+        uint256 maxAnnualGrowthRate;
     }
 
     /**
@@ -32,7 +32,7 @@ interface INFATHaloFacet is IFacet {
      *                       `lastUpdated`. Combine with elapsed time and the current annual
      *                       growth rate to derive the live index.
      * @param  lastUpdated   Timestamp of the last checkpoint. Zero means the facility has never
-     *                       been configured via `setAnnualGrowthRate`.
+     *                       been configured via `setMaxAnnualGrowthRate`.
      */
     struct FacilityState {
         uint256 interestIndex;
@@ -41,15 +41,15 @@ interface INFATHaloFacet is IFacet {
 
     /**
      * @notice Per-NFAT bookkeeping recorded by this facet.
-     * @param  issued               Whether the NFAT position has been issued.
-     * @param  outstandingPrincipal Outstanding principal.
-     * @param  outstandingInterest  Outstanding interest.
-     * @param  interestIndex        Facility-wide interest index recorded at the last checkpoint.
+     * @param  issued                 Whether the NFAT position has been issued.
+     * @param  outstandingPrincipal   Outstanding principal.
+     * @param  maxOutstandingInterest Max outstanding interest.
+     * @param  interestIndex          Facility-wide interest index recorded at the last checkpoint.
      */
     struct Position {
         bool    issued;
         uint256 outstandingPrincipal;
-        uint256 outstandingInterest;
+        uint256 maxOutstandingInterest;
         uint256 interestIndex;
     }
 
@@ -58,11 +58,11 @@ interface INFATHaloFacet is IFacet {
     /**********************************************************************************************/
 
     /**
-     * @notice Emitted when the annual growth rate (1e18-scaled APR) for a facility is updated.
-     * @param  facility         Address of the NFAT facility.
-     * @param  annualGrowthRate New annual growth rate, 1e18 = 100% APR.
+     * @notice Emitted when the max annual growth rate (1e18-scaled APR) for a facility is updated.
+     * @param  facility            Address of the NFAT facility.
+     * @param  maxAnnualGrowthRate New max annual growth rate, 1e18 = 100% APR.
      */
-    event NFATHaloAnnualGrowthRateSet(address indexed facility, uint256 annualGrowthRate);
+    event NFATHaloMaxAnnualGrowthRateSet(address indexed facility, uint256 maxAnnualGrowthRate);
 
     /**
      * @notice Emitted when an NFAT NFT is issued via this facet.
@@ -134,10 +134,10 @@ interface INFATHaloFacet is IFacet {
      * @notice Sets the annual growth rate (1e18-scaled APR) used for interest accrual on a
      *         facility. Checkpoints the facility before applying the new rate so accrued interest
      *         under the previous rate is preserved.
-     * @param  facility         Address of the NFAT facility.
-     * @param  annualGrowthRate New annual growth rate, 1e18 = 100% APR.
+     * @param  facility            Address of the NFAT facility.
+     * @param  maxAnnualGrowthRate New max annual growth rate, 1e18 = 100% APR.
      */
-    function setAnnualGrowthRate(address facility, uint256 annualGrowthRate) external;
+    function setMaxAnnualGrowthRate(address facility, uint256 maxAnnualGrowthRate) external;
 
     /**********************************************************************************************/
     /*** View/Pure Functions                                                                    ***/
@@ -145,10 +145,13 @@ interface INFATHaloFacet is IFacet {
 
     /**
      * @notice Returns the configured annual growth rate (1e18-scaled APR) for a facility.
-     * @param  facility         Address of the NFAT facility.
-     * @return annualGrowthRate Annual growth rate, 1e18 = 100% APR. Zero if unset.
+     * @param  facility            Address of the NFAT facility.
+     * @return maxAnnualGrowthRate Max annual growth rate, 1e18 = 100% APR. Zero if unset.
      */
-    function getAnnualGrowthRate(address facility) external view returns (uint256 annualGrowthRate);
+    function getMaxAnnualGrowthRate(address facility)
+        external
+        view
+        returns (uint256 maxAnnualGrowthRate);
 
     /**
      * @notice Returns the current facility-wide interest index, including time-based accrual
@@ -177,12 +180,12 @@ interface INFATHaloFacet is IFacet {
     /**
      * @notice Returns the outstanding principal, outstanding interest, and interest index for a
      *         given NFAT position.
-     * @param  facility             Address of the NFAT facility.
-     * @param  tokenId              Identifier of the NFAT token.
-     * @return issued               Whether the NFAT position has been issued.
-     * @return outstandingPrincipal Outstanding principal.
-     * @return outstandingInterest  Last checkpointed outstanding interest.
-     * @return interestIndex        Last checkpointed facility-wide interest index.
+     * @param  facility               Address of the NFAT facility.
+     * @param  tokenId                Identifier of the NFAT token.
+     * @return issued                 Whether the NFAT position has been issued.
+     * @return outstandingPrincipal   Outstanding principal.
+     * @return maxOutstandingInterest Last checkpointed max outstanding interest.
+     * @return interestIndex          Last checkpointed facility-wide interest index.
      */
     function getPosition(address facility, uint256 tokenId)
         external
@@ -190,17 +193,17 @@ interface INFATHaloFacet is IFacet {
         returns (
             bool    issued,
             uint256 outstandingPrincipal,
-            uint256 outstandingInterest,
+            uint256 maxOutstandingInterest,
             uint256 interestIndex
         );
 
     /**
      * @notice Returns the current outstanding interest for a given NFAT position.
-     * @param  facility            Address of the NFAT facility.
-     * @param  tokenId             Identifier of the NFAT token.
-     * @return outstandingInterest Current outstanding interest.
+     * @param  facility               Address of the NFAT facility.
+     * @param  tokenId                Identifier of the NFAT token.
+     * @return maxOutstandingInterest Current max outstanding interest.
      */
-    function getCurrentOutstandingInterest(address facility, uint256 tokenId)
+    function getCurrentMaxOutstandingInterest(address facility, uint256 tokenId)
         external
         view
         returns (uint256);

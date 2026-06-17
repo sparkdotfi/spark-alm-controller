@@ -70,7 +70,7 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
     /**********************************************************************************************/
 
     /// @inheritdoc INFATHaloFacet
-    function setAnnualGrowthRate(address facility, uint256 annualGrowthRate)
+    function setMaxAnnualGrowthRate(address facility, uint256 maxAnnualGrowthRate)
         external
         override
         nonReentrant
@@ -80,9 +80,9 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
 
         _checkpointFacility(facility);
 
-        _getFacetStorage().parameters[facility].annualGrowthRate = annualGrowthRate;
+        _getFacetStorage().parameters[facility].maxAnnualGrowthRate = maxAnnualGrowthRate;
 
-        emit NFATHaloAnnualGrowthRateSet(facility, annualGrowthRate);
+        emit NFATHaloMaxAnnualGrowthRateSet(facility, maxAnnualGrowthRate);
     }
 
     /**********************************************************************************************/
@@ -161,13 +161,13 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
 
         Position storage position = _checkpointPosition(facility, tokenId);
 
-        require(amount <= position.outstandingInterest, "NFATHaloFacet/interest-exceeded");
+        require(amount <= position.maxOutstandingInterest, "NFATHaloFacet/max-interest-exceeded");
 
         address gem = IFacilityLike(facility).gem();
 
         uint256 spent = _doFacilityRepay(facility, gem, tokenId, amount);
 
-        position.outstandingInterest -= spent;
+        position.maxOutstandingInterest -= spent;
 
         _decreaseRateLimit(getRepayInterestRateLimitKey(facility, gem), spent);
 
@@ -179,8 +179,8 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
     /**********************************************************************************************/
 
     /// @inheritdoc INFATHaloFacet
-    function getAnnualGrowthRate(address facility) external view override returns (uint256) {
-        return _getFacetStorage().parameters[facility].annualGrowthRate;
+    function getMaxAnnualGrowthRate(address facility) external view override returns (uint256) {
+        return _getFacetStorage().parameters[facility].maxAnnualGrowthRate;
     }
 
     /// @inheritdoc INFATHaloFacet
@@ -202,7 +202,7 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
         returns (
             bool    issued,
             uint256 outstandingPrincipal,
-            uint256 outstandingInterest,
+            uint256 maxOutstandingInterest,
             uint256 interestIndex
         )
     {
@@ -211,13 +211,13 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
         return (
             position.issued,
             position.outstandingPrincipal,
-            position.outstandingInterest,
+            position.maxOutstandingInterest,
             position.interestIndex
         );
     }
 
     /// @inheritdoc INFATHaloFacet
-    function getCurrentOutstandingInterest(address facility, uint256 tokenId)
+    function getCurrentMaxOutstandingInterest(address facility, uint256 tokenId)
         external
         view
         override
@@ -231,7 +231,7 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
         uint256 deltaIndex   = currentIndex - position.interestIndex;
 
         return
-            position.outstandingInterest +
+            position.maxOutstandingInterest +
             position.outstandingPrincipal * deltaIndex / _INTEREST_RATE_PRECISION;
     }
 
@@ -294,7 +294,7 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
 
         uint256 currentIndex = $.states[facility].interestIndex;
 
-        position.outstandingInterest +=
+        position.maxOutstandingInterest +=
             position.outstandingPrincipal * (currentIndex - position.interestIndex)
             / _INTEREST_RATE_PRECISION;
 
@@ -332,7 +332,7 @@ contract NFATHaloFacet is INFATHaloFacet, Facet {
 
         return
             state.interestIndex +
-            $.parameters[facility].annualGrowthRate * (block.timestamp - lastUpdated) / _YEAR;
+            $.parameters[facility].maxAnnualGrowthRate * (block.timestamp - lastUpdated) / _YEAR;
     }
 
 }

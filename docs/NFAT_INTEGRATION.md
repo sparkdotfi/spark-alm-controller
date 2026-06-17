@@ -57,7 +57,7 @@ ALMProxy.doCall(facility, issue/repay ...)
 delta = |gem.balanceOf(proxy) - balanceBefore|
 ```
 
-This protects against fee-on-transfer, rounding, or partial-fill behaviour: the system always accounts for what truly entered or left custody. `issue` records `Position.outstandingPrincipal = delta` and decrements the issue rate limit by `delta`; `repayPrincipal` / `repayInterest` decrement `Position.outstandingPrincipal` / `Position.outstandingInterest` and their respective limits by the measured `spent`.
+This protects against fee-on-transfer, rounding, or partial-fill behaviour: the system always accounts for what truly entered or left custody. `issue` records `Position.outstandingPrincipal = delta` and decrements the issue rate limit by `delta`; `repayPrincipal` / `repayInterest` decrement `Position.outstandingPrincipal` / `Position.maxOutstandingInterest` and their respective limits by the measured `spent`.
 
 Events and storage updates use the **measured balance delta** (`received` / `spent`), not the caller-supplied `amount`, whenever the two could diverge (fee-on-transfer, rounding, etc.).
 
@@ -99,20 +99,20 @@ Keying the limit on `(facility, to)` instead of per-tokenId gives that autonomy 
 
 A per-tokenId limit would also introduce **coordination risk between the configured limit and the amount the `ALLOCATOR_ROLE` actually issues**. Governance would have to provision a limit for a specific tokenId in advance, while the allocator independently decides the tokenId and principal at issuance time — any mismatch (a limit set for the wrong tokenId, or a different principal than was provisioned) would cause issuance to revert or be silently under/over-constrained. Keying on the actor side keeps the limit decoupled from the allocator's tokenId/amount choices, so the two never have to be kept in lockstep.
 
-### 2. Interest accrual via `annualGrowthRate` (the non-fungible part)
+### 2. Max outstanding interest accrual via `maxAnnualGrowthRate` (the non-fungible part)
 
 Interest owed on a position grows continuously and cannot be expressed as a discrete per-call gem amount up front. Instead of trying to rate-limit it directly, the facet accrues interest using a **dynamic annual growth rate**:
 
-- `setAnnualGrowthRate(facility, rate)` (gated on `DEFAULT_ADMIN_ROLE`) sets a per-facility `annualGrowthRate`, a 1e18-scaled APR (`1e18 == 100%/year`).
+- `setMaxAnnualGrowthRate(facility, rate)` (gated on `DEFAULT_ADMIN_ROLE`) sets a per-facility `maxAnnualGrowthRate`, a 1e18-scaled APR (`1e18 == 100%/year`).
 - A facility-wide **cumulative interest index** advances over time:
 
     ```
-    index(now) = index(lastCheckpoint) + annualGrowthRate * (now - lastCheckpoint) / 365 days
+    index(now) = index(lastCheckpoint) + maxAnnualGrowthRate * (now - lastCheckpoint) / 365 days
     ```
 
-- Each position snapshots the index at issue time. When the position is next touched (`_checkpointPosition`), the index delta since its snapshot is applied to its outstanding principal to accrue `Position.outstandingInterest`.
+- Each position snapshots the index at issue time. When the position is next touched (`_checkpointPosition`), the index delta since its snapshot is applied to its outstanding principal to accrue `Position.maxOutstandingInterest`.
 
-The `annualGrowthRate` is **flexible and at the `DEFAULT_ADMIN`'s discretion**, but in practice it is expected to track some multiple of the expected yield on the facility's underlying strategy. Setting the rate checkpoints the facility first, so outstanding interest already accrued under the prior rate is preserved before the new rate takes effect.
+The `maxAnnualGrowthRate` is **flexible and at the `DEFAULT_ADMIN`'s discretion**, but in practice it is expected to track some multiple of the expected yield on the facility's underlying strategy. Setting the rate checkpoints the facility first, so outstanding interest already accrued under the prior rate is preserved before the new rate takes effect.
 
 ---
 
@@ -161,9 +161,9 @@ Repaying principal reduces the outstanding balance that future interest accrues 
 
 1. Require `amount > 0`.
 2. Checkpoint the position (advances the facility index and accrues outstanding interest first).
-3. Require `amount <= Position.outstandingInterest`.
+3. Require `amount <= Position.maxOutstandingInterest`.
 4. `_doFacilityRepay` as above, measuring the gem actually spent.
-5. Decrement `Position.outstandingInterest` by the measured `spent`.
+5. Decrement `Position.maxOutstandingInterest` by the measured `spent`.
 6. Decrement `LIMIT_NFAT_HALO_REPAY_INTEREST` keyed `(facility, gem)` by `spent`.
 
 **Event:** `NFATHaloRepayInterest(facility, tokenId, spent)` — `spent` is the measured balance delta.
