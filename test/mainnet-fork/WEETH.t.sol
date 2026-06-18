@@ -314,7 +314,8 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         uint256 initialWEETHBalance = WEETH.balanceOf(address(almProxy));
 
-        assertEq(initialWEETHBalance, 927.715236537415314851e18);
+        assertEq(initialWEETHBalance,                                       927.715236537415314851e18);
+        assertEq(eeth.allowance(address(almProxy), address(liquidityPool)), 0);
 
         uint256 expectedEETHBalance = WEETH.getEETHByWeETH(500e18 - 1); // Rounding error
 
@@ -343,7 +344,8 @@ contract MainnetController_WEETH_RequestWithdraw_Tests is WEETH_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(WEETH.balanceOf(address(almProxy)), initialWEETHBalance - 500e18);
+        assertEq(WEETH.balanceOf(address(almProxy)),                        initialWEETHBalance - 500e18);
+        assertEq(eeth.allowance(address(almProxy), address(liquidityPool)), 0);
 
         assertEq(expectedEETHBalance, 538.958486729386273829e18);
 

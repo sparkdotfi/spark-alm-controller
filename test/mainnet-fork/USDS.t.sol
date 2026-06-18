@@ -179,6 +179,18 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
         mainnetController.usds_burn(1e18);
     }
 
+    function test_burnUSDS_rateLimitBoundary() external {
+        vm.prank(allocator);
+        mainnetController.usds_mint(5_000_000e18);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        vm.prank(allocator);
+        mainnetController.usds_burn(5_000_000e18 + 1);
+
+        vm.prank(allocator);
+        mainnetController.usds_burn(5_000_000e18);
+    }
+
     function test_burnUSDS() external {
         // Setup
         vm.expectEmit(address(mainnetController));
@@ -289,6 +301,34 @@ contract MainnetController_USDS_Burn_Tests is USDS_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 0);  // stays at 0
         assertEq(rateLimits.getCurrentRateLimit(burnKey), 4_000_000e18);
+    }
+
+}
+
+contract MainnetController_USDS_VaultNotSet_Tests is ForkTestBase {
+
+    // NOTE: usds_setVault is intentionally NOT called, leaving the facet's vault at address(0).
+    function setUp() public override {
+        super.setUp();
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.usds_mintRateLimitKey(), 5_000_000e18, 0);
+        rateLimits.setRateLimitData(mainnetController.usds_burnRateLimitKey(), 5_000_000e18, 0);
+        vm.stopPrank();
+    }
+
+    function test_mintUSDS_vaultNotSet() external {
+        // mint performs a doCall to vault == address(0), which reverts (no code at the target).
+        vm.expectRevert();
+        vm.prank(allocator);
+        mainnetController.usds_mint(1e18);
+    }
+
+    function test_burnUSDS_vaultNotSet() external {
+        // burn reads IVaultLike(address(0)).buffer(), which reverts (no code at the target).
+        vm.expectRevert();
+        vm.prank(allocator);
+        mainnetController.usds_burn(1e18);
     }
 
 }

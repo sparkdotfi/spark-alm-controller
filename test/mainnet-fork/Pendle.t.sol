@@ -14,6 +14,8 @@ interface IERC20Like {
 
     function transfer(address to, uint256 amount) external returns (bool);
 
+    function allowance(address owner, address spender) external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256 balance);
 
 }
@@ -65,6 +67,12 @@ abstract contract Pendle_TestBase is ForkTestBase {
 }
 
 contract MainnetController_Pendle_Redeem_FailureTests is Pendle_TestBase {
+
+    function test_redeemPendlePT_reentrancy() public {
+        _setControllerEntered();
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, 1);
+    }
 
     function test_redeemPendlePT_notAllocator() public {
         vm.expectRevert(abi.encodeWithSignature(
@@ -183,13 +191,17 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         IERC20Like(pt).transfer((address(almProxy)), 1_000_000e18);
         vm.stopPrank();
 
-        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 1_000_000e18);
-        assertEq(yieldToken.balanceOf(address(almProxy)),     0);
+        assertEq(IERC20Like(pt).balanceOf(address(almProxy)),                              1_000_000e18);
+        assertEq(yieldToken.balanceOf(address(almProxy)),                                  0);
+        assertEq(IERC20Like(pt).allowance(address(almProxy), GroveEthereum.PENDLE_ROUTER), 0);
 
         vm.warp(pendleMarket.expiry());
 
-        uint256 pyIndexCurrent = IYTLike(yt).pyIndexCurrent();
-        uint256 exactAmountOut = 500_000e18 * 1e18 / pyIndexCurrent;
+        uint256 pyIndexCurrent        = IYTLike(yt).pyIndexCurrent();
+        uint256 exactAmountOut        = 500_000e18 * 1e18 / pyIndexCurrent;
+        uint256 redeemRateLimitBefore = rateLimits.getCurrentRateLimit(redeemKey);
+
+        vm.record();
 
         vm.expectEmit(address(mainnetController));
         emit IPendleFacet.PendleRedeem(address(pendleMarket), 500_000e18, exactAmountOut);
@@ -197,8 +209,12 @@ contract MainnetController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         vm.prank(allocator);
         mainnetController.pendle_redeem(address(pendleMarket), 500_000e18, exactAmountOut);
 
-        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 500_000e18);
-        assertEq(yieldToken.balanceOf(address(almProxy)),     500_000e18 * 1e18 / pyIndexCurrent);
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(IERC20Like(pt).balanceOf(address(almProxy)),                              500_000e18);
+        assertEq(yieldToken.balanceOf(address(almProxy)),                                  500_000e18 * 1e18 / pyIndexCurrent);
+        assertEq(IERC20Like(pt).allowance(address(almProxy), GroveEthereum.PENDLE_ROUTER), 0);
+        assertEq(rateLimits.getCurrentRateLimit(redeemKey),                                redeemRateLimitBefore - exactAmountOut);
 
         vm.warp(block.timestamp + 14 days);
 

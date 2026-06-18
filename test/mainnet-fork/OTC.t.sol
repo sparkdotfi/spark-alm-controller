@@ -12,7 +12,7 @@ import { OTCFacet }  from "../../src/facets/otc/OTCFacet.sol";
 
 import { OTCBuffer } from "../../src/facets/otc/OTCBuffer.sol";
 
-import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
+import { MockTokenReturnFalse, MockTokenReturn64Bytes } from "../mocks/Mocks.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -115,6 +115,43 @@ contract MainnetController_OTC_SetOTCBuffer_Tests is OTC_TestBase {
         mainnetController.otc_setBuffer(exchange, makeAddr("new-buffer"));
     }
 
+    function test_setOTCBuffer_afterSwapReady() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.otc_setBuffer(exchange, address(otcBuffer));
+        rateLimits.setRateLimitData(mainnetController.otc_getSendRateLimitKey(exchange,  Ethereum.USDT), 10_000_000e6,      0);
+        rateLimits.setRateLimitData(mainnetController.otc_getClaimRateLimitKey(exchange, Ethereum.USDT), type(uint256).max, 0);
+        vm.stopPrank();
+
+        deal(Ethereum.USDT, address(almProxy), 5_000_000e6);
+
+        // Execute and fully settle a swap so the exchange is ready for buffer rotation.
+        vm.prank(allocator);
+        mainnetController.otc_send(exchange, Ethereum.USDT, 5_000_000e6);
+
+        // 5m * 99.95% slippage = 4.9975m returned meets the readiness threshold exactly.
+        deal(Ethereum.USDT, address(otcBuffer), 4_997_500e6);
+
+        vm.prank(allocator);
+        mainnetController.otc_claim(exchange, Ethereum.USDT);
+
+        ( , uint256 sentTimestamp, ) = mainnetController.otc_getState(exchange);
+
+        assertEq(sentTimestamp,                                  block.timestamp);
+        assertEq(mainnetController.otc_getIsSwapReady(exchange), true);
+
+        // sentTimestamp != 0 but the swap is ready, so setBuffer takes the getIsSwapReady branch
+        // of the require and rotates the buffer instead of reverting "swap-in-progress".
+        address newBuffer = makeAddr("new-buffer");
+
+        vm.expectEmit(address(mainnetController));
+        emit IOTCFacet.OTCBufferSet(exchange, newBuffer);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        mainnetController.otc_setBuffer(exchange, newBuffer);
+
+        assertEq(mainnetController.otc_getBuffer(exchange), newBuffer);
+    }
+
 }
 
 contract MainnetController_OTC_Send_Tests is OTC_TestBase {
@@ -202,6 +239,19 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         vm.stopPrank();
 
         deal(token, address(almProxy), 1_000_000e6);
+
+        vm.expectRevert("OTCFacet/transfer-failed");
+        vm.prank(allocator);
+        mainnetController.otc_send(exchange, token, 1_000_000e6);
+    }
+
+    function test_otcSend_transferFailedOnNonStandardReturnData() external {
+        address token = address(new MockTokenReturn64Bytes());
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.otc_setBuffer(exchange, address(otcBuffer));
+        rateLimits.setRateLimitData(mainnetController.otc_getSendRateLimitKey(exchange, token), 1_000_000e6, 0);
+        vm.stopPrank();
 
         vm.expectRevert("OTCFacet/transfer-failed");
         vm.prank(allocator);
@@ -486,6 +536,71 @@ contract MainnetController_OTC_Send_Tests is OTC_TestBase {
         assertFalse(mainnetController.otc_getIsSwapReady(exchange));
     }
 
+    function test_otcSend_resetsNormalizedClaimed() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.otc_setBuffer(exchange, address(otcBuffer));
+        rateLimits.setRateLimitData(mainnetController.otc_getSendRateLimitKey(exchange,  Ethereum.USDT), 10_000_000e6,      0);
+        rateLimits.setRateLimitData(mainnetController.otc_getClaimRateLimitKey(exchange, Ethereum.USDT), type(uint256).max, 0);
+        vm.stopPrank();
+
+        deal(Ethereum.USDT, address(almProxy), 10_000_000e6);
+
+        vm.prank(allocator);
+        mainnetController.otc_send(exchange, Ethereum.USDT, 5_000_000e6);
+
+        // Claim the full amount back so normalizedClaimed > 0 and the next swap is ready.
+        deal(Ethereum.USDT, address(otcBuffer), 5_000_000e6);
+        vm.prank(allocator);
+        mainnetController.otc_claim(exchange, Ethereum.USDT);
+
+        _assertOTCState({
+            normalizedSent    : 5_000_000e18,
+            sentTimestamp     : block.timestamp,
+            normalizedClaimed : 5_000_000e18
+        });
+
+        // A new send resets normalizedClaimed to zero and overwrites normalizedSent/sentTimestamp.
+        vm.prank(allocator);
+        mainnetController.otc_send(exchange, Ethereum.USDT, 1_000_000e6);
+
+        _assertOTCState({
+            normalizedSent    : 1_000_000e18,
+            sentTimestamp     : block.timestamp,
+            normalizedClaimed : 0
+        });
+    }
+
+    function test_otcSend_highDecimalsPrecisionLoss() external {
+        // A token with >18 decimals: _toNormalizedAmount divides by 10**decimals, truncating dust
+        // below 18-decimal precision (see the NOTE in OTCFacet.send).
+        ERC20 token = new ERC20(24);
+
+        bytes32 sendRateLimitKey = mainnetController.otc_getSendRateLimitKey(exchange, address(token));
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.otc_setBuffer(exchange, address(otcBuffer));
+        rateLimits.setRateLimitData(sendRateLimitKey, type(uint256).max, 0);
+        vm.stopPrank();
+
+        // 5m tokens plus a single base unit, the trailing base unit is below 18-decimal precision.
+        uint256 amount = 5_000_000e24 + 1;
+
+        token.mint(address(almProxy), amount);
+
+        vm.prank(allocator);
+        mainnetController.otc_send(exchange, address(token), amount);
+
+        assertEq(token.balanceOf(address(almProxy)), 0);
+        assertEq(token.balanceOf(exchange),          amount);
+
+        // normalizedSent = amount * 1e18 / 1e24, truncating the +1 base unit (precision loss).
+        _assertOTCState({
+            normalizedSent    : 5_000_000e18,
+            sentTimestamp     : block.timestamp,
+            normalizedClaimed : 0
+        });
+    }
+
 }
 
 contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
@@ -538,6 +653,19 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
 
         vm.prank(Ethereum.SPARK_PROXY);
         otcBuffer.approve(token, type(uint256).max);
+
+        vm.expectRevert("OTCFacet/transferFrom-failed");
+        vm.prank(allocator);
+        mainnetController.otc_claim(exchange, token);
+    }
+
+    function test_otcClaim_transferFailedOnNonStandardReturnData() external {
+        address token = address(new MockTokenReturn64Bytes());
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.otc_setBuffer(exchange, address(otcBuffer));
+        rateLimits.setRateLimitData(mainnetController.otc_getClaimRateLimitKey(exchange, token), 1_000_000e6, 0);
+        vm.stopPrank();
 
         vm.expectRevert("OTCFacet/transferFrom-failed");
         vm.prank(allocator);
@@ -616,6 +744,49 @@ contract MainnetController_OTC_Claim_Tests is OTC_TestBase {
             normalizedSent:    0,  // Sent step not done, but this shows its not modified
             sentTimestamp:     0,  // Sent step not done, but this shows its not modified
             normalizedClaimed: 10_000_000e18
+        });
+    }
+
+    function test_otcClaim_accumulatesNormalizedClaimed() external {
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        mainnetController.otc_setBuffer(exchange, address(otcBuffer));
+        rateLimits.setRateLimitData(mainnetController.otc_getSendRateLimitKey(exchange,  Ethereum.USDT), 10_000_000e6,      0);
+        rateLimits.setRateLimitData(mainnetController.otc_getClaimRateLimitKey(exchange, Ethereum.USDT), type(uint256).max, 0);
+        vm.stopPrank();
+
+        deal(Ethereum.USDT, address(almProxy), 5_000_000e6);
+
+        vm.prank(allocator);
+        mainnetController.otc_send(exchange, Ethereum.USDT, 5_000_000e6);
+
+        _assertOTCState({
+            normalizedSent    : 5_000_000e18,
+            sentTimestamp     : block.timestamp,
+            normalizedClaimed : 0
+        });
+
+        // First partial claim.
+        deal(Ethereum.USDT, address(otcBuffer), 2_000_000e6);
+
+        vm.prank(allocator);
+        mainnetController.otc_claim(exchange, Ethereum.USDT);
+
+        _assertOTCState({
+            normalizedSent    : 5_000_000e18,
+            sentTimestamp     : block.timestamp,
+            normalizedClaimed : 2_000_000e18
+        });
+
+        // Second partial claim accumulates on top of the first.
+        deal(Ethereum.USDT, address(otcBuffer), 1_500_000e6);
+
+        vm.prank(allocator);
+        mainnetController.otc_claim(exchange, Ethereum.USDT);
+
+        _assertOTCState({
+            normalizedSent    : 5_000_000e18,
+            sentTimestamp     : block.timestamp,
+            normalizedClaimed : 3_500_000e18
         });
     }
 

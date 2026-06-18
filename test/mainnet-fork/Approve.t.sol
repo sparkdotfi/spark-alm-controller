@@ -47,6 +47,40 @@ contract ERC20ApproveFalseNonZeroAmount is ERC20 {
 
 }
 
+contract ERC20ApproveZeroResetReturnsFalse is ERC20 {
+
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
+
+    function approve(address spender, uint256 value) public virtual override returns (bool) {
+        // USDT-like: returns false when changing a non-zero allowance to non-zero (triggers fallback).
+        if (value != 0 && allowance(msg.sender, spender) != 0) return false;
+
+        bool result = super.approve(spender, value);
+
+        // The zero-reset succeeds on-chain but (mis)reports false; ApproveLib discards this value.
+        if (value == 0) return false;
+
+        return result;
+    }
+
+}
+
+contract ERC20ApproveZeroResetReverts is ERC20 {
+
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
+
+    function approve(address spender, uint256 value) public virtual override returns (bool) {
+        // The zero-reset reverts instead of returning a value.
+        if (value == 0) revert("MockToken/approve-zero-reverts");
+
+        // Returns false when changing a non-zero allowance to non-zero (triggers the fallback).
+        if (allowance(msg.sender, spender) != 0) return false;
+
+        return super.approve(spender, value);
+    }
+
+}
+
 contract Harness {
 
     address internal _proxy;
@@ -133,6 +167,31 @@ contract Approve_Tests is Test {
 
         vm.expectRevert("ApproveLib/approve-failed");
         harness.approve(address(mock), makeAddr("spender"), 100);
+    }
+
+    function test_approve_zeroResetReturnsFalseButSucceeds() external {
+        ERC20ApproveZeroResetReturnsFalse mock = new ERC20ApproveZeroResetReturnsFalse("Mock", "MOCK");
+
+        harness.approve(address(mock), spender, 100);
+
+        assertEq(IERC20Like(address(mock)).allowance(address(almProxy), spender), 100);
+
+        // The second approval triggers the fallback: approve(0) returns false (discarded by
+        // ApproveLib) but resets the allowance, so the re-approval succeeds gracefully.
+        harness.approve(address(mock), spender, 200);
+
+        assertEq(IERC20Like(address(mock)).allowance(address(almProxy), spender), 200);
+    }
+
+    function test_approve_zeroResetReverts() external {
+        ERC20ApproveZeroResetReverts mock = new ERC20ApproveZeroResetReverts("Mock", "MOCK");
+
+        harness.approve(address(mock), spender, 100);
+
+        // The second approval triggers the fallback, whose approve(0) reverts, the revert propagates
+        // unchanged (it is NOT transformed into "ApproveLib/approve-failed").
+        vm.expectRevert("MockToken/approve-zero-reverts");
+        harness.approve(address(mock), spender, 200);
     }
 
 }

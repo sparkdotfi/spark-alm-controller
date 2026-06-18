@@ -170,6 +170,40 @@ contract Controller_Tests is UnitTestBase {
         IMockController(address(controller)).facetFoo();
     }
 
+    function test_fallback_emptyReturnData() external {
+        address facet = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
+
+        controller.__setDispatch(
+            IMockController.facetFoo.selector,
+            IEnumerableIntegrations.Dispatch(facet, IMockFacet.foo.selector)
+        );
+
+        vm.mockCall(facet, abi.encodeWithSelector(IMockFacet.foo.selector), "");
+
+        (bool success, bytes memory returnData) =
+            address(controller).call(abi.encodeWithSelector(IMockController.facetFoo.selector));
+
+        assertEq(success,           true);
+        assertEq(returnData.length, 0); // empty return data
+    }
+
+    function test_fallback_emptyRevertData() external {
+        address facet = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
+
+        controller.__setDispatch(
+            IMockController.facetFoo.selector,
+            IEnumerableIntegrations.Dispatch(facet, IMockFacet.foo.selector)
+        );
+
+        vm.mockCallRevert(facet, abi.encodeWithSelector(IMockFacet.foo.selector), "");
+
+        (bool success, bytes memory returnData) =
+            address(controller).call(abi.encodeWithSelector(IMockController.facetFoo.selector));
+
+        assertEq(success,           false);
+        assertEq(returnData.length, 0); // empty revert data
+    }
+
     function test_fallback_facetRevert() external {
         address facet = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
 
@@ -189,6 +223,28 @@ contract Controller_Tests is UnitTestBase {
         vm.expectRevert(revertData);
 
         IMockController(address(controller)).facetFoo();
+    }
+
+    function test_fallback_exactlyFourBytes() external {
+        address facet = 0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD;
+
+        controller.__setDispatch(
+            IMockController.facetFoo.selector,
+            IEnumerableIntegrations.Dispatch(facet, IMockFacet.foo.selector)
+        );
+
+        vm.expectCall(facet, abi.encodeWithSelector(IMockFacet.foo.selector));
+        vm.mockCall(
+            facet,
+            abi.encodeWithSelector(IMockFacet.foo.selector),
+            abi.encode(uint256(42))
+        );
+
+        (bool success, bytes memory returnData) =
+            address(controller).call(abi.encodeWithSelector(IMockController.facetFoo.selector));
+
+        assertEq(success,                           true);
+        assertEq(abi.decode(returnData, (uint256)), 42);
     }
 
     function test_fallback_accessControlsAltered() external {

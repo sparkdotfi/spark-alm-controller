@@ -11,6 +11,8 @@ import { ForkTestBase } from "./ForkTestBase.t.sol";
 
 interface IERC20Like {
 
+    function allowance(address owner, address spender) external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256);
 
 }
@@ -196,8 +198,9 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
         assertEq(rateLimits.getCurrentRateLimit(depositKey),         0);
         assertEq(rateLimits.getCurrentRateLimit(requestWithdrawKey), 1_000e18);
 
-        assertEq(WETH.balanceOf(address(almProxy)),   0);
-        assertEq(WSTETH.balanceOf(address(almProxy)), 823.029395390731625220e18);
+        assertEq(WETH.balanceOf(address(almProxy)),                                   0);
+        assertEq(WSTETH.balanceOf(address(almProxy)),                                 823.029395390731625220e18);
+        assertEq(WSTETH.allowance(address(almProxy), Ethereum.WSTETH_WITHDRAW_QUEUE), 0);
 
         assertApproxEqAbs(WSTETH.getStETHByWstETH(WSTETH.balanceOf(address(almProxy))), 1_000e18, 2);
 
@@ -219,7 +222,8 @@ contract MainnetController_WSTETH_RequestWithdraw_Tests is WSTETH_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(WSTETH.balanceOf(address(almProxy)), 323.029395390731625220e18);
+        assertEq(WSTETH.balanceOf(address(almProxy)),                                 323.029395390731625220e18);
+        assertEq(WSTETH.allowance(address(almProxy), Ethereum.WSTETH_WITHDRAW_QUEUE), 0);
 
         assertEq(
             rateLimits.getCurrentRateLimit(requestWithdrawKey),
@@ -340,6 +344,8 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
         assertEq(statuses[0].isFinalized, true);
         assertEq(statuses[0].isClaimed,   false);
 
+        deal(address(almProxy), 1 ether); // Give the proxy a pre-existing ETH balance.
+
         vm.record();
 
         vm.expectEmit(address(mainnetController));
@@ -357,6 +363,8 @@ contract MainnetController_WSTETH_ClaimWithdrawal_Tests is WSTETH_TestBase {
 
         assertEq(WETH.balanceOf(address(almProxy)),   expectedStETHWithdrawal);
         assertEq(WSTETH.balanceOf(address(almProxy)), 818.02939539073162522e18);
+
+        assertEq(address(almProxy).balance, 1 ether); // The pre-existing ETH remains untouched on the proxy.
 
         assertApproxEqAbs(
             WETH.balanceOf(address(almProxy)) + WSTETH.getStETHByWstETH(WSTETH.balanceOf(address(almProxy))),

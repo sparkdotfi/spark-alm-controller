@@ -7,7 +7,7 @@ import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
 
 import { ITransferAssetFacet } from "../../src/facets/transfer-asset/ITransferAssetFacet.sol";
 
-import { MockTokenReturnFalse } from "../mocks/Mocks.sol";
+import { MockTokenReturnFalse, MockTokenReturn64Bytes } from "../mocks/Mocks.sol";
 
 import { ForkTestBase } from "./ForkTestBase.t.sol";
 
@@ -87,6 +87,19 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.stopPrank();
 
         deal(address(token), address(almProxy), 1_000_000e18);
+
+        vm.expectRevert("TransferAssetFacet/transfer-failed");
+        vm.prank(allocator);
+        mainnetController.transferAsset_transfer(address(token), receiver, 1_000_000e18);
+    }
+
+    function test_transferAsset_transferFailedOnNonStandardReturnData() external {
+        MockTokenReturn64Bytes token = new MockTokenReturn64Bytes();
+
+        bytes32 key = mainnetController.transferAsset_getTransferRateLimitKey(address(token), receiver);
+
+        vm.prank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(key, 1_000_000e18, uint256(1_000_000e18) / 1 days);
 
         vm.expectRevert("TransferAssetFacet/transfer-failed");
         vm.prank(allocator);

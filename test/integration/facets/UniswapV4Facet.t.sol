@@ -288,6 +288,10 @@ contract Controller_UniswapV4Facet_Tests is Integration_TestBase {
         vm.prank(admin);
         controller.setTickLimits(_POOL_ID, 0, 1, 0); // Reverts when maxTickSpacing is zero
 
+        vm.expectRevert("UniswapV4Facet/invalid-ticks");
+        vm.prank(admin);
+        controller.setTickLimits(_POOL_ID, 0, 0, 1); // Reverts: zero ticks only disable limits when maxTickSpacing is also zero
+
         vm.prank(admin);
         controller.setTickLimits(_POOL_ID, 1, 2, 1);
     }

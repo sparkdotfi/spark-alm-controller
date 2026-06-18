@@ -447,6 +447,60 @@ contract MainnetController_UniswapV3_Swap_Tests is UniswapV3_TestBase {
         vm.stopPrank();
     }
 
+    function test_swapUniswapV3_rateLimitExceeded_token0Boundary() public {
+        uint256 amountInAtBoundary = 1_000_000e6;
+
+        _fundProxy(amountInAtBoundary + 1, 0);
+
+        vm.startPrank(allocator);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.uniswapV3_swap(
+            _getPool(),
+            address(token0),
+            amountInAtBoundary + 1,
+            (amountInAtBoundary + 1) * 99 / 100,
+            200
+        );
+
+        mainnetController.uniswapV3_swap(
+            _getPool(),
+            address(token0),
+            amountInAtBoundary,
+            amountInAtBoundary * 99 / 100,
+            200
+        );
+
+        vm.stopPrank();
+    }
+
+    function test_swapUniswapV3_rateLimitExceeded_token1Boundary() public {
+        uint256 amountInAtBoundary = 1_000_000e6;
+
+        _fundProxy(0,amountInAtBoundary + 1);
+
+        vm.startPrank(allocator);
+
+        vm.expectRevert("RateLimits/rate-limit-exceeded");
+        mainnetController.uniswapV3_swap(
+            _getPool(),
+            address(token1),
+            amountInAtBoundary + 1,
+            (amountInAtBoundary + 1) * 99 / 100,
+            200
+        );
+
+        mainnetController.uniswapV3_swap(
+            _getPool(),
+            address(token1),
+            amountInAtBoundary,
+            amountInAtBoundary * 99 / 100,
+            200
+        );
+
+        vm.stopPrank();
+    }
+
     function test_swapUniswapV3_token0ToToken1() public {
         uint256 amountIn = 250_000e6;
         _fundProxy(amountIn, 0);

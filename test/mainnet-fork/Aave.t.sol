@@ -211,6 +211,10 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
     function test_depositAave_usds() external {
         deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
 
+        bytes32 depositKey = mainnetController.aave_getDepositRateLimitKey(ATOKEN_USDS, POOL, Ethereum.USDS);
+
+        uint256 startingDepositRateLimit = rateLimits.getCurrentRateLimit(depositKey);
+
         assertEq(usds.allowance(address(almProxy), POOL), 0);
 
         assertEq(AUSDS.balanceOf(address(almProxy)), 0);
@@ -226,6 +230,8 @@ contract MainnetController_AaveV3_Deposit_Tests is AaveV3_TestBase {
         mainnetController.aave_deposit(ATOKEN_USDS, 1_000_000e18);
 
         _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(rateLimits.getCurrentRateLimit(depositKey), startingDepositRateLimit - 1_000_000e18);
 
         assertEq(usds.allowance(address(almProxy), POOL), 0);
 

@@ -34,6 +34,8 @@ interface IERC20Like {
 
     function approve(address spender, uint256 amount) external returns (bool);
 
+    function allowance(address owner, address spender) external view returns (uint256);
+
     function balanceOf(address account) external view returns (uint256);
 
 }
@@ -116,7 +118,7 @@ abstract contract LayerZero_TestBase is ForkTestBase {
 
     bytes32 internal key;
 
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
 
         key = mainnetController.layerZero_getTransferRateLimitKey(
@@ -245,9 +247,10 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
         uint256 oftStartingUSDT = USDT.balanceOf(USDT_OFT);
 
-        assertEq(allocator.balance,                   1 ether);
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6);
-        assertEq(USDT.balanceOf(address(almProxy)),   10_000_000e6);
+        assertEq(allocator.balance,                           1 ether);
+        assertEq(rateLimits.getCurrentRateLimit(key),         10_000_000e6);
+        assertEq(USDT.balanceOf(address(almProxy)),           10_000_000e6);
+        assertEq(USDT.allowance(address(almProxy), USDT_OFT), 0);
 
         ( , ILayerZeroFacet.MessagingFee memory fee ) = mainnetController.layerZero_quoteTransfer(
             USDT_OFT,
@@ -278,10 +281,11 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(allocator.balance,                   1 ether - fee.nativeFee);
-        assertEq(USDT.balanceOf(USDT_OFT),            oftStartingUSDT + 10_000_000e6);
-        assertEq(USDT.balanceOf(address(almProxy)),   0);
-        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+        assertEq(allocator.balance,                           1 ether - fee.nativeFee);
+        assertEq(USDT.balanceOf(USDT_OFT),                    oftStartingUSDT + 10_000_000e6);
+        assertEq(USDT.balanceOf(address(almProxy)),           0);
+        assertEq(rateLimits.getCurrentRateLimit(key),         0);
+        assertEq(USDT.allowance(address(almProxy), USDT_OFT), 0);
     }
 
     function test_transferTokenLayerZero_refundExcessNativeFee() external {
@@ -303,11 +307,12 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
         uint256 oftStartingUSDT = USDT.balanceOf(USDT_OFT);
 
-        assertEq(allocator.balance,                   1 ether);
-        assertEq(address(almProxy).balance,           0.4 ether);
-        assertEq(address(mainnetController).balance,  0.2 ether);
-        assertEq(USDT.balanceOf(address(almProxy)),   10_000_000e6);
-        assertEq(rateLimits.getCurrentRateLimit(key), 10_000_000e6);
+        assertEq(allocator.balance,                           1 ether);
+        assertEq(address(almProxy).balance,                   0.4 ether);
+        assertEq(address(mainnetController).balance,          0.2 ether);
+        assertEq(USDT.balanceOf(address(almProxy)),           10_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(key),         10_000_000e6);
+        assertEq(USDT.allowance(address(almProxy), USDT_OFT), 0);
 
         ( , ILayerZeroFacet.MessagingFee memory fee ) = mainnetController.layerZero_quoteTransfer(
             USDT_OFT,
@@ -341,12 +346,13 @@ contract MainnetController_LayerZero_TransferToken_Tests is LayerZero_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(allocator.balance,                   1 ether - msgValue);
-        assertEq(address(almProxy).balance,           0.4 ether + 0.1 ether + 0.2 ether); // AlmProxy should be given all excess ETH.
-        assertEq(address(mainnetController).balance,  0); // Controller should not keep any excess ETH.
-        assertEq(USDT.balanceOf(USDT_OFT),            oftStartingUSDT + 10_000_000e6);
-        assertEq(USDT.balanceOf(address(almProxy)),   0);
-        assertEq(rateLimits.getCurrentRateLimit(key), 0);
+        assertEq(allocator.balance,                           1 ether - msgValue);
+        assertEq(address(almProxy).balance,                   0.4 ether + 0.1 ether + 0.2 ether); // AlmProxy should be given all excess ETH.
+        assertEq(address(mainnetController).balance,          0); // Controller should not keep any excess ETH.
+        assertEq(USDT.balanceOf(USDT_OFT),                    oftStartingUSDT + 10_000_000e6);
+        assertEq(USDT.balanceOf(address(almProxy)),           0);
+        assertEq(rateLimits.getCurrentRateLimit(key),         0);
+        assertEq(USDT.allowance(address(almProxy), USDT_OFT), 0);
     }
 
     function test_quoteTransferLayerZero_quoteSendFailed() external {
@@ -658,9 +664,10 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
         deal(allocator, 1 ether);  // Gas cost for LayerZero
 
-        assertEq(allocator.balance,                                     1 ether);
-        assertEq(foreignRateLimits.getCurrentRateLimit(key),            10_000_000e6);
-        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)), 10_000_000e6);
+        assertEq(allocator.balance,                                               1 ether);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),                      10_000_000e6);
+        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)),           10_000_000e6);
+        assertEq(IERC20Like(USDT0).allowance(address(foreignAlmProxy), USDT_OFT), 0);
 
         ( , ILayerZeroFacet.MessagingFee memory fee ) = foreignController.layerZero_quoteTransfer(
             USDT_OFT,
@@ -691,9 +698,10 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
         _assertReentrancyGuardWrittenToTwice(address(foreignController));
 
-        assertEq(allocator.balance,                                     1 ether - fee.nativeFee);
-        assertEq(foreignRateLimits.getCurrentRateLimit(key),            0);
-        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)), 0);
+        assertEq(allocator.balance,                                               1 ether - fee.nativeFee);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),                      0);
+        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)),           0);
+        assertEq(IERC20Like(USDT0).allowance(address(foreignAlmProxy), USDT_OFT), 0);
     }
 
     function test_transferTokenLayerZero_refundExcessNativeFee() external {
@@ -713,11 +721,12 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
         // Setup token balances
         deal(USDT0, address(foreignAlmProxy), 10_000_000e6);
 
-        assertEq(allocator.balance,                                     1 ether);
-        assertEq(address(foreignAlmProxy).balance,                      0.4 ether);
-        assertEq(address(foreignController).balance,                    0.2 ether);
-        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)), 10_000_000e6);
-        assertEq(foreignRateLimits.getCurrentRateLimit(key),            10_000_000e6);
+        assertEq(allocator.balance,                                               1 ether);
+        assertEq(address(foreignAlmProxy).balance,                                0.4 ether);
+        assertEq(address(foreignController).balance,                              0.2 ether);
+        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)),           10_000_000e6);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),                      10_000_000e6);
+        assertEq(IERC20Like(USDT0).allowance(address(foreignAlmProxy), USDT_OFT), 0);
 
         ( , ILayerZeroFacet.MessagingFee memory fee ) = foreignController.layerZero_quoteTransfer(
             USDT_OFT,
@@ -751,11 +760,12 @@ contract ForeignController_LayerZero_TransferToken_Tests is ArbitrumChain_LayerZ
 
         _assertReentrancyGuardWrittenToTwice(address(foreignController));
 
-        assertEq(allocator.balance,                                     1 ether - msgValue);
-        assertEq(address(foreignAlmProxy).balance,                      0.4 ether + 0.1 ether + 0.2 ether); // AlmProxy should be given all excess ETH.
-        assertEq(address(foreignController).balance,                    0); // Controller should not keep any excess ETH.
-        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)), 0);
-        assertEq(foreignRateLimits.getCurrentRateLimit(key),            0);
+        assertEq(allocator.balance,                                               1 ether - msgValue);
+        assertEq(address(foreignAlmProxy).balance,                                0.4 ether + 0.1 ether + 0.2 ether); // AlmProxy should be given all excess ETH.
+        assertEq(address(foreignController).balance,                              0); // Controller should not keep any excess ETH.
+        assertEq(IERC20Like(USDT0).balanceOf(address(foreignAlmProxy)),           0);
+        assertEq(foreignRateLimits.getCurrentRateLimit(key),                      0);
+        assertEq(IERC20Like(USDT0).allowance(address(foreignAlmProxy), USDT_OFT), 0);
     }
 
 }

@@ -151,8 +151,6 @@ contract Controller_OTCFacet_Tests is Integration_TestBase {
         controller.setBuffer(address(1), address(1));
     }
 
-    // TODO: test_setBuffer_notReady
-
     function test_setBuffer() external {
         address buffer   = makeAddr("buffer");
         address exchange = makeAddr("exchange");

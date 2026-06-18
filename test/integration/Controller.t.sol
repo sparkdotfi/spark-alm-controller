@@ -196,6 +196,32 @@ contract Controller_IntegrationTests is Integration_TestBase {
         controller.updateIntegrations(integrationIds);
     }
 
+    function test_updateIntegrations_duplicateIdsInBatch() external {
+        IEnumerableIntegrations.Integration memory twoFactorIntegration  = _registerTwoFactorIntegration();
+
+        bytes32[] memory integrationIds = new bytes32[](2);
+        integrationIds[0] = twoFactorIntegration.id;
+        integrationIds[1] = twoFactorIntegration.id;
+
+        assertEq(beacon.integrations().length,     1);
+        assertEq(controller.integrations().length, 0);
+
+        vm.expectEmit(address(controller));
+        emit IEnumerableIntegrations.IntegrationSet(twoFactorIntegration.id, twoFactorIntegration.config);
+
+        vm.expectEmit(address(controller));
+        emit IEnumerableIntegrations.IntegrationSet(twoFactorIntegration.id, twoFactorIntegration.config);
+
+        vm.prank(admin);
+        controller.updateIntegrations(integrationIds);
+
+        assertEq(beacon.integrations().length,     1);
+        assertEq(controller.integrations().length, 1);
+
+        assertEq(controller.divideBy2(12),   6);
+        assertEq(controller.multiplyBy2(12), 24);
+    }
+
     function test_updateIntegrations() external {
         IEnumerableIntegrations.Integration memory twoFactorIntegration  = _registerTwoFactorIntegration();
         IEnumerableIntegrations.Integration memory fourFactorIntegration = _registerFourFactorIntegration();
@@ -337,12 +363,12 @@ contract Controller_IntegrationTests is Integration_TestBase {
     function test_removeIntegrations_integrationNotFound_duplicateIds() external {
         IEnumerableIntegrations.Integration memory twoFactorIntegration = _registerTwoFactorIntegration();
 
-        vm.prank(beaconAdmin);
-        beacon.setIntegration(twoFactorIntegration.id, twoFactorIntegration.config);
-
         bytes32[] memory integrationIds = new bytes32[](2);
         integrationIds[0] = twoFactorIntegration.id;
         integrationIds[1] = twoFactorIntegration.id;
+
+        vm.prank(admin);
+        controller.updateIntegrations(integrationIds);
 
         vm.expectRevert(abi.encodeWithSelector(IEnumerableIntegrations.IntegrationNotFound.selector, integrationIds[0]));
         vm.prank(admin);
@@ -596,6 +622,43 @@ contract Controller_IntegrationTests is Integration_TestBase {
 
         assertEq(dispatches[1].facet,            integration.config.facet);
         assertEq(dispatches[1].delegateSelector, MockFacet1.mul.selector);
+    }
+
+    function test_dispatchesConsistentWithConfigs() external {
+        IEnumerableIntegrations.Integration memory twoFactorIntegration  = _registerTwoFactorIntegration();
+        IEnumerableIntegrations.Integration memory fourFactorIntegration = _registerFourFactorIntegration();
+
+        bytes32[] memory integrationIds = new bytes32[](2);
+        integrationIds[0] = twoFactorIntegration.id;
+        integrationIds[1] = fourFactorIntegration.id;
+
+        vm.prank(admin);
+        controller.updateIntegrations(integrationIds);
+
+        // Asserting every wire in every config resolves to a matching dispatch.
+        _assertDispatchesMatchConfigs(integrationIds);
+
+        // Removing one integration.
+        bytes32[] memory toRemove = new bytes32[](1);
+        toRemove[0] = fourFactorIntegration.id;
+
+        vm.prank(admin);
+        controller.removeIntegrations(toRemove);
+
+        // Asserting removed integration's dispatches are cleared.
+        for (uint256 j = 0; j < fourFactorIntegration.config.wires.length; ++j) {
+            IEnumerableIntegrations.Dispatch memory dispatch =
+                controller.getDispatch(fourFactorIntegration.config.wires[j].callSelector);
+
+            assertEq(dispatch.facet,            address(0));
+            assertEq(dispatch.delegateSelector, bytes4(0));
+        }
+
+        // Asserting remaining integration's dispatches are untouched.
+        bytes32[] memory remaining = new bytes32[](1);
+        remaining[0] = twoFactorIntegration.id;
+
+        _assertDispatchesMatchConfigs(remaining);
     }
 
     /**********************************************************************************************/
@@ -860,6 +923,20 @@ contract Controller_IntegrationTests is Integration_TestBase {
     /**********************************************************************************************/
     /*** Helper Functions                                                                       ***/
     /**********************************************************************************************/
+
+    function _assertDispatchesMatchConfigs(bytes32[] memory ids) internal view {
+        IEnumerableIntegrations.Config[] memory configs = controller.getConfigs(ids);
+
+        for (uint256 i = 0; i < configs.length; ++i) {
+            for (uint256 j = 0; j < configs[i].wires.length; ++j) {
+                IEnumerableIntegrations.Wire     memory wire     = configs[i].wires[j];
+                IEnumerableIntegrations.Dispatch memory dispatch = controller.getDispatch(wire.callSelector);
+
+                assertEq(dispatch.facet,            configs[i].facet);
+                assertEq(dispatch.delegateSelector, wire.delegateSelector);
+            }
+        }
+    }
 
     function _registerTwoFactorIntegration() internal returns (IEnumerableIntegrations.Integration memory integration) {
         IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](2);

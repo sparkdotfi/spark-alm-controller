@@ -483,4 +483,50 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         });
     }
 
+    function test_withdrawPSM_partialFill() external {
+        bytes32 key = foreignController.psm3_getWithdrawRateLimitKey(Base.USDC);
+
+        // Deposit only 50e6 USDC so the proxy is backed for at most 50e6 on withdrawal.
+        deal(Base.USDC, address(almProxy), 50e6);
+
+        vm.prank(allocator);
+        foreignController.psm3_deposit(Base.USDC, 50e6);
+
+        _assertState({
+            token            : Base.USDC,
+            proxyBalance     : 0,
+            psmBalance       : 50e6,
+            proxyShares      : 50e18,
+            totalShares      : 51e18,
+            totalAssets      : 51e18,
+            rateLimitKey     : key,
+            currentRateLimit : 5_000_000e6
+        });
+
+        vm.record();
+
+        // maxAmount (100e6) exceeds what the PSM can release for the proxy (only 50e6), the facet
+        // measures the ACTUAL assetsWithdrawn and decrements the rate limit by that, not maxAmount.
+        vm.expectEmit(address(foreignController));
+        emit IPSM3Facet.PSM3Withdraw(Base.USDC, 50e6, 50e18);
+
+        vm.prank(allocator);
+        uint256 amountWithdrawn = foreignController.psm3_withdraw(Base.USDC, 100e6);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(amountWithdrawn, 50e6);
+
+        _assertState({
+            token            : Base.USDC,
+            proxyBalance     : 50e6,
+            psmBalance       : 0,
+            proxyShares      : 0,
+            totalShares      : 1e18,  // From seeding USDS
+            totalAssets      : 1e18,  // From seeding USDS
+            rateLimitKey     : key,
+            currentRateLimit : 4_999_950e6
+        });
+    }
+
 }

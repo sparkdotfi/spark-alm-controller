@@ -639,3 +639,12 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
     }
 
 }
+
+contract MainnetController_PSM_To18ConversionFactor_Tests is PSM_TestBase {
+
+    function test_to18ConversionFactor() external view {
+        uint256 factor = mainnetController.psm_to18ConversionFactor();
+        assertEq(factor, 1e12);
+    }
+
+}

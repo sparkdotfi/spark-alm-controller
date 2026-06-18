@@ -271,6 +271,9 @@ contract MainnetController_Maple_RequestRedemption_Tests is Maple_TestBase {
         assertEq(SYRUP.balanceOf(address(almProxy)),                    proxyShares);
         assertEq(SYRUP.allowance(address(almProxy), withdrawalManager), 0);
 
+        uint256 redeemRateLimitBefore = rateLimits.getCurrentRateLimit(redeemKey);
+        uint256 consumedAssets        = SYRUP.convertToAssets(proxyShares);
+
         vm.record();
 
         vm.expectEmit(address(mainnetController));
@@ -284,6 +287,7 @@ contract MainnetController_Maple_RequestRedemption_Tests is Maple_TestBase {
         assertEq(SYRUP.balanceOf(withdrawalManager),                    totalEscrowedShares + proxyShares);
         assertEq(SYRUP.balanceOf(address(almProxy)),                    0);
         assertEq(SYRUP.allowance(address(almProxy), withdrawalManager), 0);
+        assertEq(rateLimits.getCurrentRateLimit(redeemKey),             redeemRateLimitBefore - consumedAssets);
     }
 }
 

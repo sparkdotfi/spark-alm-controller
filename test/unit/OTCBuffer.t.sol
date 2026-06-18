@@ -4,7 +4,12 @@ pragma solidity ^0.8.34;
 import { ERC1967Proxy } from "../../lib/openzeppelin-contracts/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { ERC20Mock }    from "../../lib/openzeppelin-contracts/contracts/mocks/token/ERC20Mock.sol";
 
-import { IERC1967 } from "../../lib/openzeppelin-contracts/contracts/interfaces/IERC1967.sol";
+import { IAccessControl }           from "../../lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import { IAccessControlEnumerable } from "../../lib/openzeppelin-contracts/contracts/access/extensions/IAccessControlEnumerable.sol";
+import { IERC1967 }                 from "../../lib/openzeppelin-contracts/contracts/interfaces/IERC1967.sol";
+import { IERC165 }                  from "../../lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
+
+import { IOTCBuffer } from "../../src/facets/otc/IOTCBuffer.sol";
 
 import { OTCBuffer } from "../../src/facets/otc/OTCBuffer.sol";
 
@@ -114,6 +119,31 @@ contract OTCBuffer_Approve_Tests is OTCBuffer_TestBase {
         buffer.approve(address(usdt), 1_000_000e6);
 
         assertEq(usdt.allowance(address(buffer), proxy), 1_000_000e6);
+
+        // A second approval decreasing the allowance works via forceApprove (which resets to 0
+        // first for tokens that require it).
+        vm.prank(admin);
+        buffer.approve(address(usdt), 500_000e6);
+
+        assertEq(usdt.allowance(address(buffer), proxy), 500_000e6);
+
+        vm.prank(admin);
+        buffer.approve(address(usdt), 0);
+
+        assertEq(usdt.allowance(address(buffer), proxy), 0);
+    }
+
+}
+
+contract OTCBuffer_SupportsInterface_Tests is OTCBuffer_TestBase {
+
+    function test_supportsInterface() external view {
+        assertEq(buffer.supportsInterface(type(IOTCBuffer).interfaceId),               true);
+        assertEq(buffer.supportsInterface(type(IAccessControlEnumerable).interfaceId), true);
+        assertEq(buffer.supportsInterface(type(IAccessControl).interfaceId),           true);
+        assertEq(buffer.supportsInterface(type(IERC165).interfaceId),                  true);
+        assertEq(buffer.supportsInterface(0x00000000),                                 false);
+        assertEq(buffer.supportsInterface(0xffffffff),                                 false);
     }
 
 }

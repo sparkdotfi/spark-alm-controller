@@ -122,6 +122,12 @@ contract Controller_ERC4626Facet_Tests is Integration_TestBase {
         controller.setMaxExchangeRate(address(0), 1e18, 1e18);
     }
 
+    function test_setMaxExchangeRate_zeroShares() external {
+        vm.expectRevert("ERC4626Facet/zero-shares");
+        vm.prank(admin);
+        controller.setMaxExchangeRate(makeAddr("token"), 0, 1e18);
+    }
+
     function test_setMaxExchangeRate() external {
         address token = makeAddr("token");
 

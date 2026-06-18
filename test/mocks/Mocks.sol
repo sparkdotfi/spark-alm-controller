@@ -22,6 +22,26 @@ contract MockTokenReturnFalse is ERC20 {
 
 }
 
+contract MockTokenReturn64Bytes {
+
+    function decimals() external pure returns (uint8) {
+        return 18;
+    }
+
+    function balanceOf(address) external pure returns (uint256) {
+        return 1_000_000e18;
+    }
+
+    function transfer(address, uint256) external pure returns (bool, bool) {
+        return (true, true);
+    }
+
+    function transferFrom(address, address, uint256) external pure returns (bool, bool) {
+        return (true, true);
+    }
+
+}
+
 contract MockTokenReturnNull {
 
     string public name;

@@ -176,15 +176,17 @@ contract WEETHModule_UnitTests is WEETHModule_TestBase {
     }
 
     function test_claimWithdrawal() external {
+        deal(address(weethModule), 0.5 ether); // Pre-existing ETH on the module.
+
         assertEq(address(proxy).balance,       0);
         assertEq(mockWeth.balanceOf(proxy),    0);
-        assertEq(address(weethModule).balance, 0);
+        assertEq(address(weethModule).balance, 0.5 ether);
 
         vm.prank(proxy);
         uint256 ethReceived = weethModule.claimWithdrawal(1);
 
         assertEq(address(proxy).balance,       0);
-        assertEq(ethReceived,                  1 ether);
+        assertEq(ethReceived,                  1.5 ether);
         assertEq(mockWeth.balanceOf(proxy),    ethReceived);
         assertEq(address(weethModule).balance, 0);
     }
