@@ -210,14 +210,26 @@ contract DeployForeignController is Script {
         vm.setEnv("FOUNDRY_EXPORTS_OVERWRITE_LATEST", "true");
 
         string memory chainName = vm.envString("CHAIN");
-        string memory fileSlug  = string(abi.encodePacked(chainName, "-", vm.envString("ENV")));
-        string memory config    = ScriptTools.loadConfig(fileSlug);
 
         vm.createSelectFork(getChain(chainName).rpcUrl);
 
-        console.log(string(abi.encodePacked("Deploying ", chainName, " Controller...")));
+        bool isStaging = keccak256(abi.encodePacked(vm.envString("ENV"))) == keccak256(abi.encodePacked("staging"));
 
-        vm.startBroadcast();
+        if (isStaging) {
+            console.log("Deploying Staging Foreign Controller on", chainName, "...");
+        } else {
+            console.log("Deploying Production Foreign Controller on", chainName, "...");
+        }
+
+        string memory fileSlug = string(abi.encodePacked(chainName, "-", vm.envString("ENV")));
+
+        vm.startBroadcast(uint256(vm.envBytes32("PRIVATE_KEY")));
+
+        ( , , address txOrigin ) = vm.readCallers();
+
+        console.log("Deployer:", txOrigin);
+
+        string memory config = ScriptTools.loadConfig(fileSlug);
 
         address controller = ForeignControllerDeploy.deployController({
             admin      : config.readAddress(".admin"),
