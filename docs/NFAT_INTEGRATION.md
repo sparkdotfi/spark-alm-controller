@@ -6,7 +6,9 @@ This document describes the NFAT (Non-Fungible Asset Token) integration with the
 
 An **NFAT facility** (`NFATFacility`) is a lending venue where capital is subscribed in a fungible gem (e.g. USDS), then crystallised into a **non-fungible position** (an NFAT NFT) representing a specific tranche of deployed principal. Repayments (principal and interest) accrue against the tokenId and are later collected by the NFT owner.
 
-**There is a one-to-one relationship between a PAU system and an NFAT facility.** Every facility is paired with exactly one PAU stack (ALMProxy, RateLimits, and the Controller(s) wiring the NFAT facets), and that PAU stack serves exactly one facility — neither is shared. This pairing is concretely expressed on-chain by the facility's `recipient` being set to **that PAU's ALMProxy**, so all drawn principal flows into the paired PAU's custody. See [Deployment Topology](#deployment-topology-two-controllers-one-alm) for how that per-facility PAU stack is structured.
+**There is an off-chain expectation of a one-to-one relationship between a PAU system and an NFAT facility.** Every facility is paired with one PAU stack (ALMProxy, RateLimits, and the Controller(s) wiring the NFAT facets), and that PAU stack serves one facility — neither is shared. This pairing is only concretely expressed on-chain by the facility's `recipient` being set to **that PAU's ALMProxy**, so all drawn principal flows into the paired PAU's custody. See [Deployment Topology](#deployment-topology-two-controllers-one-alm) for how that per-facility PAU stack is structured.
+
+However, there is no concretely expressed on-chain enforcement that a PAU system can only interact with one NFAT facility. While there is not immediate business requirement, it is possible that a single PAU stack can serve multiple facilities.
 
 There are two parties, on opposite sides of the book:
 
@@ -26,26 +28,20 @@ It is **not expected** for a single Controller to wire both the Halo and Prime N
 
 ---
 
-## Facility Permissions and the Bud Requirement
-
-`NFATFacility` uses the standard `wards` / `buds` / `cops` auth model:
-
-- `issue` is gated by the `toll` modifier — **only an operator (`bud`) may call it.**
-- `repay` is permissionless (anyone can repay a live tokenId).
-- `collect` is owner-only (only the NFAT owner can pull collectable balance).
-
-Because the facet executes facility calls through the ALMProxy (via `IALMProxy.doCall`), the **ALMProxy must be `kiss`-ed as a `bud` on the facility** so that `issue` succeeds. This is an operational precondition of the Halo integration.
+## Facility Receipient
 
 The facility's `recipient` (the destination of gem transferred out on `issue`) is **expected to be the ALMProxy**, so that drawn principal lands back in PAU custody and the facet can measure it (see [Measuring by Balance Delta](#measuring-by-balance-delta)).
 
 ---
 
-## Why `issue` is Routed Through the ALMProxy
+## Issuing NFATs
 
-`NFATFacility.issue` could in principle be called by any bud. We deliberately route it through the PAU (ALMProxy + facet) for two reasons:
+`NFATFacility.issue` does not need to be called by the ALMProxy in order for the ALMProxy to receive funds, however, `issue` calls routed through the PAU (ALMProxy + facet) allow for:
 
 1. **Principal recording.** The facet records the outstanding principal into its own ERC-7201 storage (`Position.outstandingPrincipal`) at issue time. This is the basis for all downstream interest accrual and repayment accounting — none of which the facility itself tracks.
 2. **Rate limiting.** Routing through the facet lets us apply PAU rate limits to issuance and repayment, giving governance a throttle over how fast principal can be drawn against and serviced.
+
+If the NFAT allows for other callers to `issue` NFATs such that the ALMProxy receives funds, then the PAU will not be aware of the position, nor can it be held accountable or liable.
 
 ### Measuring by Balance Delta
 
@@ -87,7 +83,7 @@ Repay limits include `gem` (funds are transferred away from the ALMProxy) so a f
 
 #### `to` as an inbound-actor whitelist
 
-The **issue** limit is keyed on `to` (the NFAT recipient). This is intentional: the per-`(facility, to)` rate limit doubles as a **whitelist of inbound actors** for the facility. `NFATFacility` does ship an `identityNetwork` for exactly this kind of eligibility gating, but that mechanism is **not yet production-ready**, so for now the issue rate limit serves as the operative allowlist: only recipients with a configured, non-zero limit can be issued to.
+The **issue** limit is keyed on `to` (the NFAT recipient). This is intentional: the per-`(facility, to)` rate limit doubles as a **whitelist of inbound actors** for the facility.
 
 **Every whitelisted `to` is expected to be a Prime.** Constraining issuance to the Prime network is how we keep drawn principal **inside the Sky system** — an NFAT can only be issued to an address that has been onboarded (via a configured rate-limit key) as a Prime, so capital cannot leak to an arbitrary external recipient.
 
@@ -113,6 +109,10 @@ Interest owed on a position grows continuously and cannot be expressed as a disc
 - Each position snapshots the index at issue time. When the position is next touched (`_checkpointPosition`), the index delta since its snapshot is applied to its outstanding principal to accrue `Position.maxOutstandingInterest`.
 
 The `maxAnnualGrowthRate` is **flexible and at the `DEFAULT_ADMIN`'s discretion**, but in practice it is expected to track some multiple of the expected yield on the facility's underlying strategy. Setting the rate checkpoints the facility first, so outstanding interest already accrued under the prior rate is preserved before the new rate takes effect.
+
+#### Interest-bearing assets
+
+If the underlying asset is interest bearing (i.e. sUSDS), then operators should take the expected appreciation into account when setting the max annual growth rate. This is because the max annual growth rate is a percentage of the outstanding principal, and if the underlying asset is appreciating, then the outstanding principal value will be increasing.
 
 ---
 
@@ -197,19 +197,19 @@ Only **subscribe** has rate limit that keys on `gem`, since it moves funds away 
 An NFAT facility's PAU setup is expected to run with **two Controllers sharing a single ALMProxy and a single RateLimits**:
 
 ```
-                       ┌──────────────────────────────┐
-                       │           ALMProxy           │  (single custody account)
-                       │           RateLimits         │  (single shared limit store)
-                       └───────────┬────────┬─────────┘
-                                   │        │
-              ┌────────────────────┘        └───────────────────────┐
-              ▼                                                     ▼
-   ┌────────────────────────┐                        ┌────────────────────────────┐
-   │  Halo Controller       │                        │  Operations Controller     │
-   │  • NFATHaloFacet       │                        │  • TransferAssetFacet      │
-   │    (issue / repay)     │                        │  • PSMFacet                │
-   │                        │                        │  • ERC4626Facet, …         │
-   └────────────────────────┘                        └────────────────────────────┘
+                       ┌─────────────────────────┐
+                       │        ALMProxy         │  (single custody account)
+                       │        RateLimits       │  (single shared limit store)
+                       └────────┬───────┬────────┘
+                                │       │
+                ┌───────────────┘       └───────────────┐
+                ▼                                       ▼
+   ┌─────────────────────────┐             ┌─────────────────────────┐
+   │  Halo Controller        │             │  Operations Controller  │
+   │  • NFATHaloFacet        │             │  • TransferAssetFacet   │
+   │    (issue / repay)      │             │  • PSMFacet             │
+   │                         │             │  • ERC4626Facet, …      │
+   └─────────────────────────┘             └─────────────────────────┘
 ```
 
 - One Controller wires the **`NFATHaloFacet`** and is responsible solely for NFAT issuance and repayment.
@@ -234,7 +234,7 @@ The two Controllers are split deliberately to **separate NFAT issuance/repayment
 
 - **Halo `amount == 0` issuance** is allowed by `NFATFacility` but is not supported in `NFATHaloFacet` (see note above).
 - **Prime `amount == 0` subscribe** is supported for facility `data` emission only; it does not move gem or consume subscribe rate limit.
-- The facility's **`identityNetwork`** eligibility mechanism exists but is **not production-ready**; the issue rate limit's `to` keying is the interim allowlist.
+- The facility's function gating mechanisms (`buds`, `identityNetwork`, etc) are out of scope and transparent to the PAU.
 - Routing and balance-delta accounting **assume the facility `recipient` is the ALMProxy**; if it is not, drawn principal will not land back in custody and the measured `received` will be zero.
 
 ## Related Documentation
