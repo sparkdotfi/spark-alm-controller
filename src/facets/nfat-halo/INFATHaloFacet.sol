@@ -112,7 +112,7 @@ interface INFATHaloFacet is IFacet {
     function issue(address facility, address to, uint256 tokenId, uint256 amount) external;
 
     /**
-     * @notice Repays interest against an issued NFAT position. Bounded by `accruedInterest` after
+     * @notice Repays interest against an issued NFAT position. Bounded by `maxOutstandingInterest` after
      *         checkpointing; consumes the (facility, gem) repay-interest rate limit.
      * @param  facility Address of the NFAT facility.
      * @param  tokenId  Identifier of the NFAT token being repaid against.

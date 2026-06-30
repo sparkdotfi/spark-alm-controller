@@ -28,7 +28,7 @@ It is **not expected** for a single Controller to wire both the Halo and Prime N
 
 ---
 
-## Facility Receipient
+## Facility Recipient
 
 The facility's `recipient` (the destination of gem transferred out on `issue`) is **expected to be the ALMProxy**, so that drawn principal lands back in PAU custody and the facet can measure it (see [Measuring by Balance Delta](#measuring-by-balance-delta)).
 
