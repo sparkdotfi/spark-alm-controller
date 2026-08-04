@@ -17,6 +17,7 @@ import { PoolKey }  from "../../lib/uniswap-v4-periphery/lib/v4-core/src/types/P
 import { makeAddressAddressKey, makeAddressKey } from "../../src/libraries/RateLimitHelpers.sol";
 
 import { AaveV3_TestBase }                   from "./Aave.t.sol";
+import { AaveV4_TestBase }                   from "./AaveV4.t.sol";
 import { Centrifuge_TestBase }               from "./Centrifuge.t.sol";
 import { Curve_TestBase }                    from "./Curve.t.sol";
 import { ERC4626_SUSDS_TestBase }            from "./ERC4626.t.sol";
@@ -46,6 +47,22 @@ interface IERC20Like {
 interface IAavePoolWithdraw {
 
     function withdraw(address asset, uint256 amount, address to) external returns (uint256);
+
+}
+
+interface IAaveV4SpokeReserveLike {
+
+    struct Reserve {
+        address underlying;
+        address hub;
+        uint16  assetId;
+        uint8   decimals;
+        uint24  collateralRisk;
+        uint8   flags;
+        uint32  dynamicConfigKey;
+    }
+
+    function getReserve(uint256 reserveId) external view returns (Reserve memory);
 
 }
 
@@ -106,6 +123,54 @@ contract MainnetController_Aave_Attack_Tests is AaveV3_TestBase {
         vm.expectRevert("RateLimits/zero-maxAmount");
         vm.prank(allocator);
         mainnetController.aave_deposit(ATOKEN_USDS, 1_000_000e18);
+    }
+
+}
+
+contract MainnetController_AaveV4_Attack_Tests is AaveV4_TestBase {
+
+    function test_attack_reserveRemapped_depositAaveV4() external {
+        assertEq(rateLimits.getCurrentRateLimit(mainUsdcDepositKey), USDC_DEPOSIT_LIMIT);
+
+        // Deposit succeeds with the original underlying (USDC).
+        deal(address(usdc), address(almProxy), USDC_DEPOSIT_AMOUNT);
+
+        vm.prank(allocator);
+        mainnetController.aaveV4_deposit(MAIN_SPOKE, MAIN_USDC_RESERVE_ID, USDC_DEPOSIT_AMOUNT);
+
+        assertEq(
+            rateLimits.getCurrentRateLimit(mainUsdcDepositKey),
+            USDC_DEPOSIT_LIMIT - USDC_DEPOSIT_AMOUNT
+        );
+
+        // Attack: mock getReserve() to remap every reserve-derived key component (underlying,
+        // hub, assetId), then zero the new hub's deficit read so the deficit gate still passes
+        // and the deposit fails purely on the unconfigured key.
+        IAaveV4SpokeReserveLike.Reserve memory reserve
+            = IAaveV4SpokeReserveLike(MAIN_SPOKE).getReserve(MAIN_USDC_RESERVE_ID);
+
+        reserve.underlying = makeAddr("changed-underlying");
+        reserve.hub        = makeAddr("changed-hub");
+        reserve.assetId    = reserve.assetId + 1;
+
+        vm.mockCall(
+            MAIN_SPOKE,
+            abi.encodeWithSignature("getReserve(uint256)", MAIN_USDC_RESERVE_ID),
+            abi.encode(reserve)
+        );
+
+        vm.mockCall(
+            reserve.hub,
+            abi.encodeWithSignature("getAssetDeficitRay(uint256)", reserve.assetId),
+            abi.encode(uint256(0))
+        );
+
+        deal(address(usdc), address(almProxy), USDC_DEPOSIT_AMOUNT);
+
+        // Cannot deposit against the remapped reserve: its key was never configured.
+        vm.expectRevert("RateLimits/zero-maxAmount");
+        vm.prank(allocator);
+        mainnetController.aaveV4_deposit(MAIN_SPOKE, MAIN_USDC_RESERVE_ID, USDC_DEPOSIT_AMOUNT);
     }
 
 }
