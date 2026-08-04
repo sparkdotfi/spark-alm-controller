@@ -519,9 +519,9 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     using CCTPv2BridgeTesting for Bridge;
 
     function test_transferUSDCToCCTP_sourceToDestination() external {
-        deal(Ethereum.USDC, address(almProxy), 1e6);
+        deal(Ethereum.USDC, address(almProxy), 2e6);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
+        assertEq(USDC.balanceOf(address(almProxy)),          2e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.totalSupply(),                         USDC_SUPPLY);
 
@@ -536,7 +536,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
+        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.totalSupply(),                         USDC_SUPPLY - 1e6);
 
@@ -556,9 +556,9 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     }
 
     function test_transferUSDCToCCTP_sourceToDestination_bigTransfer() external {
-        deal(Ethereum.USDC, address(almProxy), 2_900_000e6);
+        deal(Ethereum.USDC, address(almProxy), 3_900_000e6);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          2_900_000e6);
+        assertEq(USDC.balanceOf(address(almProxy)),          3_900_000e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.totalSupply(),                         USDC_SUPPLY);
 
@@ -577,7 +577,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
             100
         );
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
+        assertEq(USDC.balanceOf(address(almProxy)),          1_000_000e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.totalSupply(),                         USDC_SUPPLY - 2_900_000e6);
 
@@ -650,9 +650,9 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     function test_transferUSDCToCCTP_destinationToSource() external {
         destination.selectFork();
 
-        deal(Base.USDC, address(foreignAlmProxy), 1e6);
+        deal(Base.USDC, address(foreignAlmProxy), 2e6);
 
-        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   1e6);
+        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   2e6);
         assertEq(BASE_USDC.balanceOf(address(foreignController)), 0);
         assertEq(BASE_USDC.totalSupply(),                         baseUSDCTotalSupply);
 
@@ -671,7 +671,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         _assertReentrancyGuardWrittenToTwice(address(foreignController));
 
-        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   0);
+        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   1e6);
         assertEq(BASE_USDC.balanceOf(address(foreignController)), 0);
         assertEq(BASE_USDC.totalSupply(),                         baseUSDCTotalSupply - 1e6);
 
@@ -693,9 +693,9 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     function test_transferUSDCToCCTP_destinationToSource_bigTransfer() external {
         destination.selectFork();
 
-        deal(Base.USDC, address(foreignAlmProxy), 2_600_000e6);
+        deal(Base.USDC, address(foreignAlmProxy), 3_600_000e6);
 
-        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   2_600_000e6);
+        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   3_600_000e6);
         assertEq(BASE_USDC.balanceOf(address(foreignController)), 0);
         assertEq(BASE_USDC.totalSupply(),                         baseUSDCTotalSupply);
 
@@ -714,7 +714,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
             100
         );
 
-        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   0);
+        assertEq(BASE_USDC.balanceOf(address(foreignAlmProxy)),   1_000_000e6);
         assertEq(BASE_USDC.balanceOf(address(foreignController)), 0);
         assertEq(BASE_USDC.totalSupply(),                         baseUSDCTotalSupply - 2_600_000e6);
 

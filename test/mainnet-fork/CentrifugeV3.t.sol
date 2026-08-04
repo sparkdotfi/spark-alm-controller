@@ -111,7 +111,7 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
         vm.stopPrank();
 
         // Setup token balances
-        deal(vaultToken, address(almProxy), 10_000_000e6);
+        deal(vaultToken, address(almProxy), 20_000_000e6);
         deal(allocator, 1 ether);  // Gas cost for Centrifuge
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -144,7 +144,7 @@ contract MainnetController_CentrifugeV3_TransferShares_Tests is CentrifugeV3_Tes
         vm.stopPrank();
 
         // Setup token balances
-        deal(address(vaultToken), address(almProxy), 10_000_000e6);
+        deal(address(vaultToken), address(almProxy), 20_000_000e6);
         deal(allocator, 1 ether);  // Gas cost for Centrifuge
 
         // Issue shares at price 1.0

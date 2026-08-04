@@ -78,7 +78,7 @@ contract ForeignController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
         vm.prank(GROVE_EXECUTOR);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
-        deal(address(usdcAvalanche), address(almProxy), 1_000_000e6);
+        deal(address(usdcAvalanche), address(almProxy), 2_000_000e6);
     }
 
     function test_requestDepositERC7540_notAllocator() external {
@@ -115,7 +115,7 @@ contract ForeignController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
 
         uint256 initialEscrowBal = usdcAvalanche.balanceOf(globalEscrow);
 
-        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdcAvalanche.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 0);
@@ -130,7 +130,7 @@ contract ForeignController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
 
         assertEq(usdcAvalanche.allowance(address(almProxy), address(centrifugeV3Vault)), 0);
 
-        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 0);
+        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdcAvalanche.balanceOf(globalEscrow),      initialEscrowBal + 1_000_000e6);
 
         assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
@@ -450,11 +450,11 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
     }
 
     function test_claimCentrifugeCancelDepositRequest() external {
-        deal(address(usdcAvalanche), address(almProxy), 1_000_000e6);
+        deal(address(usdcAvalanche), address(almProxy), 2_000_000e6);
 
         uint256 initialEscrowBal = usdcAvalanche.balanceOf(globalEscrow);
 
-        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdcAvalanche.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID,         address(almProxy)), 0);
@@ -476,7 +476,7 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         vm.prank(ALLOCATOR);
         foreignController.centrifuge_cancelDepositRequest(address(centrifugeV3Vault));
 
-        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 0);
+        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdcAvalanche.balanceOf(globalEscrow),      initialEscrowBal + 1_000_000e6);
 
         assertEq(centrifugeV3Vault.pendingDepositRequest(REQUEST_ID,         address(almProxy)), 1_000_000e6);
@@ -509,7 +509,7 @@ contract ForeignController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         assertEq(centrifugeV3Vault.pendingCancelDepositRequest(REQUEST_ID,   address(almProxy)), false);
         assertEq(centrifugeV3Vault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
-        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdcAvalanche.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdcAvalanche.balanceOf(globalEscrow),      initialEscrowBal);
     }
 
@@ -571,7 +571,7 @@ contract ForeignController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
         uint256 shares = centrifugeV3Vault.convertToShares(1_000_000e6);
 
         vm.prank(root);
-        vaultToken.mint(address(almProxy), shares);
+        vaultToken.mint(address(almProxy), shares + 1_000_000e6);
 
         assertEq(shares, 1_000_000e6);
 
@@ -579,7 +579,7 @@ contract ForeignController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
 
         uint256 initialEscrowBal = vaultToken.balanceOf(globalEscrow);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), shares);
+        assertEq(vaultToken.balanceOf(address(almProxy)), shares + 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), 0);
@@ -592,7 +592,7 @@ contract ForeignController_Centrifuge_RequestRedeemERC7540_Tests is Centrifuge_T
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);  // Rounding
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 0);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal + shares);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID, address(almProxy)), shares);
@@ -642,11 +642,11 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
     function test_claimRedeemERC7540_singleRequest() external {
         vm.prank(root);
-        vaultToken.mint(address(almProxy), 1_000_000e6);
+        vaultToken.mint(address(almProxy), 2_000_000e6);
 
         uint256 initialEscrowBal = vaultToken.balanceOf(globalEscrow);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,   address(almProxy)), 0);
@@ -664,7 +664,7 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
         uint256 totalSupply = vaultToken.totalSupply();
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 0);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal + 1_000_000e6);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,   address(almProxy)), 1_000_000e6);
@@ -703,7 +703,7 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
         assertEq(vaultToken.totalSupply(), totalSupply - 1_000_000e6);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 0);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(usdcAvalanche.balanceOf(poolEscrow),        2_000_000e6);
@@ -728,11 +728,11 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
     function test_claimRedeemERC7540_multipleRequests() external {
         vm.prank(root);
-        vaultToken.mint(address(almProxy), 1_500_000e6);
+        vaultToken.mint(address(almProxy), 2_500_000e6);
 
         uint256 initialEscrowBal = vaultToken.balanceOf(globalEscrow);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 1_500_000e6);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 2_500_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,   address(almProxy)), 0);
@@ -750,7 +750,7 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
         uint256 totalSupply = vaultToken.totalSupply();
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 500_000e6);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 1_500_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal + 1_000_000e6);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,   address(almProxy)), 1_000_000e6);
@@ -766,7 +766,7 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
         vm.prank(ALLOCATOR);
         foreignController.erc7540_requestRedeem(address(centrifugeV3Vault), 500_000e6);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 0);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal + 1_500_000e6);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,   address(almProxy)), 1_500_000e6);
@@ -805,7 +805,7 @@ contract ForeignController_Centrifuge_ClaimRedeemERC7540_Tests is Centrifuge_Tes
 
         assertEq(vaultToken.totalSupply(), totalSupply - 1_500_000e6);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 0);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(usdcAvalanche.balanceOf(poolEscrow),        3_000_000e6);
@@ -952,11 +952,11 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         uint256 shares = 1_000_000e6;
 
         vm.prank(root);
-        vaultToken.mint(address(almProxy), shares);
+        vaultToken.mint(address(almProxy), shares + 1_000_000e6);
 
         uint256 initialEscrowBal = vaultToken.balanceOf(globalEscrow);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), shares);
+        assertEq(vaultToken.balanceOf(address(almProxy)), shares + 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,         address(almProxy)), 0);
@@ -978,7 +978,7 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         vm.prank(ALLOCATOR);
         foreignController.centrifuge_cancelRedeemRequest(address(centrifugeV3Vault));
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), 0);
+        assertEq(vaultToken.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal + shares);
 
         assertEq(centrifugeV3Vault.pendingRedeemRequest(REQUEST_ID,         address(almProxy)), shares);
@@ -1011,7 +1011,7 @@ contract ForeignController_Centrifuge_ClaimCancelRedeemRequest_Tests is Centrifu
         assertEq(centrifugeV3Vault.pendingCancelRedeemRequest(REQUEST_ID,   address(almProxy)), false);
         assertEq(centrifugeV3Vault.claimableCancelRedeemRequest(REQUEST_ID, address(almProxy)), 0);
 
-        assertEq(vaultToken.balanceOf(address(almProxy)), shares);
+        assertEq(vaultToken.balanceOf(address(almProxy)), shares + 1_000_000e6);
         assertEq(vaultToken.balanceOf(globalEscrow),      initialEscrowBal);
     }
 

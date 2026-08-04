@@ -143,9 +143,9 @@ contract MainnetController_Basin_Deposit_Tests is Basin_TestBase {
     function test_depositBasin() external {
         uint256 depositAmount = 1_000_000e18;
 
-        deal(Ethereum.USDS, address(almProxy), depositAmount);
+        deal(Ethereum.USDS, address(almProxy), depositAmount + 1_000_000e18);
 
-        assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(almProxy)),   depositAmount);
+        assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(almProxy)),   depositAmount + 1_000_000e18);
         assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(groveBasin)), SEED_AMOUNT);
 
         assertEq(IERC20Like(Ethereum.USDS).allowance(address(almProxy), address(groveBasin)), 0);
@@ -172,7 +172,7 @@ contract MainnetController_Basin_Deposit_Tests is Basin_TestBase {
         assertEq(shares, expectedShares);
         assertGt(shares, 0);
 
-        assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(almProxy)),   0);
+        assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(almProxy)),   1_000_000e18);
         assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(groveBasin)), depositAmount + SEED_AMOUNT);
 
         assertEq(IERC20Like(Ethereum.USDS).allowance(address(almProxy), address(groveBasin)), 0);
@@ -308,10 +308,12 @@ contract MainnetController_Basin_Withdraw_Tests is Basin_TestBase {
     function test_withdrawBasin() external {
         uint256 withdrawAmount = 1_000_000e18;
 
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+
         uint256 proxyBalBefore = IERC20Like(Ethereum.USDS).balanceOf(address(almProxy));
         uint256 basinBalBefore = IERC20Like(Ethereum.USDS).balanceOf(address(groveBasin));
 
-        assertEq(proxyBalBefore, 0);
+        assertEq(proxyBalBefore, 1_000_000e18);
         assertGe(basinBalBefore, withdrawAmount);
 
         vm.prank(address(almProxy));
@@ -336,7 +338,7 @@ contract MainnetController_Basin_Withdraw_Tests is Basin_TestBase {
 
         assertEq(assetsWithdrawn, withdrawAmount);
 
-        assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(almProxy)),   withdrawAmount);
+        assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(almProxy)),   withdrawAmount + 1_000_000e18);
         assertEq(IERC20Like(Ethereum.USDS).balanceOf(address(groveBasin)), basinBalBefore - withdrawAmount);
     }
 

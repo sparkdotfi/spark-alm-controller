@@ -105,11 +105,11 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
     function test_depositToFarm() external {
         bytes32 depositKey = mainnetController.farm_getDepositRateLimitKey(FARM, Ethereum.USDS);
 
-        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+        deal(Ethereum.USDS, address(almProxy), 2_000_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 10_000_000e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),                            1_000_000e18);
+        assertEq(USDS.balanceOf(address(almProxy)),                            2_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),                0);
         assertEq(IERC20Like(Ethereum.USDS).allowance(address(almProxy), FARM), 0);
 
@@ -125,7 +125,7 @@ contract MainnetController_Farm_Deposit_Tests is Farm_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 9_000_000e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),                            0);
+        assertEq(USDS.balanceOf(address(almProxy)),                            1_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),                1_000_000e18);
         assertEq(IERC20Like(Ethereum.USDS).allowance(address(almProxy), FARM), 0);
     }
@@ -164,16 +164,16 @@ contract MainnetController_Farm_ClaimReward_Tests is Farm_TestBase {
     }
 
     function test_claimRewardFromFarm() external {
-        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+        deal(Ethereum.USDS, address(almProxy), 2_000_000e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),                     1_000_000e18);
+        assertEq(USDS.balanceOf(address(almProxy)),                     2_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         0);
         assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0);
 
         vm.prank(allocator);
         mainnetController.farm_deposit(FARM, 1_000_000e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),                     0);
+        assertEq(USDS.balanceOf(address(almProxy)),                     1_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         1_000_000e18);
         assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0);
 
@@ -261,7 +261,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
     function test_withdrawFromFarm() external {
         bytes32 withdrawKey = mainnetController.farm_getWithdrawRateLimitKey(FARM);
 
-        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+        deal(Ethereum.USDS, address(almProxy), 2_000_000e18);
 
         vm.expectEmit(address(mainnetController));
         emit IFarmFacet.FarmDeposit({ farm: FARM, amount: 1_000_000e18 });
@@ -271,7 +271,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 10_000_000e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),                     0);
+        assertEq(USDS.balanceOf(address(almProxy)),                     1_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         1_000_000e18);
         assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0);
 
@@ -289,7 +289,7 @@ contract MainnetController_Farm_Withdraw_Tests is Farm_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 9_000_000e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),                     1_000_000e18);
+        assertEq(USDS.balanceOf(address(almProxy)),                     2_000_000e18);
         assertEq(IERC20Like(FARM).balanceOf(address(almProxy)),         0);
         assertEq(IERC20Like(Ethereum.SPK).balanceOf(address(almProxy)), 0); // No reward claimed
     }

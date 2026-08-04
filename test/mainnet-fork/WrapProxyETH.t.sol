@@ -71,15 +71,17 @@ contract MainnetController_WrapAllProxyETH_Tests is ForkTestBase {
         rateLimits.setRateLimitData(mainnetController.wrapProxyETH_wrapRateLimitKey(), type(uint256).max, 0);
         vm.stopPrank();
 
-        vm.deal(address(almProxy), 1 ether);
+        vm.deal(address(almProxy), 2 ether);
 
-        assertEq(address(almProxy).balance,         1 ether);
-        assertEq(WETH.balanceOf(address(almProxy)), 0);
+        deal(Ethereum.WETH, address(almProxy), 1 ether);
+
+        assertEq(address(almProxy).balance,         2 ether);
+        assertEq(WETH.balanceOf(address(almProxy)), 1 ether);
 
         vm.record();
 
         vm.expectEmit(address(mainnetController));
-        emit IWrapProxyETHFacet.WrapProxyETHWrap(1 ether);
+        emit IWrapProxyETHFacet.WrapProxyETHWrap(2 ether);
 
         vm.prank(allocator);
         mainnetController.wrapProxyETH_wrapAll();
@@ -87,7 +89,7 @@ contract MainnetController_WrapAllProxyETH_Tests is ForkTestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(address(almProxy).balance,         0);
-        assertEq(WETH.balanceOf(address(almProxy)), 1 ether);
+        assertEq(WETH.balanceOf(address(almProxy)), 3 ether);
     }
 
 }

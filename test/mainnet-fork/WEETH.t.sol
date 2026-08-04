@@ -169,14 +169,16 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(depositKey, 1_000e18, uint256(1_000e18) / 1 days);
 
-        deal(Ethereum.WETH, address(almProxy), 1_000e18);
+        deal(address(almProxy), 1_000e18);
+
+        deal(Ethereum.WETH, address(almProxy), 2_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(depositKey), 1_000e18);
 
         uint256 initialLiquidityPoolBalance = address(liquidityPool).balance;
 
-        assertEq(address(almProxy).balance,          0);
-        assertEq(WETH.balanceOf(address(almProxy)),  1_000e18);
+        assertEq(address(almProxy).balance,          1_000e18);
+        assertEq(WETH.balanceOf(address(almProxy)),  2_000e18);
         assertEq(eeth.balanceOf(address(almProxy)),  0);
         assertEq(WEETH.balanceOf(address(almProxy)), 0);
         assertEq(address(liquidityPool).balance,     initialLiquidityPoolBalance);
@@ -203,8 +205,8 @@ contract MainnetController_WEETH_Deposit_Tests is WEETH_TestBase {
 
         assertEq(shares, WEETH.balanceOf(address(almProxy)));
 
-        assertEq(address(almProxy).balance,          0);
-        assertEq(WETH.balanceOf(address(almProxy)),  0);
+        assertEq(address(almProxy).balance,          1_000e18);
+        assertEq(WETH.balanceOf(address(almProxy)),  1_000e18);
         assertEq(WEETH.balanceOf(address(almProxy)), 927.715236537415314851e18);
         assertEq(address(liquidityPool).balance,     initialLiquidityPoolBalance + 1_000e18);
 
@@ -498,7 +500,9 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
         rateLimits.setRateLimitData(requestWithdrawKey, 1_000e18, uint256(1_000e18) / 1 days);
         vm.stopPrank();
 
-        deal(Ethereum.WETH, address(almProxy), 1_000e18);
+        deal(address(almProxy), 1_000e18);
+
+        deal(Ethereum.WETH, address(almProxy), 2_000e18);
 
         uint256 minSharesOut = _getMinSharesOut(1_000e18);
 
@@ -517,8 +521,8 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
 
         assertEq(withdrawRequestNFT.getClaimableAmount(requestId), eethAmount);
 
-        assertEq(address(almProxy).balance,         0);
-        assertEq(WETH.balanceOf(address(almProxy)), 0);
+        assertEq(address(almProxy).balance,         1_000e18);
+        assertEq(WETH.balanceOf(address(almProxy)), 1_000e18);
         assertEq(weethModule.balance,               0);
         assertEq(WETH.balanceOf(weethModule),       0);
 
@@ -532,8 +536,8 @@ contract MainnetController_WEETH_ClaimWithdrawal_Tests is WEETH_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(address(almProxy).balance,         0);
-        assertEq(WETH.balanceOf(address(almProxy)), eethAmount);
+        assertEq(address(almProxy).balance,         1_000e18);
+        assertEq(WETH.balanceOf(address(almProxy)), 1_000e18 + eethAmount);
         assertEq(weethModule.balance,               0);
         assertEq(WETH.balanceOf(weethModule),       0);
         assertEq(wethReceived,                      eethAmount);

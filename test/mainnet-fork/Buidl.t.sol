@@ -60,11 +60,11 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(key, 1_000_000e6, uint256(1_000_000e6) / 1 days);
 
-        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 2_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
-        assertEq(USDC.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(USDC.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(USDC.balanceOf(buidlDeposit),      0);
 
         vm.expectEmit(address(mainnetController));
@@ -75,7 +75,7 @@ contract MainnetController_BUIDL_Deposit_Tests is BUIDL_TestBase {
 
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
-        assertEq(USDC.balanceOf(address(almProxy)), 0);
+        assertEq(USDC.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(USDC.balanceOf(buidlDeposit),      1_000_000e6);
     }
 

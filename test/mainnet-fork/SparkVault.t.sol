@@ -118,7 +118,8 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
     }
 
     function test_takeFromSparkVault_rateLimited() external {
-        deal(Ethereum.USDC, user, 10_000_000e6);
+        deal(Ethereum.USDC, user,              10_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
 
         vm.startPrank(user);
         USDC.approve(address(sparkVault), 10_000_000e6);
@@ -127,7 +128,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         TestState memory testState = TestState({
             rateLimit:        1_000_000e6,
-            usdcAlm:          0,
+            usdcAlm:          1_000_000e6,
             usdcVault:        10_000_000e6,
             vaultTotalAssets: 10_000_000e6,
             vaultTotalSupply: 10_000_000e6
@@ -185,7 +186,8 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         depositAmount = _bound(depositAmount, 1e18, 10_000_000_000e18);
         takeAmount    = _bound(depositAmount, 1e18, depositAmount);
 
-        deal(Ethereum.USDC, user, depositAmount);
+        deal(Ethereum.USDC, user,              depositAmount);
+        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
 
         vm.startPrank(user);
         USDC.approve(address(sparkVault), depositAmount);
@@ -194,7 +196,7 @@ contract MainnetController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         TestState memory testState = TestState({
             rateLimit:        10_000_000_000e18,
-            usdcAlm:          0,
+            usdcAlm:          1_000_000e6,
             usdcVault:        depositAmount,
             vaultTotalAssets: depositAmount,
             vaultTotalSupply: depositAmount
@@ -312,11 +314,14 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
     function test_e2e_takeFromSparkVault() external {
         // Step 1: Set the initial state
 
+        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
+        deal(Ethereum.DAI,  address(almProxy), 1_000_000e18);
+
         E2ETestState memory testState = E2ETestState({
             takeRateLimit:     10_000_000e6,
             transferRateLimit: 10_000_000e6,
-            daiAlm:            0,
-            usdcAlm:           0,
+            daiAlm:            1_000_000e18,
+            usdcAlm:           1_000_000e6,
             usdcVault:         0,
             vaultAssetsOut:    0,
             vaultTotalAssets:  0,
@@ -353,7 +358,7 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         mainnetController.sparkVault_take(address(sparkVault), 9_000_000e6);
 
         testState.takeRateLimit  = 1_000_000e6;
-        testState.usdcAlm        = 9_000_000e6;
+        testState.usdcAlm        += 9_000_000e6;
         testState.usdcVault      = 1_000_000e6;
         testState.vaultAssetsOut = 9_000_000e6;
 
@@ -371,7 +376,7 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         vm.stopPrank();
 
         testState.takeRateLimit = 10_000_000e6;
-        testState.usdcAlm       = 0;
+        testState.usdcAlm       -= 9_000_000e6;
 
         _assertE2EState(testState);  // No state changes
 
@@ -400,8 +405,8 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         uint256 almProfit = assets - 9_400_000e18;  // 9.4m owed to the vault
 
         testState.transferRateLimit = 600_000e6;  // 10m - 9.4m
-        testState.daiAlm            = almProfit;
-        testState.usdcAlm           = 0;
+        testState.daiAlm            = 1_000_000e18 + almProfit;
+        testState.usdcAlm           = 1_000_000e6;
         testState.usdcVault         = 10_400_000e6;
         testState.vaultAssetsOut    = 0;
 
@@ -417,8 +422,8 @@ contract MainnetController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         _assertE2EState(E2ETestState({
             takeRateLimit:     10_000_000e6,
             transferRateLimit: 600_000e6,
-            daiAlm:            14_173.844477081922732043e18,  // Profit
-            usdcAlm:           0,
+            daiAlm:            1_000_000e18 + 14_173.844477081922732043e18,  // Profit
+            usdcAlm:           1_000_000e6,
             usdcVault:         1,  // Rounding against user
             vaultAssetsOut:    0,
             vaultTotalAssets:  0,

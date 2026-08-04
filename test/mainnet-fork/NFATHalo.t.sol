@@ -161,8 +161,10 @@ contract MainnetController_NFATHalo_Issue_Tests is NFATHalo_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(issueKey, 5_000_000e18, 0);
 
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+
         assertEq(usds.balanceOf(address(facility)),        SUBSCRIBE_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),        0);
+        assertEq(usds.balanceOf(address(almProxy)),        1_000_000e18);
         assertEq(rateLimits.getCurrentRateLimit(issueKey), 5_000_000e18);
 
         _assertPosition({
@@ -185,7 +187,7 @@ contract MainnetController_NFATHalo_Issue_Tests is NFATHalo_TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(facility)),        SUBSCRIBE_AMOUNT - ISSUE_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),        ISSUE_AMOUNT);
+        assertEq(usds.balanceOf(address(almProxy)),        1_000_000e18 + ISSUE_AMOUNT);
         assertEq(rateLimits.getCurrentRateLimit(issueKey), 5_000_000e18 - ISSUE_AMOUNT);
 
         _assertPosition({
@@ -304,12 +306,14 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(repayPrincipalKey, 5_000_000e18, 0);
 
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18 + ISSUE_AMOUNT);
+
         uint256 startTimestamp = vm.getBlockTimestamp();
 
         vm.warp(startTimestamp + 180 days);
 
         assertEq(usds.balanceOf(address(facility)),                 SUBSCRIBE_AMOUNT - ISSUE_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),                 ISSUE_AMOUNT);
+        assertEq(usds.balanceOf(address(almProxy)),                 1_000_000e18 + ISSUE_AMOUNT);
         assertEq(rateLimits.getCurrentRateLimit(repayPrincipalKey), 5_000_000e18);
 
         _assertFacilityState({
@@ -340,7 +344,7 @@ contract MainnetController_NFATHalo_RepayPrincipal_Tests is NFATHalo_PostIssue_T
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(facility)),                    SUBSCRIBE_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),                    0);
+        assertEq(usds.balanceOf(address(almProxy)),                    1_000_000e18);
         assertEq(usds.allowance(address(almProxy), address(facility)), 0);
         assertEq(rateLimits.getCurrentRateLimit(repayPrincipalKey),    5_000_000e18 - ISSUE_AMOUNT);
 

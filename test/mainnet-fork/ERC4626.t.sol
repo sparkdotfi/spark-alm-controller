@@ -154,9 +154,9 @@ contract MainnetController_ERC4626_Deposit_Tests is ERC4626_SUSDS_TestBase {
 
     function test_depositERC4626() external {
         vm.prank(allocator);
-        mainnetController.usds_mint(1e18);
+        mainnetController.usds_mint(2e18);
 
-        assertEq(usds.balanceOf(address(almProxy)),          1e18);
+        assertEq(usds.balanceOf(address(almProxy)),          2e18);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
         assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS);
 
@@ -183,7 +183,7 @@ contract MainnetController_ERC4626_Deposit_Tests is ERC4626_SUSDS_TestBase {
 
         assertEq(shares, SUSDS_CONVERTED_SHARES);
 
-        assertEq(usds.balanceOf(address(almProxy)),          0);
+        assertEq(usds.balanceOf(address(almProxy)),          1e18);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
         assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1e18);
 
@@ -270,7 +270,7 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
 
     function test_withdrawERC4626() external {
         vm.prank(allocator);
-        mainnetController.usds_mint(1e18);
+        mainnetController.usds_mint(2e18);
 
         vm.expectEmit(address(mainnetController));
         emit IERC4626Facet.ERC4626Deposit({
@@ -282,7 +282,7 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
         vm.prank(allocator);
         mainnetController.erc4626_deposit(address(susds), 1e18, SUSDS_CONVERTED_SHARES);
 
-        assertEq(usds.balanceOf(address(almProxy)),          0);
+        assertEq(usds.balanceOf(address(almProxy)),          1e18);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
         assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1e18);
 
@@ -316,7 +316,7 @@ contract MainnetController_ERC4626_Withdraw_Tests is ERC4626_SUSDS_TestBase {
 
         assertEq(shares, SUSDS_CONVERTED_SHARES);
 
-        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 1);
+        assertEq(usds.balanceOf(address(almProxy)),          2e18 - 1);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
         assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1);  // Rounding
 
@@ -443,7 +443,7 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
 
     function test_redeemERC4626() external {
         vm.prank(allocator);
-        mainnetController.usds_mint(1e18);
+        mainnetController.usds_mint(2e18);
 
         vm.expectEmit(address(mainnetController));
         emit IERC4626Facet.ERC4626Deposit({
@@ -455,7 +455,7 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
         vm.prank(allocator);
         mainnetController.erc4626_deposit(address(susds), 1e18, SUSDS_CONVERTED_SHARES);
 
-        assertEq(usds.balanceOf(address(almProxy)),          0);
+        assertEq(usds.balanceOf(address(almProxy)),          1e18);
         assertEq(usds.balanceOf(address(mainnetController)), 0);
         assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1e18);
 
@@ -488,7 +488,7 @@ contract MainnetController_ERC4626_Redeem_Tests is ERC4626_SUSDS_TestBase {
 
         assertEq(assets, 1e18 - 1);  // Rounding
 
-        assertEq(usds.balanceOf(address(almProxy)),          1e18 - 1);  // Rounding
+        assertEq(usds.balanceOf(address(almProxy)),          2e18 - 1);  // Rounding
         assertEq(usds.balanceOf(address(mainnetController)), 0);
         assertEq(usds.balanceOf(address(susds)),             USDS_BAL_SUSDS + SUSDS_DRIP_AMOUNT + 1);  // Rounding
 

@@ -93,13 +93,13 @@ contract MainnetController_NFATPrime_Subscribe_Tests is NFATPrime_TestBase {
     }
 
     function test_subscribe() external {
-        deal(Ethereum.USDS, address(almProxy), SUBSCRIBE_AMOUNT);
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18 + SUBSCRIBE_AMOUNT);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(subscribeKey, 5_000_000e18, 0);
 
         assertEq(usds.balanceOf(address(facility)),                    0);
-        assertEq(usds.balanceOf(address(almProxy)),                    SUBSCRIBE_AMOUNT);
+        assertEq(usds.balanceOf(address(almProxy)),                    1_000_000e18 + SUBSCRIBE_AMOUNT);
         assertEq(usds.allowance(address(almProxy), address(facility)), 0);
         assertEq(facility.deposits(address(almProxy)),                 0);
         assertEq(rateLimits.getCurrentRateLimit(subscribeKey),         5_000_000e18);
@@ -115,14 +115,14 @@ contract MainnetController_NFATPrime_Subscribe_Tests is NFATPrime_TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(facility)),                    SUBSCRIBE_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),                    0);
+        assertEq(usds.balanceOf(address(almProxy)),                    1_000_000e18);
         assertEq(usds.allowance(address(almProxy), address(facility)), 0);
         assertEq(facility.deposits(address(almProxy)),                 SUBSCRIBE_AMOUNT);
         assertEq(rateLimits.getCurrentRateLimit(subscribeKey),         5_000_000e18 - SUBSCRIBE_AMOUNT);
     }
 
     function test_subscribe_withData() external {
-        deal(Ethereum.USDS, address(almProxy), SUBSCRIBE_AMOUNT);
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18 + SUBSCRIBE_AMOUNT);
 
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(subscribeKey, 5_000_000e18, 0);
@@ -130,7 +130,7 @@ contract MainnetController_NFATPrime_Subscribe_Tests is NFATPrime_TestBase {
         bytes memory data = abi.encode("agreement-id-123");
 
         assertEq(usds.balanceOf(address(facility)),                    0);
-        assertEq(usds.balanceOf(address(almProxy)),                    SUBSCRIBE_AMOUNT);
+        assertEq(usds.balanceOf(address(almProxy)),                    1_000_000e18 + SUBSCRIBE_AMOUNT);
         assertEq(usds.allowance(address(almProxy), address(facility)), 0);
         assertEq(facility.deposits(address(almProxy)),                 0);
         assertEq(rateLimits.getCurrentRateLimit(subscribeKey),         5_000_000e18);
@@ -146,7 +146,7 @@ contract MainnetController_NFATPrime_Subscribe_Tests is NFATPrime_TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(facility)),                    SUBSCRIBE_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),                    0);
+        assertEq(usds.balanceOf(address(almProxy)),                    1_000_000e18);
         assertEq(usds.allowance(address(almProxy), address(facility)), 0);
         assertEq(facility.deposits(address(almProxy)),                 SUBSCRIBE_AMOUNT);
         assertEq(rateLimits.getCurrentRateLimit(subscribeKey),         5_000_000e18 - SUBSCRIBE_AMOUNT);
@@ -213,8 +213,10 @@ contract MainnetController_NFATPrime_Withdraw_Tests is NFATPrime_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(withdrawKey, 5_000_000e18, 0);
 
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+
         assertEq(usds.balanceOf(address(facility)),           SUBSCRIBE_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),           0);
+        assertEq(usds.balanceOf(address(almProxy)),           1_000_000e18);
         assertEq(facility.deposits(address(almProxy)),        SUBSCRIBE_AMOUNT);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18);
 
@@ -229,7 +231,7 @@ contract MainnetController_NFATPrime_Withdraw_Tests is NFATPrime_TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(facility)),           0);
-        assertEq(usds.balanceOf(address(almProxy)),           SUBSCRIBE_AMOUNT);
+        assertEq(usds.balanceOf(address(almProxy)),           1_000_000e18 + SUBSCRIBE_AMOUNT);
         assertEq(facility.deposits(address(almProxy)),        0);
         assertEq(rateLimits.getCurrentRateLimit(withdrawKey), 5_000_000e18 - SUBSCRIBE_AMOUNT);
     }
@@ -310,10 +312,12 @@ contract MainnetController_NFATPrime_Collect_Tests is NFATPrime_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(collectKey, 2_000_000e18, 0);
 
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+
         uint256 collectAmount = 1_000_000e18;
 
         assertEq(usds.balanceOf(address(facility)),          REPAY_AMOUNT);
-        assertEq(usds.balanceOf(address(almProxy)),          0);
+        assertEq(usds.balanceOf(address(almProxy)),          1_000_000e18);
         assertEq(facility.collectable(TOKEN_ID),             REPAY_AMOUNT);
         assertEq(rateLimits.getCurrentRateLimit(collectKey), 2_000_000e18);
 
@@ -328,7 +332,7 @@ contract MainnetController_NFATPrime_Collect_Tests is NFATPrime_TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(usds.balanceOf(address(facility)),          REPAY_AMOUNT - collectAmount);
-        assertEq(usds.balanceOf(address(almProxy)),          collectAmount);
+        assertEq(usds.balanceOf(address(almProxy)),          1_000_000e18 + collectAmount);
         assertEq(facility.collectable(TOKEN_ID),             REPAY_AMOUNT - collectAmount);
         assertEq(rateLimits.getCurrentRateLimit(collectKey), 2_000_000e18 - collectAmount);
     }

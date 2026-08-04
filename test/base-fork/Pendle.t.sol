@@ -180,11 +180,13 @@ contract ForeignController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         IERC20Like yieldToken = IERC20Like(ISYLike(sy).yieldToken());
 
         vm.startPrank(ptDonor);
-        IERC20Like(pt).transfer((address(almProxy)), 100_000e18);
+        IERC20Like(pt).transfer((address(almProxy)), 200_000e18);
         vm.stopPrank();
 
-        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 100_000e18);
-        assertEq(yieldToken.balanceOf(address(almProxy)),     0);
+        deal(address(yieldToken), address(almProxy), 1_000_000e18);
+
+        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 200_000e18);
+        assertEq(yieldToken.balanceOf(address(almProxy)),     1_000_000e18);
 
         vm.warp(pendleMarket.expiry());
 
@@ -197,8 +199,8 @@ contract ForeignController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         vm.prank(allocator);
         foreignController.pendle_redeem(address(pendleMarket), 50_000e18, exactAmountOut);
 
-        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 50_000e18);
-        assertEq(yieldToken.balanceOf(address(almProxy)),     50_000e18 * 1e18 / pyIndexCurrent);
+        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 150_000e18);
+        assertEq(yieldToken.balanceOf(address(almProxy)),     1_000_000e18 + 50_000e18 * 1e18 / pyIndexCurrent);
 
         vm.warp(block.timestamp + 14 days);
 
@@ -211,8 +213,8 @@ contract ForeignController_Pendle_Redeem_SuccessTests is Pendle_TestBase {
         vm.prank(allocator);
         foreignController.pendle_redeem(address(pendleMarket), 50_000e18, exactAmountOut);
 
-        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 0);
-        assertEq(yieldToken.balanceOf(address(almProxy)),     100_000e18 * 1e18 / pyIndexCurrent);
+        assertEq(IERC20Like(pt).balanceOf(address(almProxy)), 100_000e18);
+        assertEq(yieldToken.balanceOf(address(almProxy)),     1_000_000e18 + 100_000e18 * 1e18 / pyIndexCurrent);
     }
 
 }

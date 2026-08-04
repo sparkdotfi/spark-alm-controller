@@ -172,9 +172,9 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
     }
 
     function test_depositERC4626_maple() external {
-        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 2_000_000e6);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          1_000_000e6);
+        assertEq(USDC.balanceOf(address(almProxy)),          2_000_000e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(address(SYRUP)),             syrupUSDCBalance);
 
@@ -196,7 +196,7 @@ contract MainnetController_ERC4626_Maple_Deposit_Tests is Maple_TestBase {
 
         assertEq(shares, syrupConvertedShares);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
+        assertEq(USDC.balanceOf(address(almProxy)),          1_000_000e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(address(SYRUP)),             syrupUSDCBalance + 1_000_000e6);
 
@@ -359,11 +359,11 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
         vm.prank(Ethereum.SPARK_PROXY);
         rateLimits.setRateLimitData(redeemKey, 2_000_000e6, uint256(1_000_000e6) / 1 days);
 
-        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 2_000_000e6);
 
         // --- Step 1: Deposit USDC into Maple ---
 
-        assertEq(USDC.balanceOf(address(almProxy)),          1_000_000e6);
+        assertEq(USDC.balanceOf(address(almProxy)),          2_000_000e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(address(SYRUP)),             syrupUSDCBalance);
 
@@ -378,7 +378,7 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
 
         assertEq(proxyShares, syrupConvertedShares);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
+        assertEq(USDC.balanceOf(address(almProxy)),          1_000_000e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(address(SYRUP)),             syrupUSDCBalance + 1_000_000e6);
 
@@ -423,7 +423,7 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
         assertEq(SYRUP.balanceOf(withdrawalManager), totalEscrowedShares + proxyShares);
 
         assertEq(USDC.balanceOf(address(SYRUP)),    usdcPoolBal);
-        assertEq(USDC.balanceOf(address(almProxy)), 0);
+        assertEq(USDC.balanceOf(address(almProxy)), 1_000_000e6);
 
         // NOTE: `proxyShares` can be used in this case because almProxy is the only account using the
         //       `withdrawalManager` at this fork block. Usually `processRedemptions` requires
@@ -437,6 +437,7 @@ contract MainnetController_Maple_E2ETests is Maple_TestBase {
         assertEq(SYRUP.balanceOf(withdrawalManager), totalEscrowedShares);
 
         assertEq(USDC.balanceOf(address(SYRUP)),    usdcPoolBal - withdrawAssets);
-        assertEq(USDC.balanceOf(address(almProxy)), withdrawAssets);
+        assertEq(USDC.balanceOf(address(almProxy)), 1_000_000e6 + withdrawAssets);
     }
+
 }

@@ -417,9 +417,9 @@ contract MainnetController_Ethena_CooldownAssetsSUSDE_Tests is Ethena_TestBase {
         uint256 assets = susde.convertToAssets(100e18);
 
         // Exchange rate is more than 1:1
-        deal(address(susde), address(almProxy), 100e18);
+        deal(address(susde), address(almProxy), 200e18);
 
-        assertEq(susde.balanceOf(address(almProxy)), 100e18);
+        assertEq(susde.balanceOf(address(almProxy)), 200e18);
         assertEq(usde.balanceOf(silo),               startingSiloBalance);
 
         vm.record();
@@ -442,7 +442,7 @@ contract MainnetController_Ethena_CooldownAssetsSUSDE_Tests is Ethena_TestBase {
         _assertReentrancyGuardWrittenToTwice();
 
         assertEq(returnedShares,                     100e18);
-        assertEq(susde.balanceOf(address(almProxy)), 0);
+        assertEq(susde.balanceOf(address(almProxy)), 100e18);
         assertEq(usde.balanceOf(silo),               startingSiloBalance + assets);
     }
 
@@ -536,9 +536,9 @@ contract MainnetController_Ethena_CooldownSharesSUSDE_Tests is Ethena_TestBase {
 
         uint256 assets = susde.convertToAssets(100e18);
 
-        deal(address(susde), address(almProxy), 100e18);
+        deal(address(susde), address(almProxy), 200e18);
 
-        assertEq(susde.balanceOf(address(almProxy)), 100e18);
+        assertEq(susde.balanceOf(address(almProxy)), 200e18);
         assertEq(usde.balanceOf(silo),               startingSiloBalance);
 
         vm.record();
@@ -562,7 +562,7 @@ contract MainnetController_Ethena_CooldownSharesSUSDE_Tests is Ethena_TestBase {
 
         assertEq(returnedAssets, assets);
 
-        assertEq(susde.balanceOf(address(almProxy)), 0);
+        assertEq(susde.balanceOf(address(almProxy)), 100e18);
         assertEq(usde.balanceOf(silo),               startingSiloBalance + assets);
     }
 
@@ -681,6 +681,7 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
 
         uint256 assets = susde.convertToAssets(100e18);
 
+        deal(address(usde),  address(almProxy), 100e18);
         deal(address(susde), address(almProxy), 100e18);
 
         vm.expectEmit(address(mainnetController));
@@ -689,7 +690,7 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
         vm.prank(allocator);
         mainnetController.ethena_cooldownShares(100e18);
 
-        assertEq(usde.balanceOf(address(almProxy)), 0);
+        assertEq(usde.balanceOf(address(almProxy)), 100e18);
         assertEq(usde.balanceOf(silo),              startingSiloBalance + assets);
 
         skip(7 days);  // Cooldown period
@@ -704,7 +705,7 @@ contract MainnetController_Ethena_UnstakeSUSDE_Tests is Ethena_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(usde.balanceOf(address(almProxy)), assets);
+        assertEq(usde.balanceOf(address(almProxy)), assets + 100e18);
         assertEq(usde.balanceOf(silo),              startingSiloBalance);
     }
 
@@ -764,7 +765,7 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
     }
 
     function test_ethena_e2eFlowUsingAssets() external {
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 2_000_000e6);
 
         uint256 startingMinterBalance = usdc.balanceOf(ETHENA_MINTER);  // From mainnet state
 
@@ -779,7 +780,7 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
 
         assertEq(usdc.allowance(address(almProxy), ETHENA_MINTER), 1_000_000e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(ETHENA_MINTER),     startingMinterBalance);
 
         assertEq(usde.balanceOf(address(almProxy)), 0);
@@ -788,7 +789,7 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
 
         assertEq(usdc.allowance(address(almProxy), ETHENA_MINTER), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(ETHENA_MINTER),     startingMinterBalance + 1_000_000e6);
 
         assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18);
@@ -868,7 +869,7 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
         assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 1);
         assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
 
         _simulateUSDEBurn(1_000_000e18 - 1);
 
@@ -881,7 +882,8 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
     }
 
     function test_ethena_e2eFlowUsingShares() external {
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 2_000_000e6);
+        deal(address(usde), address(almProxy), 1_000_000e18);
 
         uint256 startingMinterBalance = usdc.balanceOf(ETHENA_MINTER);  // From mainnet state
 
@@ -896,16 +898,16 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
 
         assertEq(usdc.allowance(address(almProxy), ETHENA_MINTER), 1_000_000e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(ETHENA_MINTER),     startingMinterBalance);
 
-        assertEq(usde.balanceOf(address(almProxy)), 0);
+        assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18);
 
         _simulateUSDEMint(1_000_000e6);
 
         assertEq(usdc.allowance(address(almProxy), ETHENA_MINTER), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(ETHENA_MINTER),     startingMinterBalance + 1_000_000e6);
 
         assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18);
@@ -987,7 +989,7 @@ contract MainnetController_Ethena_E2ETests is Ethena_TestBase {
         assertEq(usde.balanceOf(address(almProxy)), 1_000_000e18 - 1);
         assertEq(usde.balanceOf(ETHENA_MINTER),     startingMinterBalance);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
 
         _simulateUSDEBurn(1_000_000e18 - 1);
 

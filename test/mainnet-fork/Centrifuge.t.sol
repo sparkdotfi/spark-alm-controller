@@ -97,7 +97,7 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
     }
 
     function test_requestDepositERC7540() external {
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 2_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(key), 1_000_000e6);
 
@@ -105,7 +105,7 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
 
         uint256 initialEscrowBal = usdc.balanceOf(ESCROW);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 0);
@@ -120,7 +120,7 @@ contract MainnetController_Centrifuge_RequestDepositERC7540_Tests is Centrifuge_
 
         assertEq(usdc.allowance(address(almProxy), address(jTreasuryVault)), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal + 1_000_000e6);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)), 1_000_000e6);
@@ -439,11 +439,11 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
     }
 
     function test_claimCentrifugeCancelDepositRequest() external {
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 2_000_000e6);
 
         uint256 initialEscrowBal = usdc.balanceOf(ESCROW);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         0);
@@ -465,7 +465,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         vm.prank(allocator);
         mainnetController.centrifuge_cancelDepositRequest(address(jTreasuryVault));
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal + 1_000_000e6);
 
         assertEq(jTreasuryVault.pendingDepositRequest(REQUEST_ID, address(almProxy)),         1_000_000e6);
@@ -497,7 +497,7 @@ contract MainnetController_Centrifuge_ClaimCancelDeposit_Tests is Centrifuge_Tes
         assertEq(jTreasuryVault.pendingCancelDepositRequest(REQUEST_ID, address(almProxy)),   false);
         assertEq(jTreasuryVault.claimableCancelDepositRequest(REQUEST_ID, address(almProxy)), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(ESCROW),            initialEscrowBal);
     }
 

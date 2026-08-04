@@ -102,8 +102,8 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
     function setUp() public virtual override {
         super.setUp();
 
-        deal(address(usdc), address(almProxy), 1_000_000e6);
-        deal(address(usdt), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 2_000_000e6);
+        deal(address(usdt), address(almProxy), 2_000_000e6);
     }
 
     function test_addLiquidityCurve_reentrancy() external {
@@ -348,10 +348,10 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
         assertEq(usdc.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy), CURVE_POOL), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUSDCBalance);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdt.balanceOf(CURVE_POOL),        startingUSDTBalance);
 
         assertEq(CURVE_LP.balanceOf(address(almProxy)), 0);
@@ -382,10 +382,10 @@ contract MainnetController_Curve_AddLiquidity_Tests is Curve_TestBase {
         assertEq(usdc.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy), CURVE_POOL), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUSDCBalance + 1_000_000e6);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdt.balanceOf(CURVE_POOL),        startingUSDTBalance + 1_000_000e6);
 
         assertEq(CURVE_LP.balanceOf(address(almProxy)), shares);
@@ -675,6 +675,9 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
     function test_removeLiquidityCurve() external {
         uint256 shares = _addLiquidity(1_000_000e6, 1_000_000e6);
 
+        deal(address(usdt), address(almProxy), 1_000_000e6);
+        deal(address(usdc), address(almProxy), 1_000_000e6);
+
         vm.startPrank(SPARK_PROXY);
         rateLimits.setRateLimitData(curveAggregateWithdrawKey, 3_000_000e18, 0);
         rateLimits.setRateLimitData(curveWithdrawUSDCKey,      2_000_000e6, 0);
@@ -689,10 +692,10 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
 
         assertEq(CURVE_LP.allowance(address(almProxy), CURVE_POOL), 0);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdt.balanceOf(CURVE_POOL),        startingUSDTBalance);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUSDCBalance);
 
         assertEq(CURVE_LP.balanceOf(address(almProxy)), shares);
@@ -740,11 +743,11 @@ contract MainnetController_Curve_RemoveLiquidity_Tests is Curve_TestBase {
 
         assertEq(CURVE_LP.allowance(address(almProxy), CURVE_POOL), 0);
 
-        assertEq(usdc.balanceOf(address(almProxy)), assetsReceived[0]);
+        assertEq(usdc.balanceOf(address(almProxy)), assetsReceived[0] + 1_000_000e6);
 
         assertApproxEqAbs(usdc.balanceOf(CURVE_POOL), startingUSDCBalance - assetsReceived[0], 100e6);  // Fees from other deposits
 
-        assertEq(usdt.balanceOf(address(almProxy)), assetsReceived[1]);
+        assertEq(usdt.balanceOf(address(almProxy)), assetsReceived[1] + 1_000_000e6);
 
         assertApproxEqAbs(usdt.balanceOf(CURVE_POOL), startingUSDTBalance - assetsReceived[1], 100e6);  // Fees from other deposits
 
@@ -765,8 +768,8 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
 
         _addLiquidity(1_000_000e6, 1_000_000e6);
 
-        deal(address(usdt), address(almProxy), 1_000_000e6);
-        deal(address(usdc), address(almProxy), 1_000_000e6);
+        deal(address(usdt), address(almProxy), 2_000_000e6);
+        deal(address(usdc), address(almProxy), 2_000_000e6);
     }
 
     function test_swapCurve_reentrancy() external {
@@ -908,10 +911,10 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         uint256 startingUSDTBalance = usdt.balanceOf(CURVE_POOL);
         uint256 startingUSDCBalance = usdc.balanceOf(CURVE_POOL);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdt.balanceOf(CURVE_POOL),        startingUSDTBalance);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUSDCBalance);
 
         assertEq(rateLimits.getCurrentRateLimit(curveSwapUSDCKey), 1_000_000e6);
@@ -941,10 +944,10 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         assertEq(usdc.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy), CURVE_POOL), 0);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6 + amountOut);
+        assertEq(usdt.balanceOf(address(almProxy)), 2_000_000e6 + amountOut);
         assertEq(usdt.balanceOf(CURVE_POOL),        startingUSDTBalance - amountOut);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUSDCBalance + 1_000_000e6);
 
         assertEq(rateLimits.getCurrentRateLimit(curveSwapUSDCKey), 0);
@@ -961,12 +964,12 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         uint256 startingUSDTBalance = usdt.balanceOf(CURVE_POOL);
         uint256 startingUSDCBalance = usdc.balanceOf(CURVE_POOL);
 
-        deal(address(usdt), address(almProxy), 1_000_000e6);
+        deal(address(usdt), address(almProxy), 2_000_000e6);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdt.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdt.balanceOf(CURVE_POOL),        startingUSDTBalance);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUSDCBalance);
 
         assertEq(rateLimits.getCurrentRateLimit(curveSwapUSDCKey), 1_000_000e6);
@@ -996,10 +999,10 @@ contract MainnetController_Curve_Swap_Tests is Curve_TestBase {
         assertEq(usdc.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy), CURVE_POOL), 0);
 
-        assertEq(usdt.balanceOf(address(almProxy)), 0);
+        assertEq(usdt.balanceOf(address(almProxy)), 1_000_000e6);
         assertEq(usdt.balanceOf(CURVE_POOL),        startingUSDTBalance + 1_000_000e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6 + amountOut);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6 + amountOut);
         assertEq(usdc.balanceOf(CURVE_POOL),        startingUSDCBalance - amountOut);
 
         assertEq(rateLimits.getCurrentRateLimit(curveSwapUSDCKey), 1_000_000e6);
@@ -1558,8 +1561,8 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
     function test_e2e_addSwapAndRemoveLiquidityCurve() external {
         uint256 susdsAmount = susds.convertToShares(1_000_000e18);
 
-        deal(address(susds), address(almProxy), susdsAmount);
-        deal(address(usdt),  address(almProxy), 1_000_000e6);
+        deal(address(susds), address(almProxy), susdsAmount + 1_000_000e18);
+        deal(address(usdt),  address(almProxy), 2_000_000e6);
 
         uint256 susdsBalance = susds.balanceOf(CURVE_POOL);
         uint256 usdtBalance  = usdt.balanceOf(CURVE_POOL);
@@ -1577,8 +1580,8 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
         assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
 
-        assertEq(susds.balanceOf(address(almProxy)), susdsAmount);
-        assertEq(usdt.balanceOf(address(almProxy)),  1_000_000e6);
+        assertEq(susds.balanceOf(address(almProxy)), susdsAmount + 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  2_000_000e6);
 
         vm.prank(allocator);
         uint256 shares = mainnetController.curve_addLiquidity(CURVE_POOL, amounts, minShares);
@@ -1588,20 +1591,20 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
         assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
 
-        assertEq(susds.balanceOf(address(almProxy)), 0);
-        assertEq(usdt.balanceOf(address(almProxy)),  0);
+        assertEq(susds.balanceOf(address(almProxy)), 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  1_000_000e6);
 
         assertEq(susds.balanceOf(CURVE_POOL), susdsBalance + susdsAmount);
         assertEq(usdt.balanceOf(CURVE_POOL),  usdtBalance + 1_000_000e6);
 
         // Step 2: Swap USDT for sUSDS
 
-        deal(address(usdt), address(almProxy), 100_000e6);
+        deal(address(usdt), address(almProxy), 200_000e6);
 
         uint256 minSUSDSAmount = susds.convertToShares(99_500e18);
 
-        assertEq(susds.balanceOf(address(almProxy)), 0);
-        assertEq(usdt.balanceOf(address(almProxy)),  100_000e6);
+        assertEq(susds.balanceOf(address(almProxy)), 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  200_000e6);
 
         vm.prank(allocator);
         uint256 susdsReturned = mainnetController.curve_swap(CURVE_POOL, 1, 0, 100_000e6, minSUSDSAmount);
@@ -1611,17 +1614,17 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
         assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
 
-        assertEq(susds.balanceOf(address(almProxy)), susdsReturned);
-        assertEq(usdt.balanceOf(address(almProxy)),  0);
+        assertEq(susds.balanceOf(address(almProxy)), susdsReturned + 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  100_000e6);
 
         // Step 3: Swap USDT for sUSDS again (ensure no issue with approval)
 
-        deal(address(usdt), address(almProxy), 100_000e6);
+        deal(address(usdt), address(almProxy), 200_000e6);
 
         minSUSDSAmount = susds.convertToShares(99_500e18);
 
-        assertEq(susds.balanceOf(address(almProxy)), susdsReturned);
-        assertEq(usdt.balanceOf(address(almProxy)),  100_000e6);
+        assertEq(susds.balanceOf(address(almProxy)), susdsReturned + 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  200_000e6);
 
         vm.prank(allocator);
         susdsReturned += mainnetController.curve_swap(CURVE_POOL, 1, 0, 100_000e6, minSUSDSAmount);
@@ -1631,17 +1634,17 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
         assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
 
-        assertEq(susds.balanceOf(address(almProxy)), susdsReturned);  // Incremented
-        assertEq(usdt.balanceOf(address(almProxy)),  0);
+        assertEq(susds.balanceOf(address(almProxy)), susdsReturned + 1_000_000e18);  // Incremented
+        assertEq(usdt.balanceOf(address(almProxy)),  100_000e6);
 
         // Step 4: Swap sUSDS for USDT
 
         uint256 susdsSwapAmount = susds.convertToShares(100_000e18);
 
-        deal(address(susds), address(almProxy), susdsSwapAmount);  // NOTE: Overwrites balance
+        deal(address(susds), address(almProxy), susdsSwapAmount + 1_000_000e18);  // NOTE: Overwrites balance
 
-        assertEq(susds.balanceOf(address(almProxy)), susdsSwapAmount);
-        assertEq(usdt.balanceOf(address(almProxy)),  0);
+        assertEq(susds.balanceOf(address(almProxy)), susdsSwapAmount + 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  100_000e6);
 
         vm.prank(allocator);
         uint256 usdtReturned = mainnetController.curve_swap(CURVE_POOL, 0, 1, susdsSwapAmount, 99_500e6);
@@ -1651,8 +1654,8 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
         assertEq(susds.allowance(address(almProxy), CURVE_POOL), 0);
         assertEq(usdt.allowance(address(almProxy),  CURVE_POOL), 0);
 
-        assertEq(susds.balanceOf(address(almProxy)), 0);
-        assertEq(usdt.balanceOf(address(almProxy)),  usdtReturned);
+        assertEq(susds.balanceOf(address(almProxy)), 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  usdtReturned + 100_000e6);
 
         // Step 5: Remove liquidity
 
@@ -1675,8 +1678,8 @@ contract MainnetController_Curve_SUSDS_USDT_Pool_E2ETests is ForkTestBase {
             2_000_004.308843519857743801e18
         );
 
-        assertEq(susds.balanceOf(address(almProxy)), assetsReceived[0]);
-        assertEq(usdt.balanceOf(address(almProxy)),  assetsReceived[1] + usdtReturned);
+        assertEq(susds.balanceOf(address(almProxy)), assetsReceived[0] + 1_000_000e18);
+        assertEq(usdt.balanceOf(address(almProxy)),  assetsReceived[1] + usdtReturned + 100_000e6);
 
         assertEq(CURVE_LP.balanceOf(address(almProxy)), 0);
     }

@@ -107,11 +107,11 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
     function test_depositPSM_depositUSDS() external {
         bytes32 key = foreignController.psm3_getDepositRateLimitKey(address(usdsBase));
 
-        deal(address(usdsBase), address(almProxy), 100e18);
+        deal(address(usdsBase), address(almProxy), 200e18);
 
         _assertState({
             token            : address(usdsBase),
-            proxyBalance     : 100e18,
+            proxyBalance     : 200e18,
             psmBalance       : 1e18,  // From seeding USDS
             proxyShares      : 0,
             totalShares      : 1e18,  // From seeding USDS
@@ -134,7 +134,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
 
         _assertState({
             token            : address(usdsBase),
-            proxyBalance     : 0,
+            proxyBalance     : 100e18,
             psmBalance       : 101e18,
             proxyShares      : 100e18,
             totalShares      : 101e18,
@@ -147,11 +147,11 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
     function test_depositPSM_depositUSDC() external {
         bytes32 key = foreignController.psm3_getDepositRateLimitKey(Base.USDC);
 
-        deal(Base.USDC, address(almProxy), 100e6);
+        deal(Base.USDC, address(almProxy), 200e6);
 
         _assertState({
             token            : Base.USDC,
-            proxyBalance     : 100e6,
+            proxyBalance     : 200e6,
             psmBalance       : 0,
             proxyShares      : 0,
             totalShares      : 1e18,  // From seeding USDS
@@ -174,7 +174,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
 
         _assertState({
             token            : Base.USDC,
-            proxyBalance     : 0,
+            proxyBalance     : 100e6,
             psmBalance       : 100e6,
             proxyShares      : 100e18,
             totalShares      : 101e18,
@@ -187,11 +187,11 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
     function test_depositPSM_depositSUSDS() external {
         bytes32 key = foreignController.psm3_getDepositRateLimitKey(address(susdsBase));
 
-        deal(address(susdsBase), address(almProxy), 100e18);
+        deal(address(susdsBase), address(almProxy), 200e18);
 
         _assertState({
             token            : address(susdsBase),
-            proxyBalance     : 100e18,
+            proxyBalance     : 200e18,
             psmBalance       : 0,
             proxyShares      : 0,
             totalShares      : 1e18,  // From seeding USDS
@@ -214,7 +214,7 @@ contract ForeignController_PSM3_Deposit_Tests is PSM3_TestBase {
 
         _assertState({
             token            : address(susdsBase),
-            proxyBalance     : 0,
+            proxyBalance     : 100e18,
             psmBalance       : 100e18,
             proxyShares      : shares,
             totalShares      : 1e18 + shares,
@@ -342,7 +342,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     function test_withdrawPSM_withdrawUSDS() external {
         bytes32 key = foreignController.psm3_getWithdrawRateLimitKey(address(usdsBase));
 
-        deal(address(usdsBase), address(almProxy), 100e18);
+        deal(address(usdsBase), address(almProxy), 200e18);
 
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit({ asset: address(usdsBase), amount: 100e18, shares: 100e18 });
@@ -352,7 +352,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         _assertState({
             token            : address(usdsBase),
-            proxyBalance     : 0,
+            proxyBalance     : 100e18,
             psmBalance       : 101e18,
             proxyShares      : 100e18,
             totalShares      : 101e18,
@@ -375,7 +375,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         _assertState({
             token            : address(usdsBase),
-            proxyBalance     : 100e18,
+            proxyBalance     : 200e18,
             psmBalance       : 1e18,  // From seeding USDS
             proxyShares      : 0,
             totalShares      : 1e18,  // From seeding USDS
@@ -388,7 +388,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     function test_withdrawPSM_withdrawUSDC() external {
         bytes32 key = foreignController.psm3_getWithdrawRateLimitKey(Base.USDC);
 
-        deal(Base.USDC, address(almProxy), 100e6);
+        deal(Base.USDC, address(almProxy), 200e6);
 
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit({ asset: Base.USDC, amount: 100e6, shares: 100e18 });
@@ -398,7 +398,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         _assertState({
             token            : Base.USDC,
-            proxyBalance     : 0,
+            proxyBalance     : 100e6,
             psmBalance       : 100e6,
             proxyShares      : 100e18,
             totalShares      : 101e18,
@@ -421,7 +421,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         _assertState({
             token            : Base.USDC,
-            proxyBalance     : 100e6,
+            proxyBalance     : 200e6,
             psmBalance       : 0,
             proxyShares      : 0,
             totalShares      : 1e18,  // From seeding USDS
@@ -434,7 +434,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
     function test_withdrawPSM_withdrawSUSDS() external {
         bytes32 key = foreignController.psm3_getWithdrawRateLimitKey(address(susdsBase));
 
-        deal(address(susdsBase), address(almProxy), 100e18);
+        deal(address(susdsBase), address(almProxy), 200e18);
 
         vm.expectEmit(address(foreignController));
         emit IPSM3Facet.PSM3Deposit({
@@ -450,7 +450,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         _assertState({
             token            : address(susdsBase),
-            proxyBalance     : 0,
+            proxyBalance     : 100e18,
             psmBalance       : 100e18,
             proxyShares      : shares,
             totalShares      : 1e18 + shares,
@@ -473,7 +473,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         _assertState({
             token            : address(susdsBase),
-            proxyBalance     : 100e18 - 1,  // Rounding
+            proxyBalance     : 200e18 - 1,  // Rounding
             psmBalance       : 1,           // Rounding
             proxyShares      : 0,
             totalShares      : 1e18,      // From seeding USDS
@@ -487,14 +487,14 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
         bytes32 key = foreignController.psm3_getWithdrawRateLimitKey(Base.USDC);
 
         // Deposit only 50e6 USDC so the proxy is backed for at most 50e6 on withdrawal.
-        deal(Base.USDC, address(almProxy), 50e6);
+        deal(Base.USDC, address(almProxy), 150e6);
 
         vm.prank(allocator);
         foreignController.psm3_deposit(Base.USDC, 50e6);
 
         _assertState({
             token            : Base.USDC,
-            proxyBalance     : 0,
+            proxyBalance     : 100e6,
             psmBalance       : 50e6,
             proxyShares      : 50e18,
             totalShares      : 51e18,
@@ -519,7 +519,7 @@ contract ForeignController_PSM3_Withdraw_Tests is PSM3_TestBase {
 
         _assertState({
             token            : Base.USDC,
-            proxyBalance     : 50e6,
+            proxyBalance     : 150e6,
             psmBalance       : 0,
             proxyShares      : 0,
             totalShares      : 1e18,  // From seeding USDS

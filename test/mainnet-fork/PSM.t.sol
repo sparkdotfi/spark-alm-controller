@@ -86,17 +86,20 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
 
     function test_swapUSDSToUSDC() external {
         vm.prank(allocator);
-        mainnetController.usds_mint(1e18);
+        mainnetController.usds_mint(2e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),          1e18);
+        deal(address(DAI),  address(almProxy), 1e18);
+        deal(address(USDC), address(almProxy), 1e6);
+
+        assertEq(USDS.balanceOf(address(almProxy)),          2e18);
         assertEq(USDS.balanceOf(address(mainnetController)), 0);
-        assertEq(USDS.totalSupply(),                         USDS_SUPPLY + 1e18);
+        assertEq(USDS.totalSupply(),                         USDS_SUPPLY + 2e18);
 
-        assertEq(DAI.balanceOf(address(almProxy)), 0);
+        assertEq(DAI.balanceOf(address(almProxy)), 1e18);
         assertEq(DAI.balanceOf(Ethereum.PSM),      DAI_BAL_PSM);
         assertEq(DAI.totalSupply(),                DAI_SUPPLY);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
+        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(POCKET),                     USDC_BAL_PSM);
 
@@ -114,15 +117,15 @@ contract MainnetController_PSM_SwapUSDSToUSDC_Tests is PSM_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(USDS.balanceOf(address(almProxy)),          0);
+        assertEq(USDS.balanceOf(address(almProxy)),          1e18);
         assertEq(USDS.balanceOf(address(mainnetController)), 0);
-        assertEq(USDS.totalSupply(),                         USDS_SUPPLY);
+        assertEq(USDS.totalSupply(),                         USDS_SUPPLY + 1e18);
 
-        assertEq(DAI.balanceOf(address(almProxy)), 0);
+        assertEq(DAI.balanceOf(address(almProxy)), 1e18);
         assertEq(DAI.balanceOf(Ethereum.PSM),      DAI_BAL_PSM + 1e18);
         assertEq(DAI.totalSupply(),                DAI_SUPPLY + 1e18);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
+        assertEq(USDC.balanceOf(address(almProxy)),          1e6 + 1e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(POCKET),                     USDC_BAL_PSM - 1e6);
 
@@ -267,17 +270,19 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
     }
 
     function test_swapUSDCToUSDS() external {
-        deal(Ethereum.USDC, address(almProxy), 1e6);
+        deal(Ethereum.USDC, address(almProxy), 2e6);
+        deal(address(DAI),  address(almProxy), 1e18);
+        deal(address(USDS), address(almProxy), 1e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)),          0);
+        assertEq(USDS.balanceOf(address(almProxy)),          1e18);
         assertEq(USDS.balanceOf(address(mainnetController)), 0);
         assertEq(USDS.totalSupply(),                         USDS_SUPPLY);
 
-        assertEq(DAI.balanceOf(address(almProxy)), 0);
+        assertEq(DAI.balanceOf(address(almProxy)), 1e18);
         assertEq(DAI.balanceOf(Ethereum.PSM),      DAI_BAL_PSM);
         assertEq(DAI.totalSupply(),                DAI_SUPPLY);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
+        assertEq(USDC.balanceOf(address(almProxy)),          2e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(POCKET),                     USDC_BAL_PSM);
 
@@ -295,15 +300,15 @@ contract MainnetController_PSM_SwapUSDCToUSDS_Tests is PSM_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(USDS.balanceOf(address(almProxy)),          1e18);
+        assertEq(USDS.balanceOf(address(almProxy)),          1e18 + 1e18);
         assertEq(USDS.balanceOf(address(mainnetController)), 0);
         assertEq(USDS.totalSupply(),                         USDS_SUPPLY + 1e18);
 
-        assertEq(DAI.balanceOf(address(almProxy)), 0);
+        assertEq(DAI.balanceOf(address(almProxy)), 1e18);
         assertEq(DAI.balanceOf(Ethereum.PSM),      DAI_BAL_PSM - 1e18);
         assertEq(DAI.totalSupply(),                DAI_SUPPLY - 1e18);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
+        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
         assertEq(USDC.balanceOf(address(mainnetController)), 0);
         assertEq(USDC.balanceOf(POCKET),                     USDC_BAL_PSM + 1e6);
 

@@ -122,7 +122,9 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
     }
 
     function test_takeFromSparkVault_rateLimited() external {
-        deal(Base.USDC, user, 10_000_000e6);
+        deal(Base.USDC, user,              10_000_000e6);
+        deal(Base.USDC, address(almProxy), 10_000_000e6);
+
         vm.startPrank(user);
         USDC_BASE.approve(address(sparkVault), 10_000_000e6);
         sparkVault.deposit(10_000_000e6, user);
@@ -130,7 +132,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         TestState memory testState = TestState({
             rateLimit:        1_000_000e6,
-            usdcAlm:          0,
+            usdcAlm:          10_000_000e6,
             usdcVault:        10_000_000e6,
             vaultTotalAssets: 10_000_000e6,
             vaultTotalSupply: 10_000_000e6
@@ -188,7 +190,9 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
         depositAmount = _bound(depositAmount, 1e18, 10_000_000_000e18);
         takeAmount    = _bound(depositAmount, 1e18, depositAmount);
 
-        deal(Base.USDC, user, depositAmount);
+        deal(Base.USDC, user,              depositAmount);
+        deal(Base.USDC, address(almProxy), depositAmount);
+
         vm.startPrank(user);
         USDC_BASE.approve(address(sparkVault), depositAmount);
         sparkVault.deposit(depositAmount, user);
@@ -196,7 +200,7 @@ contract ForeignController_SparkVault_TakeFrom_Tests is SparkVault_TestBase {
 
         TestState memory testState = TestState({
             rateLimit:        10_000_000_000e18,
-            usdcAlm:          0,
+            usdcAlm:          depositAmount,
             usdcVault:        depositAmount,
             vaultTotalAssets: depositAmount,
             vaultTotalSupply: depositAmount
@@ -282,12 +286,14 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
     }
 
     function test_e2e_takeFromSparkVault() external {
+        deal(Base.USDC, address(almProxy), 10_000_000e6);
+
         // Step 1: Set the initial state
 
         E2ETestState memory testState = E2ETestState({
             takeRateLimit:     10_000_000e6,
             transferRateLimit: 10_000_000e6,
-            usdcAlm:           0,
+            usdcAlm:           10_000_000e6,
             usdcVault:         0,
             vaultAssetsOut:    0,
             vaultTotalAssets:  0,
@@ -320,7 +326,7 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         foreignController.sparkVault_take(address(sparkVault), 9_000_000e6);
 
         testState.takeRateLimit  = 1_000_000e6;
-        testState.usdcAlm        = 9_000_000e6;
+        testState.usdcAlm       += 9_000_000e6;
         testState.usdcVault      = 1_000_000e6;
         testState.vaultAssetsOut = 9_000_000e6;
 
@@ -336,7 +342,7 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         vm.stopPrank();
 
         testState.takeRateLimit = 10_000_000e6;
-        testState.usdcAlm       = 0;
+        testState.usdcAlm       = 10_000_000e6;
 
         _assertE2EState(testState);  // No state changes
 
@@ -363,7 +369,7 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         uint256 almProfit = assets - 9_400_000e6;  // 9.4m owed to the vault
 
         testState.transferRateLimit = 600_000e6;  // 10m - 9.4m
-        testState.usdcAlm           = almProfit;
+        testState.usdcAlm          += almProfit;
         testState.usdcVault         = 10_400_000e6;
         testState.vaultAssetsOut    = 0;
 
@@ -379,7 +385,7 @@ contract ForeignController_SparkVault_TakeFrom_E2ETests is SparkVault_TestBase {
         _assertE2EState(E2ETestState({
             takeRateLimit:     10_000_000e6,
             transferRateLimit: 600_000e6,
-            usdcAlm:           almProfit,
+            usdcAlm:           10_000_000e6 + almProfit,
             usdcVault:         1,  // Rounding against user
             vaultAssetsOut:    0,
             vaultTotalAssets:  0,

@@ -77,6 +77,8 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
     }
 
     function test_mintUSDS() external {
+        deal(Ethereum.USDS, address(almProxy), 1e18);
+
         ( uint256 ink, uint256 art ) = dss.vat.urns(ilk, vault);
         ( uint256 Art, , , , )       = dss.vat.ilks(ilk);
 
@@ -86,7 +88,7 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
         assertEq(ink, INK);
         assertEq(art, 0);
 
-        assertEq(USDS.balanceOf(address(almProxy)), 0);
+        assertEq(USDS.balanceOf(address(almProxy)), 1e18);
         assertEq(USDS.totalSupply(),                USDS_SUPPLY);
 
         vm.record();
@@ -108,30 +110,32 @@ contract MainnetController_USDS_Mint_Tests is USDS_TestBase {
         assertEq(ink, INK);
         assertEq(art, 1e18);
 
-        assertEq(USDS.balanceOf(address(almProxy)), 1e18);
+        assertEq(USDS.balanceOf(address(almProxy)), 2e18);
         assertEq(USDS.totalSupply(),                USDS_SUPPLY + 1e18);
     }
 
     function test_mintUSDS_rateLimited() external {
+        deal(Ethereum.USDS, address(almProxy), 1_000_000e18);
+
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 5_000_000e18);
-        assertEq(USDS.balanceOf(address(almProxy)),       0);
+        assertEq(USDS.balanceOf(address(almProxy)),       1_000_000e18);
 
         vm.prank(allocator);
         mainnetController.usds_mint(1_000_000e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 4_000_000e18);
-        assertEq(USDS.balanceOf(address(almProxy)),       1_000_000e18);
+        assertEq(USDS.balanceOf(address(almProxy)),       2_000_000e18);
 
         skip(1 hours);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 4_249_999.9999999999999984e18);
-        assertEq(USDS.balanceOf(address(almProxy)),       1_000_000e18);
+        assertEq(USDS.balanceOf(address(almProxy)),       2_000_000e18);
 
         vm.prank(allocator);
         mainnetController.usds_mint(4_249_999.9999999999999984e18);
 
         assertEq(rateLimits.getCurrentRateLimit(mintKey), 0);
-        assertEq(USDS.balanceOf(address(almProxy)),       5_249_999.9999999999999984e18);
+        assertEq(USDS.balanceOf(address(almProxy)),       6_249_999.9999999999999984e18);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
         vm.prank(allocator);

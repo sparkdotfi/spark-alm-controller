@@ -107,10 +107,11 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
     }
 
     function test_transferAsset() external {
-        deal(Ethereum.USDC, address(almProxy), 1_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 2_000_000e6);
+        deal(Ethereum.USDC, receiver,          1_000_000e6);
 
-        assertEq(usdc.balanceOf(receiver),          0);
-        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(usdc.balanceOf(receiver),          1_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 2_000_000e6);
 
         vm.record();
 
@@ -122,8 +123,8 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(usdc.balanceOf(receiver),          1_000_000e6);
-        assertEq(usdc.balanceOf(address(almProxy)), 0);
+        assertEq(usdc.balanceOf(receiver),          2_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)), 1_000_000e6);
     }
 
     function test_transferAsset_successNoReturnData() external {
@@ -137,10 +138,11 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
 
         vm.stopPrank();
 
-        deal(Ethereum.USDT, address(almProxy), 1_000_000e6);
+        deal(Ethereum.USDT, address(almProxy), 2_000_000e6);
+        deal(Ethereum.USDT, receiver,          1_000_000e6);
 
-        assertEq(USDT.balanceOf(receiver),          0);
-        assertEq(USDT.balanceOf(address(almProxy)), 1_000_000e6);
+        assertEq(USDT.balanceOf(receiver),          1_000_000e6);
+        assertEq(USDT.balanceOf(address(almProxy)), 2_000_000e6);
 
         vm.expectEmit(address(mainnetController));
         emit ITransferAssetFacet.TransferAssetTransfer(Ethereum.USDT, receiver, 1_000_000e6);
@@ -148,8 +150,8 @@ contract MainnetController_TransferAsset_Tests is TransferAsset_TestBase {
         vm.prank(allocator);
         mainnetController.transferAsset_transfer(Ethereum.USDT, receiver, 1_000_000e6);
 
-        assertEq(USDT.balanceOf(receiver),          1_000_000e6);
-        assertEq(USDT.balanceOf(address(almProxy)), 0);
+        assertEq(USDT.balanceOf(receiver),          2_000_000e6);
+        assertEq(USDT.balanceOf(address(almProxy)), 1_000_000e6);
     }
 
 }
