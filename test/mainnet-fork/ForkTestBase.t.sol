@@ -25,6 +25,7 @@ import { DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 import { IFacet } from "../../src/facets/IFacet.sol";
 
 import { IAaveFacet }          from "../../src/facets/aave/IAaveFacet.sol";
+import { IAaveV4Facet }        from "../../src/facets/aave-v4/IAaveV4Facet.sol";
 import { IBasinFacet }         from "../../src/facets/basin/IBasinFacet.sol";
 import { ICCTPFacet }          from "../../src/facets/cctp/ICCTPFacet.sol";
 import { ICentrifugeFacet }    from "../../src/facets/centrifuge/ICentrifugeFacet.sol";
@@ -53,6 +54,7 @@ import { IWrapProxyETHFacet }  from "../../src/facets/wrap-proxy-eth/IWrapProxyE
 import { IWSTETHFacet }        from "../../src/facets/wsteth/IWSTETHFacet.sol";
 
 import { AaveFacet }          from "../../src/facets/aave/AaveFacet.sol";
+import { AaveV4Facet }        from "../../src/facets/aave-v4/AaveV4Facet.sol";
 import { BasinFacet }         from "../../src/facets/basin/BasinFacet.sol";
 import { CCTPFacet }          from "../../src/facets/cctp/CCTPFacet.sol";
 import { CentrifugeFacet }    from "../../src/facets/centrifuge/CentrifugeFacet.sol";
@@ -297,6 +299,7 @@ abstract contract ForkTestBase is DssTest {
 
         // Facet wiring
         _wireAaveFacet();
+        _wireAaveV4Facet();
         _wireBasinFacet();
         _wireCCTPFacet();
         _wireCentrifugeFacet();
@@ -342,7 +345,7 @@ abstract contract ForkTestBase is DssTest {
         //       logic that calls into AccessControls to perform grants and revocations.
         accessControls.setRoleAdmin(ALLOCATOR_ROLE, ALLOCATOR_ADMIN_ROLE);
 
-        bytes32[] memory integrationIds = new bytes32[](27);
+        bytes32[] memory integrationIds = new bytes32[](28);
         integrationIds[0]  = "AAVE_FACET";
         integrationIds[1]  = "BASIN_FACET";
         integrationIds[2]  = "CCTP_FACET";
@@ -370,6 +373,7 @@ abstract contract ForkTestBase is DssTest {
         integrationIds[24] = "WSTETH_FACET";
         integrationIds[25] = "NFAT_HALO_FACET";
         integrationIds[26] = "NFAT_PRIME_FACET";
+        integrationIds[27] = "AAVE_V4_FACET";
 
         mainnetController.updateIntegrations(integrationIds);
 
@@ -495,6 +499,56 @@ abstract contract ForkTestBase is DssTest {
         });
 
         beacon.setIntegration("AAVE_FACET", config);
+    }
+
+    function _wireAaveV4Facet() internal {
+        address aaveV4Facet = address(new AaveV4Facet());
+
+        vm.label(aaveV4Facet, "AaveV4Facet");
+
+        IEnumerableIntegrations.Wire[] memory wires = new IEnumerableIntegrations.Wire[](7);
+
+        wires[0] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.aaveV4_setMaxSlippage.selector,
+            IAaveV4Facet.setMaxSlippage.selector
+        );
+
+        wires[1] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.aaveV4_getMaxSlippage.selector,
+            IAaveV4Facet.getMaxSlippage.selector
+        );
+
+        wires[2] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.aaveV4_deposit.selector,
+            IAaveV4Facet.deposit.selector
+        );
+
+        wires[3] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.aaveV4_withdraw.selector,
+            IAaveV4Facet.withdraw.selector
+        );
+
+        wires[4] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.aaveV4_getDepositRateLimitKey.selector,
+            IAaveV4Facet.getDepositRateLimitKey.selector
+        );
+
+        wires[5] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.aaveV4_getWithdrawRateLimitKey.selector,
+            IAaveV4Facet.getWithdrawRateLimitKey.selector
+        );
+
+        wires[6] = IEnumerableIntegrations.Wire(
+            IMainnetControllerFull.aaveV4_VERSION.selector,
+            IFacet.VERSION.selector
+        );
+
+        IEnumerableIntegrations.Config memory config = IEnumerableIntegrations.Config({
+            facet : aaveV4Facet,
+            wires : wires
+        });
+
+        beacon.setIntegration("AAVE_V4_FACET", config);
     }
 
     function _wireBasinFacet() internal {

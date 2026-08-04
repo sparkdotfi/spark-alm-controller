@@ -139,6 +139,7 @@ The system uses a facet-based architecture where each protocol integration is en
 | Facet                | Purpose                                        |
 | -------------------- | ---------------------------------------------- |
 | `AaveFacet`          | Aave protocol deposit/withdraw                 |
+| `AaveV4Facet`        | Aave V4 protocol deposit/withdraw              |
 | `BasinFacet`         | Grove Basin protocol deposit/withdraw          |
 | `CCTPFacet`          | Circle CCTP v2 USDC bridging                   |
 | `CentrifugeFacet`    | Centrifuge async vault (ERC-7887) interactions |

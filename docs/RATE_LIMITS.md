@@ -132,7 +132,7 @@ The claim path is gated by a dedicated claim-side key. Configuring only `LIMIT_W
 
 ### Try-Increase (Not Gate-Check)
 
-`AaveFacet.withdraw`, `ERC4626Facet.withdraw`, `ERC4626Facet.redeem`, `PSMFacet.swapUSDCToUSDS`, and `USDSFacet.burn` use `_tryIncreaseRateLimit` on the deposit key, which silently no-ops when the deposit key's `maxAmount == 0`. These withdraw paths are gated only by their respective withdraw key (via `_decreaseRateLimit`, which reverts when unset). The deposit key is opportunistically restored when configured and is not a precondition for withdrawal. Setting the deposit key's `maxAmount` to zero does not pause the corresponding withdraw path.
+`AaveFacet.withdraw`, `AaveV4Facet.withdraw`, `ERC4626Facet.withdraw`, `ERC4626Facet.redeem`, `PSMFacet.swapUSDCToUSDS`, and `USDSFacet.burn` use `_tryIncreaseRateLimit` on the deposit key, which silently no-ops when the deposit key's `maxAmount == 0`. These withdraw paths are gated only by their respective withdraw key (via `_decreaseRateLimit`, which reverts when unset). The deposit key is opportunistically restored when configured and is not a precondition for withdrawal. Setting the deposit key's `maxAmount` to zero does not pause the corresponding withdraw path.
 
 ---
 

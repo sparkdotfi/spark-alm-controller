@@ -35,6 +35,38 @@ interface IMainnetControllerFull is IController {
         returns (bytes32 key);
 
     /**********************************************************************************************/
+    /*** AaveV4Facet actions                                                                    ***/
+    /**********************************************************************************************/
+
+    function aaveV4_VERSION() external pure returns (string memory);
+
+    function aaveV4_setMaxSlippage(address spoke, uint256 reserveId, uint256 maxSlippage) external;
+
+    function aaveV4_deposit(address spoke, uint256 reserveId, uint256 amount) external;
+
+    function aaveV4_withdraw(address spoke, uint256 reserveId, uint256 amount)
+        external
+        returns (uint256 amountWithdrawn);
+
+    function aaveV4_getMaxSlippage(address spoke, uint256 reserveId) external view returns (uint256);
+
+    function aaveV4_getDepositRateLimitKey(
+        address spoke,
+        uint256 reserveId,
+        address hub,
+        uint16  assetId,
+        address underlying
+    )
+        external
+        pure
+        returns (bytes32 key);
+
+    function aaveV4_getWithdrawRateLimitKey(address spoke, uint256 reserveId)
+        external
+        pure
+        returns (bytes32 key);
+
+    /**********************************************************************************************/
     /*** BasinFacet actions                                                                     ***/
     /**********************************************************************************************/
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.34;
 import { Test } from "../../lib/forge-std/src/Test.sol";
 
 import { AaveFacet }          from "../../src/facets/aave/AaveFacet.sol";
+import { AaveV4Facet }        from "../../src/facets/aave-v4/AaveV4Facet.sol";
 import { BasinFacet }         from "../../src/facets/basin/BasinFacet.sol";
 import { CCTPFacet }          from "../../src/facets/cctp/CCTPFacet.sol";
 import { CentrifugeFacet }    from "../../src/facets/centrifuge/CentrifugeFacet.sol";
@@ -37,6 +38,7 @@ contract FacetVersions_Tests is Test {
     address internal MOCK_ADDRESS = makeAddr("mockAddress");
 
     AaveFacet          internal aaveFacet;
+    AaveV4Facet        internal aaveV4Facet;
     BasinFacet         internal basinFacet;
     CCTPFacet          internal cctpFacet;
     CentrifugeFacet    internal centrifugeFacet;
@@ -67,6 +69,7 @@ contract FacetVersions_Tests is Test {
 
     function setUp() external {
         aaveFacet          = new AaveFacet();
+        aaveV4Facet        = new AaveV4Facet();
         basinFacet         = new BasinFacet();
         cctpFacet          = new CCTPFacet(MOCK_ADDRESS, MOCK_ADDRESS);
         centrifugeFacet    = new CentrifugeFacet();
@@ -98,6 +101,7 @@ contract FacetVersions_Tests is Test {
 
     function test_version() external view {
         assertEq(aaveFacet.VERSION(),          "1.0.0");
+        assertEq(aaveV4Facet.VERSION(),        "1.0.0");
         assertEq(basinFacet.VERSION(),         "1.0.0");
         assertEq(cctpFacet.VERSION(),          "1.0.0");
         assertEq(centrifugeFacet.VERSION(),    "1.0.0");

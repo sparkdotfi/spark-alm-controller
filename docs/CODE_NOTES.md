@@ -81,22 +81,23 @@ Additionally, some core contracts use Solidity custom errors (not string-prefix 
 
 ### Facet Prefixes
 
-| Prefix                | Source                            |
-| --------------------- | --------------------------------- |
-| `AaveFacet/`          | Aave deposit/withdraw operations  |
-| `CCTPFacet/`          | CCTP V2 bridging operations       |
-| `CentrifugeFacet/`    | Centrifuge vault operations       |
-| `CurveFacet/`         | Curve pool operations             |
-| `ERC4626Facet/`       | ERC-4626 vault operations         |
-| `LayerZeroFacet/`     | LayerZero V2 bridging operations  |
-| `MapleFacet/`         | Maple redemption operations       |
-| `OTCFacet/`           | OTC swap operations               |
-| `PendleFacet/`        | Pendle PT redemption operations   |
-| `TransferAssetFacet/` | Generic asset transfer operations |
-| `UniswapV3Facet/`     | Uniswap V3 operations             |
-| `UniswapV4Facet/`     | Uniswap V4 operations             |
-| `WEETHFacet/`         | weETH deposit/withdraw operations |
-| `ERC7540Facet/`       | ERC-7540 async vault operations   |
+| Prefix                | Source                              |
+| --------------------- | ----------------------------------- |
+| `AaveFacet/`          | Aave deposit/withdraw operations    |
+| `AaveV4Facet/`        | Aave V4 deposit/withdraw operations |
+| `CCTPFacet/`          | CCTP V2 bridging operations         |
+| `CentrifugeFacet/`    | Centrifuge vault operations         |
+| `CurveFacet/`         | Curve pool operations               |
+| `ERC4626Facet/`       | ERC-4626 vault operations           |
+| `LayerZeroFacet/`     | LayerZero V2 bridging operations    |
+| `MapleFacet/`         | Maple redemption operations         |
+| `OTCFacet/`           | OTC swap operations                 |
+| `PendleFacet/`        | Pendle PT redemption operations     |
+| `TransferAssetFacet/` | Generic asset transfer operations   |
+| `UniswapV3Facet/`     | Uniswap V3 operations               |
+| `UniswapV4Facet/`     | Uniswap V4 operations               |
+| `WEETHFacet/`         | weETH deposit/withdraw operations   |
+| `ERC7540Facet/`       | ERC-7540 async vault operations     |
 
 ### Library Prefixes
 
@@ -115,6 +116,7 @@ All swap and liquidity operations require `maxSlippage != 0`. Each facet enforce
 ```solidity
 require(maxSlippage != 0, "CurveFacet/max-slippage-not-set");
 require(maxSlippage != 0, "AaveFacet/max-slippage-not-set");
+require(maxSlippage != 0, "AaveV4Facet/max-slippage-not-set");
 require(maxSlippage != 0, "UniswapV4Facet/max-slippage-not-set");
 ```
 
