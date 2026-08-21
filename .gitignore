@@ -7,3 +7,6 @@ script/output/*/*.json
 !script/output/*/*-release-*.json
 .DS_Store
 ./package-lock.json
+
+# Python (checks/)
+__pycache__/

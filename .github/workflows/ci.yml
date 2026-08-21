@@ -11,6 +11,22 @@ env:
     FOUNDRY_PROFILE: ci
 
 jobs:
+    workflow-contract:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+              with:
+                  persist-credentials: false
+
+            - name: Test advisory review automation
+              run: >-
+                  python3 -m unittest
+                  checks/test_claude_workflow.py
+                  checks/test_advisory_scanners.py
+                  checks/test_review_context.py
+
     build:
         runs-on: ubuntu-latest
         steps:
