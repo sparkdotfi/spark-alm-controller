@@ -13,7 +13,6 @@ import { IERC4626 }       from "../lib/openzeppelin-contracts/contracts/interfac
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
 import { IALMProxy }   from "./interfaces/IALMProxy.sol";
-import { ICCTPLike }   from "./interfaces/CCTPInterfaces.sol";
 import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { ApproveLib }                     from "./libraries/ApproveLib.sol";
@@ -99,7 +98,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
-    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 mintRecipient);
+    event MintRecipientSet(uint32 indexed destinationDomain, bytes32 indexed mintRecipient);
+    event CCTPMaxFeeRateSet(uint256 maxFeeRate);
     event OTCBufferSet(
         address indexed exchange,
         address indexed oldOTCBuffer,
@@ -159,8 +159,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_UNISWAP_V4_SWAP         = UniswapV4Lib.LIMIT_SWAP;
-    bytes32 public LIMIT_USDC_TO_CCTP            = keccak256("LIMIT_USDC_TO_CCTP");
-    bytes32 public LIMIT_USDC_TO_DOMAIN          = keccak256("LIMIT_USDC_TO_DOMAIN");
+    bytes32 public LIMIT_USDC_TO_CCTP            = CCTPLib.LIMIT_TO_CCTP;
+    bytes32 public LIMIT_USDC_TO_DOMAIN          = CCTPLib.LIMIT_TO_DOMAIN;
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
@@ -173,7 +173,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     address public buffer;  // Allocator buffer
 
     IALMProxy         public proxy;
-    ICCTPLike         public cctp;
+    address           public cctp;
     IDaiUsdsLike      public daiUsds;
     IEthenaMinterLike public ethenaMinter;
     IPSMLike          public psm;
@@ -188,6 +188,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     ISUSDELike public susde;
 
     uint256 public psmTo18ConversionFactor;
+    uint256 public cctpMaxFeeRate;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -226,7 +227,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         buffer     = IVaultLike(vault_).buffer();
         psm        = IPSMLike(psm_);
         daiUsds    = IDaiUsdsLike(daiUsds_);
-        cctp       = ICCTPLike(cctp_);
+        cctp       = cctp_;
 
         ethenaMinter = IEthenaMinterLike(Ethereum.ETHENA_MINTER);
 
@@ -250,6 +251,15 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         _checkRole(DEFAULT_ADMIN_ROLE);
         mintRecipients[destinationDomain] = mintRecipient;
         emit MintRecipientSet(destinationDomain, mintRecipient);
+    }
+
+    function setCCTPMaxFeeRate(uint256 maxFeeRate)
+        external
+        nonReentrant
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(maxFeeRate <= 10_000, "MC/cctp-max-fee-rate-too-high");
+        emit CCTPMaxFeeRateSet(cctpMaxFeeRate = maxFeeRate);
     }
 
     function setLayerZeroRecipient(uint32 destinationEndpointId, bytes32 layerZeroRecipient)
@@ -1019,21 +1029,20 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /**********************************************************************************************/
 
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
-        external nonReentrant
+        external
+        nonReentrant
+        onlyRole(RELAYER)
     {
-        _checkRole(RELAYER);
-
-        CCTPLib.transferUSDCToCCTP(CCTPLib.TransferUSDCToCCTPParams({
-            proxy             : proxy,
-            rateLimits        : rateLimits,
+        CCTPLib.transfer({
+            proxy             : address(proxy),
+            rateLimits        : address(rateLimits),
             cctp              : cctp,
-            usdc              : usdc,
-            domainRateLimitId : LIMIT_USDC_TO_DOMAIN,
-            cctpRateLimitId   : LIMIT_USDC_TO_CCTP,
-            mintRecipient     : mintRecipients[destinationDomain],
+            usdc              : address(usdc),
             destinationDomain : destinationDomain,
-            usdcAmount        : usdcAmount
-        }));
+            usdcAmount        : usdcAmount,
+            maxFeeRate        : cctpMaxFeeRate,
+            mintRecipients    : mintRecipients
+        });
     }
 
     /**********************************************************************************************/

@@ -6,6 +6,8 @@ import { IERC20Metadata }  from "../../../lib/openzeppelin-contracts/contracts/t
 import { IERC4626 }        from "../../../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
+import { CCTPLib } from "../../../src/libraries/CCTPLib.sol";
+
 import { ForeignController } from "../../../src/ForeignController.sol";
 import { MainnetController } from "../../../src/MainnetController.sol";
 
@@ -46,6 +48,56 @@ contract MainnetControllerAdminTestBase is UnitTestBase {
 
     function _assertReentrancyGuardWrittenToTwice() internal {
         _assertReentrancyGuardWrittenToTwice(address(mainnetController));
+    }
+
+}
+
+contract MainnetController_Admin_SetCCTPMaxFeeRate_Tests is MainnetControllerAdminTestBase {
+
+    address internal immutable _unauthorized = makeAddr("unauthorized");
+
+    function test_setCCTPMaxFeeRate_reentrancy() external {
+        _setControllerEntered();
+
+        vm.expectRevert(ReentrancyGuard.ReentrancyGuardReentrantCall.selector);
+        mainnetController.setCCTPMaxFeeRate(0);
+    }
+
+    function test_setCCTPMaxFeeRate_unauthorizedAccount() external {
+        vm.expectRevert(abi.encodeWithSignature(
+            "AccessControlUnauthorizedAccount(address,bytes32)",
+            _unauthorized,
+            DEFAULT_ADMIN_ROLE
+        ));
+
+        vm.prank(_unauthorized);
+        mainnetController.setCCTPMaxFeeRate(0);
+    }
+
+    function test_setCCTPMaxFeeRate_boundary() external {
+        vm.expectRevert("MC/cctp-max-fee-rate-too-high");
+
+        vm.prank(admin);
+        mainnetController.setCCTPMaxFeeRate(10_001);
+
+        vm.prank(admin);
+        mainnetController.setCCTPMaxFeeRate(10_000);
+    }
+
+    function test_setCCTPMaxFeeRate() external {
+        assertEq(mainnetController.cctpMaxFeeRate(), 0);
+
+        vm.record();
+
+        vm.expectEmit(address(mainnetController));
+        emit MainnetController.CCTPMaxFeeRateSet(100);
+
+        vm.prank(admin);
+        mainnetController.setCCTPMaxFeeRate(100);
+
+        _assertReentrancyGuardWrittenToTwice();
+
+        assertEq(mainnetController.cctpMaxFeeRate(), 100);
     }
 
 }

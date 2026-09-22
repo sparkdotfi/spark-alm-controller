@@ -20,14 +20,14 @@ import { ForeignControllerInit } from "../../deploy/ForeignControllerInit.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
+import { Domain, DomainHelpers } from "xchain-helpers/testing/Domain.sol";
+
 import { ALMProxy }                from "../../src/ALMProxy.sol";
 import { ForeignController }       from "../../src/ForeignController.sol";
 import { IRateLimits, RateLimits } from "../../src/RateLimits.sol";
 import { RateLimitHelpers }        from "../../src/RateLimitHelpers.sol";
 
 import "src/interfaces/ILayerZero.sol";
-
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
 contract MainnetControllerLayerZeroTestBase is ForkTestBase {
 
@@ -305,6 +305,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
 
     IPSM3 psmArb;
 
+    Domain internal destination;
+
     uint32 constant destinationEndpointId = 30101;  // Ethereum EID
 
     function setUp() public override virtual {
@@ -364,11 +366,6 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);
-
-        mintRecipients[0] = ForeignControllerInit.MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient : bytes32(uint256(uint160(address(almProxy))))
-        });
 
         ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 

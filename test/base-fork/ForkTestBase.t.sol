@@ -44,8 +44,8 @@ contract ForkTestBase is Test {
     bytes32 FREEZER;
     bytes32 RELAYER;
 
-    address freezer = Base.ALM_FREEZER;
-    address relayer = Base.ALM_RELAYER;
+    address freezer = Base.ALM_FREEZER_MULTISIG;
+    address relayer = Base.ALM_RELAYER_MULTISIG;
 
     address pocket = makeAddr("pocket");
 
