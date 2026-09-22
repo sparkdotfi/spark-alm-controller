@@ -19,9 +19,8 @@ import { ISUsds } from "sdai/src/ISUsds.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
-import { Bridge }                from "xchain-helpers/testing/Bridge.sol";
-import { CCTPForwarder }         from "xchain-helpers/forwarders/CCTPForwarder.sol";
-import { Domain, DomainHelpers } from "xchain-helpers/testing/Domain.sol";
+import { CCTPv2Forwarder } from "xchain-helpers/forwarders/CCTPv2Forwarder.sol";
+import { DomainHelpers }   from "xchain-helpers/testing/Domain.sol";
 
 import { MainnetControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
@@ -147,14 +146,6 @@ contract ForkTestBase is DssTest {
     address vault;
 
     /**********************************************************************************************/
-    /*** Bridging setup                                                                         ***/
-    /**********************************************************************************************/
-
-    Bridge bridge;
-    Domain source;
-    Domain destination;
-
-    /**********************************************************************************************/
     /*** Cached mainnet state variables                                                         ***/
     /**********************************************************************************************/
 
@@ -174,7 +165,7 @@ contract ForkTestBase is DssTest {
 
         /*** Step 1: Set up environment, cast addresses ***/
 
-        source = getChain("mainnet").createSelectFork(_getBlock());
+        getChain("mainnet").createSelectFork(_getBlock());
 
         dss = MCD.loadFromChainlog(LOG);
 
@@ -266,7 +257,7 @@ contract ForkTestBase is DssTest {
         Init.MintRecipient[] memory mintRecipients = new Init.MintRecipient[](1);
 
         mintRecipients[0] = Init.MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
+            domain        : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
             mintRecipient : bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         });
 
@@ -299,7 +290,7 @@ contract ForkTestBase is DssTest {
 
         bytes32 domainKeyBase = RateLimitHelpers.makeUint32Key(
             mainnetController.LIMIT_USDC_TO_DOMAIN(),
-            CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
+            CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE
         );
 
         // NOTE: Using minimal config for test base setup
