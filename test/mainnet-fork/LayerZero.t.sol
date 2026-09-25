@@ -20,14 +20,14 @@ import { ForeignControllerInit } from "../../deploy/ForeignControllerInit.sol";
 
 import { OptionsBuilder } from "layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 
+import { Domain, DomainHelpers } from "xchain-helpers/testing/Domain.sol";
+
 import { ALMProxy }                from "../../src/ALMProxy.sol";
 import { ForeignController }       from "../../src/ForeignController.sol";
 import { IRateLimits, RateLimits } from "../../src/RateLimits.sol";
 import { RateLimitHelpers }        from "../../src/RateLimitHelpers.sol";
 
 import "src/interfaces/ILayerZero.sol";
-
-import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
 
 contract MainnetControllerLayerZeroTestBase is ForkTestBase {
 
@@ -280,12 +280,12 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
     /*** Arbtirum addresses                                                                     ***/
     /**********************************************************************************************/
 
-    address constant CCTP_MESSENGER_ARB = Arbitrum.CCTP_TOKEN_MESSENGER;
-    address constant SPARK_EXECUTOR     = Arbitrum.SPARK_EXECUTOR;
-    address constant SSR_ORACLE         = Arbitrum.SSR_AUTH_ORACLE;
-    address constant USDC_ARB           = Arbitrum.USDC;
-    address constant USDT_OFT           = 0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92;
-    address constant USDT0              = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
+    address constant CCTP_V1_MESSENGER_ARB = 0x19330d10D9Cc8751218eaf51E8885D058642E08A;  // CCTP v1, ForeignController stays on v1
+    address constant SPARK_EXECUTOR        = Arbitrum.SPARK_EXECUTOR;
+    address constant SSR_ORACLE            = Arbitrum.SSR_AUTH_ORACLE;
+    address constant USDC_ARB              = Arbitrum.USDC;
+    address constant USDT_OFT              = 0x14E4A1B13bf7F943c8ff7C51fb60FA964A298D92;
+    address constant USDT0                 = 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9;
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
@@ -304,6 +304,8 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
     IERC20 usdcArb;
 
     IPSM3 psmArb;
+
+    Domain internal destination;
 
     uint32 constant destinationEndpointId = 30101;  // Ethereum EID
 
@@ -338,7 +340,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
             admin : SPARK_EXECUTOR,
             psm   : address(psmArb),
             usdc  : USDC_ARB,
-            cctp  : CCTP_MESSENGER_ARB
+            cctp  : CCTP_V1_MESSENGER_ARB
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -357,18 +359,13 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
             admin : SPARK_EXECUTOR,
             psm   : address(psmArb),
-            cctp  : CCTP_MESSENGER_ARB,
+            cctp  : CCTP_V1_MESSENGER_ARB,
             usdc  : address(usdcArb),
             susds : address(susdsArb),
             usds  : address(usdsArb)
         });
 
         ForeignControllerInit.MintRecipient[] memory mintRecipients = new ForeignControllerInit.MintRecipient[](1);
-
-        mintRecipients[0] = ForeignControllerInit.MintRecipient({
-            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM,
-            mintRecipient : bytes32(uint256(uint160(address(almProxy))))
-        });
 
         ForeignControllerInit.LayerZeroRecipient[] memory layerZeroRecipients = new ForeignControllerInit.LayerZeroRecipient[](0);
 
