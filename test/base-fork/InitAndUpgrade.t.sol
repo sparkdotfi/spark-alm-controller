@@ -68,7 +68,7 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
         checkAddresses = Init.CheckAddressParams({
             admin : Base.SPARK_EXECUTOR,
             psm   : address(psmBase),
-            cctp  : Base.CCTP_TOKEN_MESSENGER,
+            cctp  : CCTP_MESSENGER_BASE,
             usdc  : address(usdcBase),
             susds : address(susdsBase),
             usds  : address(usdsBase)
@@ -132,7 +132,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             rateLimits : address(rateLimits),
             psm        : address(psmBase),
             usdc       : address(usdcBase),
-            cctp       : Base.CCTP_TOKEN_MESSENGER
+            cctp       : CCTP_MESSENGER_BASE
         }));
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
@@ -492,7 +492,7 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
             Base.SPARK_EXECUTOR,
             address(psmBase),
             address(usdcBase),
-            Base.CCTP_TOKEN_MESSENGER
+            CCTP_MESSENGER_BASE
         );
 
         // Overwrite storage for all previous deployments in setUp and assert brand new deployment
@@ -620,7 +620,7 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
             rateLimits : address(rateLimits),
             psm        : address(psmBase),
             usdc       : address(usdcBase),
-            cctp       : Base.CCTP_TOKEN_MESSENGER
+            cctp       : CCTP_MESSENGER_BASE
         }));
 
         controllerInst = ControllerInstance({

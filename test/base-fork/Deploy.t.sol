@@ -15,7 +15,7 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
             admin      : Base.SPARK_EXECUTOR,
             psm        : Base.PSM3,
             usdc       : Base.USDC,
-            cctp       : Base.CCTP_TOKEN_MESSENGER
+            cctp       : CCTP_MESSENGER_BASE
         });
 
         ALMProxy          newAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -40,7 +40,7 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
             rateLimits : address(rateLimits),
             psm        : Base.PSM3,
             usdc       : Base.USDC,
-            cctp       : Base.CCTP_TOKEN_MESSENGER
+            cctp       : CCTP_MESSENGER_BASE
         }));
 
         _assertControllerInitState(newController, address(almProxy), address(rateLimits));
@@ -54,7 +54,7 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
         assertEq(address(controller.rateLimits()), rateLimits);
         assertEq(address(controller.psm()),        Base.PSM3);
         assertEq(address(controller.usdc()),       Base.USDC);
-        assertEq(address(controller.cctp()),       Base.CCTP_TOKEN_MESSENGER);
+        assertEq(address(controller.cctp()),       CCTP_MESSENGER_BASE);
     }
 
 }
