@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { Base } from "../../lib/spark-address-registry/src/Base.sol";
+
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 
@@ -12,10 +14,10 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
         // Perform new deployments against existing fork environment
 
         ControllerInstance memory controllerInst = ForeignControllerDeploy.deployFull({
-            admin      : Base.SPARK_EXECUTOR,
-            psm        : Base.PSM3,
-            usdc       : Base.USDC,
-            cctp       : Base.CCTP_TOKEN_MESSENGER
+            admin : Base.SPARK_EXECUTOR,
+            psm   : Base.PSM3,
+            usdc  : Base.USDC,
+            cctp  : Base.CCTP_TOKEN_MESSENGER_V1
         });
 
         ALMProxy          newAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -40,7 +42,7 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
             rateLimits : address(rateLimits),
             psm        : Base.PSM3,
             usdc       : Base.USDC,
-            cctp       : Base.CCTP_TOKEN_MESSENGER
+            cctp       : Base.CCTP_TOKEN_MESSENGER_V1
         }));
 
         _assertControllerInitState(newController, address(almProxy), address(rateLimits));
@@ -54,7 +56,7 @@ contract ForeignControllerDeploySuccessTests is ForkTestBase {
         assertEq(address(controller.rateLimits()), rateLimits);
         assertEq(address(controller.psm()),        Base.PSM3);
         assertEq(address(controller.usdc()),       Base.USDC);
-        assertEq(address(controller.cctp()),       Base.CCTP_TOKEN_MESSENGER);
+        assertEq(address(controller.cctp()),       Base.CCTP_TOKEN_MESSENGER_V1);
     }
 
 }

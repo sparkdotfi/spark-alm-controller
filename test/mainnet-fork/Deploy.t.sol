@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
+import { Ethereum } from "../../lib/spark-address-registry/src/Ethereum.sol";
+
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { MainnetControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 
@@ -16,7 +18,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
             vault   : vault,
             psm     : PSM,
             daiUsds : DAI_USDS,
-            cctp    : CCTP_MESSENGER
+            cctp    : Ethereum.CCTP_TOKEN_MESSENGER
         });
 
         ALMProxy          newAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -42,7 +44,7 @@ contract MainnetControllerDeploySuccessTests is ForkTestBase {
             vault      : vault,
             psm        : PSM,
             daiUsds    : DAI_USDS,
-            cctp       : CCTP_MESSENGER
+            cctp       : Ethereum.CCTP_TOKEN_MESSENGER
         }));
 
         _assertControllerInitState(newController, address(almProxy), address(rateLimits), vault, buffer);

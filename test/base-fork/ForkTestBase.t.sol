@@ -44,8 +44,8 @@ contract ForkTestBase is Test {
     bytes32 FREEZER;
     bytes32 RELAYER;
 
-    address freezer = Base.ALM_FREEZER;
-    address relayer = Base.ALM_RELAYER;
+    address freezer = Base.ALM_FREEZER_MULTISIG;
+    address relayer = Base.ALM_RELAYER_MULTISIG;
 
     address pocket = makeAddr("pocket");
 
@@ -53,10 +53,9 @@ contract ForkTestBase is Test {
     /*** Base addresses                                                                         ***/
     /**********************************************************************************************/
 
-    address constant SPARK_EXECUTOR      = Base.SPARK_EXECUTOR;
-    address constant CCTP_MESSENGER_BASE = Base.CCTP_TOKEN_MESSENGER;
-    address constant USDC_BASE           = Base.USDC;
-    address constant SSR_ORACLE          = Base.SSR_AUTH_ORACLE;
+    address constant SPARK_EXECUTOR = Base.SPARK_EXECUTOR;
+    address constant USDC_BASE      = Base.USDC;
+    address constant SSR_ORACLE     = Base.SSR_AUTH_ORACLE;
 
     /**********************************************************************************************/
     /*** ALM system deployments                                                                 ***/
@@ -109,7 +108,7 @@ contract ForkTestBase is Test {
             admin : SPARK_EXECUTOR,
             psm   : address(psmBase),
             usdc  : USDC_BASE,
-            cctp  : CCTP_MESSENGER_BASE
+            cctp  : Base.CCTP_TOKEN_MESSENGER_V1
         });
 
         almProxy          = ALMProxy(payable(controllerInst.almProxy));
@@ -134,7 +133,7 @@ contract ForkTestBase is Test {
         Init.CheckAddressParams memory checkAddresses = Init.CheckAddressParams({
             admin : Base.SPARK_EXECUTOR,
             psm   : address(psmBase),
-            cctp  : Base.CCTP_TOKEN_MESSENGER,
+            cctp  : Base.CCTP_TOKEN_MESSENGER_V1,
             usdc  : address(usdcBase),
             susds : address(susdsBase),
             usds  : address(usdsBase)
