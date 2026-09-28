@@ -187,8 +187,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     IUSTBLike  public ustb;
     ISUSDELike public susde;
 
-    uint256 public psmTo18ConversionFactor;
     uint256 public cctpMaxFeeRate;
+    uint256 public psmTo18ConversionFactor;
 
     mapping(address pool => uint256 maxSlippage) public maxSlippages;  // 1e18 precision
 
@@ -253,10 +253,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
         emit MintRecipientSet(destinationDomain, mintRecipient);
     }
 
-    function setCCTPMaxFeeRate(uint256 maxFeeRate)
-        external
-        nonReentrant
-    {
+    function setCCTPMaxFeeRate(uint256 maxFeeRate) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
         require(maxFeeRate <= 10_000, "MC/cctp-max-fee-rate-too-high");
         emit CCTPMaxFeeRateSet(cctpMaxFeeRate = maxFeeRate);

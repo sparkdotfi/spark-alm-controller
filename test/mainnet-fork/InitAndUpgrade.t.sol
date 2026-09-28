@@ -417,7 +417,7 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(mainnetController)),     false);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), false);
 
-        assertEq(mainnetController.mintRecipients(mintRecipients[0].domain),              bytes32(0));
+        assertEq(mainnetController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
         assertEq(mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
 
         assertEq(
@@ -573,7 +573,7 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(almProxy.hasRole(almProxy.CONTROLLER(), address(newController)),     false);
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(newController)), false);
 
-        assertEq(newController.mintRecipients(mintRecipients[0].domain),              bytes32(0));
+        assertEq(newController.mintRecipients(mintRecipients[0].domain),            bytes32(0));
         assertEq(newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
 
         assertEq(

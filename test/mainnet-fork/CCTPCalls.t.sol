@@ -259,7 +259,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
             forkId : vm.activeFork()
         });
 
-        baseDomain = getChain("base").createSelectFork(37589683);  // November 1, 2025
+        baseDomain = getChain("base").createSelectFork(51914000);  // September 28, 2026
 
         usdcBase = IERC20Like(Base.USDC);
 
@@ -492,19 +492,17 @@ contract ForeignController_CCTP_Transfer_Tests is BaseChain_CCTP_TestBase {
 
 contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
-    IERC20Like internal constant USDC = IERC20Like(Ethereum.USDC);
-
     using DomainHelpers       for *;
     using CCTPV2BridgeTesting for Bridge;
 
     function test_transferUSDCToCCTP_ethToBase() external {
         deal(Ethereum.USDC, address(almProxy), 1e6);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY);
+        assertEq(usdc.balanceOf(address(almProxy)),          1e6);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY);
 
-        assertEq(USDC.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
 
         _expectEthereumCCTPEmit(114_803, 1e6);
 
@@ -515,11 +513,11 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         _assertReentrancyGuardWrittenToTwice();
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY - 1e6);
+        assertEq(usdc.balanceOf(address(almProxy)),          0);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY - 1e6);
 
-        assertEq(USDC.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
 
         baseDomain.selectFork();
 
@@ -537,11 +535,11 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     function test_transferUSDCToCCTP_ethToBase_bigTransfer() external {
         deal(Ethereum.USDC, address(almProxy), 2_900_000e6);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          2_900_000e6);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY);
+        assertEq(usdc.balanceOf(address(almProxy)),          2_900_000e6);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY);
 
-        assertEq(USDC.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
 
         // Will split into 3 separate transactions at max 1m each
         _expectEthereumCCTPEmit(114_803, 1_000_000e6);
@@ -551,11 +549,11 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(2_900_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY - 2_900_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),          0);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY - 2_900_000e6);
 
-        assertEq(USDC.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
 
         baseDomain.selectFork();
 
@@ -576,12 +574,12 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         vm.startPrank(relayer);
 
-        assertEq(USDC.balanceOf(address(almProxy)),   9_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   9_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e6);
 
         mainnetController.transferUSDCToCCTP(2_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        assertEq(USDC.balanceOf(address(almProxy)),   7_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   7_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 3_000_000e6);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
@@ -589,17 +587,17 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         mainnetController.transferUSDCToCCTP(3_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        assertEq(USDC.balanceOf(address(almProxy)),   4_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   4_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
         skip(4 hours);
 
-        assertEq(USDC.balanceOf(address(almProxy)),   4_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   4_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 999_999.9936e6);
 
         mainnetController.transferUSDCToCCTP(999_999.9936e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        assertEq(USDC.balanceOf(address(almProxy)),   3_000_000.0064e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   3_000_000.0064e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
         vm.stopPrank();
@@ -633,15 +631,15 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         ethDomain.selectFork();
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY);
+        assertEq(usdc.balanceOf(address(almProxy)),          0);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY);
 
         CCTPBridgeTesting.relayMessagesToDestination(baseBridge, true);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          1e6);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY + 1e6);
+        assertEq(usdc.balanceOf(address(almProxy)),          1e6);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY + 1e6);
     }
 
     function test_transferUSDCToCCTP_baseToETH_bigTransfer() external {
@@ -671,15 +669,15 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         ethDomain.selectFork();
 
-        assertEq(USDC.balanceOf(address(almProxy)),          0);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY);
+        assertEq(usdc.balanceOf(address(almProxy)),          0);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY);
 
         CCTPBridgeTesting.relayMessagesToDestination(baseBridge, true);
 
-        assertEq(USDC.balanceOf(address(almProxy)),          2_600_000e6);
-        assertEq(USDC.balanceOf(address(mainnetController)), 0);
-        assertEq(USDC.totalSupply(),                         USDC_SUPPLY + 2_600_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),          2_600_000e6);
+        assertEq(usdc.balanceOf(address(mainnetController)), 0);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY + 2_600_000e6);
     }
 
     function test_transferUSDCToCCTP_baseToETH_rateLimited() external {

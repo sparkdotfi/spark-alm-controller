@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity >=0.8.0;
 
-import "../../test/base-fork/ForkTestBase.t.sol";
+import { Base } from "../../lib/spark-address-registry/src/Base.sol";
 
 import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+
+import "../../test/base-fork/ForkTestBase.t.sol";
 
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
@@ -68,7 +70,7 @@ contract ForeignControllerInitAndUpgradeTestBase is ForkTestBase {
         checkAddresses = Init.CheckAddressParams({
             admin : Base.SPARK_EXECUTOR,
             psm   : address(psmBase),
-            cctp  : CCTP_MESSENGER_BASE_V1,
+            cctp  : Base.CCTP_TOKEN_MESSENGER_V1,
             usdc  : address(usdcBase),
             susds : address(susdsBase),
             usds  : address(usdsBase)
@@ -132,7 +134,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             rateLimits : address(rateLimits),
             psm        : address(psmBase),
             usdc       : address(usdcBase),
-            cctp       : CCTP_MESSENGER_BASE_V1
+            cctp       : Base.CCTP_TOKEN_MESSENGER_V1
         }));
 
         Init.MintRecipient[] memory mintRecipients_ = new Init.MintRecipient[](1);
@@ -300,7 +302,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             SPARK_EXECUTOR,
             address(psmBase),
             USDC_BASE,
-            CCTP_MESSENGER_BASE_V1
+            Base.CCTP_TOKEN_MESSENGER_V1
         );
 
         checkAddresses.psm = address(psmBase);  // Overwrite to point to misconfigured PSM
@@ -323,7 +325,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             SPARK_EXECUTOR,
             address(psmBase),
             USDC_BASE,
-            CCTP_MESSENGER_BASE_V1
+            Base.CCTP_TOKEN_MESSENGER_V1
         );
 
         checkAddresses.psm = address(psmBase);  // Overwrite to point to misconfigured PSM
@@ -346,7 +348,7 @@ contract ForeignControllerInitAndUpgradeFailureTest is ForeignControllerInitAndU
             SPARK_EXECUTOR,
             address(psmBase),
             USDC_BASE,
-            CCTP_MESSENGER_BASE_V1
+            Base.CCTP_TOKEN_MESSENGER_V1
         );
 
         checkAddresses.psm = address(psmBase);  // Overwrite to point to misconfigured PSM
@@ -492,7 +494,7 @@ contract ForeignControllerInitAlmSystemSuccessTests is ForeignControllerInitAndU
             Base.SPARK_EXECUTOR,
             address(psmBase),
             address(usdcBase),
-            CCTP_MESSENGER_BASE_V1
+            Base.CCTP_TOKEN_MESSENGER_V1
         );
 
         // Overwrite storage for all previous deployments in setUp and assert brand new deployment
@@ -620,7 +622,7 @@ contract ForeignControllerUpgradeControllerSuccessTests is ForeignControllerInit
             rateLimits : address(rateLimits),
             psm        : address(psmBase),
             usdc       : address(usdcBase),
-            cctp       : CCTP_MESSENGER_BASE_V1
+            cctp       : Base.CCTP_TOKEN_MESSENGER_V1
         }));
 
         controllerInst = ControllerInstance({
