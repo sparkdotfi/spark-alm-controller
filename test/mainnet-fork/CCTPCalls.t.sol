@@ -614,7 +614,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_TOKEN_MESSENGER_V1), 0);
 
-        _expectBaseCCTPEmit(718_509, 1e6);
+        _expectBaseCCTPEmit(814_408, 1e6);
 
         vm.record();
 
@@ -654,9 +654,9 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_TOKEN_MESSENGER_V1), 0);
 
         // Will split into three separate transactions at max 1m each
-        _expectBaseCCTPEmit(718_509, 1_000_000e6);
-        _expectBaseCCTPEmit(718_510, 1_000_000e6);
-        _expectBaseCCTPEmit(718_511, 600_000e6);
+        _expectBaseCCTPEmit(814_408, 1_000_000e6);
+        _expectBaseCCTPEmit(814_409, 1_000_000e6);
+        _expectBaseCCTPEmit(814_410, 600_000e6);
 
         vm.prank(relayer);
         foreignController.transferUSDCToCCTP(2_600_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ETHEREUM);
