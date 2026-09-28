@@ -95,11 +95,11 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     /*** Events                                                                                 ***/
     /**********************************************************************************************/
 
+    event CCTPMaxFeeRateSet(uint256 maxFeeRate);
     event LayerZeroRecipientSet(uint32 indexed destinationEndpointId, bytes32 layerZeroRecipient);
     event MaxExchangeRateSet(address indexed token, uint256 maxExchangeRate);
     event MaxSlippageSet(address indexed pool, uint256 maxSlippage);
     event MintRecipientSet(uint32 indexed destinationDomain, bytes32 indexed mintRecipient);
-    event CCTPMaxFeeRateSet(uint256 maxFeeRate);
     event OTCBufferSet(
         address indexed exchange,
         address indexed oldOTCBuffer,

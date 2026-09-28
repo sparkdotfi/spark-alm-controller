@@ -67,7 +67,7 @@ interface IERC20Like {
 
 }
 
-contract MainnetController_CCTP_TestBase is ForkTestBase {
+contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBase {
 
     uint256 internal constant CCTP_MAX_FEE_RATE = 10;
 
@@ -79,12 +79,8 @@ contract MainnetController_CCTP_TestBase is ForkTestBase {
     }
 
     function _getBlock() internal override pure returns (uint256) {
-        return 23700802; // November 1, 2025
+        return 26077600; // September 28, 2026
     }
-
-}
-
-contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBase {
 
     function test_transferUSDCToCCTP_reentrancy() external {
         _setControllerEntered();
@@ -342,7 +338,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
     }
 
     function _getBlock() internal override pure returns (uint256) {
-        return 23700802; // November 1, 2025
+        return 26077600; // September 28, 2026
     }
 
     function _setControllerEntered() internal override {
