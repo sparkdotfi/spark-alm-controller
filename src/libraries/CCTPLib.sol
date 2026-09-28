@@ -74,9 +74,9 @@ library CCTPLib {
     )
         external
     {
-        _decreaseRateLimit(rateLimits, LIMIT_TO_CCTP, usdcAmount);
+        _rateLimited(rateLimits, LIMIT_TO_CCTP, usdcAmount);
 
-        _decreaseRateLimit(
+        _rateLimited(
             rateLimits,
             RateLimitHelpers.makeUint32Key(LIMIT_TO_DOMAIN, destinationDomain),
             usdcAmount
@@ -87,7 +87,7 @@ library CCTPLib {
         require(recipient != 0, "CCTPLib/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
-        _approve(usdc, proxy, cctp, usdcAmount);
+        _approve(proxy, usdc, cctp, usdcAmount);
 
         // If amount is larger than limit it must be split into multiple calls.
         uint256 burnLimit =
@@ -116,7 +116,7 @@ library CCTPLib {
     /**********************************************************************************************/
 
     // NOTE: As USDC is the only asset transferred using CCTP, `ApproveLib` is unnecessary.
-    function _approve(address token, address proxy, address spender, uint256 amount) internal {
+    function _approve(address proxy, address token, address spender, uint256 amount) internal {
         IALMProxy(proxy).doCall(token, abi.encodeCall(IERC20Like.approve, (spender, amount)));
     }
 
@@ -154,7 +154,7 @@ library CCTPLib {
     /*** Rate Limit helper functions                                                            ***/
     /**********************************************************************************************/
 
-    function _decreaseRateLimit(address rateLimits, bytes32 key, uint256 amount) internal {
+    function _rateLimited(address rateLimits, bytes32 key, uint256 amount) internal {
         IRateLimits(rateLimits).triggerRateLimitDecrease(key, amount);
     }
 

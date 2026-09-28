@@ -256,8 +256,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function setCCTPMaxFeeRate(uint256 maxFeeRate)
         external
         nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        _checkRole(DEFAULT_ADMIN_ROLE);
         require(maxFeeRate <= 10_000, "MC/cctp-max-fee-rate-too-high");
         emit CCTPMaxFeeRateSet(cctpMaxFeeRate = maxFeeRate);
     }
@@ -1031,8 +1031,9 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     function transferUSDCToCCTP(uint256 usdcAmount, uint32 destinationDomain)
         external
         nonReentrant
-        onlyRole(RELAYER)
     {
+        _checkRole(RELAYER);
+
         CCTPLib.transfer({
             proxy             : address(proxy),
             rateLimits        : address(rateLimits),
