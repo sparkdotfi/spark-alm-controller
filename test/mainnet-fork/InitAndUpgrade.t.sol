@@ -98,7 +98,7 @@ contract MainnetControllerInitAndUpgradeTestBase is ForkTestBase {
         mintRecipients = new Init.MintRecipient[](1);
 
         mintRecipients[0] = Init.MintRecipient({
-            domain        : CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE,
+            domain        : CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
             mintRecipient : bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         });
 
@@ -418,7 +418,7 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(mainnetController)), false);
 
         assertEq(mainnetController.mintRecipients(mintRecipients[0].domain),              bytes32(0));
-        assertEq(mainnetController.mintRecipients(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
+        assertEq(mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
 
         assertEq(
             mainnetController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
@@ -460,7 +460,7 @@ contract MainnetControllerInitAlmSystemSuccessTests is MainnetControllerInitAndU
         );
 
         assertEq(
-            mainnetController.mintRecipients(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
             bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         );
 
@@ -574,7 +574,7 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         assertEq(rateLimits.hasRole(rateLimits.CONTROLLER(), address(newController)), false);
 
         assertEq(newController.mintRecipients(mintRecipients[0].domain),              bytes32(0));
-        assertEq(newController.mintRecipients(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
+        assertEq(newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE), bytes32(0));
 
         assertEq(
             newController.layerZeroRecipients(layerZeroRecipients[0].destinationEndpointId),
@@ -614,7 +614,7 @@ contract MainnetControllerUpgradeControllerSuccessTests is MainnetControllerInit
         );
 
         assertEq(
-            newController.mintRecipients(CCTPv2Forwarder.DOMAIN_ID_CIRCLE_BASE),
+            newController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
             bytes32(uint256(uint160(makeAddr("baseAlmProxy"))))
         );
 

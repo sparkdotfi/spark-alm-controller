@@ -54,7 +54,7 @@ contract ForkTestBase is Test {
     /**********************************************************************************************/
 
     address constant SPARK_EXECUTOR         = Base.SPARK_EXECUTOR;
-    address constant CCTP_V1_MESSENGER_BASE = 0x1682Ae6375C4E4A97e4B583BC394c861A46D8962;  // CCTP v1, ForeignController stays on v1
+    address constant CCTP_V1_MESSENGER_BASE = Base.CCTP_V1_TOKEN_MESSENGER;  // ForeignController stays on v1
     address constant USDC_BASE              = Base.USDC;
     address constant SSR_ORACLE             = Base.SSR_AUTH_ORACLE;
 
