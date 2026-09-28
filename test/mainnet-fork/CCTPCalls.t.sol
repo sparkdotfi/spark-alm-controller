@@ -225,7 +225,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
     /*** Constants/state variables                                                              ***/
     /**********************************************************************************************/
 
-    address internal constant BASE_CCTP_V1_TOKEN_MESSENGER = Base.CCTP_V1_TOKEN_MESSENGER;  // ForeignController stays on v1
+    address internal constant BASE_CCTP_TOKEN_MESSENGER_V1 = Base.CCTP_TOKEN_MESSENGER_V1;  // ForeignController stays on v1
 
     uint256 internal constant CCTP_MAX_FEE_CAP = 100e6;
 
@@ -269,7 +269,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
             admin : Base.SPARK_EXECUTOR,
             psm   : address(0),
             usdc  : Base.USDC,
-            cctp  : BASE_CCTP_V1_TOKEN_MESSENGER
+            cctp  : BASE_CCTP_TOKEN_MESSENGER_V1
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -288,7 +288,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
             admin : Base.SPARK_EXECUTOR,
             psm   : address(0),
-            cctp  : BASE_CCTP_V1_TOKEN_MESSENGER,
+            cctp  : BASE_CCTP_TOKEN_MESSENGER_V1,
             usdc  : Base.USDC,
             susds : address(0),
             usds  : address(0)
@@ -614,7 +614,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
         assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply);
 
-        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_V1_TOKEN_MESSENGER), 0);
+        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_TOKEN_MESSENGER_V1), 0);
 
         _expectBaseCCTPEmit(718_509, 1e6);
 
@@ -629,7 +629,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
         assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply - 1e6);
 
-        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_V1_TOKEN_MESSENGER), 0);
+        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_TOKEN_MESSENGER_V1), 0);
 
         ethDomain.selectFork();
 
@@ -653,7 +653,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
         assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply);
 
-        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_V1_TOKEN_MESSENGER), 0);
+        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_TOKEN_MESSENGER_V1), 0);
 
         // Will split into three separate transactions at max 1m each
         _expectBaseCCTPEmit(718_509, 1_000_000e6);
@@ -667,7 +667,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
         assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply - 2_600_000e6);
 
-        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_V1_TOKEN_MESSENGER), 0);
+        assertEq(usdcBase.allowance(address(foreignAlmProxy), BASE_CCTP_TOKEN_MESSENGER_V1), 0);
 
         ethDomain.selectFork();
 
@@ -747,7 +747,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     function _expectBaseCCTPEmit(uint64 nonce, uint256 amount) internal {
         // NOTE: Focusing on burnToken, amount, depositor, mintRecipient, and destinationDomain
         //       for assertions
-        vm.expectEmit(BASE_CCTP_V1_TOKEN_MESSENGER);
+        vm.expectEmit(BASE_CCTP_TOKEN_MESSENGER_V1);
         emit ICCTPv1Like.DepositForBurn(
             nonce,
             Base.USDC,

@@ -280,7 +280,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
     /*** Arbtirum addresses                                                                     ***/
     /**********************************************************************************************/
 
-    address constant CCTP_V1_MESSENGER_ARB = Arbitrum.CCTP_V1_TOKEN_MESSENGER;  // ForeignController stays on v1
+    address constant CCTP_MESSENGER_ARB_V1 = Arbitrum.CCTP_TOKEN_MESSENGER_V1;  // ForeignController stays on v1
     address constant SPARK_EXECUTOR        = Arbitrum.SPARK_EXECUTOR;
     address constant SSR_ORACLE            = Arbitrum.SSR_AUTH_ORACLE;
     address constant USDC_ARB              = Arbitrum.USDC;
@@ -340,7 +340,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
             admin : SPARK_EXECUTOR,
             psm   : address(psmArb),
             usdc  : USDC_ARB,
-            cctp  : CCTP_V1_MESSENGER_ARB
+            cctp  : CCTP_MESSENGER_ARB_V1
         });
 
         foreignAlmProxy   = ALMProxy(payable(controllerInst.almProxy));
@@ -359,7 +359,7 @@ contract ArbitrumChainLayerZeroTestBase is ForkTestBase {
         ForeignControllerInit.CheckAddressParams memory checkAddresses = ForeignControllerInit.CheckAddressParams({
             admin : SPARK_EXECUTOR,
             psm   : address(psmArb),
-            cctp  : CCTP_V1_MESSENGER_ARB,
+            cctp  : CCTP_MESSENGER_ARB_V1,
             usdc  : address(usdcArb),
             susds : address(susdsArb),
             usds  : address(usdsArb)
