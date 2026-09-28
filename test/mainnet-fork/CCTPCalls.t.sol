@@ -9,7 +9,7 @@ import { Base }     from "../../lib/spark-address-registry/src/Base.sol";
 import { Bridge }                from "../../lib/xchain-helpers/src/testing/Bridge.sol";
 import { CCTPBridgeTesting }     from "../../lib/xchain-helpers/src/testing/bridges/CCTPBridgeTesting.sol";
 import { CCTPForwarder  }        from "../../lib/xchain-helpers/src/forwarders/CCTPForwarder.sol";
-import { CCTPv2BridgeTesting }   from "../../lib/xchain-helpers/src/testing/bridges/CCTPv2BridgeTesting.sol";
+import { CCTPV2BridgeTesting }   from "../../lib/xchain-helpers/src/testing/bridges/CCTPV2BridgeTesting.sol";
 import { Domain, DomainHelpers } from "../../lib/xchain-helpers/src/testing/Domain.sol";
 
 import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
@@ -335,7 +335,7 @@ abstract contract BaseChain_CCTP_TestBase is ForkTestBase {
             bytes32(uint256(uint160(address(foreignAlmProxy))))
         );
 
-        ethBridge  = CCTPv2BridgeTesting.createCircleBridge(ethDomain, baseDomain);
+        ethBridge  = CCTPV2BridgeTesting.createCircleBridge(ethDomain, baseDomain);
         baseBridge = CCTPBridgeTesting.createCircleBridge(baseDomain, ethDomain);
 
         ethDomain.selectFork();
@@ -495,7 +495,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     IERC20Like internal constant USDC = IERC20Like(Ethereum.USDC);
 
     using DomainHelpers       for *;
-    using CCTPv2BridgeTesting for Bridge;
+    using CCTPV2BridgeTesting for Bridge;
 
     function test_transferUSDCToCCTP_ethToBase() external {
         deal(Ethereum.USDC, address(almProxy), 1e6);
@@ -527,7 +527,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
         assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply);
 
-        CCTPv2BridgeTesting.relayMessagesToDestination(ethBridge, true);
+        CCTPV2BridgeTesting.relayMessagesToDestination(ethBridge, true);
 
         assertEq(usdcBase.balanceOf(address(foreignAlmProxy)),   1e6);
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
@@ -563,7 +563,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
         assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply);
 
-        CCTPv2BridgeTesting.relayMessagesToDestination(ethBridge, true);
+        CCTPV2BridgeTesting.relayMessagesToDestination(ethBridge, true);
 
         assertEq(usdcBase.balanceOf(address(foreignAlmProxy)),   2_900_000e6);
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
