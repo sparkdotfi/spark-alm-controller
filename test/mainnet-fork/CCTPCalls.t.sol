@@ -491,6 +491,24 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     using DomainHelpers       for *;
     using CCTPV2BridgeTesting for Bridge;
 
+    function setUp() public override {
+        super.setUp();
+
+        uint256 usdcMaxAmount = 50_000_000e6;
+        uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
+
+        bytes32 domainKeyBase = RateLimitHelpers.makeUint32Key(
+            mainnetController.LIMIT_USDC_TO_DOMAIN(),
+            CCTPForwarder.DOMAIN_ID_CIRCLE_BASE
+        );
+
+        vm.startPrank(Ethereum.SPARK_PROXY);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDS_TO_USDC(), usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(mainnetController.LIMIT_USDC_TO_CCTP(), usdcMaxAmount, usdcSlope);
+        rateLimits.setRateLimitData(domainKeyBase,                          usdcMaxAmount, usdcSlope);
+        vm.stopPrank();
+    }
+
     function test_transferUSDCToCCTP_ethToBase() external {
         deal(Ethereum.USDC, address(almProxy), 1e6);
 
