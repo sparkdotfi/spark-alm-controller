@@ -498,7 +498,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
         assertEq(usdc.totalSupply(),                         USDC_SUPPLY);
 
-        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), Ethereum.CCTP_TOKEN_MESSENGER), 0);
 
         _expectEthereumCCTPEmit(114_803, 1e6);
 
@@ -513,7 +513,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
         assertEq(usdc.totalSupply(),                         USDC_SUPPLY - 1e6);
 
-        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), Ethereum.CCTP_TOKEN_MESSENGER), 0);
 
         baseDomain.selectFork();
 
@@ -535,7 +535,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
         assertEq(usdc.totalSupply(),                         USDC_SUPPLY);
 
-        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), Ethereum.CCTP_TOKEN_MESSENGER), 0);
 
         // Will split into 3 separate transactions at max 1m each
         _expectEthereumCCTPEmit(114_803, 10_000_000e6);
@@ -549,7 +549,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
         assertEq(usdc.totalSupply(),                         USDC_SUPPLY - 29_000_000e6);
 
-        assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
+        assertEq(usdc.allowance(address(almProxy), Ethereum.CCTP_TOKEN_MESSENGER), 0);
 
         baseDomain.selectFork();
 
@@ -566,34 +566,34 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
     function test_transferUSDCToCCTP_ethToBase_rateLimited() external {
         bytes32 key = mainnetController.LIMIT_USDC_TO_CCTP();
-        deal(Ethereum.USDC, address(almProxy), 9_000_000e6);
+        deal(Ethereum.USDC, address(almProxy), 51_000_000e6);
 
         vm.startPrank(relayer);
 
-        assertEq(usdc.balanceOf(address(almProxy)),   9_000_000e6);
-        assertEq(rateLimits.getCurrentRateLimit(key), 5_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   51_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(key), 50_000_000e6);
 
         mainnetController.transferUSDCToCCTP(2_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        assertEq(usdc.balanceOf(address(almProxy)),   7_000_000e6);
-        assertEq(rateLimits.getCurrentRateLimit(key), 3_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   49_000_000e6);
+        assertEq(rateLimits.getCurrentRateLimit(key), 48_000_000e6);
 
         vm.expectRevert("RateLimits/rate-limit-exceeded");
-        mainnetController.transferUSDCToCCTP(3_000_001e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+        mainnetController.transferUSDCToCCTP(48_000_000e6 + 1, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        mainnetController.transferUSDCToCCTP(3_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+        mainnetController.transferUSDCToCCTP(48_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        assertEq(usdc.balanceOf(address(almProxy)),   4_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   1_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
         skip(4 hours);
 
-        assertEq(usdc.balanceOf(address(almProxy)),   4_000_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   1_000_000e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 999_999.9936e6);
 
         mainnetController.transferUSDCToCCTP(999_999.9936e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
-        assertEq(usdc.balanceOf(address(almProxy)),   3_000_000.0064e6);
+        assertEq(usdc.balanceOf(address(almProxy)),   0.006400e6);
         assertEq(rateLimits.getCurrentRateLimit(key), 0);
 
         vm.stopPrank();
@@ -716,7 +716,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     function _expectEthereumCCTPEmit(uint64 nonce, uint256 amount) internal {
         // NOTE: Focusing on burnToken, amount, depositor, mintRecipient, and destinationDomain
         //       for assertions
-        vm.expectEmit(CCTP_MESSENGER);
+        vm.expectEmit(Ethereum.CCTP_TOKEN_MESSENGER);
         emit ICCTPv2Like.DepositForBurn(
             Ethereum.USDC,
             amount,
