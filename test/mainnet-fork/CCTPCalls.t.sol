@@ -67,7 +67,7 @@ interface IERC20Like {
 
 }
 
-contract MainnetController_CCTP_Transfer_Tests is MainnetController_CCTP_TestBase {
+contract MainnetController_CCTP_Transfer_Tests is ForkTestBase {
 
     uint256 internal constant CCTP_MAX_FEE_RATE = 10;
 
@@ -529,25 +529,25 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
     }
 
     function test_transferUSDCToCCTP_ethToBase_bigTransfer() external {
-        deal(Ethereum.USDC, address(almProxy), 2_900_000e6);
+        deal(Ethereum.USDC, address(almProxy), 29_000_000e6);
 
-        assertEq(usdc.balanceOf(address(almProxy)),          2_900_000e6);
+        assertEq(usdc.balanceOf(address(almProxy)),          29_000_000e6);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
         assertEq(usdc.totalSupply(),                         USDC_SUPPLY);
 
         assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
 
         // Will split into 3 separate transactions at max 1m each
-        _expectEthereumCCTPEmit(114_803, 1_000_000e6);
-        _expectEthereumCCTPEmit(114_804, 1_000_000e6);
-        _expectEthereumCCTPEmit(114_805, 900_000e6);
+        _expectEthereumCCTPEmit(114_803, 10_000_000e6);
+        _expectEthereumCCTPEmit(114_804, 10_000_000e6);
+        _expectEthereumCCTPEmit(114_805, 9_000_000e6);
 
         vm.prank(relayer);
-        mainnetController.transferUSDCToCCTP(2_900_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
+        mainnetController.transferUSDCToCCTP(29_000_000e6, CCTPForwarder.DOMAIN_ID_CIRCLE_BASE);
 
         assertEq(usdc.balanceOf(address(almProxy)),          0);
         assertEq(usdc.balanceOf(address(mainnetController)), 0);
-        assertEq(usdc.totalSupply(),                         USDC_SUPPLY - 2_900_000e6);
+        assertEq(usdc.totalSupply(),                         USDC_SUPPLY - 29_000_000e6);
 
         assertEq(usdc.allowance(address(almProxy), CCTP_MESSENGER), 0);
 
@@ -559,9 +559,9 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
 
         CCTPV2BridgeTesting.relayMessagesToDestination(ethBridge, true);
 
-        assertEq(usdcBase.balanceOf(address(foreignAlmProxy)),   2_900_000e6);
+        assertEq(usdcBase.balanceOf(address(foreignAlmProxy)),   29_000_000e6);
         assertEq(usdcBase.balanceOf(address(foreignController)), 0);
-        assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply + 2_900_000e6);
+        assertEq(usdcBase.totalSupply(),                         baseUSDCTotalSupply + 29_000_000e6);
     }
 
     function test_transferUSDCToCCTP_ethToBase_rateLimited() external {

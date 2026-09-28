@@ -285,7 +285,7 @@ contract ForkTestBase is DssTest {
 
         uint256 usdsMaxAmount = 5_000_000e18;
         uint256 usdsSlope     = uint256(1_000_000e18) / 4 hours;
-        uint256 usdcMaxAmount = 5_000_000e6;
+        uint256 usdcMaxAmount = 50_000_000e6;
         uint256 usdcSlope     = uint256(1_000_000e6) / 4 hours;
 
         bytes32 domainKeyBase = RateLimitHelpers.makeUint32Key(
