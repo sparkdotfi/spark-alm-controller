@@ -19,9 +19,8 @@ import { ISUsds } from "sdai/src/ISUsds.sol";
 
 import { Ethereum } from "spark-address-registry/Ethereum.sol";
 
-import { Bridge }                from "xchain-helpers/testing/Bridge.sol";
-import { CCTPForwarder }         from "xchain-helpers/forwarders/CCTPForwarder.sol";
-import { Domain, DomainHelpers } from "xchain-helpers/testing/Domain.sol";
+import { CCTPForwarder } from "xchain-helpers/forwarders/CCTPForwarder.sol";
+import { DomainHelpers } from "xchain-helpers/testing/Domain.sol";
 
 import { MainnetControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
@@ -110,7 +109,6 @@ contract ForkTestBase is DssTest {
 
     address constant LOG = 0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F;
 
-    address constant CCTP_MESSENGER = Ethereum.CCTP_TOKEN_MESSENGER;
     address constant DAI_USDS       = Ethereum.DAI_USDS;
     address constant ETHENA_MINTER  = Ethereum.ETHENA_MINTER;
     address constant PAUSE_PROXY    = Ethereum.PAUSE_PROXY;
@@ -147,14 +145,6 @@ contract ForkTestBase is DssTest {
     address vault;
 
     /**********************************************************************************************/
-    /*** Bridging setup                                                                         ***/
-    /**********************************************************************************************/
-
-    Bridge bridge;
-    Domain source;
-    Domain destination;
-
-    /**********************************************************************************************/
     /*** Cached mainnet state variables                                                         ***/
     /**********************************************************************************************/
 
@@ -174,7 +164,7 @@ contract ForkTestBase is DssTest {
 
         /*** Step 1: Set up environment, cast addresses ***/
 
-        source = getChain("mainnet").createSelectFork(_getBlock());
+        getChain("mainnet").createSelectFork(_getBlock());
 
         dss = MCD.loadFromChainlog(LOG);
 
