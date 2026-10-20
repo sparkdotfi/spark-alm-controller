@@ -17,7 +17,7 @@ import { IRateLimits } from "./interfaces/IRateLimits.sol";
 
 import { ApproveLib }                     from "./libraries/ApproveLib.sol";
 import { AaveLib }                        from "./libraries/AaveLib.sol";
-import { CCTPLib }                        from "./libraries/CCTPLib.sol";
+import { CCTPV2Lib }                      from "./libraries/CCTPV2Lib.sol";
 import { CurveLib }                       from "./libraries/CurveLib.sol";
 import { ERC4626Lib }                     from "./libraries/ERC4626Lib.sol";
 import { LayerZeroLib }                   from "./libraries/LayerZeroLib.sol";
@@ -159,8 +159,8 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     bytes32 public LIMIT_UNISWAP_V4_DEPOSIT      = UniswapV4Lib.LIMIT_DEPOSIT;
     bytes32 public LIMIT_UNISWAP_V4_WITHDRAW     = UniswapV4Lib.LIMIT_WITHDRAW;
     bytes32 public LIMIT_UNISWAP_V4_SWAP         = UniswapV4Lib.LIMIT_SWAP;
-    bytes32 public LIMIT_USDC_TO_CCTP            = CCTPLib.LIMIT_TO_CCTP;
-    bytes32 public LIMIT_USDC_TO_DOMAIN          = CCTPLib.LIMIT_TO_DOMAIN;
+    bytes32 public LIMIT_USDC_TO_CCTP            = CCTPV2Lib.LIMIT_TO_CCTP;
+    bytes32 public LIMIT_USDC_TO_DOMAIN          = CCTPV2Lib.LIMIT_TO_DOMAIN;
     bytes32 public LIMIT_USDE_BURN               = keccak256("LIMIT_USDE_BURN");
     bytes32 public LIMIT_USDE_MINT               = keccak256("LIMIT_USDE_MINT");
     bytes32 public LIMIT_USDS_MINT               = keccak256("LIMIT_USDS_MINT");
@@ -255,7 +255,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
 
     function setCCTPMaxFeeRate(uint256 maxFeeRate) external nonReentrant {
         _checkRole(DEFAULT_ADMIN_ROLE);
-        require(maxFeeRate <= 10_000, "MC/cctp-max-fee-rate-too-high");
+        require(maxFeeRate < 10_000, "MC/cctp-max-fee-rate-too-high");
         emit CCTPMaxFeeRateSet(cctpMaxFeeRate = maxFeeRate);
     }
 
@@ -1031,7 +1031,7 @@ contract MainnetController is ReentrancyGuard, AccessControlEnumerable {
     {
         _checkRole(RELAYER);
 
-        CCTPLib.transfer({
+        CCTPV2Lib.transfer({
             proxy             : address(proxy),
             rateLimits        : address(rateLimits),
             cctp              : cctp,

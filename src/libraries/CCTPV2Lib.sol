@@ -6,7 +6,7 @@ import { IALMProxy }   from "../interfaces/IALMProxy.sol";
 
 import { RateLimitHelpers } from "../RateLimitHelpers.sol";
 
-interface ICCTPLike {
+interface ICCTPV2Like {
 
     function depositForBurn(
         uint256 amount,
@@ -35,7 +35,7 @@ interface IERC20Like {
 }
 
 // NOTE: This library makes the assumption that the token is USDC.
-library CCTPLib {
+library CCTPV2Lib {
 
     /**********************************************************************************************/
     /*** Events                                                                                 ***/
@@ -84,14 +84,14 @@ library CCTPLib {
 
         bytes32 recipient = mintRecipients[destinationDomain];
 
-        require(recipient != 0, "CCTPLib/domain-not-configured");
+        require(recipient != 0, "MC/domain-not-configured");
 
         // Approve USDC to CCTP from the proxy (assumes the proxy has enough USDC).
         _approve(proxy, usdc, cctp, usdcAmount);
 
         // If amount is larger than limit it must be split into multiple calls.
         uint256 burnLimit =
-            ICCTPTokenMinterLike(ICCTPLike(cctp).localMinter()).burnLimitsPerMessage(usdc);
+            ICCTPTokenMinterLike(ICCTPV2Like(cctp).localMinter()).burnLimitsPerMessage(usdc);
 
         while (usdcAmount > 0) {
             uint256 amount = usdcAmount > burnLimit ? burnLimit : usdcAmount;
@@ -134,7 +134,7 @@ library CCTPLib {
         IALMProxy(proxy).doCall(
             cctp,
             abi.encodeCall(
-                ICCTPLike.depositForBurn,
+                ICCTPV2Like.depositForBurn,
                 (
                     usdcAmount,
                     destinationDomain,

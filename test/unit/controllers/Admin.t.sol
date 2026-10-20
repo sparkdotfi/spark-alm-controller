@@ -6,7 +6,7 @@ import { IERC20Metadata }  from "../../../lib/openzeppelin-contracts/contracts/t
 import { IERC4626 }        from "../../../lib/openzeppelin-contracts/contracts/interfaces/IERC4626.sol";
 import { ReentrancyGuard } from "../../../lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-import { CCTPLib } from "../../../src/libraries/CCTPLib.sol";
+import { CCTPV2Lib } from "../../../src/libraries/CCTPV2Lib.sol";
 
 import { ForeignController } from "../../../src/ForeignController.sol";
 import { MainnetController } from "../../../src/MainnetController.sol";
@@ -78,10 +78,10 @@ contract MainnetController_Admin_SetCCTPMaxFeeRate_Tests is MainnetControllerAdm
         vm.expectRevert("MC/cctp-max-fee-rate-too-high");
 
         vm.prank(admin);
-        mainnetController.setCCTPMaxFeeRate(10_001);
+        mainnetController.setCCTPMaxFeeRate(10_000);
 
         vm.prank(admin);
-        mainnetController.setCCTPMaxFeeRate(10_000);
+        mainnetController.setCCTPMaxFeeRate(9_999);
     }
 
     function test_setCCTPMaxFeeRate() external {
