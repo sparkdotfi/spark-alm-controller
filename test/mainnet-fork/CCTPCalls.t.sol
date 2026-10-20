@@ -16,7 +16,7 @@ import { ForeignControllerDeploy } from "../../deploy/ControllerDeploy.sol";
 import { ControllerInstance }      from "../../deploy/ControllerInstance.sol";
 import { ForeignControllerInit }   from "../../deploy/ForeignControllerInit.sol";
 
-import { CCTPLib } from "../../src/libraries/CCTPLib.sol";
+import { CCTPV2Lib } from "../../src/libraries/CCTPV2Lib.sol";
 
 import { ALMProxy }          from "../../src/ALMProxy.sol";
 import { ForeignController } from "../../src/ForeignController.sol";
@@ -205,7 +205,7 @@ contract MainnetController_CCTP_Transfer_Tests is ForkTestBase {
 
         vm.stopPrank();
 
-        vm.expectRevert("CCTPLib/domain-not-configured");
+        vm.expectRevert("MC/domain-not-configured");
         vm.prank(relayer);
         mainnetController.transferUSDCToCCTP(1e6, CCTPForwarder.DOMAIN_ID_CIRCLE_ARBITRUM_ONE);
     }
@@ -749,7 +749,7 @@ contract CCTP_Transfer_IntegrationTests is BaseChain_CCTP_TestBase {
         );
 
         vm.expectEmit(address(mainnetController));
-        emit CCTPLib.CCTPTransferInitiated(
+        emit CCTPV2Lib.CCTPTransferInitiated(
             CCTPForwarder.DOMAIN_ID_CIRCLE_BASE,
             mainnetController.mintRecipients(CCTPForwarder.DOMAIN_ID_CIRCLE_BASE),
             amount
