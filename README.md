@@ -122,10 +122,34 @@ See [Security Documentation](./docs/SECURITY.md) for complete trust assumptions 
 
 ### Audits
 
-Audit reports are available in the [`audits/`](./audits/) directory. The system has been audited by:
-- Cantina
-- ChainSecurity
-- Certora
+Audit reports are hosted on the auditors' public portfolio pages:
+
+| Auditor | Report | Version | Date |
+| --- | --- | --- | --- |
+| ChainSecurity | [Spark ALM Controller v1.11](https://www.chainsecurity.com/security-audit/spark-alm-controller-v1-11/) | - | 2026-10-21 |
+| Cantina | [Sky: CCTPV2](https://cantina.xyz/portfolio/bc8fb0e1-9c49-425a-bf14-9fd3c5512aa7) | - | 2026-10-10 |
+| ChainSecurity | [Spark ALM Controller Diff Audit](https://www.chainsecurity.com/security-audit/spark-alm-controller-diff-audit/) | v1.10.0 | 2026-02-17 |
+| Cantina | [Sky: Spark ALM Controller](https://cantina.xyz/portfolio/9a0dd836-1a9d-4e1b-98af-9d6238185e02) | v1.10.0 | 2026-02-09 |
+| Cantina | [Sky: Spark ALM Controller v1.8](https://cantina.xyz/portfolio/f5d91713-c9bd-4ed3-966e-f933d4c2f70d) | v1.8.0 | 2025-10-22 |
+| ChainSecurity | [Spark ALM Controller](https://www.chainsecurity.com/security-audit/spark-alm-controller/) | v1.0.0, v1.1.0, v1.3.0, v1.4.0, v1.5.0, v1.6.0, v1.7.0 | 2025-09-11 |
+| Cantina | [Sky Spark ALM Controller](https://cantina.xyz/portfolio/288f500d-3cd1-43af-9690-7690273f3e80) | v1.7.0 | 2025-09-01 |
+| Cantina | [Spark ALM Controller](https://cantina.xyz/portfolio/95632465-f6a2-43c2-8729-d26a718e6b9a) | v1.6.0 | 2025-08-08 |
+| Cantina | [spark-alm-controller v1.5.0-beta.0](https://cantina.xyz/portfolio/af3b40b6-840a-45ef-93dd-b3f0e0ec2dac) | v1.5.0 | 2025-07-07 |
+| Cantina | [Spark ALM Curve Controller Audit for MakerDAO](https://cantina.xyz/portfolio/c5408301-e8d5-4d84-b758-ac8d1f4d987f) | v1.4.0 | 2025-03-21 |
+| Cantina | [MakerDAO Spark ALM Init Script Audit](https://cantina.xyz/portfolio/ba3e40ff-baf9-4def-8ae0-21f4a9473184) | v1.0.0 | 2024-10-18 |
+| Cantina | [Spark ALM CCTP & Swap Logic Audit](https://cantina.xyz/portfolio/6e9c7968-9565-4b05-a8f2-f41ddc64ec27) | v1.0.0 | 2024-09-19 |
+
+ChainSecurity reports are cumulative: each portfolio page hosts the latest version of the report, which covers all previously reviewed versions.
+
+#### Other reports
+
+The following reports are not available on an auditor portfolio page and are kept in this repository:
+
+- [Cantina v1.1.0](./audits/v110-cantina-audit.pdf)
+- [Cantina v1.3.0](./audits/v130-cantina-audit.pdf)
+- [Certora v1.8.0](./audits/v180-certora-audit.pdf)
+- [Cantina v1.9.0](./audits/v190-cantina-audit.pdf)
+- [Certora v1.9.0](./audits/v190-certora-audit.pdf)
 
 ---
 
