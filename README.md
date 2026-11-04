@@ -126,8 +126,8 @@ Audit reports are hosted on the auditors' public portfolio pages:
 
 | Auditor | Report | Version | Date |
 | --- | --- | --- | --- |
-| ChainSecurity | [Spark ALM Controller v1.11](https://www.chainsecurity.com/security-audit/spark-alm-controller-v1-11/) | - | 2026-10-21 |
-| Cantina | [Sky: CCTPV2](https://cantina.xyz/portfolio/bc8fb0e1-9c49-425a-bf14-9fd3c5512aa7) | - | 2026-10-10 |
+| ChainSecurity | [Spark ALM Controller v1.11](https://www.chainsecurity.com/security-audit/spark-alm-controller-v1-11/) | v1.11.0 | 2026-10-21 |
+| Cantina | [Sky: CCTPV2](https://cantina.xyz/portfolio/bc8fb0e1-9c49-425a-bf14-9fd3c5512aa7) | v1.11.0 | 2026-10-10 |
 | ChainSecurity | [Spark ALM Controller Diff Audit](https://www.chainsecurity.com/security-audit/spark-alm-controller-diff-audit/) | v1.10.0 | 2026-02-17 |
 | Cantina | [Sky: Spark ALM Controller](https://cantina.xyz/portfolio/9a0dd836-1a9d-4e1b-98af-9d6238185e02) | v1.10.0 | 2026-02-09 |
 | Cantina | [Sky: Spark ALM Controller v1.8](https://cantina.xyz/portfolio/f5d91713-c9bd-4ed3-966e-f933d4c2f70d) | v1.8.0 | 2025-10-22 |
