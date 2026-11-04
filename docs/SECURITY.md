@@ -109,7 +109,7 @@ For detailed operational requirements including seeding, configuration, and onbo
 
 ## Audits
 
-Audit reports are available in the [`audits/`](../audits/) directory. The system has been audited by:
+Audit reports are listed in the [README](../README.md#audits), with links to the auditors' public portfolio pages (ChainSecurity, Cantina). Reports without a portfolio page are kept in the [`audits/`](../audits/) directory. The system has been audited by:
 
 - Cantina
 - ChainSecurity
